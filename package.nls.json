@@ -1,0 +1,11 @@
+{
+  "extension.displayName": "Ganttee",
+  "extension.description": "Gantt chart editor",
+  "customEditor.chartEditor.displayName": "Gantt Chart",
+  "viewsContainer.ganttee.title": "Ganttee",
+  "view.explorer.name": "Tasks",
+  "command.newTask.title": "New Task",
+  "command.editTask.title": "Edit Task",
+  "command.deleteTask.title": "Delete Task",
+  "command.refreshExplorer.title": "Refresh"
+}

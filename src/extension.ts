@@ -31,7 +31,10 @@ function registerCommands(
   store: GanttStore,
   explorer: GanttExplorerProvider,
 ): void {
-  const register = (command: string, handler: (...args: unknown[]) => unknown) =>
+  const register = (
+    command: string,
+    handler: (...args: unknown[]) => unknown,
+  ) =>
     context.subscriptions.push(
       vscode.commands.registerCommand(command, handler),
     );
@@ -48,7 +51,7 @@ function registerCommands(
     const controller = store.active;
     if (!controller) {
       void vscode.window.showInformationMessage(
-        "Open a Gantt chart to add a task.",
+        vscode.l10n.t("Open a Gantt chart to add a task."),
       );
       return;
     }
@@ -69,12 +72,13 @@ function registerCommands(
     if (!taskId) {
       return;
     }
+    const deleteLabel = vscode.l10n.t("Delete");
     const confirmation = await vscode.window.showWarningMessage(
-      "Delete this task?",
+      vscode.l10n.t("Delete this task?"),
       { modal: true },
-      "Delete",
+      deleteLabel,
     );
-    if (confirmation === "Delete") {
+    if (confirmation === deleteLabel) {
       await store.active?.deleteTask(taskId);
     }
   });
