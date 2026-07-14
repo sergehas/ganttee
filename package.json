@@ -1,7 +1,7 @@
 {
   "name": "ganttee",
-  "displayName": "Ganttee",
-  "description": "Gantt chart editor",
+  "displayName": "%extension.displayName%",
+  "description": "%extension.description%",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.125.0"
@@ -12,11 +12,12 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
+  "l10n": "./l10n",
   "contributes": {
     "customEditors": [
       {
         "viewType": "ganttee.chartEditor",
-        "displayName": "Gantt Chart",
+        "displayName": "%customEditor.chartEditor.displayName%",
         "selector": [
           {
             "filenamePattern": "*.ganttee"
@@ -29,7 +30,7 @@
       "activitybar": [
         {
           "id": "ganttee",
-          "title": "Ganttee",
+          "title": "%viewsContainer.ganttee.title%",
           "icon": "media/ganttee.svg"
         }
       ]
@@ -38,8 +39,8 @@
       "ganttee": [
         {
           "id": "ganttee.explorer",
-          "name": "Tasks",
-          "contextualTitle": "Ganttee",
+          "name": "%view.explorer.name%",
+          "contextualTitle": "%viewsContainer.ganttee.title%",
           "icon": "media/ganttee.svg"
         }
       ]
@@ -47,26 +48,26 @@
     "commands": [
       {
         "command": "ganttee.newTask",
-        "title": "New Task",
-        "category": "Ganttee",
+        "title": "%command.newTask.title%",
+        "category": "%extension.displayName%",
         "icon": "$(add)"
       },
       {
         "command": "ganttee.editTask",
-        "title": "Edit Task",
-        "category": "Ganttee",
+        "title": "%command.editTask.title%",
+        "category": "%extension.displayName%",
         "icon": "$(edit)"
       },
       {
         "command": "ganttee.deleteTask",
-        "title": "Delete Task",
-        "category": "Ganttee",
+        "title": "%command.deleteTask.title%",
+        "category": "%extension.displayName%",
         "icon": "$(trash)"
       },
       {
         "command": "ganttee.refreshExplorer",
-        "title": "Refresh",
-        "category": "Ganttee",
+        "title": "%command.refreshExplorer.title%",
+        "category": "%extension.displayName%",
         "icon": "$(refresh)"
       }
     ],

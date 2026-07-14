@@ -100,7 +100,7 @@ export class GanttEditorController {
   async addDependency(dependency: Dependency): Promise<boolean> {
     if (wouldCreateCycle(this._model.dependencies, dependency)) {
       void vscode.window.showErrorMessage(
-        "Cannot add dependency: it would create a cycle.",
+        vscode.l10n.t("Cannot add dependency: it would create a cycle."),
       );
       return false;
     }
@@ -155,7 +155,9 @@ export class GanttEditorController {
       this._onDidChangeModel.fire();
     } catch (error) {
       if (error instanceof GanttParseError) {
-        void vscode.window.showErrorMessage(`Ganttee: ${error.message}`);
+        void vscode.window.showErrorMessage(
+          vscode.l10n.t("Ganttee: {0}", error.message),
+        );
         return;
       }
       throw error;
