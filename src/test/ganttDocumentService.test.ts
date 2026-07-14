@@ -1,0 +1,75 @@
+import * as assert from "assert";
+import { CURRENT_DOCUMENT_VERSION } from "../common/models";
+import {
+  GanttParseError,
+  parseDocument,
+  serializeDocument,
+} from "../services/ganttDocumentService";
+
+suite("ganttDocumentService", () => {
+  test("parses an empty string into an empty document", () => {
+    const document = parseDocument("");
+    assert.strictEqual(document.version, CURRENT_DOCUMENT_VERSION);
+    assert.deepStrictEqual(document.tasks, []);
+    assert.deepStrictEqual(document.dependencies, []);
+  });
+
+  test("round-trips a document through serialize and parse", () => {
+    const document = parseDocument(
+      JSON.stringify({
+        version: 1,
+        tasks: [
+          {
+            id: "t1",
+            title: "Design",
+            start: "2026-01-01",
+            end: "2026-01-05",
+            progress: 0.5,
+            status: "inProgress",
+          },
+        ],
+        groups: [{ id: "g1", name: "Phase 1" }],
+        milestones: [{ id: "m1", title: "Kickoff", date: "2026-01-01" }],
+        dependencies: [
+          { id: "d1", sourceId: "t1", targetId: "t1", type: "startAfter" },
+        ],
+      }),
+    );
+
+    const reparsed = parseDocument(serializeDocument(document));
+    assert.deepStrictEqual(reparsed, document);
+  });
+
+  test("throws GanttParseError on invalid JSON", () => {
+    assert.throws(() => parseDocument("{ not json"), GanttParseError);
+  });
+
+  test("throws GanttParseError when a required field is missing", () => {
+    const text = JSON.stringify({ tasks: [{ id: "t1", title: "No dates" }] });
+    assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("rejects a non-ISO date", () => {
+    const text = JSON.stringify({
+      tasks: [
+        { id: "t1", title: "Bad", start: "01/01/2026", end: "2026-01-02" },
+      ],
+    });
+    assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("clamps progress into the 0..1 range", () => {
+    const text = JSON.stringify({
+      tasks: [
+        {
+          id: "t1",
+          title: "Over",
+          start: "2026-01-01",
+          end: "2026-01-02",
+          progress: 5,
+        },
+      ],
+    });
+    assert.strictEqual(parseDocument(text).tasks[0].progress, 1);
+  });
+});

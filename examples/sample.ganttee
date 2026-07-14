@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "task-design",
+      "title": "Design",
+      "start": "2026-01-05",
+      "end": "2026-01-12",
+      "description": "Wireframes and visual design.",
+      "progress": 1,
+      "status": "done",
+      "groupId": "group-discovery"
+    },
+    {
+      "id": "task-build",
+      "title": "Build",
+      "start": "2026-01-13",
+      "end": "2026-01-27",
+      "progress": 0.4,
+      "status": "inProgress",
+      "groupId": "group-delivery"
+    },
+    {
+      "id": "task-test",
+      "title": "Test",
+      "start": "2026-01-28",
+      "end": "2026-02-04",
+      "progress": 0,
+      "status": "todo",
+      "groupId": "group-delivery"
+    },
+    {
+      "id": "task-9kcoliei",
+      "title": "New Task",
+      "start": "2026-07-14",
+      "end": "2026-07-17",
+      "progress": 0,
+      "status": "todo"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group-discovery",
+      "name": "Discovery"
+    },
+    {
+      "id": "group-delivery",
+      "name": "Delivery"
+    }
+  ],
+  "milestones": [
+    {
+      "id": "milestone-launch",
+      "title": "Launch",
+      "date": "2026-02-05"
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "dep-1",
+      "sourceId": "task-design",
+      "targetId": "task-build",
+      "type": "startAfter"
+    },
+    {
+      "id": "dep-2",
+      "sourceId": "task-build",
+      "targetId": "task-test",
+      "type": "startAfter"
+    },
+    {
+      "id": "dep-njcewa6q",
+      "sourceId": "task-9kcoliei",
+      "targetId": "task-test",
+      "type": "startAfter"
+    }
+  ]
+}

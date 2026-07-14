@@ -1,0 +1,137 @@
+{
+  "name": "ganttee",
+  "displayName": "Ganttee",
+  "description": "Gantt chart editor",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.125.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "ganttee.chartEditor",
+        "displayName": "Gantt Chart",
+        "selector": [
+          {
+            "filenamePattern": "*.ganttee"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ganttee",
+          "title": "Ganttee",
+          "icon": "media/ganttee.svg"
+        }
+      ]
+    },
+    "views": {
+      "ganttee": [
+        {
+          "id": "ganttee.explorer",
+          "name": "Tasks",
+          "contextualTitle": "Ganttee",
+          "icon": "media/ganttee.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "ganttee.newTask",
+        "title": "New Task",
+        "category": "Ganttee",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ganttee.editTask",
+        "title": "Edit Task",
+        "category": "Ganttee",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "ganttee.deleteTask",
+        "title": "Delete Task",
+        "category": "Ganttee",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ganttee.refreshExplorer",
+        "title": "Refresh",
+        "category": "Ganttee",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "ganttee.newTask",
+          "when": "view == ganttee.explorer",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ganttee.refreshExplorer",
+          "when": "view == ganttee.explorer",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ganttee.editTask",
+          "when": "view == ganttee.explorer && viewItem == ganttee.task",
+          "group": "inline@1"
+        },
+        {
+          "command": "ganttee.deleteTask",
+          "when": "view == ganttee.explorer && viewItem == ganttee.task",
+          "group": "1_modification@1"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit && tsc --noEmit --project tsconfig.webview.json",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "dependencies": {
+    "echarts": "^5.5.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.125.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "24.x",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "typescript-eslint": "^8.61.1",
+    "eslint": "^10.5.0",
+    "esbuild": "^0.28.1",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^6.0.3",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0"
+  },
+  "overrides": {
+    "diff": "^8.0.4",
+    "serialize-javascript": "^7.0.6"
+  }
+}
