@@ -21,22 +21,25 @@ case where a task is defined by start date + end date).
 ### Dependency
 
 Dependencies are constraints to apply. A dependency is a directed edge from a
-`source` to a `target`. For each dependency type, exactly one endpoint is the
-**owner** (the entity whose date the dependency constrains); the other is the
-**anchor** (the referenced entity).
+`source` to a `target`. The **owner** (the entity whose date the dependency
+constrains) is **always the `source`**; the **anchor** (the referenced entity) is
+**always the `target`**. This single convention holds for every dependency type.
 
-| Type         | Class   | Owner  | Anchor | Temporal constraint                                          |
-| ------------ | ------- | ------ | ------ | ------------------------------------------------------------ |
-| `startAfter` | direct  | target | source | `target.start ≥ source.end` (finish-to-start)                |
-| `startWith`  | direct  | target | source | `target.start ≥ source.start` (start-to-start)               |
-| `endWith`    | reverse | source | target | `source.end` aligned to `target.end` (finish-to-finish)      |
-| `endBefore`  | reverse | source | target | `source.end ≤ target.start` (finish-to-start, reverse-owned) |
+| Type         | Class   | Owner  | Anchor | Temporal constraint                                     |
+| ------------ | ------- | ------ | ------ | ------------------------------------------------------- |
+| `startAfter` | direct  | source | target | `source.start ≥ target.end` (finish-to-start)           |
+| `startWith`  | direct  | source | target | `source.start ≥ target.start` (start-to-start)          |
+| `endWith`    | reverse | source | target | `source.end` aligned to `target.end` (finish-to-finish) |
+| `endBefore`  | reverse | source | target | `source.end ≤ target.start` (finish-to-start)           |
 
-> Note (design): direct dependencies constrain the **target**, reverse
-> dependencies constrain the **source**. This asymmetry is intentional but
-> error-prone; see Open Questions.
+Because the owner is always the source, the direct/reverse distinction only
+changes _which_ endpoint (start vs end) of the owner is constrained, never the
+owner role itself.
 
 `endWith` is renamed from `finishWith`; `endBefore` is renamed from `finishAfter`.
+The rename is accompanied by a `sourceId`/`targetId` swap in existing documents so
+that the owner (dependent entity) becomes the source — see the dependency-type
+rename specification.
 
 Groups cannot have dependencies (group dependency management may be implemented
 later).
@@ -45,16 +48,18 @@ later).
 
 A task scheduling supports 3 kinds of constraint:
 
-* **start date** — defined by exactly one of:
-  * a user-defined static start date, or
-  * one or more direct dependencies (`startWith`, `startAfter`); the effective
+- **start date** — defined by exactly one of:
+  - a user-defined static start date, or
+  - one or more direct dependencies (`startWith`, `startAfter`); the effective
     start is the `max` across them.
-* **duration** — a user-defined static duration (decimal number, in days). Only a
+- **duration** — a user-defined static duration (decimal number, in days). Only a
   static value; never dependency-defined.
-* **end date** — defined by exactly one of:
-  * a user-defined static end date, or
-  * one or more reverse dependencies (`endWith`, `endBefore`); the effective end
+- **end date** — defined by exactly one of:
+  - a user-defined static end date, or
+  - one or more reverse dependencies, all of the **same** type; the effective end
     is the aggregate (`max` for `endWith`, `min` for `endBefore`) across them.
+    Mixing `endWith` and `endBefore` on the same task is rejected (a conflicting
+    over-/under-constraint of the end).
 
 When defining a task, **exactly 2** of {start date, duration, end date} must be
 set. Setting fewer than 2 (under-constrained) or more than 2 (hyperstatic) is
@@ -64,16 +69,21 @@ rejected.
 
 A milestone is a specialization of a task. Key differences:
 
-* `duration` is `0` (enforced, not editable).
-* `startDate` and `endDate` are equal and exposed as the `date` property;
+- `duration` is `0` (enforced, not editable).
+- `startDate` and `endDate` are equal and exposed as the `date` property;
   references to `endDate`/`startDate` are aliases of `date`.
 
 A milestone's schedule is defined by a single property, `date`, defined by exactly
 one of:
 
-* a user-defined static date, or
-* one or more direct dependencies (`startWith`, `startAfter`); effective date is
+- a user-defined static date, or
+- one or more direct dependencies (`startWith`, `startAfter`); effective date is
   the `max` across them.
+
+A milestone may be the **anchor** (`target`) of any dependency — other entities can
+reference its date — but it can never be the **owner** (`source`) of a reverse
+dependency (`endWith`, `endBefore`), because its end is not independently
+constrained (`end = date`).
 
 ### Group
 
@@ -92,10 +102,10 @@ via graph traversal.
 
 ### Loading the graph
 
-* Tasks, milestones and groups are vertices.
-* Scheduling dependencies are edges, each with a type (`startAfter`, `startWith`,
+- Tasks, milestones and groups are vertices.
+- Scheduling dependencies are edges, each with a type (`startAfter`, `startWith`,
   `endWith`, `endBefore`) as defined in [Dependency](#dependency).
-* Group membership is an edge of type `ownedBy`: each task, milestone and group
+- Group membership is an edge of type `ownedBy`: each task, milestone and group
   has 0 or 1 such edge; its target must be a group. `ownedBy` edges are excluded
   from cycle detection and from scheduling traversal.
 
@@ -103,13 +113,13 @@ via graph traversal.
 
 For scheduling and cycle detection, each scheduling dependency is normalized to a
 **precedence edge** `anchor ⟶ owner` (the anchor must be computed before the
-owner):
+owner). Since the owner is always the source and the anchor always the target,
+this is uniform for every dependency type:
 
-* direct (`startAfter`, `startWith`): `source ⟶ target`
-* reverse (`endWith`, `endBefore`): `target ⟶ source`
+- all types (`startAfter`, `startWith`, `endWith`, `endBefore`): `target ⟶ source`
 
 Cycle detection and topological ordering operate on this normalized precedence
-graph, not on raw `source → target` edges.
+graph.
 
 ### Cycle detection
 
@@ -118,23 +128,23 @@ the same vertex. Only scheduling dependencies are considered (not `ownedBy`).
 
 This cycle detection must be triggered when:
 
-* a dependency is added to a task or milestone: adding the dependency is rejected
+- a dependency is added to a task or milestone: adding the dependency is rejected
   (with an error message);
-* loading the graph: loading is cancelled (with an error message).
+- loading the graph: loading is cancelled (with an error message).
 
 ### Determinacy detection (hyperstaticity & under-constraint)
 
 Each task and milestone must have **exactly 2** scheduling constraints among
 {start date, duration, end date} (milestone: `duration = 0` fixed + `date`).
 
-* More than 2 → **hyperstatic**, rejected.
-* Fewer than 2 → **under-constrained**, rejected.
-* Groups are exempt (no static constraints).
+- More than 2 → **hyperstatic**, rejected.
+- Fewer than 2 → **under-constrained**, rejected.
+- Groups are exempt (no static constraints).
 
 This detection must be triggered when:
 
-* a task/milestone is authored: the change is rejected (with an error message);
-* loading the graph: loading is cancelled (with an error message).
+- a task/milestone is authored: the change is rejected (with an error message);
+- loading the graph: loading is cancelled (with an error message).
 
 ### Anchor requirement
 
@@ -150,9 +160,22 @@ Compute the effective dates and duration (preparing data for graphical display).
 
 #### Representation
 
-Dates are handled internally as integer epoch-days for O(1) arithmetic; ISO date
-strings are parsed once at load. Decimal-day durations follow the rounding policy
-defined by the scheduling data-model specification.
+Dates are handled internally as epoch-days for O(1) arithmetic; ISO date strings
+are parsed once at load. Durations are expressed in **working days** and computed
+values retain **fractional precision** (no rounding). User-entered static dates are
+whole days; a static date may fall on a non-working day (allowed as-is in this
+phase).
+
+#### Working-day calendar
+
+Durations are measured in working days, so date arithmetic skips non-working days.
+For this phase, **Saturday and Sunday are non-working**; all other days are
+working. Examples (whole-day durations): Friday + 1 working day = Monday.
+Fractional working days advance within a working day and roll to the next working
+day when they cross a day boundary (e.g. Friday 09:00 + 1.5 working days lands
+midday Monday). A future requirement will let a Gantt project configure its
+working days / days off per week at the top level of the `.ganttee` file; until
+then the Saturday/Sunday rule is fixed.
 
 #### Algorithm (topological constraint propagation)
 
@@ -175,21 +198,27 @@ single pass converges even when a vertex has multiple incoming constraints.
 
 #### Setting effectivities
 
-`effectiveDuration = duration` when user-set, else `effectiveEndDate −effectiveStartDate`.
- Milestones: `effectiveDuration = 0`,`effectiveStartDate = effectiveEndDate = effectiveDate`.
+`effectiveDuration = duration` when user-set, else `effectiveEndDate − effectiveStartDate`. Milestones: `effectiveDuration = 0`,
+`effectiveStartDate = effectiveEndDate = effectiveDate`. All date arithmetic uses
+the working-day calendar (add/subtract working days, skipping non-working days).
 
-##### Direct dependencies (owner = target)
+The owner is always the `source` and the anchor always the `target`.
 
-* `startAfter`: `target.effectiveStartDate = max(existing, source.effectiveEndDate)`;
-  `target.effectiveEndDate = target.effectiveStartDate + effectiveDuration`.
-* `startWith`: `target.effectiveStartDate = max(existing, source.effectiveStartDate)`;
-  `target.effectiveEndDate = target.effectiveStartDate + effectiveDuration`.
+##### Direct dependencies (constrain the owner's start)
 
-##### Reverse dependencies (owner = source)
+- `startAfter`: `source.effectiveStartDate = max(existing, target.effectiveEndDate)`;
+  `source.effectiveEndDate = source.effectiveStartDate + effectiveDuration`.
+- `startWith`: `source.effectiveStartDate = max(existing, target.effectiveStartDate)`;
+  `source.effectiveEndDate = source.effectiveStartDate + effectiveDuration`.
 
-* `endWith`: `source.effectiveEndDate = max(existing, target.effectiveEndDate)`;
+##### Reverse dependencies (constrain the owner's end)
+
+All reverse dependencies on a given owner must be the same type (mixing is
+rejected; see [Task](#task)).
+
+- `endWith`: `source.effectiveEndDate = max(existing, target.effectiveEndDate)`;
   `source.effectiveStartDate = source.effectiveEndDate − effectiveDuration`.
-* `endBefore`: `source.effectiveEndDate = min(existing, target.effectiveStartDate)`;
+- `endBefore`: `source.effectiveEndDate = min(existing, target.effectiveStartDate)`;
   `source.effectiveStartDate = source.effectiveEndDate − effectiveDuration`.
 
 #### Group rollup
@@ -201,10 +230,9 @@ For each group, in post-order over the `ownedBy` tree:
 
 ## Open questions
 
-* Should start/end aggregation stay asymmetric per type (`max` for start deps,
-  `max`/`min` for end deps), and should we allow multiple end dependencies?
-* Decimal-day duration rounding policy; is a working-day calendar out of scope for
-  this phase?
-* Should the direct/reverse owner asymmetry be normalized in storage so the owner
-  role is consistent across all dependency kinds?
-* Can a milestone be the target (anchor) of a reverse dependency?
+- Fractional working-day arithmetic needs a precise convention (how a partial
+  working day maps onto the calendar) — to be pinned down in the scheduling engine.
+- Should a user-entered static date that falls on a non-working day stay as-is
+  (current assumption) or snap to the next working day?
+- The future project-level working-days / days-off configuration (schema shape and
+  defaults) is deferred to a later requirement.
