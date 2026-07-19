@@ -1,138 +1,210 @@
 # Feature: Gantt graph structure
 
-## summary
+## Summary
 
-the purpose of this feature is to abstract in memory representation of a Gantt graph.
-It focuses on scheduling (date/duration) data.
-It does not affect other attributes
+The purpose of this feature is an abstract in-memory representation of a Gantt
+graph. It focuses on scheduling (date/duration) data. It does not affect other
+attributes. It also defines the structure and constraints applicable to all task
+kinds.
 
-It also defined the structure & constrain applicable to all task kind.
+To segregate user-input schedule data (start date, end date, duration) from
+computed data, the in-memory representation of Task, Milestone and Group exposes
+accessors prefixed with `effective` (`effectiveStartDate`, `effectiveEndDate`,
+`effectiveDate` — milestone only, `effectiveDuration`).
 
-To Segregate user input schedule data (end/start date, duration -immutable a computation time-) from computed data, in memory representation of Task, Milestone and group expose accessors prefixed with 'effective' (effectiveEndDate, effectiveStartDate, effectiveDate -for milestone only-, effectiveDuration)
+`effectiveDuration` is derived: it equals the user-defined `duration` when one is
+set, otherwise it is computed as `effectiveEndDate − effectiveStartDate` (the
+case where a task is defined by start date + end date).
 
 ## Entities definitions
 
-### dependency
+### Dependency
 
-Dependencies are constrains to apply. "DependencyType" are:
+Dependencies are constraints to apply. A dependency is a directed edge from a
+`source` to a `target`. For each dependency type, exactly one endpoint is the
+**owner** (the entity whose date the dependency constrains); the other is the
+**anchor** (the referenced entity).
 
-* "startAfter": target starts when source ends (end-to-start). This is a **direct** constrain.
-* "startWith": target starts when source starts (start-to-start). This is a **direct** constrain.
-* "endWith" (to be renamed from "finishWith"): target ends when target ends (end-to-end). This is a **reverse** constrain.
-* "endBefore" (to be renamed from "finishAfter"): target ends when target starts (start-to-end). This is a **reverse** constrain.
+| Type         | Class   | Owner  | Anchor | Temporal constraint                                          |
+| ------------ | ------- | ------ | ------ | ------------------------------------------------------------ |
+| `startAfter` | direct  | target | source | `target.start ≥ source.end` (finish-to-start)                |
+| `startWith`  | direct  | target | source | `target.start ≥ source.start` (start-to-start)               |
+| `endWith`    | reverse | source | target | `source.end` aligned to `target.end` (finish-to-finish)      |
+| `endBefore`  | reverse | source | target | `source.end ≤ target.start` (finish-to-start, reverse-owned) |
 
-Group cannot have dependency (NB: group dependency management feature may be implemented later)
+> Note (design): direct dependencies constrain the **target**, reverse
+> dependencies constrain the **source**. This asymmetry is intentional but
+> error-prone; see Open Questions.
+
+`endWith` is renamed from `finishWith`; `endBefore` is renamed from `finishAfter`.
+
+Groups cannot have dependencies (group dependency management may be implemented
+later).
 
 ### Task
 
-a task scheduling support 3 types of constrain:
+A task scheduling supports 3 kinds of constraint:
 
-* start date
-  It can be defined by one (exactly) of the two:
-  * defined by a user defined static start date
-  * defined by one or more dependency ("startWith", "startAfter")
-* duration (new)
-  * defined by a user defined static duration (decimal number, in days)
-* end date
-  It can be defined by one (exactly) of the two:
-  * defined by a user defined static end date
-  * defined by one one dependency ("endWith", "endBefore")
+* **start date** — defined by exactly one of:
+  * a user-defined static start date, or
+  * one or more direct dependencies (`startWith`, `startAfter`); the effective
+    start is the `max` across them.
+* **duration** — a user-defined static duration (decimal number, in days). Only a
+  static value; never dependency-defined.
+* **end date** — defined by exactly one of:
+  * a user-defined static end date, or
+  * one or more reverse dependencies (`endWith`, `endBefore`); the effective end
+    is the aggregate (`max` for `endWith`, `min` for `endBefore`) across them.
 
-When defining a task, exactly 2 constrains must be set among start date, duration, end date
+When defining a task, **exactly 2** of {start date, duration, end date} must be
+set. Setting fewer than 2 (under-constrained) or more than 2 (hyperstatic) is
+rejected.
 
 ### Milestone
 
-A milestone is a specialization of a task.
-The Key difference are :
+A milestone is a specialization of a task. Key differences:
 
-* duration is 0 (enforced, not editable/modifiable)
-* "startDate" and "endDate" are the same (and exposed as `date` property): any references to "endDate" or  "startDate" are aliases to `date`
+* `duration` is `0` (enforced, not editable).
+* `startDate` and `endDate` are equal and exposed as the `date` property;
+  references to `endDate`/`startDate` are aliases of `date`.
 
-So a milestone scheduling is end user define by a single property:
+A milestone's schedule is defined by a single property, `date`, defined by exactly
+one of:
 
-* date
-  It can be defined by one (exotically) of the two:
-  * defined by a user defined static date
-  * defined by one or more dependency ("startWith", "startAfter")
+* a user-defined static date, or
+* one or more direct dependencies (`startWith`, `startAfter`); effective date is
+  the `max` across them.
 
 ### Group
 
-A group can contains multiple tasks, milestones or groups.
+A group can contain multiple tasks, milestones or groups. Each task, milestone or
+group belongs to 0 or 1 group.
 
-tasks, milestones or groups belong to 0 or 1 group.
-
-A group has no static (user defined) scheduling date. It only exposes 'effective' dates and duration
+A group has no static (user-defined) scheduling. It only exposes effective dates
+and duration, computed by rolling up its descendants (see Group rollup). The
+hyperstaticity/under-constraint rules do **not** apply to groups.
 
 ## In memory graph
 
-The in memory representation of a gantt char is a directed (sparse) graph.
-All scheduling computation (effective end/start date, effective duration computation) are done via graph traversal algorithms.
+The in-memory representation of a Gantt chart is a directed sparse graph. All
+scheduling computations (effective start/end date, effective duration) are done
+via graph traversal.
 
-### loading the graph
+### Loading the graph
 
-When creating the in memory graph :
+* Tasks, milestones and groups are vertices.
+* Scheduling dependencies are edges, each with a type (`startAfter`, `startWith`,
+  `endWith`, `endBefore`) as defined in [Dependency](#dependency).
+* Group membership is an edge of type `ownedBy`: each task, milestone and group
+  has 0 or 1 such edge; its target must be a group. `ownedBy` edges are excluded
+  from cycle detection and from scheduling traversal.
 
-* tasks, milestones and groups are vertices
-* scheduling dependency are edges
-  * each dependency has a type:
-    * `startAfter`: target starts after the source finishes (end-to-start)
-    * `startWith`: target starts when the source starts (start-to-start)
-    * `endWith`: target finishes when the source finishes. (end-to-end)
-    * `endBefore`: target finishes when the source finishes. (end-to-start)
-* group belonging are edges of type "ownedBy: task, milestone and group have 0 or 1 edge of this type. Target must be a group.
+### Temporal precedence normalization
 
-### cycle detection
+For scheduling and cycle detection, each scheduling dependency is normalized to a
+**precedence edge** `anchor ⟶ owner` (the anchor must be computed before the
+owner):
 
-A cycle is detected when a path starts and ends at the same vertex, following the direction of edges.
-Only "scheduling dependency" are considered. (so not ownBy dependencies).
+* direct (`startAfter`, `startWith`): `source ⟶ target`
+* reverse (`endWith`, `endBefore`): `target ⟶ source`
+
+Cycle detection and topological ordering operate on this normalized precedence
+graph, not on raw `source → target` edges.
+
+### Cycle detection
+
+A cycle exists when a path in the normalized precedence graph starts and ends at
+the same vertex. Only scheduling dependencies are considered (not `ownedBy`).
 
 This cycle detection must be triggered when:
 
-* a dependency is added to a task or milestone: adding the dependency is rejected (with a error message)
-* loading the graph: loading is canceled (with a error message)
+* a dependency is added to a task or milestone: adding the dependency is rejected
+  (with an error message);
+* loading the graph: loading is cancelled (with an error message).
 
-### "hyperstaticity" detection
+### Determinacy detection (hyperstaticity & under-constraint)
 
-hyperstaticity happens when a task, milestone or group have more than 2 scheduling constrains defined. see [Entities definitions](#entities-definitions) for rules on constrains.
+Each task and milestone must have **exactly 2** scheduling constraints among
+{start date, duration, end date} (milestone: `duration = 0` fixed + `date`).
 
-This hyperstaticity detection must be triggered when:
+* More than 2 → **hyperstatic**, rejected.
+* Fewer than 2 → **under-constrained**, rejected.
+* Groups are exempt (no static constraints).
 
-* a task/milestone/group is authored: adding the authored is rejected (with a error message)
-* loading the graph: loading is canceled (with a error message)
+This detection must be triggered when:
+
+* a task/milestone is authored: the change is rejected (with an error message);
+* loading the graph: loading is cancelled (with an error message).
+
+### Anchor requirement
+
+Every connected component of the scheduling graph must contain at least one vertex
+with an absolute (static) date (a static start date, end date, or milestone date).
+A component with no absolute anchor cannot be scheduled and is rejected on load.
 
 ### Scheduling computation
 
-#### purpose
+#### Purpose
 
- compute the effective dates and duration (preparing data for graphical display)
+Compute the effective dates and duration (preparing data for graphical display).
 
-#### principle
+#### Representation
 
-the approach is to start with the 'earliest' task then to compute scheduling by following the dependencies. Of course, some tasks may be then scheduled before this 'earliest task'.
+Dates are handled internally as integer epoch-days for O(1) arithmetic; ISO date
+strings are parsed once at load. Decimal-day durations follow the rounding policy
+defined by the scheduling data-model specification.
 
-1. 1st step is to detect subgraphs if any
-2. scheduling each subgraphs (or the 'only' graph if no subgraph):
-   1. pivot task / milestone: find (and tag as 'pivot') the task/milestone with the earliest 'start date'. it can be
-      * the task (wtr milestone) with the earliest `startDate`
-      * the task with the earliest `endDate` - `duration`
-   2. from that pivot task, start exploring the graph in both direction (BFS algo)
-      1. forward: dependencies where the target is the current task/milestone ("startWith", "startAfter"). On each task, set set effective start/end date & effective duration (detail bellow) for each task/milestone
-      2. backward: dependencies where the source is the current task/milestone ("endWith", "endBefore"). On each task, set set effective start/end date & effective duration (detail bellow) for each task/milestone
+#### Algorithm (topological constraint propagation)
 
-A the end (when alo is applied to all subgraph), all vertices should have been explored (and scheduled)at least once.
+The scheduling graph is guaranteed acyclic (cycle detection). Scheduling is a
+single-pass longest/shortest-path relaxation over the normalized precedence DAG:
+
+1. Build adjacency once. Detect connected components (union-find over scheduling
+   edges) and verify the anchor requirement per component.
+2. Compute a topological order of the normalized precedence DAG.
+3. Seed static values: for each vertex with a static start/end/date, set the
+   corresponding effective value.
+4. Process vertices in topological order. For each vertex, resolve its constrained
+   endpoint by aggregating all incoming constraints (see Setting effectivities),
+   then compute the complementary endpoint from `effectiveDuration`.
+5. After all tasks/milestones are scheduled, compute group effective dates by
+   post-order rollup over the `ownedBy` tree.
+
+Because vertices are processed only after all their precedence predecessors, a
+single pass converges even when a vertex has multiple incoming constraints.
 
 #### Setting effectivities
 
-By definition,  tasks & milestones a duration has always been defined. So `effectiveDuration` is an alias to `duration`
+`effectiveDuration = duration` when user-set, else `effectiveEndDate −effectiveStartDate`.
+ Milestones: `effectiveDuration = 0`,`effectiveStartDate = effectiveEndDate = effectiveDate`.
 
-##### when a task is the target of a dependency (forward traversal, direct dependencies)
+##### Direct dependencies (owner = target)
 
-* dependency type is 'startAfter': target `effectiveStartDate` is set to the max of target `effectiveStartDate` (if already set) and the dependency source `effectiveEndDate`. The current task's `effectiveEndDate` is set to `effectiveStartDate` + `duration`.
-* dependency type is 'startWith': target `effectiveStartDate` is set to the max of target `effectiveStartDate` (if already set) and the dependency source `effectiveStartDate`. The current task's `effectiveEndDate` is set to `effectiveStartDate` + `duration`.
+* `startAfter`: `target.effectiveStartDate = max(existing, source.effectiveEndDate)`;
+  `target.effectiveEndDate = target.effectiveStartDate + effectiveDuration`.
+* `startWith`: `target.effectiveStartDate = max(existing, source.effectiveStartDate)`;
+  `target.effectiveEndDate = target.effectiveStartDate + effectiveDuration`.
 
-##### when a task is the source of a dependency (backward traversal, reverse dependencies)
+##### Reverse dependencies (owner = source)
 
-Important: computing effective dates on this traversal applies **only** to tasks/milestones not visited/scheduled during the forward traversal.
+* `endWith`: `source.effectiveEndDate = max(existing, target.effectiveEndDate)`;
+  `source.effectiveStartDate = source.effectiveEndDate − effectiveDuration`.
+* `endBefore`: `source.effectiveEndDate = min(existing, target.effectiveStartDate)`;
+  `source.effectiveStartDate = source.effectiveEndDate − effectiveDuration`.
 
-* dependency type is 'endWith': source `effectiveEndDate` is set to the max of `effectiveEndDate` (if already set) and the dependency target `effectiveEndDate`. The current task's `effectiveStartDate` is set to `effectiveEndDate` - `duration`.
-* dependency type is 'endBefore': `effectiveEndDate` is set to the min of `effectiveEndDate` (if already set) and the dependency source `effectiveStartDate`. The current task's `effectiveStartDate` is set to `effectiveEndDate` - `duration`.
+#### Group rollup
+
+For each group, in post-order over the `ownedBy` tree:
+`effectiveStartDate = min` of descendants' `effectiveStartDate`;
+`effectiveEndDate = max` of descendants' `effectiveEndDate`;
+`effectiveDuration = effectiveEndDate − effectiveStartDate`.
+
+## Open questions
+
+* Should start/end aggregation stay asymmetric per type (`max` for start deps,
+  `max`/`min` for end deps), and should we allow multiple end dependencies?
+* Decimal-day duration rounding policy; is a working-day calendar out of scope for
+  this phase?
+* Should the direct/reverse owner asymmetry be normalized in storage so the owner
+  role is consistent across all dependency kinds?
+* Can a milestone be the target (anchor) of a reverse dependency?
