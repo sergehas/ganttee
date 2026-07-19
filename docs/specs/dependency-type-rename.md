@@ -1,6 +1,6 @@
 # Feature: Dependency Type Rename & Migration
 
-> Status: Draft · Owner: Copilot · Last updated: 2026-07-19
+> Status: Validated · Owner: Copilot · Last updated: 2026-07-19
 
 ## 1. Summary
 
@@ -58,8 +58,14 @@ existing documents keep working.
 
 - Given a dependency with an unknown/legacy type string
   When it is parsed
-  Then it is flagged as an invalid dependency (per existing behavior) and a
-  localized warning is surfaced; the document is not silently corrupted.
+  Then parsing fails with `GanttParseError` (existing behavior), and the host
+  surfaces the failure to the user without mutating the document.
+
+- Given a v1 document whose dependencies are rendered in the timeline
+  When it is migrated and opened in the webview
+  Then dependency links preserve the same real-world relationship semantics as
+  before migration (no visual meaning inversion after `sourceId`/`targetId`
+  swap).
 
 - Given the webview and sidebar reference dependency types
   When the project builds
@@ -69,7 +75,7 @@ existing documents keep working.
 
 - `src/common/models/dependency.ts`: `DependencyType` renamed; JSDoc corrected to
   the owner=`source` / anchor=`target` table (`endBefore` = `source.end ≤
-  target.start`).
+target.start`).
 - `.ganttee` schema: bump `CURRENT_DOCUMENT_VERSION` in
   `src/common/models/document.ts`; add a migration in the parse path of
   `src/services/ganttDocumentService.ts` that, for every dependency, maps the old
@@ -104,11 +110,43 @@ round-trip stability.
 - Coverage: branch coverage ≥ 90% across migration branches (legacy, current,
   unknown type).
 
-## 9. Risks & Open Questions
+## 9. Risks & Decisions
 
-- Risk: other branches/PRs still using old names — coordinate the rename.
-- Risk: the `sourceId`/`targetId` swap silently inverts meaning if any consumer
-  still assumes source=predecessor — audit all dependency readers as part of this
-  spec.
-- Open question: keep accepting legacy type strings indefinitely, or migrate only
+### Risk Decisions
+
+- Risk: other branches/PRs still using old names (`finishWith`, `finishAfter`).
+  Decision: accept with mitigation.
+  Mitigation: land the rename as one atomic change across model types, parser
+  migration, protocol/webview call sites, and tests. Add a repo-wide grep check
+  in CI to prevent reintroduction of old identifiers.
+
+- Risk: `sourceId`/`targetId` swap could invert meaning if any consumer still
+  assumes source=predecessor.
+  Decision: reduce before implementation completes.
+  Mitigation: mandatory audit of all dependency readers/writers
+  (`ganttDocumentService`, `dependencyGraphService`, editor controller,
+  `TaskForm`, `GanttChart`) and regression tests that assert real-world
+  dependency meaning is preserved after migration.
+
+### Open Question Resolution
+
+- Question: keep accepting legacy type strings indefinitely, or migrate only
   from the immediately previous version?
+  Resolution: migrate from the immediately previous schema version only
+  (one-version migration window). For this change, support deterministic
+  migration from v1 to v2.
+  Rationale: keeps migration logic explicit and testable while limiting
+  long-term compatibility maintenance.
+
+### Residual Risk
+
+- Future dependency-type renames must repeat the same schema-discipline pattern:
+  version bump, deterministic migration, and round-trip stability tests.
+
+## 10. Validation Outcome
+
+- Spec is implementation-ready.
+- Status is `Validated`.
+- Risk treatment and migration-window policy are explicit.
+- Acceptance criteria now match parser architecture and include timeline
+  semantic stability after migration.
