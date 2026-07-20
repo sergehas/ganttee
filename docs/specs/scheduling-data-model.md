@@ -1,6 +1,6 @@
 # Feature: Scheduling Data Model (constraints, duration, effective accessors)
 
-> Status: Draft · Owner: Copilot · Last updated: 2026-07-19
+> Status: Reviewed · Owner: Copilot · Last updated: 2026-07-20
 
 ## 1. Summary
 
@@ -45,13 +45,13 @@ computation.
   Then it is accepted and the third value is marked derived.
 
 - Given a task with all 3 set
-  When constructed
-  Then it is reported as hyperstatic (the type/helper reports the violation here;
-  validation surfacing lives in the graph-validation spec).
+  When the constraint-descriptor helper is evaluated
+  Then it returns status `hyperstatic` (validation surfacing lives in the
+  graph-validation spec).
 
 - Given a task with fewer than 2 set
-  When constructed
-  Then it is reported as under-constrained.
+  When the constraint-descriptor helper is evaluated
+  Then it returns status `underConstrained`.
 
 - Given a task defined by start + end
   When `effectiveDuration` is read
@@ -100,6 +100,10 @@ Design rationale (values → principles → moves): Value Clarity · Principle: 
 vs computed must be visually distinct · Move: derived field rendered read-only with
 a subtle "computed" affordance.
 
+New localized strings: a "computed" / derived-field label for the read-only
+affordance, and a rejection message for setting a non-zero duration on a
+milestone. Both externalized via `vscode.l10n.t()` with `{0}` placeholders.
+
 ## 8. Test Strategy
 
 - Unit (models/services): constraint-descriptor helper for all valid/invalid
@@ -113,6 +117,35 @@ a subtle "computed" affordance.
 
 - Risk: optional start/end ripples into existing timeline code that assumes both
   are set.
-- Open question: fractional working-day arithmetic convention (defined in the
-  scheduling-engine spec); whether a static date on a non-working day stays as-is
-  or snaps forward.
+  Treatment: timeline code reads through the always-populated `effective*`
+  accessors rather than the raw optional user inputs; the derived and
+  under-constrained branches are covered by tests before the model change lands.
+- Open question: fractional working-day arithmetic convention.
+  Resolution: deferred to the scheduling-engine spec (a computation concern),
+  referenced here only as a pointer.
+
+### Open Question Resolution
+
+- Question: does a user-set static date (task `start`/`end`, milestone `date`)
+  that falls on a non-working day stay as-is or snap forward to the next working
+  day?
+  Resolution: it is stored as-is (no snap). The stored value is the user's
+  source of truth; the scheduling engine applies working-day interpretation on
+  read via the `effective*` accessors.
+  Rationale: keeps persisted input lossless and unambiguous, and confines
+  calendar semantics to the engine.
+
+## 10. Review Outcome
+
+- Status is `Reviewed`.
+- Resolved the non-working-day open question at the data-model boundary
+  (store-as-is; engine interprets on read); deferred only the fractional
+  working-day arithmetic to the scheduling-engine spec.
+- Added a treatment for the optional start/end timeline-ripple risk (read via
+  `effective*`; branch tests before the change).
+- Tightened the hyperstatic / under-constrained acceptance criteria to assert an
+  explicit constraint-descriptor status, making them independently testable.
+- Noted the new localized strings (derived/computed label; milestone non-zero
+  duration rejection).
+- No layer-boundary or schema-migration gaps found: `version` bump + migration
+  are specified and `common`/`services` stay `vscode`-free.

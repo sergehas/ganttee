@@ -2,8 +2,8 @@
 
 | #   | Title                                                          | Status             |
 | --- | -------------------------------------------------------------- | ------------------ |
-| 1   | [Dependency type rename](dependency-type-rename.md)            | Draft              |
-| 2   | [Scheduling data model](./scheduling-data-model.md)            | Draft              |
+| 1   | [Dependency type rename](dependency-type-rename.md)            | Implemented        |
+| 2   | [Scheduling data model](./scheduling-data-model.md)            | Reviewed           |
 | 3   | [Graph validation](graph-validation.md)                        | Draft              |
 | 4   | [Scheduling engine](scheduling-engine.md)                      | Draft              |
 | 5   | Task/milestone/group GUI adaptation                            | Spec to be written |
