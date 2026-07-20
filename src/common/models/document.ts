@@ -2,7 +2,7 @@ import { Dependency } from "./dependency";
 import { Group, Milestone, Task } from "./task";
 
 /** Current on-disk schema version for `.ganttee` documents. */
-export const CURRENT_DOCUMENT_VERSION = 1;
+export const CURRENT_DOCUMENT_VERSION = 2;
 
 /** The serialized shape of a `.ganttee` file. */
 export interface GanttDocument {

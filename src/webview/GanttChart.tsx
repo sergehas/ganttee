@@ -13,7 +13,7 @@ import {
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
-import { GanttDocument, Task } from "../common/models";
+import { DependencyType, GanttDocument, Task } from "../common/models";
 
 echarts.use([
   CustomChart,
@@ -149,13 +149,8 @@ function buildOption(
       }
       const sourceRow = indexById.get(source.id) ?? 0;
       const targetRow = indexById.get(target.id) ?? 0;
-      const fromMs = dep.type.startsWith("start")
-        ? toMs(source.end)
-        : toMs(source.end);
-      const toRowMs = dep.type.startsWith("start")
-        ? toMs(target.start)
-        : toMs(target.end);
-      return { value: [sourceRow, fromMs, targetRow, toRowMs] };
+      const [fromMs, toMsValue] = dependencyLinkEndpoints(dep.type, source, target);
+      return { value: [targetRow, fromMs, sourceRow, toMsValue] };
     })
     .filter((item): item is { value: number[] } => item !== undefined);
 
@@ -315,6 +310,26 @@ function dateRange(document: GanttDocument): { min: number; max: number } {
   const min = Math.min(...values);
   const max = Math.max(...values);
   return { min: min - DAY * 2, max: max + DAY * 2 };
+}
+
+/**
+ * Resolves link endpoints as anchor-to-owner coordinates for the given type.
+ */
+function dependencyLinkEndpoints(
+  type: DependencyType,
+  source: Task,
+  target: Task,
+): [number, number] {
+  switch (type) {
+    case "startAfter":
+      return [toMs(target.end), toMs(source.start)];
+    case "startWith":
+      return [toMs(target.start), toMs(source.start)];
+    case "endWith":
+      return [toMs(target.end), toMs(source.end)];
+    case "endBefore":
+      return [toMs(target.start), toMs(source.end)];
+  }
 }
 
 const DAY = 24 * 60 * 60 * 1000;

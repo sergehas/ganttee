@@ -9,6 +9,7 @@ import {
   Task,
   TaskStatus,
 } from "../common/models";
+import { migrateDocument } from "./ganttDocumentMigrationService";
 
 /** Raised when a `.ganttee` document cannot be parsed or is structurally invalid. */
 export class GanttParseError extends Error {}
@@ -17,8 +18,8 @@ const TASK_STATUSES: readonly TaskStatus[] = ["todo", "inProgress", "done"];
 const DEPENDENCY_TYPES: readonly DependencyType[] = [
   "startAfter",
   "startWith",
-  "finishAfter",
-  "finishWith",
+  "endWith",
+  "endBefore",
 ];
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -42,7 +43,7 @@ export function parseDocument(text: string): GanttDocument {
     );
   }
 
-  return migrate(validate(raw));
+  return validate(migrateDocument(raw));
 }
 
 /** Serializes a document to pretty-printed JSON suitable for on-disk storage. */
@@ -50,12 +51,9 @@ export function serializeDocument(document: GanttDocument): string {
   return `${JSON.stringify(document, undefined, 2)}\n`;
 }
 
-function migrate(document: GanttDocument): GanttDocument {
-  // Only v1 exists today. Future versions transform older shapes here before
-  // stamping the current version.
-  return { ...document, version: CURRENT_DOCUMENT_VERSION };
-}
-
+/**
+ * Validates a parsed document payload and normalizes optional collections.
+ */
 function validate(raw: unknown): GanttDocument {
   if (!isRecord(raw)) {
     throw new GanttParseError("Document root must be an object.");
@@ -73,6 +71,9 @@ function validate(raw: unknown): GanttDocument {
   };
 }
 
+/**
+ * Validates and normalizes a task entry.
+ */
 function validateTask(raw: unknown, index: number): Task {
   if (!isRecord(raw)) {
     throw new GanttParseError(`tasks[${index}] must be an object.`);
@@ -101,6 +102,9 @@ function validateTask(raw: unknown, index: number): Task {
   return task;
 }
 
+/**
+ * Validates and normalizes a group entry.
+ */
 function validateGroup(raw: unknown, index: number): Group {
   if (!isRecord(raw)) {
     throw new GanttParseError(`groups[${index}] must be an object.`);
@@ -118,6 +122,9 @@ function validateGroup(raw: unknown, index: number): Group {
   return group;
 }
 
+/**
+ * Validates and normalizes a milestone entry.
+ */
 function validateMilestone(raw: unknown, index: number): Milestone {
   if (!isRecord(raw)) {
     throw new GanttParseError(`milestones[${index}] must be an object.`);
@@ -136,6 +143,9 @@ function validateMilestone(raw: unknown, index: number): Milestone {
   return milestone;
 }
 
+/**
+ * Validates and normalizes a dependency entry.
+ */
 function validateDependency(raw: unknown, index: number): Dependency {
   if (!isRecord(raw)) {
     throw new GanttParseError(`dependencies[${index}] must be an object.`);
@@ -152,10 +162,16 @@ function validateDependency(raw: unknown, index: number): Dependency {
   };
 }
 
+/**
+ * Returns whether the input is a plain object record.
+ */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Returns the input as an array or throws for invalid collection fields.
+ */
 function asArray(value: unknown, field: string): unknown[] {
   if (value === undefined) {
     return [];
@@ -166,6 +182,9 @@ function asArray(value: unknown, field: string): unknown[] {
   return value;
 }
 
+/**
+ * Requires a non-empty string field.
+ */
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new GanttParseError(`${field} must be a non-empty string.`);
@@ -173,6 +192,9 @@ function requireString(value: unknown, field: string): string {
   return value;
 }
 
+/**
+ * Requires an ISO date string in YYYY-MM-DD form.
+ */
 function requireDate(value: unknown, field: string): string {
   const date = requireString(value, field);
   if (!ISO_DATE.test(date)) {
@@ -181,6 +203,9 @@ function requireDate(value: unknown, field: string): string {
   return date;
 }
 
+/**
+ * Clamps task progress into the supported inclusive range.
+ */
 function clampProgress(value: unknown): number {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return 0;
@@ -188,12 +213,18 @@ function clampProgress(value: unknown): number {
   return Math.min(1, Math.max(0, value));
 }
 
+/**
+ * Returns whether the value is a supported task status.
+ */
 function isTaskStatus(value: unknown): value is TaskStatus {
   return (
     typeof value === "string" && TASK_STATUSES.includes(value as TaskStatus)
   );
 }
 
+/**
+ * Returns whether the value is a supported dependency type.
+ */
 function isDependencyType(value: unknown): value is DependencyType {
   return (
     typeof value === "string" &&

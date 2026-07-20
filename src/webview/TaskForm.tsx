@@ -26,8 +26,8 @@ const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
 const DEPENDENCY_OPTIONS: { value: DependencyType; label: string }[] = [
   { value: "startAfter", label: "Start After" },
   { value: "startWith", label: "Start With" },
-  { value: "finishAfter", label: "Finish After" },
-  { value: "finishWith", label: "Finish With" },
+  { value: "endBefore", label: "End Before" },
+  { value: "endWith", label: "End With" },
 ];
 
 /** Editable form for a single task, including its dependencies. */

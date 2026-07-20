@@ -17,7 +17,7 @@ suite("ganttDocumentService", () => {
   test("round-trips a document through serialize and parse", () => {
     const document = parseDocument(
       JSON.stringify({
-        version: 1,
+        version: CURRENT_DOCUMENT_VERSION,
         tasks: [
           {
             id: "t1",
@@ -71,5 +71,33 @@ suite("ganttDocumentService", () => {
       ],
     });
     assert.strictEqual(parseDocument(text).tasks[0].progress, 1);
+  });
+
+  test("does not migrate ids or types for current schema", () => {
+    const text = JSON.stringify({
+      version: CURRENT_DOCUMENT_VERSION,
+      tasks: [
+        {
+          id: "t1",
+          title: "Task 1",
+          start: "2026-01-01",
+          end: "2026-01-02",
+        },
+        {
+          id: "t2",
+          title: "Task 2",
+          start: "2026-01-03",
+          end: "2026-01-04",
+        },
+      ],
+      dependencies: [
+        { id: "d1", sourceId: "t1", targetId: "t2", type: "endWith" },
+      ],
+    });
+
+    const document = parseDocument(text);
+    assert.deepStrictEqual(document.dependencies, [
+      { id: "d1", sourceId: "t1", targetId: "t2", type: "endWith" },
+    ]);
   });
 });

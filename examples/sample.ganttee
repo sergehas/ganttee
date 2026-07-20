@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "tasks": [
     {
       "id": "task-design",
@@ -32,8 +32,8 @@
     {
       "id": "task-9kcoliei",
       "title": "New Task",
-      "start": "2026-07-14",
-      "end": "2026-07-17",
+      "start": "2026-03-02",
+      "end": "2026-03-26",
       "progress": 0,
       "status": "todo"
     }
@@ -58,20 +58,20 @@
   "dependencies": [
     {
       "id": "dep-1",
-      "sourceId": "task-design",
-      "targetId": "task-build",
+      "sourceId": "task-build",
+      "targetId": "task-design",
       "type": "startAfter"
     },
     {
       "id": "dep-2",
-      "sourceId": "task-build",
-      "targetId": "task-test",
+      "sourceId": "task-test",
+      "targetId": "task-build",
       "type": "startAfter"
     },
     {
       "id": "dep-njcewa6q",
-      "sourceId": "task-9kcoliei",
-      "targetId": "task-test",
+      "sourceId": "task-test",
+      "targetId": "task-9kcoliei",
       "type": "startAfter"
     }
   ]
