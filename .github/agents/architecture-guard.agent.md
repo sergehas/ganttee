@@ -33,5 +33,8 @@ verify that a change respects the project's layer boundaries and data-flow rules
 ## Output Format
 
 A findings list grouped by **Blocking** and **Non-blocking**, each with the file
-path, the rule violated, and a concrete fix. End with a one-line verdict: PASS or
-CHANGES REQUESTED.
+path, the rule violated, and a concrete fix. Rank and render every finding using
+the shared severity scale in
+[reporting-standard.instructions.md](../instructions/reporting-standard.instructions.md)
+(🟣 critical → 🔵 nice to have, in that order). End with a one-line verdict
+(unchanged): PASS or CHANGES REQUESTED.

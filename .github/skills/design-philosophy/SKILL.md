@@ -463,6 +463,11 @@ When something looks wrong, say it in this order:
 > intent_). Could the fill reveal on hover instead? It reads about 2px too tight as
 > well, but the fill is the real thing."
 
+When you compile design feedback into a review list, rank and render each item
+with the shared severity scale in
+[reporting-standard.instructions.md](../../instructions/reporting-standard.instructions.md)
+(🟣 critical → 🔵 nice to have, in that order).
+
 ### Lead with the feeling, not the fix
 
 The word points everyone at the same principle, even before anyone agrees on a

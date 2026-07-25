@@ -33,4 +33,7 @@ feature or change into a concrete, high-coverage test plan.
 ## Output Format
 
 A table of test cases: **Layer | Case | Branch/behavior covered | Fixture**. Then a
-short list of branches still at risk and how to cover them to hold ≥ 90%.
+short list of branches still at risk and how to cover them to hold ≥ 90%, each
+ranked with the shared severity scale in
+[reporting-standard.instructions.md](../instructions/reporting-standard.instructions.md)
+(🟣 critical → 🔵 nice to have, in that order).

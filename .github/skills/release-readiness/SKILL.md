@@ -38,4 +38,7 @@ Run each step; stop and report on the first hard failure (types/lint/build/tests
 ## Output Format
 
 A checklist with ✅/❌ per item, the exact failing command output for any ❌, and a
-final verdict: **READY** or **NOT READY** with the blocking items listed.
+final verdict (unchanged): **READY** or **NOT READY** with the blocking items
+listed. Rank and render those blocking items using the shared severity scale in
+[reporting-standard.instructions.md](../../instructions/reporting-standard.instructions.md)
+(🟣 critical → 🔵 nice to have, in that order).

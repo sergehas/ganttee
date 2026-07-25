@@ -33,4 +33,7 @@ implementation-ready spec.
 A single Markdown spec with the sections from `feature-spec.instructions.md`
 (Summary, Goals/Non-goals, User Stories, Acceptance Criteria, Domain & Data Model
 Impact, Protocol Impact, UX, Test Strategy, Risks & Open Questions). Note any open
-questions explicitly rather than guessing.
+questions explicitly rather than guessing, and rank each risk/open question with
+the shared severity scale in
+[reporting-standard.instructions.md](../instructions/reporting-standard.instructions.md)
+(🟣 critical → 🔵 nice to have, in that order). 'nice to have' does not apply to risks.

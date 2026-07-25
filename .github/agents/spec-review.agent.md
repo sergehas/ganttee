@@ -35,8 +35,10 @@ report its issues, and — once approved — promote it to `Reviewed`. Specs liv
    (answer + rationale). Flag any that remain open.
 5. **Risks & decisions:** confirm each risk has an explicit decision or treatment
    (mitigation / acceptance), not just a description.
-6. Compile findings as an issue list grouped by severity — **Critical / High /
-   Medium / Low** — each with its location and a concrete proposed fix.
+6. Compile findings as an issue list using the shared severity scale in
+   [reporting-standard.instructions.md](../instructions/reporting-standard.instructions.md)
+   (🟣 critical, 🔴 high, 🟡 medium, 🟢 low, 🔵 nice to have — in that order),
+   each with its location and a concrete proposed fix.
 7. If issues persist, present your proposed resolutions and ask the user to
    confirm before editing.
 8. On confirmation:
@@ -49,8 +51,9 @@ report its issues, and — once approved — promote it to `Reviewed`. Specs liv
 
 ## Output Format
 
-First, an issue list grouped by **Critical / High / Medium / Low** (each: location
-
-- proposed fix). Then your proposed resolutions and an explicit request for
-  confirmation. After approval, a short summary of the edits applied and the new
-  status (`Reviewed`), including the roadmap sync.
+First, an issue list following the shared severity scale in
+[reporting-standard.instructions.md](../instructions/reporting-standard.instructions.md)
+(🟣 critical → 🔵 nice to have; each: location — proposed fix). Then your
+proposed resolutions and an explicit request for confirmation. After approval, a
+short summary of the edits applied and the new status (`Reviewed`), including the
+roadmap sync.

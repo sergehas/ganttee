@@ -24,7 +24,9 @@ restating it.
    design terms (see the `design-philosophy` skill), not pixels.
 8. **Test Strategy** — unit (services/models), integration (commands/editor),
    and webview interaction slices. Branch coverage must stay ≥ 90%.
-9. **Risks & Open Questions.**
+9. **Risks & Open Questions.** Rank each item with the shared severity scale in
+   [reporting-standard](./reporting-standard.instructions.md) (🟣 critical → 🔵
+   nice to have, in that order).
 
 ## Acceptance Criteria Format
 

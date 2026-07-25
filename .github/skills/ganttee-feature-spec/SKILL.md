@@ -35,3 +35,6 @@ Produce an implementation-ready specification for a Ganttee feature.
 - User-facing strings are localized (`vscode.l10n.t()` / `nls`).
 - Branch coverage must stay ≥ 90%.
 - Reason about UX in design terms (see the `design-philosophy` skill).
+- Rank each item in _Risks & Open Questions_ with the shared severity scale in
+  [reporting-standard.instructions.md](../../instructions/reporting-standard.instructions.md)
+  (🟣 critical → 🔵 nice to have, in that order).

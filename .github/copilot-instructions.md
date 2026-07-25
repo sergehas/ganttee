@@ -65,6 +65,11 @@ DOM + JSX); the host project ([tsconfig.json](../tsconfig.json)) excludes
   placeholders — never string concatenation.
 - **JSDoc is mandatory** on every class, method, and member (public and private).
 - **Branch coverage must stay ≥ 90%.**
+- **Reporting issues/risks/questions:** when an agent or skill reports issues,
+  findings, risks, or open questions, use the shared severity scale in
+  [reporting-standard](instructions/reporting-standard.instructions.md) (🟣
+  critical → 🔵 nice to have, in that order). Terminal verdicts are unchanged.
+  -
 - Register every disposable on `context.subscriptions` or a `Disposable` you own.
 - Webview CSP uses a per-render nonce; only load scripts/styles from `dist/`.
 - CSS: extension webviews receive `--vscode-*` **theme color** variables. The
