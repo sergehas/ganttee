@@ -77,11 +77,13 @@ computation.
   - `Group`: remains static-date-free; document its effective-only role.
   - Add a pure constraint-descriptor helper (which 2 are set) in `src/services/`;
     it is not persisted.
-- `.ganttee` schema: bump `CURRENT_DOCUMENT_VERSION` in
-  `src/common/models/document.ts`; migrate in `src/services/ganttDocumentService.ts`.
+- `.ganttee` schema: do not bump `CURRENT_DOCUMENT_VERSION` in
+  `src/common/models/document.ts`; add migration process to existing one in `src/services/ganttDocumentService.ts`.
   Reserve (but do not yet populate) a project-level working-calendar field;
   scheduling uses a fixed Saturday/Sunday-off calendar until the future
   configuration requirement lands.
+  Reserve (but do not yet populate) a project-level working-day-hours (hour per day) field;
+  scheduling ignore it until the future configuration requirement lands.
 
 ## 6. Protocol Impact
 
@@ -115,20 +117,20 @@ milestone. Both externalized via `vscode.l10n.t()` with `{0}` placeholders.
 
 ## 9. Risks & Open Questions
 
-- Risk: optional start/end ripples into existing timeline code that assumes both
-  are set.
+- 🟡 Medium — Risk: optional start/end ripples into existing timeline code
+  that assumes both are set.
   Treatment: timeline code reads through the always-populated `effective*`
   accessors rather than the raw optional user inputs; the derived and
   under-constrained branches are covered by tests before the model change lands.
-- Open question: fractional working-day arithmetic convention.
+- 🟢 Low — Open question: fractional working-day arithmetic convention.
   Resolution: deferred to the scheduling-engine spec (a computation concern),
   referenced here only as a pointer.
 
 ### Open Question Resolution
 
-- Question: does a user-set static date (task `start`/`end`, milestone `date`)
-  that falls on a non-working day stay as-is or snap forward to the next working
-  day?
+- 🟢 Low — Question: does a user-set static date (task `start`/`end`,
+  milestone `date`) that falls on a non-working day stay as-is or snap forward
+  to the next working day?
   Resolution: it is stored as-is (no snap). The stored value is the user's
   source of truth; the scheduling engine applies working-day interpretation on
   read via the `effective*` accessors.

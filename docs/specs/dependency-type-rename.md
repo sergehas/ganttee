@@ -114,14 +114,15 @@ round-trip stability.
 
 ### Risk Decisions
 
-- Risk: other branches/PRs still using old names (`finishWith`, `finishAfter`).
+- 🟡 Medium — Risk: other branches/PRs still using old names
+  (`finishWith`, `finishAfter`).
   Decision: accept with mitigation.
   Mitigation: land the rename as one atomic change across model types, parser
   migration, protocol/webview call sites, and tests. Add a repo-wide grep check
   in CI to prevent reintroduction of old identifiers.
 
-- Risk: `sourceId`/`targetId` swap could invert meaning if any consumer still
-  assumes source=predecessor.
+- 🟡 Medium — Risk: `sourceId`/`targetId` swap could invert meaning if any
+  consumer still assumes source=predecessor.
   Decision: reduce before implementation completes.
   Mitigation: mandatory audit of all dependency readers/writers
   (`ganttDocumentService`, `dependencyGraphService`, editor controller,
@@ -130,8 +131,8 @@ round-trip stability.
 
 ### Open Question Resolution
 
-- Question: keep accepting legacy type strings indefinitely, or migrate only
-  from the immediately previous version?
+- 🟢 Low — Question: keep accepting legacy type strings indefinitely, or
+  migrate only from the immediately previous version?
   Resolution: migrate from the immediately previous schema version only
   (one-version migration window). For this change, support deterministic
   migration from v1 to v2.
@@ -140,8 +141,9 @@ round-trip stability.
 
 ### Residual Risk
 
-- Future dependency-type renames must repeat the same schema-discipline pattern:
-  version bump, deterministic migration, and round-trip stability tests.
+- 🔵 Nice to have — Future dependency-type renames must repeat the same
+  schema-discipline pattern: version bump, deterministic migration, and
+  round-trip stability tests.
 
 ## 10. Validation Outcome
 

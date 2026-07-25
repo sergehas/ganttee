@@ -119,10 +119,10 @@ recompute on each edit.
 
 ## 9. Risks & Open Questions
 
-- Risk: start+end tasks whose derived duration is negative — define behavior
-  (reject in the graph-validation spec vs clamp here).
-- Open question: the precise fractional working-day arithmetic convention (how a
-  partial working day maps onto the calendar); whether a static date on a
-  non-working day stays as-is or snaps forward.
-- Open question: recompute granularity — full recompute per edit vs incremental
-  dirty-subtree; full recompute recommended initially.
+- 🟡 Medium — Risk: start+end tasks whose derived duration is negative —
+  define behavior (reject in the graph-validation spec vs clamp here).
+- 🟡 Medium — Open question: the precise fractional working-day arithmetic
+  convention (how a partial working day maps onto the calendar); whether a
+  static date on a non-working day stays as-is or snaps forward.
+- 🟢 Low — Open question: recompute granularity — full recompute per edit vs
+  incremental dirty-subtree; full recompute recommended initially.

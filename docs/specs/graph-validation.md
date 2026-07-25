@@ -109,6 +109,7 @@ plus host canonical check).
 
 ## 9. Risks & Open Questions
 
-- Risk: normalization must correctly distinguish direct vs reverse edge direction.
-- Open question: should some results be non-blocking warnings (e.g. floating
-  component) rather than a hard load failure?
+- 🔴 High — Risk: normalization must correctly distinguish direct vs reverse
+  edge direction.
+- 🟡 Medium — Open question: should some results be non-blocking warnings
+  (e.g. floating component) rather than a hard load failure?
