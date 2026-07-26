@@ -1,5 +1,11 @@
 import * as vscode from "vscode";
-import { Group, Milestone, Task } from "../../common/models";
+import {
+  effectiveEnd,
+  effectiveStart,
+  Group,
+  Milestone,
+  Task,
+} from "../../common/models";
 import { GanttStore } from "../../ganttStore";
 
 type GanttNode =
@@ -91,7 +97,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       task.title,
       vscode.TreeItemCollapsibleState.None,
     );
-    item.description = `${task.start} → ${task.end}`;
+    item.description = `${effectiveStart(task) ?? "—"} → ${effectiveEnd(task) ?? "—"}`;
     item.contextValue = "ganttee.task";
     item.iconPath = new vscode.ThemeIcon("checklist");
     item.id = `task:${task.id}`;

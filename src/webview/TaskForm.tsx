@@ -101,18 +101,35 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
           <span>Start</span>
           <input
             type="date"
-            value={draft.start}
-            onChange={(event) => update("start", event.target.value)}
-            required
+            value={draft.start ?? ""}
+            onChange={(event) =>
+              update("start", event.target.value || undefined)
+            }
           />
         </label>
         <label className="ganttee-field">
           <span>End</span>
           <input
             type="date"
-            value={draft.end}
-            onChange={(event) => update("end", event.target.value)}
-            required
+            value={draft.end ?? ""}
+            onChange={(event) => update("end", event.target.value || undefined)}
+          />
+        </label>
+        <label className="ganttee-field">
+          <span>Duration</span>
+          <input
+            type="number"
+            min={0}
+            step="any"
+            value={draft.duration ?? ""}
+            onChange={(event) =>
+              update(
+                "duration",
+                event.target.value === ""
+                  ? undefined
+                  : Number(event.target.value),
+              )
+            }
           />
         </label>
       </div>

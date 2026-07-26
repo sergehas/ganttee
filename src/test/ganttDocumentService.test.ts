@@ -45,7 +45,52 @@ suite("ganttDocumentService", () => {
   });
 
   test("throws GanttParseError when a required field is missing", () => {
-    const text = JSON.stringify({ tasks: [{ id: "t1", title: "No dates" }] });
+    const text = JSON.stringify({ tasks: [{ id: "t1" }] });
+    assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("accepts a task constrained by start and duration", () => {
+    const text = JSON.stringify({
+      tasks: [{ id: "t1", title: "Build", start: "2026-01-01", duration: 3 }],
+    });
+    const task = parseDocument(text).tasks[0];
+    assert.strictEqual(task.start, "2026-01-01");
+    assert.strictEqual(task.duration, 3);
+    assert.strictEqual(task.end, undefined);
+  });
+
+  test("accepts an under-constrained task at parse time", () => {
+    const text = JSON.stringify({
+      tasks: [{ id: "t1", title: "No constraints" }],
+    });
+    const task = parseDocument(text).tasks[0];
+    assert.strictEqual(task.start, undefined);
+    assert.strictEqual(task.end, undefined);
+    assert.strictEqual(task.duration, undefined);
+  });
+
+  test("rejects a negative task duration", () => {
+    const text = JSON.stringify({
+      tasks: [{ id: "t1", title: "Bad", start: "2026-01-01", duration: -1 }],
+    });
+    assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("accepts a milestone with an explicit zero duration", () => {
+    const text = JSON.stringify({
+      milestones: [
+        { id: "m1", title: "Kickoff", date: "2026-01-01", duration: 0 },
+      ],
+    });
+    assert.strictEqual(parseDocument(text).milestones.length, 1);
+  });
+
+  test("rejects a milestone with a non-zero duration", () => {
+    const text = JSON.stringify({
+      milestones: [
+        { id: "m1", title: "Kickoff", date: "2026-01-01", duration: 2 },
+      ],
+    });
     assert.throws(() => parseDocument(text), GanttParseError);
   });
 

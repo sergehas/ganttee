@@ -1,19 +1,25 @@
 import type {
-    CustomSeriesRenderItem,
-    CustomSeriesRenderItemAPI,
-    CustomSeriesRenderItemParams,
-    CustomSeriesRenderItemReturn,
+  CustomSeriesRenderItem,
+  CustomSeriesRenderItemAPI,
+  CustomSeriesRenderItemParams,
+  CustomSeriesRenderItemReturn,
 } from "echarts";
 import { CustomChart } from "echarts/charts";
 import {
-    DataZoomComponent,
-    GridComponent,
-    TooltipComponent,
+  DataZoomComponent,
+  GridComponent,
+  TooltipComponent,
 } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
-import { DependencyType, GanttDocument, Task } from "../common/models";
+import {
+  DependencyType,
+  effectiveEnd,
+  effectiveStart,
+  GanttDocument,
+  Task,
+} from "../common/models";
 
 echarts.use([
   CustomChart,
@@ -125,15 +131,20 @@ function buildOption(
   const { rows, indexById } = buildRows(document);
   const range = dateRange(document);
 
-  const taskData = document.tasks.map((task) => ({
-    value: [
-      indexById.get(task.id) ?? 0,
-      toMs(task.start),
-      toMs(task.end),
-    ],
-    task,
-    selected: task.id === selectedTaskId,
-  }));
+  const taskData = document.tasks
+    .map((task) => {
+      const start = effectiveStart(task);
+      const end = effectiveEnd(task);
+      if (start === undefined || end === undefined) {
+        return undefined;
+      }
+      return {
+        value: [indexById.get(task.id) ?? 0, toMs(start), toMs(end)],
+        task,
+        selected: task.id === selectedTaskId,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
   const milestoneData = document.milestones.map((milestone) => ({
     value: [indexById.get(milestone.id) ?? 0, toMs(milestone.date)],
@@ -149,7 +160,11 @@ function buildOption(
       }
       const sourceRow = indexById.get(source.id) ?? 0;
       const targetRow = indexById.get(target.id) ?? 0;
-      const [fromMs, toMsValue] = dependencyLinkEndpoints(dep.type, source, target);
+      const endpoints = dependencyLinkEndpoints(dep.type, source, target);
+      if (!endpoints) {
+        return undefined;
+      }
+      const [fromMs, toMsValue] = endpoints;
       return { value: [targetRow, fromMs, sourceRow, toMsValue] };
     })
     .filter((item): item is { value: number[] } => item !== undefined);
@@ -279,7 +294,9 @@ function tooltipFormatter(params: unknown): string {
   const data = (params as { data?: { task?: Task; milestone?: { title: string; date: string } } })
     .data;
   if (data?.task) {
-    return `<strong>${escapeHtml(data.task.title)}</strong><br/>${data.task.start} → ${data.task.end}`;
+    const start = effectiveStart(data.task) ?? "—";
+    const end = effectiveEnd(data.task) ?? "—";
+    return `<strong>${escapeHtml(data.task.title)}</strong><br/>${start} → ${end}`;
   }
   if (data?.milestone) {
     return `<strong>${escapeHtml(data.milestone.title)}</strong><br/>${data.milestone.date}`;
@@ -298,7 +315,14 @@ function taskIdFromEvent(params: unknown): string | undefined {
 function dateRange(document: GanttDocument): { min: number; max: number } {
   const values: number[] = [];
   for (const task of document.tasks) {
-    values.push(toMs(task.start), toMs(task.end));
+    const start = effectiveStart(task);
+    const end = effectiveEnd(task);
+    if (start !== undefined) {
+      values.push(toMs(start));
+    }
+    if (end !== undefined) {
+      values.push(toMs(end));
+    }
   }
   for (const milestone of document.milestones) {
     values.push(toMs(milestone.date));
@@ -319,17 +343,35 @@ function dependencyLinkEndpoints(
   type: DependencyType,
   source: Task,
   target: Task,
-): [number, number] {
+): [number, number] | undefined {
+  const sourceStart = effectiveStart(source);
+  const sourceEnd = effectiveEnd(source);
+  const targetStart = effectiveStart(target);
+  const targetEnd = effectiveEnd(target);
   switch (type) {
     case "startAfter":
-      return [toMs(target.end), toMs(source.start)];
+      return endpointsOf(targetEnd, sourceStart);
     case "startWith":
-      return [toMs(target.start), toMs(source.start)];
+      return endpointsOf(targetStart, sourceStart);
     case "endWith":
-      return [toMs(target.end), toMs(source.end)];
+      return endpointsOf(targetEnd, sourceEnd);
     case "endBefore":
-      return [toMs(target.start), toMs(source.end)];
+      return endpointsOf(targetStart, sourceEnd);
   }
+}
+
+/**
+ * Converts a pair of optional ISO dates into millisecond endpoints, or
+ * `undefined` when either date is missing.
+ */
+function endpointsOf(
+  anchor: string | undefined,
+  owner: string | undefined,
+): [number, number] | undefined {
+  if (anchor === undefined || owner === undefined) {
+    return undefined;
+  }
+  return [toMs(anchor), toMs(owner)];
 }
 
 const DAY = 24 * 60 * 60 * 1000;

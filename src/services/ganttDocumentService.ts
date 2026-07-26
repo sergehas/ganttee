@@ -81,9 +81,19 @@ function validateTask(raw: unknown, index: number): Task {
   const task: Task = {
     id: requireString(raw.id, `tasks[${index}].id`),
     title: requireString(raw.title, `tasks[${index}].title`),
-    start: requireDate(raw.start, `tasks[${index}].start`),
-    end: requireDate(raw.end, `tasks[${index}].end`),
   };
+  if (raw.start !== undefined) {
+    task.start = requireDate(raw.start, `tasks[${index}].start`);
+  }
+  if (raw.end !== undefined) {
+    task.end = requireDate(raw.end, `tasks[${index}].end`);
+  }
+  if (raw.duration !== undefined) {
+    task.duration = requireNonNegativeNumber(
+      raw.duration,
+      `tasks[${index}].duration`,
+    );
+  }
   if (raw.description !== undefined) {
     task.description = requireString(
       raw.description,
@@ -134,6 +144,11 @@ function validateMilestone(raw: unknown, index: number): Milestone {
     title: requireString(raw.title, `milestones[${index}].title`),
     date: requireDate(raw.date, `milestones[${index}].date`),
   };
+  if (raw.duration !== undefined && raw.duration !== 0) {
+    throw new GanttParseError(
+      `milestones[${index}].duration must be 0; milestones are zero-duration.`,
+    );
+  }
   if (raw.groupId !== undefined) {
     milestone.groupId = requireString(
       raw.groupId,
@@ -201,6 +216,16 @@ function requireDate(value: unknown, field: string): string {
     throw new GanttParseError(`${field} must be an ISO date (YYYY-MM-DD).`);
   }
   return date;
+}
+
+/**
+ * Requires a finite, non-negative number field.
+ */
+function requireNonNegativeNumber(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new GanttParseError(`${field} must be a non-negative number.`);
+  }
+  return value;
 }
 
 /**

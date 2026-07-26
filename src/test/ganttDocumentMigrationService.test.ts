@@ -1,9 +1,10 @@
 import * as assert from "assert";
-import { CURRENT_DOCUMENT_VERSION } from "../common/models";
+import { CURRENT_DOCUMENT_VERSION, effectiveDuration } from "../common/models";
 import { migrateDocument } from "../services/ganttDocumentMigrationService";
 import {
   GanttParseError,
   parseDocument,
+  serializeDocument,
 } from "../services/ganttDocumentService";
 
 suite("ganttDocumentMigrationService", () => {
@@ -112,5 +113,25 @@ suite("ganttDocumentMigrationService", () => {
     });
 
     assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("keeps a v1 start+end task as the start+end pair with derived duration, round-trip stable", () => {
+    const text = JSON.stringify({
+      version: 1,
+      tasks: [
+        { id: "t1", title: "Task 1", start: "2026-01-01", end: "2026-01-05" },
+      ],
+      dependencies: [],
+    });
+
+    const document = parseDocument(text);
+    const task = document.tasks[0];
+    assert.strictEqual(task.start, "2026-01-01");
+    assert.strictEqual(task.end, "2026-01-05");
+    assert.strictEqual(task.duration, undefined);
+    assert.strictEqual(effectiveDuration(task), 4);
+
+    const reparsed = parseDocument(serializeDocument(document));
+    assert.deepStrictEqual(reparsed, document);
   });
 });
