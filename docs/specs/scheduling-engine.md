@@ -1,6 +1,6 @@
 # Feature: Scheduling Computation Engine (effective dates & rollup)
 
-> Status: Draft · Owner: Copilot · Last updated: 2026-07-19
+> Status: Draft · Owner: Copilot · Last updated: 2026-07-26
 
 ## 1. Summary
 
@@ -14,8 +14,10 @@ dependency-type-rename, scheduling-data-model, and graph-validation specs.
 
 ### Goals
 
-- Topological longest/shortest-path propagation producing `effectiveStartDate`,
-  `effectiveEndDate`, `effectiveDuration`, with the owner always the `source`.
+- Topological longest/shortest-path propagation producing `effectiveStart`,
+  `effectiveEnd`, `effectiveDuration` (the `Schedulable` accessors on the
+  `GanttModel` entities from the in-memory-oo-model spec), with the owner always
+  the `source`.
 - Correct aggregation for multiple same-type incoming constraints (`max`/`min`).
 - Working-day date arithmetic (skip Saturday/Sunday; fractional working-day
   support), retaining fractional precision (no rounding).
@@ -43,7 +45,7 @@ dependency-type-rename, scheduling-data-model, and graph-validation specs.
 
 - Given a task with a static start and duration
   When scheduled
-  Then `effectiveEndDate = start + duration` counted in working days (weekends
+  Then `effectiveEnd = start + duration` counted in working days (weekends
   skipped).
 
 - Given a task ending Friday with a 1 working-day successor `startAfter`
@@ -53,28 +55,29 @@ dependency-type-rename, scheduling-data-model, and graph-validation specs.
 - Given a task (source) with a `startAfter` dependency on two anchors (targets)
   ending on different days
   When scheduled
-  Then its `effectiveStartDate` equals the later end (`max`), regardless of
+  Then its `effectiveStart` equals the later end (`max`), regardless of
   processing order.
 
 - Given a task defined by end date + duration (`endWith`/`endBefore` or static end)
   When scheduled
-  Then `effectiveStartDate = effectiveEndDate − duration` in working days.
+  Then `effectiveStart = effectiveEnd − duration` in working days.
 
 - Given an `endBefore` dependency (owner source, anchor target)
   When scheduled
-  Then `source.effectiveEndDate ≤ target.effectiveStartDate` holds.
+  Then `source.effectiveEnd ≤ target.effectiveStart` holds.
 
 - Given a milestone (source) with a `startAfter` dependency
   When scheduled
-  Then `effectiveDate = effectiveStartDate = effectiveEndDate = target.effectiveEndDate`.
+  Then `effectiveStart = effectiveEnd = target.effectiveEnd` (a milestone's start
+  and end alias its date).
 
 - Given a group containing tasks/milestones/subgroups
   When scheduled
-  Then its `effectiveStartDate` = min and `effectiveEndDate` = max of descendants.
+  Then its `effectiveStart` = min and `effectiveEnd` = max of descendants.
 
 - Given a task defined by start + end (duration derived)
   When scheduled
-  Then `effectiveDuration = effectiveEndDate − effectiveStartDate`.
+  Then `effectiveDuration = effectiveEnd − effectiveStart`.
 
 - Given a valid graph
   When scheduled
@@ -84,10 +87,14 @@ dependency-type-rename, scheduling-data-model, and graph-validation specs.
 ## 5. Domain & Data Model Impact
 
 - New pure module in `src/services/` (e.g. `schedulingService.ts`) exposing
-  `schedule(document): ScheduledModel`. Reuse `topologicalOrder`/adjacency helpers
-  from `src/services/dependencyGraphService.ts`.
-- A `ScheduledModel`/effective-value type in `src/common/models/` (pure, not
-  persisted) for transport to the webview.
+  `schedule(model: GanttModel): GanttModel`. It computes the `Schedulable`
+  `effectiveStart()` / `effectiveEnd()` / `effectiveDuration()` values on the
+  in-memory-oo-model entities (replacing their first-implementation placeholders).
+  Reuse `topologicalOrder`/adjacency helpers from
+  `src/services/dependencyGraphService.ts`.
+- Because `Date` and methods do not cross the webview boundary, the host projects
+  the scheduled entities back to a plain, ISO-string effective-value shape in
+  `src/common/models/` (pure, not persisted) for transport to the webview.
 
 ## 6. Protocol Impact
 
@@ -98,7 +105,7 @@ dependency-type-rename, scheduling-data-model, and graph-validation specs.
 ## 7. UX
 
 - Timeline (ECharts): bars drawn from effective dates; group bars span descendants;
-  milestones at `effectiveDate`.
+  milestones at their `effectiveStart` (which aliases the milestone date).
 - Sidebar tree: shows effective dates.
 - Edit form: derived values reflect recomputed effective results after save.
 

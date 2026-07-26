@@ -1,6 +1,6 @@
 # Feature: In-memory object-oriented model (Schedulable / BaseTask, Date-typed)
 
-> Status: Draft · Owner: Copilot · Last updated: 2026-07-26
+> Status: Reviewed · Owner: Copilot · Last updated: 2026-07-26
 
 ## 1. Summary
 
@@ -62,11 +62,14 @@ mandatory field rename.
 
 ## 4. Acceptance Criteria
 
-- Given a valid `.ganttee` document with tasks, milestones, and groups
+- Given a valid `.ganttee` document with tasks, milestones, and groups (each task
+  well-formed, i.e. exactly 2 of {start, duration, end} set)
   When it is loaded and hydrated
   Then a `GanttModel` is produced whose entities implement `BaseTask` +
   `Schedulable`, and every schedule attribute (`start`, `end`, milestone `date`,
-  and the `effective*` results) is a `Date` instance.
+  and the `effective*` results) is a `Date` instance — the unset endpoint being
+  derived from the other two constraints. (Under-constrained tasks are rejected by
+  the graph-validation spec, not here.)
 
 - Given a task with `start` and `end` set
   When `effectiveStart()` / `effectiveEnd()` are read
@@ -74,8 +77,14 @@ mandatory field rename.
   `effectiveDuration()` returns `end − start` in decimal days.
 
 - Given a task with `start` and `duration` set (no `end`)
-  When `effectiveDuration()` is read
-  Then it returns the user-set `duration` value.
+  When `effectiveEnd()` and `effectiveDuration()` are read
+  Then `effectiveDuration()` returns the user-set `duration`, and `effectiveEnd()`
+  returns `start + duration` (calendar-day arithmetic in this phase; working-day
+  arithmetic is deferred to the scheduling-engine spec).
+
+- Given a task with `end` and `duration` set (no `start`)
+  When `effectiveStart()` is read
+  Then it returns `end − duration` (calendar-day arithmetic in this phase).
 
 - Given a milestone with `date`
   When `effectiveStart()`, `effectiveEnd()`, and `effectiveDuration()` are read
@@ -121,7 +130,10 @@ used on disk and over the protocol. Field renames apply to these plain types:
     `MILESTONE_DURATION` reused.
   - `Group`: rename `parentId` → `groupId`.
   - Existing free `effective*` / `milestoneStart` / `milestoneEnd` helpers remain
-    for the webview, now reading the renamed fields (still string-based).
+    for the webview, now reading the renamed fields (still string-based). These
+    string-returning free functions coexist with the identically named `Date`-
+    returning `Schedulable` methods; the two are distinguished by call form
+    (`effectiveStart(task)` vs `entity.effectiveStart()`) and are never mixed.
 
 **New `BaseTask` interface** (shared shape) in `src/common/models/`:
 
@@ -129,7 +141,8 @@ used on disk and over the protocol. Field renames apply to these plain types:
 - `name: string`
 - `description?: string` (may contain multi-line text; no special handling needed —
   JSON escapes newlines)
-- `groupId?: string`
+- `groupId?: string` — the owning group id. For a `Group`, this is its **parent**
+  group (the former `parentId`), since a group's owning container is its parent.
 
 `Task`, `Milestone`, and `Group` extend `BaseTask`.
 
@@ -139,10 +152,16 @@ used on disk and over the protocol. Field renames apply to these plain types:
 - `interface Schedulable` with `effectiveStart(): Date`, `effectiveEnd(): Date`,
   `effectiveDuration(): number` (decimal days).
 - `class TaskEntity implements BaseTask, Schedulable` — carries `Date`-typed
-  `start?` / `end?`, numeric `duration?`. Rules:
-  - `effectiveStart()` → `start`; `effectiveEnd()` → `end`.
+  `start?` / `end?`, numeric `duration?`. A well-formed task has exactly 2 of the
+  3 constraints set; the third endpoint is derived. Rules:
+  - `effectiveStart()` → `start` if set, else `end − duration` (calendar days in
+    this phase).
+  - `effectiveEnd()` → `end` if set, else `start + duration` (calendar days in
+    this phase).
   - `effectiveDuration()` → `duration` if defined, else
     `effectiveEnd() − effectiveStart()` in days.
+  - Under-constrained tasks (fewer than 2 constraints) are out of scope here;
+    their validation lives in the graph-validation spec.
 - `class MilestoneEntity implements BaseTask, Schedulable` — carries `Date` `date`.
   Rules: `effectiveStart()` = `effectiveEnd()` = `date`;
   `effectiveDuration()` = `MILESTONE_DURATION`.
@@ -153,22 +172,26 @@ used on disk and over the protocol. Field renames apply to these plain types:
   `MilestoneEntity[]`, `GroupEntity[]`, the plain `Dependency[]`, `version`, and
   the reserved `workingCalendar` / `workingDayHours`.
 
-> Note on `effectiveStart()`/`effectiveEnd()` for a task lacking that endpoint:
-> until scheduling lands, an unset endpoint has no `Date`. The first
-> implementation returns the user-set value and treats a missing endpoint as
-> undefined at the type level (methods typed `Date`, but the entity documents that
-> an under-constrained task's endpoints are not yet resolvable). Final resolution
-> belongs to the scheduling-engine spec.
+> Note on `effectiveStart()`/`effectiveEnd()` derivation: a well-formed task sets
+> exactly 2 of {start, duration, end}; the missing endpoint is derived locally
+> (`end − duration` or `start + duration`) so both accessors return a `Date`. This
+> phase uses calendar-day arithmetic; working-day arithmetic and dependency-driven
+> propagation and final resolution belong to the scheduling-engine spec. An under-constrained task
+> (fewer than 2 constraints) has no resolvable endpoint; such documents are
+> rejected by the graph-validation spec, not here.
 
 **New hydration/serialization service** — new file
 `src/services/ganttModelService.ts` (pure; no `vscode`):
 
 - `hydrateDocument(document: GanttDocument): GanttModel` — maps validated plain
   records into entity instances, parsing each ISO date string into a `Date`.
-- Date helpers: `parseIsoDate(iso: string): Date` (parse as **UTC midnight** to
-  avoid timezone drift) and `formatIsoDate(date: Date): string`
-  (`date.toISOString().slice(0, 10)`), matching the `ISO_DATE`
-  (`/^\d{4}-\d{2}-\d{2}$/`) format.
+- Date helpers: `parseIsoDate(iso: string): Date` and
+  `formatIsoDate(date: Date): string`. Because the persisted values are date-only
+  ISO strings (`YYYY-MM-DD`), the **default** `Date` parser already interprets
+  them as **UTC midnight** and `toISOString()` round-trips them — so `parseIsoDate`
+  = `new Date(iso)` and `formatIsoDate` = `date.toISOString().slice(0, 10)`, with
+  no custom UTC construction. Both match the `ISO_DATE` (`/^\d{4}-\d{2}-\d{2}$/`)
+  format.
 - Optionally `toDocument(model: GanttModel): GanttDocument` for a full round-trip;
   in this phase the controller keeps the plain document as its wire/disk buffer, so
   `toDocument` is provided for symmetry/tests.
@@ -189,7 +212,8 @@ used on disk and over the protocol. Field renames apply to these plain types:
 
 ## 6. Protocol Impact
 
-`src/common/protocol.ts` — **no structural change.** `HostToWebview` (`init`,
+`src/common/protocol.ts` — **no message-shape change** (field renames propagate
+via the shared plain types). `HostToWebview` (`init`,
 `documentChanged`, `selectTask`, `editTask`) and `WebviewToHost` (`updateTask`,
 `updateMilestone`, …) continue to carry the plain `GanttDocument` / `Task` /
 `Milestone` shapes. The `title` → `name` and `parentId` → `groupId` renames
@@ -236,30 +260,65 @@ changes.
   (`duration` set vs derived) and the migration prefer-new / fall-back-to-legacy
   branches.
 
-## 9. Risks & Open Questions
+## 9. Risks & Decisions
+
+### Risk Decisions
 
 - 🟡 Medium — Risk: `Date` cannot cross the webview boundary (`postMessage` /
   structured-clone-to-JSON strips it) and class methods do not survive
-  serialization. Treatment: the OO/`Date` model is host-in-memory only; the wire
-  and disk stay plain ISO-string JSON, and the webview keeps its existing
-  string-based free functions.
-- 🟡 Medium — Risk: parsing `YYYY-MM-DD` in local time shifts the day across
-  timezones. Treatment: parse as **UTC midnight** and format via
-  `toISOString().slice(0, 10)`; covered by a timezone round-trip test.
+  serialization. Decision: accept with mitigation. Mitigation: the OO/`Date` model
+  is host-in-memory only; the wire and disk stay plain ISO-string JSON, and the
+  webview keeps its existing string-based free functions.
 - 🟡 Medium — Risk: renaming without a version bump means both old and new field
-  names can appear on disk. Treatment: an always-run rename pass in the migration
-  service accepts both (prefers new); the serializer writes only new names, so
-  files self-heal on the next save.
+  names can appear on disk. Decision: accept (no version bump) with mitigation.
+  Rationale: unlike the dependency-type-rename (which swapped `sourceId`/`targetId`
+  semantics and so required a versioned, one-shot migration), this is a pure key
+  rename with no meaning change, so an **idempotent always-run pass** is safe and
+  avoids churning the schema version. Mitigation: the always-run rename pass in the
+  migration service accepts both names (prefers new); the serializer writes only
+  new names, so files self-heal on the next save. Covered by both-present and
+  legacy round-trip tests.
+- 🟢 Low — Risk: parsing `YYYY-MM-DD` shifts the day across timezones. Decision:
+  reduced. Rationale: date-only ISO strings are parsed as **UTC midnight** by the
+  default `Date` constructor, and `toISOString().slice(0, 10)` formats back in UTC,
+  so no custom UTC construction is needed; guarded by a timezone round-trip test.
 - 🟢 Low — Risk: `Schedulable.effectiveStart()/effectiveEnd()` are typed `Date`
-  but an under-constrained task has no resolvable endpoint yet. Treatment:
-  first-implementation returns user-set values only; full resolution is deferred
-  to the scheduling-engine spec, which owns computed endpoints.
-- 🟢 Low — Open question: should the editor controller fully switch its in-memory
-  source of truth to `GanttModel` (dehydrating for wire/disk) now, or keep the
-  plain document as the buffer and treat `GanttModel` as a derived view? Proposed:
-  keep the plain document as the buffer this phase (minimal wire disruption) and
-  build `GanttModel` as a derived view on reparse.
-- 🔵 Nice to have — Open question: should ISO↔`Date` helpers live in
-  `ganttModelService.ts` or a shared `common/models` date util? Proposed: keep them
-  in `ganttModelService.ts` so model files stay pure declarations; promote later if
-  reused.
+  but an under-constrained task has no resolvable endpoint. Decision: accept.
+  Rationale: a well-formed task sets exactly 2 constraints, so the missing endpoint
+  is always derivable (`end − duration` / `start + duration`); under-constrained
+  documents are rejected by the graph-validation spec, not here. Full resolution is deferred to the scheduling-engine spec.
+
+### Open Question Resolution
+
+- 🟢 Low — Question: should the editor controller switch its in-memory source of
+  truth to `GanttModel`, or keep the plain document as the buffer? Resolution:
+  keep the plain document as the buffer this phase and build `GanttModel` as a
+  **derived view on reparse**. Rationale: minimal wire/disk disruption while
+  establishing the OO model in the load path.
+- 🔵 Nice to have — Question: where should the ISO↔`Date` helpers live?
+  Resolution: keep them in `ganttModelService.ts` so the model files stay pure
+  declarations; promote to a shared `common/models` date util only if reused
+  elsewhere.
+
+## 10. Review Outcome
+
+- Spec is implementation-ready; status is `Reviewed`.
+- Findings resolved:
+  - 🔴 Version bump vs precedent — decision recorded to **keep no version bump**
+    with an idempotent always-run rename pass; rationale added contrasting it with
+    the id-swapping dependency-type-rename migration (§9).
+  - 🔴 AC #1 over-claim — task `effectiveStart()`/`effectiveEnd()` now **derive**
+    the missing endpoint (`end − duration` / `start + duration`); AC #1 qualified
+    to well-formed (exactly-2-constraint) tasks, and new start+duration /
+    end+duration criteria added (§4, §5).
+  - 🟡 `GroupEntity` placeholder — changed from `Date.now()` to a deterministic
+    Unix-epoch sentinel with `effectiveDuration()` = `0` (§4, §5).
+  - 🟡 Naming divergence — this spec keeps `effectiveStart()/effectiveEnd()`; the
+    scheduling-engine spec was aligned to the same names and now states it computes
+    the `Schedulable` values on the `GanttModel` entities.
+  - 🟡 Open questions — both resolved with explicit decisions (§9).
+  - 🟢 Low items — calendar- vs working-day note, free-function/method name
+    collision note, `BaseTask.groupId` parent-group clarification, and §6 wording
+    all addressed.
+- Date handling: dates persist as date-only ISO strings (UTC midnight); the
+  default `Date` parser/serializer is used (no custom UTC math).
