@@ -65,6 +65,10 @@ DOM + JSX); the host project ([tsconfig.json](../tsconfig.json)) excludes
   placeholders — never string concatenation.
 - **JSDoc is mandatory** on every class, method, and member (public and private).
 - **Branch coverage must stay ≥ 90%.**
+- **Code design (DRY/SOLID):** apply the principles in
+  [code-design-principles](instructions/code-design-principles.instructions.md)
+  pragmatically — keep pure logic in `services/`, inject dependencies, and avoid
+  premature abstraction.
 - **Reporting issues/risks/questions:** when an agent or skill reports issues,
   findings, risks, or open questions, use the shared severity scale in
   [reporting-standard](instructions/reporting-standard.instructions.md) (🟣
