@@ -80,7 +80,7 @@ function validateTask(raw: unknown, index: number): Task {
   }
   const task: Task = {
     id: requireString(raw.id, `tasks[${index}].id`),
-    title: requireString(raw.title, `tasks[${index}].title`),
+    name: requireString(raw.name, `tasks[${index}].name`),
   };
   if (raw.start !== undefined) {
     task.start = requireDate(raw.start, `tasks[${index}].start`);
@@ -123,8 +123,8 @@ function validateGroup(raw: unknown, index: number): Group {
     id: requireString(raw.id, `groups[${index}].id`),
     name: requireString(raw.name, `groups[${index}].name`),
   };
-  if (raw.parentId !== undefined) {
-    group.parentId = requireString(raw.parentId, `groups[${index}].parentId`);
+  if (raw.groupId !== undefined) {
+    group.groupId = requireString(raw.groupId, `groups[${index}].groupId`);
   }
   if (typeof raw.collapsed === "boolean") {
     group.collapsed = raw.collapsed;
@@ -141,7 +141,7 @@ function validateMilestone(raw: unknown, index: number): Milestone {
   }
   const milestone: Milestone = {
     id: requireString(raw.id, `milestones[${index}].id`),
-    title: requireString(raw.title, `milestones[${index}].title`),
+    name: requireString(raw.name, `milestones[${index}].name`),
     date: requireDate(raw.date, `milestones[${index}].date`),
   };
   if (raw.duration !== undefined && raw.duration !== 0) {

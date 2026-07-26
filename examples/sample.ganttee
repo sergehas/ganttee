@@ -3,7 +3,7 @@
   "tasks": [
     {
       "id": "task-design",
-      "title": "Design",
+      "name": "Design",
       "start": "2026-01-05",
       "end": "2026-01-12",
       "description": "Wireframes and visual design.",
@@ -13,7 +13,7 @@
     },
     {
       "id": "task-build",
-      "title": "Build",
+      "name": "Build",
       "start": "2026-01-13",
       "end": "2026-01-27",
       "progress": 0.4,
@@ -22,7 +22,7 @@
     },
     {
       "id": "task-test",
-      "title": "Test",
+      "name": "Test",
       "start": "2026-01-28",
       "end": "2026-02-04",
       "progress": 0,
@@ -31,11 +31,23 @@
     },
     {
       "id": "task-9kcoliei",
-      "title": "New Task",
-      "start": "2026-03-02",
-      "end": "2026-03-26",
+      "name": "Integration tests",
+      "start": "2026-02-08",
+      "end": "2026-02-26",
+      "duration": 10,
+      "description": "# content\nThis pahse is dedicated to **user acceptance** test\nit must be conclude by a sign-of",
       "progress": 0,
       "status": "todo"
+    },
+    {
+      "id": "task-mlf0py0m",
+      "name": "SIT design",
+      "start": "2026-01-15",
+      "end": "2026-01-26",
+      "description": "Desing system integration tests",
+      "progress": 0,
+      "status": "todo",
+      "groupId": "group-discovery"
     }
   ],
   "groups": [
@@ -51,7 +63,7 @@
   "milestones": [
     {
       "id": "milestone-launch",
-      "title": "Launch",
+      "name": "Launch",
       "date": "2026-02-05"
     }
   ],
@@ -69,10 +81,22 @@
       "type": "startAfter"
     },
     {
-      "id": "dep-njcewa6q",
-      "sourceId": "task-test",
-      "targetId": "task-9kcoliei",
+      "id": "dep-msxd24e5",
+      "sourceId": "task-9kcoliei",
+      "targetId": "task-test",
       "type": "startAfter"
+    },
+    {
+      "id": "dep-dtjj5tvb",
+      "sourceId": "task-mlf0py0m",
+      "targetId": "task-design",
+      "type": "startAfter"
+    },
+    {
+      "id": "dep-spmagaqp",
+      "sourceId": "task-mlf0py0m",
+      "targetId": "task-build",
+      "type": "endWith"
     }
   ]
 }

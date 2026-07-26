@@ -93,9 +93,9 @@ mandatory field rename.
 
 - Given a group
   When `effectiveStart()` / `effectiveEnd()` are read
-  Then both return the current time (`Date.now()`) as a placeholder, and
-  `effectiveDuration()` is the placeholder difference (0) — flagged for
-  replacement by the scheduling engine.
+  Then both return the Unix epoch (`new Date(0)`) as a deterministic placeholder,
+  and `effectiveDuration()` is `0` — flagged for replacement by the scheduling
+  engine.
 
 - Given a hydrated `GanttModel`
   When it is serialized back to text
@@ -147,13 +147,19 @@ used on disk and over the protocol. Field renames apply to these plain types:
 `Task`, `Milestone`, and `Group` extend `BaseTask`.
 
 **New OO domain layer** — new file `src/common/models/entities.ts` (pure; no
-`vscode`/DOM/Node imports):
+`vscode`/DOM/Node imports). Entities are **immutable**: every field is set through
+the constructor. Safe, dependency-aware mutation is deferred to the scheduling
+engine, which will expose dedicated methods.
 
 - `interface Schedulable` with `effectiveStart(): Date`, `effectiveEnd(): Date`,
   `effectiveDuration(): number` (decimal days).
-- `class TaskEntity implements BaseTask, Schedulable` — carries `Date`-typed
-  `start?` / `end?`, numeric `duration?`. A well-formed task has exactly 2 of the
-  3 constraints set; the third endpoint is derived. Rules:
+- `abstract class BaseTaskEntity implements BaseTask, Schedulable` — holds the
+  shared identity fields (`id`, `name`, `description?`, `groupId?`) set from a
+  `BaseTask` in its constructor and declares the abstract `Schedulable` methods.
+  Concrete entities extend it (DRY / OCP / LSP).
+- `class TaskEntity extends BaseTaskEntity` — carries `Date`-typed `start?` /
+  `end?`, numeric `duration?`. A well-formed task has exactly 2 of the 3
+  constraints set; the third endpoint is derived. Rules:
   - `effectiveStart()` → `start` if set, else `end − duration` (calendar days in
     this phase).
   - `effectiveEnd()` → `end` if set, else `start + duration` (calendar days in
@@ -161,13 +167,15 @@ used on disk and over the protocol. Field renames apply to these plain types:
   - `effectiveDuration()` → `duration` if defined, else
     `effectiveEnd() − effectiveStart()` in days.
   - Under-constrained tasks (fewer than 2 constraints) are out of scope here;
-    their validation lives in the graph-validation spec.
-- `class MilestoneEntity implements BaseTask, Schedulable` — carries `Date` `date`.
+    their validation lives in the graph-validation spec. If an effective endpoint
+    cannot be derived, the accessor throws `UnresolvableScheduleError` (a guard
+    that well-formed, validated documents never trigger).
+- `class MilestoneEntity extends BaseTaskEntity` — carries `Date` `date`.
   Rules: `effectiveStart()` = `effectiveEnd()` = `date`;
   `effectiveDuration()` = `MILESTONE_DURATION`.
-- `class GroupEntity implements BaseTask, Schedulable` — no static schedule. Rules
+- `class GroupEntity extends BaseTaskEntity` — no static schedule. Rules
   (first-implementation placeholders): `effectiveStart()` = `effectiveEnd()` =
-  `new Date()` (i.e. `Date.now()`); `effectiveDuration()` = placeholder difference.
+  `new Date(0)` (a deterministic Unix-epoch sentinel); `effectiveDuration()` = `0`.
 - `class GanttModel` — in-memory container holding `TaskEntity[]`,
   `MilestoneEntity[]`, `GroupEntity[]`, the plain `Dependency[]`, `version`, and
   the reserved `workingCalendar` / `workingDayHours`.
@@ -185,16 +193,24 @@ used on disk and over the protocol. Field renames apply to these plain types:
 
 - `hydrateDocument(document: GanttDocument): GanttModel` — maps validated plain
   records into entity instances, parsing each ISO date string into a `Date`.
-- Date helpers: `parseIsoDate(iso: string): Date` and
-  `formatIsoDate(date: Date): string`. Because the persisted values are date-only
-  ISO strings (`YYYY-MM-DD`), the **default** `Date` parser already interprets
-  them as **UTC midnight** and `toISOString()` round-trips them — so `parseIsoDate`
-  = `new Date(iso)` and `formatIsoDate` = `date.toISOString().slice(0, 10)`, with
-  no custom UTC construction. Both match the `ISO_DATE` (`/^\d{4}-\d{2}-\d{2}$/`)
-  format.
-- Optionally `toDocument(model: GanttModel): GanttDocument` for a full round-trip;
-  in this phase the controller keeps the plain document as its wire/disk buffer, so
-  `toDocument` is provided for symmetry/tests.
+- `toDocument(model: GanttModel): GanttDocument` — projects the model back to a
+  plain document (formatting `Date` → ISO string) with parser-matching field
+  order, so a parse → hydrate → serialize round-trip is byte-stable. In this
+  phase the controller keeps the plain document as its wire/disk buffer, so
+  `toDocument` is used for symmetry/tests.
+
+**Shared date util** — new file `src/common/dates.ts` (pure; no `vscode`/DOM/Node
+imports), reused by both the entities and the hydrator (DRY / DIP):
+
+- `parseIsoDate(iso: string): Date` = `new Date(iso)` and
+  `formatIsoDate(date: Date): string` = `date.toISOString().slice(0, 10)`.
+  Because the persisted values are date-only ISO strings (`YYYY-MM-DD`), the
+  default `Date` parser interprets them as **UTC midnight** and `toISOString()`
+  round-trips them — so no custom UTC construction is needed. Both match the
+  `ISO_DATE` (`/^\d{4}-\d{2}-\d{2}$/`) format.
+- `addDays(date, days)` and `diffInDays(from, to)` provide the calendar-day
+  arithmetic used by `TaskEntity` endpoint derivation and `effectiveDuration`.
+- `MS_PER_DAY` lives here as the single source of truth (`task.ts` imports it).
 
 **Schema migration** — `src/services/ganttDocumentMigrationService.ts`:
 
@@ -296,9 +312,10 @@ changes.
   **derived view on reparse**. Rationale: minimal wire/disk disruption while
   establishing the OO model in the load path.
 - 🔵 Nice to have — Question: where should the ISO↔`Date` helpers live?
-  Resolution: keep them in `ganttModelService.ts` so the model files stay pure
-  declarations; promote to a shared `common/models` date util only if reused
-  elsewhere.
+  Resolution: **implemented in a shared pure `src/common/dates.ts`** module
+  (`parseIsoDate`, `formatIsoDate`, `addDays`, `diffInDays`, `MS_PER_DAY`), reused
+  by both the entity classes and the hydrator so the calendar-day arithmetic is
+  not duplicated (DRY / DIP). The model files stay pure declarations.
 
 ## 10. Review Outcome
 

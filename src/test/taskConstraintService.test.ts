@@ -13,7 +13,7 @@ import { describeTaskConstraints } from "../services/taskConstraintService";
 
 /** Builds a task with the given optional constraints for a test case. */
 function task(overrides: Partial<Task>): Task {
-  return { id: "t1", title: "Task", ...overrides };
+  return { id: "t1", name: "Task", ...overrides };
 }
 
 suite("taskConstraintService", () => {
@@ -104,7 +104,7 @@ suite("taskConstraintService", () => {
   test("aliases milestone start and end to its date with zero duration", () => {
     const milestone: Milestone = {
       id: "m1",
-      title: "Kickoff",
+      name: "Kickoff",
       date: "2026-01-01",
     };
     assert.strictEqual(milestoneStart(milestone), "2026-01-01");

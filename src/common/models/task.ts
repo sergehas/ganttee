@@ -5,8 +5,26 @@
  * the webview. They must not import from "vscode" or any browser/node globals.
  */
 
+import { MS_PER_DAY } from "../dates";
+
 /** Lifecycle state of a task. */
 export type TaskStatus = "todo" | "inProgress" | "done";
+
+/**
+ * The identity and labeling shape shared by every schedulable entity.
+ *
+ * Tasks, milestones, and groups all carry the same identity fields so the tree,
+ * timeline, and edit form can read one uniform display name.
+ */
+export interface BaseTask {
+  id: string;
+  /** Human-readable display name. */
+  name: string;
+  /** Optional free-form description; may contain multi-line text. */
+  description?: string;
+  /** Owning group id, if the entity belongs to a group. */
+  groupId?: string;
+}
 
 /**
  * A schedulable unit of work defined by scheduling constraints.
@@ -19,10 +37,7 @@ export type TaskStatus = "todo" | "inProgress" | "done";
  * kept separate from computed values: the `effective*` accessors expose the
  * scheduled result, while these fields remain the source of truth.
  */
-export interface Task {
-  id: string;
-  title: string;
-  description?: string;
+export interface Task extends BaseTask {
   /** Inclusive start date, ISO-8601 date string (YYYY-MM-DD). Optional user input. */
   start?: string;
   /** Inclusive end date, ISO-8601 date string (YYYY-MM-DD). Optional user input. */
@@ -32,8 +47,6 @@ export interface Task {
   /** Completion ratio in the range 0..1. */
   progress?: number;
   status?: TaskStatus;
-  /** Owning group id, if the task belongs to a group. */
-  groupId?: string;
 }
 
 /**
@@ -42,12 +55,7 @@ export interface Task {
  * A group carries no static schedule of its own; its dates are effective-only,
  * rolled up from its members by the scheduling engine.
  */
-export interface Group {
-  id: string;
-  name: string;
-  description?: string;
-  /** Optional parent group id for nested groups. */
-  parentId?: string;
+export interface Group extends BaseTask {
   collapsed?: boolean;
 }
 
@@ -58,17 +66,10 @@ export interface Group {
  * {@link Milestone.date} is canonical and aliases both the effective start and
  * end (see {@link milestoneStart} and {@link milestoneEnd}).
  */
-export interface Milestone {
-  id: string;
-  title: string;
-  description?: string;
+export interface Milestone extends BaseTask {
   /** ISO-8601 date string (YYYY-MM-DD). */
   date: string;
-  groupId?: string;
 }
-
-/** Milliseconds in a single day, used for date arithmetic. */
-const MS_PER_DAY = 86_400_000;
 
 /** The fixed duration, in working days, of every milestone. */
 export const MILESTONE_DURATION = 0;

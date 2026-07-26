@@ -46,7 +46,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
     }
 
     if (!element) {
-      const rootGroups = model.groups.filter((group) => !group.parentId);
+      const rootGroups = model.groups.filter((group) => !group.groupId);
       const ungroupedTasks = model.tasks.filter((task) => !task.groupId);
       const ungroupedMilestones = model.milestones.filter(
         (milestone) => !milestone.groupId,
@@ -63,7 +63,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
     if (element.kind === "group") {
       const groupId = element.group.id;
       const childGroups = model.groups.filter(
-        (group) => group.parentId === groupId,
+        (group) => group.groupId === groupId,
       );
       const tasks = model.tasks.filter((task) => task.groupId === groupId);
       const milestones = model.milestones.filter(
@@ -94,7 +94,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
 
   private taskItem(task: Task): vscode.TreeItem {
     const item = new vscode.TreeItem(
-      task.title,
+      task.name,
       vscode.TreeItemCollapsibleState.None,
     );
     item.description = `${effectiveStart(task) ?? "—"} → ${effectiveEnd(task) ?? "—"}`;
@@ -111,7 +111,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
 
   private milestoneItem(milestone: Milestone): vscode.TreeItem {
     const item = new vscode.TreeItem(
-      milestone.title,
+      milestone.name,
       vscode.TreeItemCollapsibleState.None,
     );
     item.description = milestone.date;

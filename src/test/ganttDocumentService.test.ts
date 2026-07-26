@@ -21,7 +21,7 @@ suite("ganttDocumentService", () => {
         tasks: [
           {
             id: "t1",
-            title: "Design",
+            name: "Design",
             start: "2026-01-01",
             end: "2026-01-05",
             progress: 0.5,
@@ -29,7 +29,7 @@ suite("ganttDocumentService", () => {
           },
         ],
         groups: [{ id: "g1", name: "Phase 1" }],
-        milestones: [{ id: "m1", title: "Kickoff", date: "2026-01-01" }],
+        milestones: [{ id: "m1", name: "Kickoff", date: "2026-01-01" }],
         dependencies: [
           { id: "d1", sourceId: "t1", targetId: "t1", type: "startAfter" },
         ],
@@ -51,7 +51,7 @@ suite("ganttDocumentService", () => {
 
   test("accepts a task constrained by start and duration", () => {
     const text = JSON.stringify({
-      tasks: [{ id: "t1", title: "Build", start: "2026-01-01", duration: 3 }],
+      tasks: [{ id: "t1", name: "Build", start: "2026-01-01", duration: 3 }],
     });
     const task = parseDocument(text).tasks[0];
     assert.strictEqual(task.start, "2026-01-01");
@@ -61,7 +61,7 @@ suite("ganttDocumentService", () => {
 
   test("accepts an under-constrained task at parse time", () => {
     const text = JSON.stringify({
-      tasks: [{ id: "t1", title: "No constraints" }],
+      tasks: [{ id: "t1", name: "No constraints" }],
     });
     const task = parseDocument(text).tasks[0];
     assert.strictEqual(task.start, undefined);
@@ -71,7 +71,7 @@ suite("ganttDocumentService", () => {
 
   test("rejects a negative task duration", () => {
     const text = JSON.stringify({
-      tasks: [{ id: "t1", title: "Bad", start: "2026-01-01", duration: -1 }],
+      tasks: [{ id: "t1", name: "Bad", start: "2026-01-01", duration: -1 }],
     });
     assert.throws(() => parseDocument(text), GanttParseError);
   });
@@ -79,7 +79,7 @@ suite("ganttDocumentService", () => {
   test("accepts a milestone with an explicit zero duration", () => {
     const text = JSON.stringify({
       milestones: [
-        { id: "m1", title: "Kickoff", date: "2026-01-01", duration: 0 },
+        { id: "m1", name: "Kickoff", date: "2026-01-01", duration: 0 },
       ],
     });
     assert.strictEqual(parseDocument(text).milestones.length, 1);
@@ -88,7 +88,7 @@ suite("ganttDocumentService", () => {
   test("rejects a milestone with a non-zero duration", () => {
     const text = JSON.stringify({
       milestones: [
-        { id: "m1", title: "Kickoff", date: "2026-01-01", duration: 2 },
+        { id: "m1", name: "Kickoff", date: "2026-01-01", duration: 2 },
       ],
     });
     assert.throws(() => parseDocument(text), GanttParseError);
@@ -97,7 +97,7 @@ suite("ganttDocumentService", () => {
   test("rejects a non-ISO date", () => {
     const text = JSON.stringify({
       tasks: [
-        { id: "t1", title: "Bad", start: "01/01/2026", end: "2026-01-02" },
+        { id: "t1", name: "Bad", start: "01/01/2026", end: "2026-01-02" },
       ],
     });
     assert.throws(() => parseDocument(text), GanttParseError);
@@ -108,7 +108,7 @@ suite("ganttDocumentService", () => {
       tasks: [
         {
           id: "t1",
-          title: "Over",
+          name: "Over",
           start: "2026-01-01",
           end: "2026-01-02",
           progress: 5,
@@ -124,13 +124,13 @@ suite("ganttDocumentService", () => {
       tasks: [
         {
           id: "t1",
-          title: "Task 1",
+          name: "Task 1",
           start: "2026-01-01",
           end: "2026-01-02",
         },
         {
           id: "t2",
-          title: "Task 2",
+          name: "Task 2",
           start: "2026-01-03",
           end: "2026-01-04",
         },

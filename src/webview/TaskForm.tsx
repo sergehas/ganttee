@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-    Dependency,
-    DependencyType,
-    GanttDocument,
-    Task,
-    TaskStatus,
+  Dependency,
+  DependencyType,
+  GanttDocument,
+  Task,
+  TaskStatus,
 } from "../common/models";
 
 interface TaskFormProps {
@@ -78,11 +78,11 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
       </div>
 
       <label className="ganttee-field">
-        <span>Title</span>
+        <span>Name</span>
         <input
           type="text"
-          value={draft.title}
-          onChange={(event) => update("title", event.target.value)}
+          value={draft.name}
+          onChange={(event) => update("name", event.target.value)}
           required
         />
       </label>
@@ -115,6 +115,9 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
             onChange={(event) => update("end", event.target.value || undefined)}
           />
         </label>
+      </div>
+
+      <div className="ganttee-field-row">
         <label className="ganttee-field">
           <span>Duration</span>
           <input
@@ -129,6 +132,18 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
                   ? undefined
                   : Number(event.target.value),
               )
+            }
+          />
+        </label>
+        <label className="ganttee-field">
+          <span>Progress</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round((draft.progress ?? 0) * 100)}
+            onChange={(event) =>
+              update("progress", Number(event.target.value) / 100)
             }
           />
         </label>
@@ -147,18 +162,6 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
               </option>
             ))}
           </select>
-        </label>
-        <label className="ganttee-field">
-          <span>Progress</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round((draft.progress ?? 0) * 100)}
-            onChange={(event) =>
-              update("progress", Number(event.target.value) / 100)
-            }
-          />
         </label>
       </div>
 
@@ -218,7 +221,7 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
             <option value="">Select task…</option>
             {candidateTargets.map((other) => (
               <option key={other.id} value={other.id}>
-                {other.title}
+                {other.name}
               </option>
             ))}
           </select>
@@ -250,5 +253,5 @@ function describeDependency(dep: Dependency, document: GanttDocument): string {
   const label = DEPENDENCY_OPTIONS.find(
     (option) => option.value === dep.type,
   )?.label;
-  return `${source?.title ?? "?"} → ${label} → ${target?.title ?? "?"}`;
+  return `${source?.name ?? "?"} → ${label} → ${target?.name ?? "?"}`;
 }

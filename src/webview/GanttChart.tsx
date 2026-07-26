@@ -109,12 +109,12 @@ function buildRows(document: GanttDocument): {
 } {
   const rows: Row[] = [
     ...document.tasks.map(
-      (task): Row => ({ id: task.id, label: task.title, kind: "task" }),
+      (task): Row => ({ id: task.id, label: task.name, kind: "task" }),
     ),
     ...document.milestones.map(
       (milestone): Row => ({
         id: milestone.id,
-        label: milestone.title,
+        label: milestone.name,
         kind: "milestone",
       }),
     ),
@@ -291,15 +291,15 @@ const renderLink: CustomSeriesRenderItem = (
 };
 
 function tooltipFormatter(params: unknown): string {
-  const data = (params as { data?: { task?: Task; milestone?: { title: string; date: string } } })
+  const data = (params as { data?: { task?: Task; milestone?: { name: string; date: string } } })
     .data;
   if (data?.task) {
     const start = effectiveStart(data.task) ?? "—";
     const end = effectiveEnd(data.task) ?? "—";
-    return `<strong>${escapeHtml(data.task.title)}</strong><br/>${start} → ${end}`;
+    return `<strong>${escapeHtml(data.task.name)}</strong><br/>${start} → ${end}`;
   }
   if (data?.milestone) {
-    return `<strong>${escapeHtml(data.milestone.title)}</strong><br/>${data.milestone.date}`;
+    return `<strong>${escapeHtml(data.milestone.name)}</strong><br/>${data.milestone.date}`;
   }
   return "";
 }

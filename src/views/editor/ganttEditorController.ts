@@ -3,6 +3,7 @@ import {
   createEmptyDocument,
   Dependency,
   GanttDocument,
+  GanttModel,
   Milestone,
   Task,
 } from "../../common/models";
@@ -16,6 +17,7 @@ import {
   parseDocument,
   serializeDocument,
 } from "../../services/ganttDocumentService";
+import { hydrateDocument } from "../../services/ganttModelService";
 
 /**
  * Bridges a single `.ganttee` {@link vscode.TextDocument} with its webview and
@@ -24,6 +26,7 @@ import {
  */
 export class GanttEditorController {
   private _model: GanttDocument = createEmptyDocument();
+  private _graph: GanttModel = hydrateDocument(this._model);
   private readonly _disposables: vscode.Disposable[] = [];
   private readonly _onDidChangeModel = new vscode.EventEmitter<void>();
 
@@ -58,6 +61,14 @@ export class GanttEditorController {
 
   get model(): GanttDocument {
     return this._model;
+  }
+
+  /**
+   * The hydrated, `Date`-typed in-memory model derived from {@link model} on
+   * every reparse. Host-only; never sent over the webview protocol.
+   */
+  get graph(): GanttModel {
+    return this._graph;
   }
 
   /** Reveals the editor panel and posts the initial model to the webview. */
@@ -152,6 +163,7 @@ export class GanttEditorController {
   private reparse(): void {
     try {
       this._model = parseDocument(this.document.getText());
+      this._graph = hydrateDocument(this._model);
       this._onDidChangeModel.fire();
     } catch (error) {
       if (error instanceof GanttParseError) {

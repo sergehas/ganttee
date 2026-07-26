@@ -17,7 +17,7 @@ function documentWith(
   const document = createEmptyDocument();
   document.tasks = taskIds.map((id) => ({
     id,
-    title: id,
+    name: id,
     start: "2026-01-01",
     end: "2026-01-02",
   }));
