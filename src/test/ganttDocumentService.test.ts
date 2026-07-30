@@ -145,4 +145,58 @@ suite("ganttDocumentService", () => {
       { id: "d1", sourceId: "t1", targetId: "t2", type: "endWith" },
     ]);
   });
+
+  test("preserves reserved project settings through parse", () => {
+    const text = JSON.stringify({
+      version: CURRENT_DOCUMENT_VERSION,
+      settings: { workingCalendar: { daysOff: [6, 7] }, workingDayHours: 8 },
+    });
+
+    const document = parseDocument(text);
+    assert.deepStrictEqual(document.settings, {
+      workingCalendar: { daysOff: [6, 7] },
+      workingDayHours: 8,
+    });
+    assert.deepStrictEqual(
+      parseDocument(serializeDocument(document)),
+      document,
+    );
+  });
+
+  test("nests legacy top-level working config under settings on parse", () => {
+    const text = JSON.stringify({
+      version: CURRENT_DOCUMENT_VERSION,
+      workingDayHours: 8,
+    });
+
+    assert.deepStrictEqual(parseDocument(text).settings, {
+      workingDayHours: 8,
+    });
+  });
+
+  test("rejects a non-numeric working-day-hours value", () => {
+    const text = JSON.stringify({
+      version: CURRENT_DOCUMENT_VERSION,
+      settings: { workingDayHours: "eight" },
+    });
+    assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("drops unknown settings keys and empty settings", () => {
+    const text = JSON.stringify({
+      version: CURRENT_DOCUMENT_VERSION,
+      settings: { unknown: true },
+    });
+    assert.strictEqual(parseDocument(text).settings, undefined);
+  });
+
+  test("normalizes a working calendar without days off to an empty calendar", () => {
+    const text = JSON.stringify({
+      version: CURRENT_DOCUMENT_VERSION,
+      settings: { workingCalendar: {} },
+    });
+    assert.deepStrictEqual(parseDocument(text).settings, {
+      workingCalendar: {},
+    });
+  });
 });

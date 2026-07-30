@@ -33,8 +33,7 @@ export function hydrateDocument(document: GanttDocument): GanttModel {
     document.groups.map(toGroupEntity),
     document.dependencies.map((dependency) => ({ ...dependency })),
     document.version,
-    document.workingCalendar,
-    document.workingDayHours,
+    document.settings,
   );
 }
 
@@ -54,11 +53,8 @@ export function toDocument(model: GanttModel): GanttDocument {
     milestones: model.milestones.map(fromMilestoneEntity),
     dependencies: model.dependencies.map((dependency) => ({ ...dependency })),
   };
-  if (model.workingCalendar !== undefined) {
-    document.workingCalendar = model.workingCalendar;
-  }
-  if (model.workingDayHours !== undefined) {
-    document.workingDayHours = model.workingDayHours;
+  if (model.settings !== undefined) {
+    document.settings = model.settings;
   }
   return document;
 }

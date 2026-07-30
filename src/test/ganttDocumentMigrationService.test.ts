@@ -206,4 +206,59 @@ suite("ganttDocumentMigrationService", () => {
     const reparsed = parseDocument(serializeDocument(document));
     assert.deepStrictEqual(reparsed, document);
   });
+
+  test("nests top-level working config under settings", () => {
+    const migrated = migrateDocument({
+      version: CURRENT_DOCUMENT_VERSION,
+      dependencies: [],
+      workingCalendar: { daysOff: [6, 7] },
+      workingDayHours: 8,
+    });
+
+    assert.deepStrictEqual(migrated, {
+      version: CURRENT_DOCUMENT_VERSION,
+      dependencies: [],
+      settings: { workingCalendar: { daysOff: [6, 7] }, workingDayHours: 8 },
+    });
+  });
+
+  test("is idempotent when settings is already nested", () => {
+    const raw = {
+      version: CURRENT_DOCUMENT_VERSION,
+      dependencies: [],
+      settings: { workingCalendar: { daysOff: [6, 7] }, workingDayHours: 8 },
+    };
+
+    assert.deepStrictEqual(migrateDocument(raw), raw);
+  });
+
+  test("prefers nested settings over legacy top-level working config", () => {
+    const migrated = migrateDocument({
+      version: CURRENT_DOCUMENT_VERSION,
+      dependencies: [],
+      workingCalendar: { daysOff: [1] },
+      workingDayHours: 6,
+      settings: { workingCalendar: { daysOff: [6, 7] }, workingDayHours: 8 },
+    });
+
+    assert.deepStrictEqual(migrated, {
+      version: CURRENT_DOCUMENT_VERSION,
+      dependencies: [],
+      settings: { workingCalendar: { daysOff: [6, 7] }, workingDayHours: 8 },
+    });
+  });
+
+  test("hoists a single legacy working field into settings", () => {
+    const migrated = migrateDocument({
+      version: CURRENT_DOCUMENT_VERSION,
+      dependencies: [],
+      workingDayHours: 8,
+    });
+
+    assert.deepStrictEqual(migrated, {
+      version: CURRENT_DOCUMENT_VERSION,
+      dependencies: [],
+      settings: { workingDayHours: 8 },
+    });
+  });
 });

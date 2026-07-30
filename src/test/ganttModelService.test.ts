@@ -188,11 +188,12 @@ suite("ganttModelService", () => {
   test("carries reserved working-calendar configuration when present", () => {
     const withCalendar: GanttDocument = {
       ...SAMPLE_DOCUMENT,
-      workingCalendar: { daysOff: [6, 7] },
-      workingDayHours: 8,
+      settings: { workingCalendar: { daysOff: [6, 7] }, workingDayHours: 8 },
     };
     const roundTripped = toDocument(hydrateDocument(withCalendar));
-    assert.deepStrictEqual(roundTripped.workingCalendar, { daysOff: [6, 7] });
-    assert.strictEqual(roundTripped.workingDayHours, 8);
+    assert.deepStrictEqual(roundTripped.settings, {
+      workingCalendar: { daysOff: [6, 7] },
+      workingDayHours: 8,
+    });
   });
 });

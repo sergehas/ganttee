@@ -98,5 +98,14 @@
       "targetId": "task-build",
       "type": "endWith"
     }
-  ]
+  ],
+  "settings": {
+    "workingCalendar": {
+      "daysOff": [
+        6,
+        7
+      ]
+    },
+    "workingDayHours": 7
+  }
 }

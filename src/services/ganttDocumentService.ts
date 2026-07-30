@@ -6,8 +6,10 @@ import {
   GanttDocument,
   Group,
   Milestone,
+  ProjectSettings,
   Task,
   TaskStatus,
+  WorkingCalendar,
 } from "../common/models";
 import { migrateDocument } from "./ganttDocumentMigrationService";
 
@@ -59,7 +61,7 @@ function validate(raw: unknown): GanttDocument {
     throw new GanttParseError("Document root must be an object.");
   }
 
-  return {
+  const document: GanttDocument = {
     version:
       typeof raw.version === "number" ? raw.version : CURRENT_DOCUMENT_VERSION,
     tasks: asArray(raw.tasks, "tasks").map(validateTask),
@@ -69,6 +71,50 @@ function validate(raw: unknown): GanttDocument {
       validateDependency,
     ),
   };
+  const settings = validateSettings(raw.settings);
+  if (settings !== undefined) {
+    document.settings = settings;
+  }
+  return document;
+}
+
+/**
+ * Validates and normalizes the reserved project settings, dropping unknown
+ * keys. Returns `undefined` when no recognized setting is present.
+ */
+function validateSettings(raw: unknown): ProjectSettings | undefined {
+  if (!isRecord(raw)) {
+    return undefined;
+  }
+  const settings: ProjectSettings = {};
+  if (isRecord(raw.workingCalendar)) {
+    settings.workingCalendar = validateWorkingCalendar(raw.workingCalendar);
+  }
+  if (raw.workingDayHours !== undefined) {
+    settings.workingDayHours = requireNonNegativeNumber(
+      raw.workingDayHours,
+      "settings.workingDayHours",
+    );
+  }
+  return Object.keys(settings).length > 0 ? settings : undefined;
+}
+
+/**
+ * Validates and normalizes the reserved working calendar, dropping unknown keys.
+ */
+function validateWorkingCalendar(
+  raw: Record<string, unknown>,
+): WorkingCalendar {
+  const calendar: WorkingCalendar = {};
+  if (Array.isArray(raw.daysOff)) {
+    calendar.daysOff = raw.daysOff.map((day, index) =>
+      requireNonNegativeNumber(
+        day,
+        `settings.workingCalendar.daysOff[${index}]`,
+      ),
+    );
+  }
+  return calendar;
 }
 
 /**

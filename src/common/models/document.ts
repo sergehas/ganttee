@@ -18,6 +18,26 @@ export interface WorkingCalendar {
   daysOff?: number[];
 }
 
+/**
+ * Project-level configuration for a `.ganttee` document.
+ *
+ * Groups the reserved scheduling settings. Unpopulated until the working-days
+ * configuration feature lands; scheduling assumes a fixed Saturday/Sunday-off
+ * calendar in the meantime.
+ */
+export interface ProjectSettings {
+  /**
+   * Reserved project-level working calendar. Unpopulated until the working-days
+   * configuration feature lands.
+   */
+  workingCalendar?: WorkingCalendar;
+  /**
+   * Reserved project-level working hours per day. Unpopulated and ignored by
+   * scheduling until the configuration feature lands.
+   */
+  workingDayHours?: number;
+}
+
 /** The serialized shape of a `.ganttee` file. */
 export interface GanttDocument {
   version: number;
@@ -26,16 +46,10 @@ export interface GanttDocument {
   milestones: Milestone[];
   dependencies: Dependency[];
   /**
-   * Reserved project-level working calendar. Unpopulated until the working-days
-   * configuration feature lands; scheduling assumes a fixed Saturday/Sunday-off
-   * calendar in the meantime.
+   * Reserved project-level settings (working calendar and hours). Unpopulated
+   * until the working-days configuration feature lands.
    */
-  workingCalendar?: WorkingCalendar;
-  /**
-   * Reserved project-level working hours per day. Unpopulated and ignored by
-   * scheduling until the configuration feature lands.
-   */
-  workingDayHours?: number;
+  settings?: ProjectSettings;
 }
 
 /** Creates an empty document at the current schema version. */

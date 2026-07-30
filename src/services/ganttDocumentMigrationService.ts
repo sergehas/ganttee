@@ -13,7 +13,7 @@ export function migrateDocument(raw: unknown): unknown {
     return raw;
   }
 
-  return migrateVersion(renameLegacyFields(raw));
+  return migrateVersion(hoistSettings(renameLegacyFields(raw)));
 }
 
 /**
@@ -44,6 +44,38 @@ function renameLegacyFields(
     );
   }
   return result;
+}
+
+/**
+ * Nests the reserved top-level scheduling fields (`workingCalendar` and
+ * `workingDayHours`) under a single `settings` object.
+ *
+ * The pass is idempotent and runs regardless of document version. When a value
+ * already exists on `settings` it wins over the legacy top-level key, and the
+ * top-level keys are always dropped, so documents self-heal on the next save
+ * without a version bump.
+ */
+function hoistSettings(raw: Record<string, unknown>): Record<string, unknown> {
+  const hasLegacyCalendar = "workingCalendar" in raw;
+  const hasLegacyHours = "workingDayHours" in raw;
+  if (!hasLegacyCalendar && !hasLegacyHours) {
+    return raw;
+  }
+
+  const {
+    workingCalendar: legacyCalendar,
+    workingDayHours: legacyHours,
+    ...rest
+  } = raw;
+  const existing = isRecord(rest.settings) ? rest.settings : {};
+  const settings: Record<string, unknown> = { ...existing };
+  if (hasLegacyCalendar && !("workingCalendar" in settings)) {
+    settings.workingCalendar = legacyCalendar;
+  }
+  if (hasLegacyHours && !("workingDayHours" in settings)) {
+    settings.workingDayHours = legacyHours;
+  }
+  return { ...rest, settings };
 }
 
 /**

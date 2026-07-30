@@ -15,7 +15,7 @@
 
 import { addDays, diffInDays } from "../dates";
 import { Dependency } from "./dependency";
-import { WorkingCalendar } from "./document";
+import { ProjectSettings } from "./document";
 import { BaseTask, MILESTONE_DURATION, TaskStatus } from "./task";
 
 /**
@@ -257,8 +257,7 @@ export class GanttModel {
    * @param groups The hydrated group entities.
    * @param dependencies The plain dependency records (unchanged by hydration).
    * @param version The document schema version.
-   * @param workingCalendar Reserved working-calendar configuration.
-   * @param workingDayHours Reserved working-hours-per-day configuration.
+   * @param settings Reserved project-level settings (calendar and hours).
    */
   constructor(
     readonly tasks: readonly TaskEntity[],
@@ -266,7 +265,6 @@ export class GanttModel {
     readonly groups: readonly GroupEntity[],
     readonly dependencies: readonly Dependency[],
     readonly version: number,
-    readonly workingCalendar?: WorkingCalendar,
-    readonly workingDayHours?: number,
+    readonly settings?: ProjectSettings,
   ) {}
 }
