@@ -1,0 +1,30 @@
+# <type>(<scope>): <subject>   (≤72 chars, imperative, no trailing period)
+#
+# --- Body (optional): what changed and why. Wrap at ~72 columns. ---
+#
+#
+# --- Footers (optional) ---
+# BREAKING CHANGE: <describe the incompatible change>
+# Refs: #<issue>
+# Closes: #<issue>
+#
+# ----------------------------------------------------------------------
+# Conventional Commits — allowed types:
+#   feat     A new user-facing feature
+#   fix      A bug fix
+#   docs     Documentation only
+#   style    Formatting/whitespace; no behavior change
+#   refactor Neither fixes a bug nor adds a feature
+#   perf     A performance improvement
+#   test     Add or correct tests
+#   build    Build system, esbuild, bundling, dependencies
+#   ci       CI configuration and scripts
+#   chore    Maintenance not touching src/ behavior
+#   revert   Reverts a previous commit
+#
+# Suggested scopes: editor, sidebar, webview, services, models,
+#   protocol, store, build, deps, docs, test
+#
+# Breaking change: add "!" after type/scope AND a BREAKING CHANGE footer.
+#   e.g. feat(protocol)!: rename dependency payload
+# ----------------------------------------------------------------------

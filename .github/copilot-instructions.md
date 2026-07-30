@@ -90,6 +90,17 @@ Use the customization set in this folder:
   the **Architecture Guard** agent, and test planning to the **Test Planner** agent.
 - Before merging, run the `release-readiness` skill checklist.
 
+## Git Workflow
+
+Commits follow **Conventional Commits** and branches follow **gitflow**. These
+are enforced locally by husky hooks (`commitlint` + a branch-name check).
+
+- Write commits and name branches per
+  [git-workflow.instructions.md](instructions/git-workflow.instructions.md), or
+  use the `git-workflow` skill to compose them.
+- Run `git config commit.template .gitmessage` once per clone to pre-fill the
+  commit format.
+
 ## Inherited Instructions (VS Code core)
 
 Some files under `instructions/` and `skills/` were inherited from the VS Code
