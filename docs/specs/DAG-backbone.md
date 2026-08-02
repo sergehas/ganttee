@@ -1,12 +1,12 @@
 ---
-Status: Draft
+Status: Reviewed
 Owner: Tech Lead
 Last updated: 2026-08-02
 ---
 
 # Feature: DAG backbone
 
-![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)
+![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in
@@ -64,9 +64,12 @@ change — this is a pure host-in-memory refactor.
 
 ### Non-goals
 
-- **No external graph library.** `graphology` and its companion packages are not
-  introduced in this phase. Revisit when a concrete scheduling or validation
-  algorithm demonstrably cannot be served by the adjacency-list approach.
+- **No external graph library in this phase.** `graphology` and its companion
+  packages are not introduced here. The backbone algorithms (DFS, Kahn's,
+  union-find) are simple enough that the hand-rolled adjacency-list
+  implementation is defensible. Graphology adoption is explicitly planned for
+  the [Scheduling engine](./scheduling-engine.md) spec, where it wraps
+  `DependencyGraph` internally — see Resolved decisions.
 - **No entity-class changes.** `TaskEntity`, `MilestoneEntity`, `GroupEntity`,
   and the `Schedulable` interface are untouched.
 - **No group-membership edges.** `groupId` remains a plain field on each entity;
@@ -83,6 +86,12 @@ change — this is a pure host-in-memory refactor.
   `GanttDocument`.
 - **No removal of `dependencyGraphService.ts`.** It stays as-is; this spec only
   extracts its core algorithms into `DependencyGraph` and calls through to them.
+- **Dangling-reference check stays task-scoped.** `dependencyGraphService.validateGraph`
+  computes dangling references against `document.tasks` only; that check is not
+  routed through `DependencyGraph` (whose node set also includes milestones and
+  groups). Only cycle detection and topological ordering delegate to `DependencyGraph`
+  internally.
+  - **Dangling-reference check**: `dependencyGraphService.validateGraph` must computes dangling references against `document.tasks` + `document.milestones`
 
 ## 3. User Stories
 
@@ -109,7 +118,8 @@ change — this is a pure host-in-memory refactor.
 - Given a hydrated `GanttModel`
   When `model.graph.topologicalSort()` is called
   Then it returns all node ids in a valid execution order (predecessors before
-  successors), consistent with the dependency edges.
+  successors), consistent with the dependency edges, covering every entity id
+  exactly once.
 
 - Given a hydrated `GanttModel`
   When `model.graph.successors(id)` and `model.graph.predecessors(id)` are
@@ -178,12 +188,18 @@ export class DependencyGraph {
   /** @param dependencies The validated dependency records. */
   constructor(nodeIds: readonly string[], dependencies: readonly Dependency[]);
 
-  /** Returns `true` if the dependency set contains a directed cycle. */
+  /**
+   * Returns `true` if the dependency set contains a directed cycle.
+   * Always returns `false` on a successfully hydrated `GanttModel.graph`;
+   * useful on intermediate graphs inside the service adapter.
+   */
   hasCycle(): boolean;
 
   /**
    * Returns the node ids that participate in a directed cycle, or an empty
    * array when the graph is acyclic.
+   * Always returns `[]` on a successfully hydrated `GanttModel.graph`;
+   * useful on intermediate graphs inside the service adapter.
    */
   findCycle(): readonly string[];
 
@@ -247,11 +263,14 @@ structural invariants are checked here — before the `GanttModel` is returned �
 so an invalid document never produces a `GanttModel`:
 
 1. Collect all entity ids (tasks + milestones + groups).
-2. For each dependency: reject a self-loop (`sourceId === targetId`); reject a
-   parallel edge (same `sourceId`/`targetId` pair already present); check
-   `wouldCreateCycle` and throw a typed `CyclicDependencyError` if true.
-3. Construct `new DependencyGraph(entityIds, validatedDependencies)`.
-4. Pass the `DependencyGraph` instance to `new GanttModel(...)`.
+2. Scan all dependencies with a plain `Set`: reject any self-loop
+   (`sourceId === targetId`) and any parallel edge (same `sourceId`/`targetId`
+   pair already seen).
+3. Build the full adjacency list from the surviving dependencies; call `hasCycle()`
+   once and `findCycle()` to obtain the participating ids for
+   `CyclicDependencyError`.
+4. Construct `new DependencyGraph(entityIds, validatedDependencies)`.
+5. Pass the `DependencyGraph` instance to `new GanttModel(...)`.
 
 `toDocument` is unchanged — it serializes from the existing entity arrays and
 the plain `dependencies` list; the `graph` property is not serialized.
@@ -281,8 +300,9 @@ export class CyclicDependencyError extends Error {
 }
 ```
 
-These are defined in `src/common/models/dependencyGraph.ts` so they can be
-caught by both the host and a future webview pre-flight validator.
+These are defined in `src/common/models/dependencyGraph.ts` and re-exported
+from `models/index.ts`, so they can be caught by both the host and a future
+webview pre-flight validator.
 
 ### No `package.json` changes
 
@@ -347,6 +367,8 @@ No new user-facing strings; no localization impact.
   still round-trips through the document.
 - **Webview interaction:** no change expected; existing chart / form tests must
   still pass.
+- **`dependencyGraphService.test.ts`:** existing assertions pass unchanged;
+  they cover the public API, which is preserved.
 - **Coverage:** branch coverage stays ≥ 90%; new branches (self-loop /
   parallel-edge / cycle rejection, isolated-node handling in `topologicalSort`
   and `connectedComponents`, `wouldCreateCycle` true/false paths) are covered
@@ -370,19 +392,32 @@ delegates to `DependencyGraph` internally in this change, eliminating the
 duplication; its public API (used by the plain-document validation path) is
 preserved unchanged.
 
-🟢 Low — Graphology deferred, not abandoned — the decision to omit Graphology in
-this phase trades a broader library API for zero added dependencies and
-immediate reuse of existing, tested code. **Treatment:** if a future spec
-(post-order group rollup, weighted longest-path) requires an algorithm that the
-adjacency-list approach cannot reasonably provide, revisit Graphology adoption
-at that point, when the dependency cost is justified by a concrete consumer.
+🟢 Low — Graphology deferred to the scheduling engine — the backbone algorithms
+(DFS, Kahn's, union-find) are simple enough to hand-roll; adopting Graphology
+here would add bundle weight and a new dependency before any concrete consumer
+justifies it. The scheduling engine spec is the inflection point: it needs
+critical-path / longest-path on a weighted DAG and normalized-precedence
+subgraph construction — both non-trivial to implement correctly from scratch.
+**Treatment:** the scheduling engine spec adopts Graphology and re-implements
+`DependencyGraph` internals against it; the public surface of `DependencyGraph`
+is unchanged so no callers are affected.
 
 ### Resolved decisions
 
-- **No Graphology.** Two independent design-review agents confirmed the
-  Graphology spec introduced Medium-High accidental complexity for a problem
-  largely already solved by `dependencyGraphService.ts`. The thin OO
-  `DependencyGraph` alternative is adopted instead.
+- **Graphology deferred to the scheduling engine, not rejected.** The backbone
+  algorithms (DFS, Kahn's, union-find) are already implemented and tested in
+  `dependencyGraphService.ts`; hand-rolling them here costs nothing new and adds
+  zero dependencies. Every `DependencyGraph` method (`hasCycle`, `findCycle`,
+  `wouldCreateCycle`, `topologicalSort`, `connectedComponents`,
+  `predecessors`/`successors`) has a direct equivalent in `graphology-dag` and
+  `graphology-components`, but adopting the library for these five methods alone
+  would trade ~80 lines of already-working code for a 50–80 KB bundle addition
+  and an ongoing maintenance dependency. The inflection point is the scheduling
+  engine: critical-path computation on a weighted DAG and normalized-precedence
+  subgraph construction are genuinely hard to hand-roll correctly, and
+  `graphology-shortest-path` covers both. At that point `DependencyGraph`
+  re-implements its internals against Graphology without changing its public
+  surface — existing callers are unaffected.
 - **Entity classes kept.** `TaskEntity` / `MilestoneEntity` / `GroupEntity` and
   `Schedulable` are unchanged; the complexity of replacing them with attribute
   unions was not justified.

@@ -40,7 +40,7 @@ Graph attributes contains :
 > [in-memory-graph.md](./in-memory-graph.md) (tasks, milestones **and** groups are
 > vertices, joined by `ownedBy` membership edges), the implemented `GroupEntity`,
 > and the group rollup in the scheduling-engine spec. Per the tech-lead decision,
-> the [Graphology graph backbone spec](../specs/graphology-graph-backbone.md)
+> the [Graphology graph backbone spec](../specs/DAG-backbone.md)
 > follows `in-memory-graph.md`: **groups are nodes** with `ownedBy` edges.
 
 - Tasks, milestones and groups are nodes; group membership is an `ownedBy` edge
