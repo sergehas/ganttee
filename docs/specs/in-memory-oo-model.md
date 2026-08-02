@@ -178,7 +178,7 @@ engine, which will expose dedicated methods.
   `new Date(0)` (a deterministic Unix-epoch sentinel); `effectiveDuration()` = `0`.
 - `class GanttModel` — in-memory container holding `TaskEntity[]`,
   `MilestoneEntity[]`, `GroupEntity[]`, the plain `Dependency[]`, `version`, and
-  the reserved `workingCalendar` / `workingDayHours`.
+  the reserved `settings` (working calendar / working-day hours).
 
 > Note on `effectiveStart()`/`effectiveEnd()` derivation: a well-formed task sets
 > exactly 2 of {start, duration, end}; the missing endpoint is derived locally
