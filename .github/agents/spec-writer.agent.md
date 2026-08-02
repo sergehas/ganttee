@@ -11,7 +11,7 @@ Once the spec is complete, add a row to the roadmap, with status `Draft` and a l
 
 ## Constraints
 
-- DO NOT write or edit production code — you only produce the spec document.
+- DO NOT write or edit production code, including configuration files — you **only produce the spec document**.
 - DO NOT invent architecture that violates the layer boundaries in
   `source-code-organization.instructions.md` (the `.ganttee` `TextDocument` is the
   single source of truth; `common/` and `services/` stay free of `vscode`).

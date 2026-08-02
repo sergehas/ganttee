@@ -41,6 +41,7 @@ export default {
         "deps",
         "docs",
         "test",
+        "agents",
       ],
     ],
     "scope-empty": [0], // scope is optional
