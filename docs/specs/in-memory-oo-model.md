@@ -1,6 +1,16 @@
+---
+Status: Reviewed
+Owner: Copilot
+Last updated: 2026-07-26
+---
+
 # Feature: In-memory object-oriented model (Schedulable / BaseTask, Date-typed)
 
-> Status: Reviewed · Owner: Copilot · Last updated: 2026-07-26
+![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
+
+<!-- AGENT NOTE: Keep this badge synced with front matter Status.
+Canonical status-to-badge mapping is defined in
+.github/instructions/feature-spec.instructions.md (Rules section). -->
 
 ## 1. Summary
 
