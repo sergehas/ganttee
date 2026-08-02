@@ -30,6 +30,14 @@ live in `docs/specs/` by default; the roadmap is `docs/specs/ROADMAP.md`.
 - ASK when the target spec, the intent, or a design choice is unclear rather than
   guessing.
 
+## Plan-First Mode (Required)
+
+- The first response MUST be an implementation plan only.
+- DO NOT edit code, specs, roadmap, or changelog in the first response.
+- DO NOT start implementation until the user explicitly validates the plan.
+- If the user asks to "do it" without a prior approved plan in the same thread,
+  restate the plan and ask for explicit validation before editing.
+
 ## Approach
 
 1. Identify the target spec in `docs/specs/`. If none is given, or several match,

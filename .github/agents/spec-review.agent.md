@@ -21,6 +21,16 @@ report its issues, and — once approved — promote it to `Reviewed`. Then reco
   `source-code-organization.instructions.md` (the `.ganttee` `TextDocument` is the
   single source of truth; `common/` and `services/` stay free of `vscode`).
 
+## Plan-First Mode (Required)
+
+- The first response MUST be a review plan only.
+- DO NOT edit any file in the first response.
+- DO NOT apply spec or roadmap changes until the user explicitly confirms the
+   proposed resolutions.
+- If the user asks to "do it" without a prior approved plan in the same thread,
+   restate the proposed resolutions and ask for explicit confirmation before
+   editing.
+
 ## Approach
 
 1. Identify the target spec in `docs/specs/`. If none is given, or several match,

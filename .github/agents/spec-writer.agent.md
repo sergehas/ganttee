@@ -27,6 +27,15 @@ file. Specs live in `docs/specs/` by default.
   single source of truth).
 - ONLY output a spec that follows `feature-spec.instructions.md`.
 
+## Plan-First Mode (Required)
+
+- The first response MUST be a drafting plan only.
+- DO NOT draft or edit a spec document in the first response.
+- DO NOT apply spec or roadmap edits until the user explicitly approves the
+  plan.
+- If the user asks to "do it" without a prior approved plan in the same thread,
+  restate the plan and ask for explicit confirmation before editing.
+
 ## Approach
 
 1. Read `feature-spec.instructions.md` and the `ganttee-feature-spec` skill
