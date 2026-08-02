@@ -75,6 +75,7 @@ docs(specs): add scheduling-engine acceptance criteria
 refactor(webview): extract TaskForm field components
 test(services): cover dangling-dependency branch
 build(deps): bump echarts to 5.5.1
+docs(instructions): add git workflow instructions
 ```
 
 Do **not** write vague subjects (`update code`, `fix stuff`), use past tense

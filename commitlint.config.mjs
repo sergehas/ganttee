@@ -39,9 +39,9 @@ export default {
         "store",
         "build",
         "deps",
-        "docs",
+        "specs",
         "test",
-        "agents",
+        "instructions",
       ],
     ],
     "scope-empty": [0], // scope is optional
