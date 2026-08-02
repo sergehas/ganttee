@@ -48,3 +48,21 @@ Then the edit is rejected and an inline validation message is shown
 - All user-facing strings are localized (`vscode.l10n.t()` / `nls`); note new
   strings in the spec.
 - Use the `ganttee-feature-spec` skill to scaffold a spec from the template.
+- Front matter `Status` is canonical for workflow state.
+- The status badge must appear directly under `# Feature: <name>` and must match
+  front matter `Status` in the same edit.
+- Use this mapping for badge sync:
+  - `Draft` →
+    `![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)`
+  - `Reviewed` →
+    `![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)`
+  - `Implementing` →
+    `![Status: Implementing](https://img.shields.io/badge/status-Implementing-F59F00?style=for-the-badge)`
+  - `Implemented` →
+    `![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge)`
+  - `Blocked` →
+    `![Status: Blocked](https://img.shields.io/badge/status-Blocked-C92A2A?style=for-the-badge)`
+  - `On Hold` →
+    `![Status: On Hold](https://img.shields.io/badge/status-On%20Hold-7048E8?style=for-the-badge)`
+- If `Status` uses a value outside this mapping, keep `Status` unchanged and add
+  a follow-up note in _Risks & Open Questions_ to resolve the mismatch.

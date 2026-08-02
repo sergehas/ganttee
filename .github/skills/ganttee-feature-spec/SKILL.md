@@ -27,7 +27,9 @@ Produce an implementation-ready specification for a Ganttee feature.
    describe the migration.
 5. Write acceptance criteria for happy paths **and** error paths (cycle rejection,
    dangling dependencies, invalid dates). Ensure each is test-verifiable.
-6. Hand the finished spec to the **Test Planner** agent for a coverage plan and to
+6. Sync status badge with front matter `Status`: place the mapped badge directly
+   under `# Feature: <name>` and update it whenever `Status` changes.
+7. Hand the finished spec to the **Test Planner** agent for a coverage plan and to
    the **Architecture Guard** agent for a boundary check.
 
 ## Reminders
