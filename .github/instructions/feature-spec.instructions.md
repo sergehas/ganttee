@@ -52,6 +52,8 @@ Then the edit is rejected and an inline validation message is shown
 - The status badge must appear directly under `# Feature: <name>` and must match
   front matter `Status` in the same edit.
 - Use this mapping for badge sync:
+  - `To be defined` →
+    `![Status: To be defined](https://img.shields.io/badge/status-To%20be%20defined-ADB5BD?style=for-the-badge)`
   - `Draft` →
     `![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)`
   - `Reviewed` →
@@ -66,3 +68,24 @@ Then the edit is rejected and an inline validation message is shown
     `![Status: On Hold](https://img.shields.io/badge/status-On%20Hold-7048E8?style=for-the-badge)`
 - If `Status` uses a value outside this mapping, keep `Status` unchanged and add
   a follow-up note in _Risks & Open Questions_ to resolve the mismatch.
+
+## Status Lifecycle
+
+States flow in order; each transition has one owner. Every status change updates
+the spec front matter **and** its badge (when a spec file exists) **and** the
+matching `docs/specs/ROADMAP.md` row (Status text + Badge column) in the same
+edit. See [the spec workflow](../../docs/specs/README.md) for who does what.
+
+- **To be defined** — roadmap-only; no spec file yet. Brainstorm requirements in
+  general chat (default agent) to feed the next step.
+- **Draft** — initial spec authored. Owner: **Spec Writer**.
+- **Reviewed** (optional) — spec checked, ready to build. Owner: **Spec
+  Reviewer**. May be skipped (Draft → Implementing).
+- **Implementing** — coding has started. Owner: **Spec Implementer** (set on
+  plan approval).
+- **Implemented** — the PR is raised. Owner: **Spec Implementer**; also add a
+  `CHANGELOG.md` entry under `## [Unreleased]`.
+
+**Blocked** / **On Hold** are reversible side-states settable from any state
+before **Implementing**; note the state to resume in _Risks & Open Questions_
+and follow the same spec + roadmap sync rule.

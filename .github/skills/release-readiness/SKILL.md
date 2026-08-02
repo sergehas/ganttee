@@ -34,6 +34,8 @@ Run each step; stop and report on the first hard failure (types/lint/build/tests
    webview CSP uses a nonce and loads only from `dist/`.
 9. **Boundaries:** no `vscode`/Node imports in `common/`, `services/`, or
    `webview/` (delegate to the **Architecture Guard** agent if unsure).
+10. **Changelog:** the change has an entry under `## [Unreleased]` in
+    `CHANGELOG.md`.
 
 ## Output Format
 
