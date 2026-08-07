@@ -36,15 +36,18 @@ this skill is the step-by-step procedure.
 
 ## Write a Commit
 
+Reference file [.gitmessage](../../../.gitmessage) for the template and rules.
+
 1. Choose the **type** (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
    `test`, `build`, `ci`, `chore`, `revert`).
 2. Choose an optional **scope** from `editor`, `sidebar`, `webview`, `services`,
    `models`, `protocol`, `store`, `build`, `deps`, `docs`, `test`.
-3. Write the header as `type(scope): subject` — imperative mood, ≤ 72 chars, no
+3. Write the header as `type(scope): subject` — imperative mood, 72 chars max, no
    trailing period.
-4. Add a body (what & why) and footers (`BREAKING CHANGE:`, `Refs: #123`) when
-   the change needs explanation.
-5. Commit. Using the template (`git config commit.template .gitmessage`
+4. Add a body (what & why) when the change needs more details or an explanation.
+5. Add footers (`BREAKING CHANGE:`, `Refs: #123`) when
+   the change introduces a breaking change or relates to an issue.
+6. Commit. Using the template (`git config commit.template .gitmessage`
    once) pre-fills the format when you run `git commit` with no `-m`.
 
 ## Verify Before Push
