@@ -2,12 +2,14 @@ import {
   createEmptyDocument,
   CURRENT_DOCUMENT_VERSION,
   Dependency,
+  DEPENDENCY_TYPES,
   DependencyType,
   GanttDocument,
   Group,
   Milestone,
   ProjectSettings,
   Task,
+  TASK_STATUSES,
   TaskStatus,
   WorkingCalendar,
 } from "../common/models";
@@ -15,14 +17,6 @@ import { migrateDocument } from "./ganttDocumentMigrationService";
 
 /** Raised when a `.ganttee` document cannot be parsed or is structurally invalid. */
 export class GanttParseError extends Error {}
-
-const TASK_STATUSES: readonly TaskStatus[] = ["todo", "inProgress", "done"];
-const DEPENDENCY_TYPES: readonly DependencyType[] = [
-  "startAfter",
-  "startWith",
-  "endWith",
-  "endBefore",
-];
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 

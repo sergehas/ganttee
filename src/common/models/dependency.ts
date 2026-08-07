@@ -9,11 +9,14 @@
  * - `endWith`: source ends with the target end (finish-to-finish).
  * - `endBefore`: source ends before the target starts (finish-to-start).
  */
-export type DependencyType =
-  | "startAfter"
-  | "startWith"
-  | "endWith"
-  | "endBefore";
+export const DEPENDENCY_TYPES = [
+  "startAfter",
+  "startWith",
+  "endWith",
+  "endBefore",
+] as const;
+
+export type DependencyType = (typeof DEPENDENCY_TYPES)[number];
 
 /** A directed constraint from a source task to a target task. */
 export interface Dependency {

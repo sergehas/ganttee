@@ -8,7 +8,10 @@
 import { MS_PER_DAY } from "../dates";
 
 /** Lifecycle state of a task. */
-export type TaskStatus = "todo" | "inProgress" | "done";
+export const TASK_STATUSES = ["todo", "inProgress", "done"] as const;
+
+/** Lifecycle state of a task. */
+export type TaskStatus = (typeof TASK_STATUSES)[number];
 
 /**
  * The identity and labeling shape shared by every schedulable entity.
