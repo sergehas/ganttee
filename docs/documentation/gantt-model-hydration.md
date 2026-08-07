@@ -81,15 +81,18 @@ structure.
 
 ```mermaid
 sequenceDiagram
-    actor Dev as Developer
+    actor User
     participant VSC as VS Code TextDocument
     participant Ctrl as GanttEditorController
     participant Parse as ganttDocumentService
     participant Hydrate as ganttModelService
     participant DG as DependencyGraph
     participant WV as Webview
+    participant Prov as GanttEditorProvider
+    participant Store as GanttStore
+    participant Tree as GanttExplorerProvider
 
-    Dev->>VSC: save edit
+    User->>VSC: save edit
     VSC->>Ctrl: onDidChangeTextDocument
 
     Ctrl->>Parse: parseDocument(text)
@@ -105,6 +108,11 @@ sequenceDiagram
 
     Ctrl->>WV: postMessage({ type:"documentChanged", document: GanttDocument })
     Note over WV: Receives GanttDocument only.<br/>DependencyGraph stays host-side.
+
+    Ctrl-)Prov: onDidChangeModel fires
+    Prov->>Store: notifyModelChanged()
+    Store-)Tree: onDidChangeActive fires
+    Note over Tree: Sidebar tree refreshes<br/>from store.active.model
 ```
 
 ---

@@ -1,10 +1,13 @@
 import * as vscode from "vscode";
 import {
   createEmptyDocument,
+  CyclicDependencyError,
   Dependency,
   GanttDocument,
   GanttModel,
   Milestone,
+  ParallelEdgeDependencyError,
+  SelfLoopDependencyError,
   Task,
 } from "../../common/models";
 import {
@@ -162,13 +165,28 @@ export class GanttEditorController {
 
   private reparse(): void {
     try {
-      this._model = parseDocument(this.document.getText());
-      this._graph = hydrateDocument(this._model);
+      const model = parseDocument(this.document.getText());
+      const graph = hydrateDocument(model);
+      this._model = model;
+      this._graph = graph;
       this._onDidChangeModel.fire();
     } catch (error) {
       if (error instanceof GanttParseError) {
         void vscode.window.showErrorMessage(
           vscode.l10n.t("Ganttee: {0}", error.message),
+        );
+        return;
+      }
+      if (
+        error instanceof SelfLoopDependencyError ||
+        error instanceof ParallelEdgeDependencyError ||
+        error instanceof CyclicDependencyError
+      ) {
+        void vscode.window.showErrorMessage(
+          vscode.l10n.t(
+            "Ganttee: invalid dependency graph. {0}",
+            error.message,
+          ),
         );
         return;
       }

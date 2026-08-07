@@ -6,10 +6,13 @@ import {
   parseIsoDate,
 } from "../common/dates";
 import {
+  CyclicDependencyError,
   GanttDocument,
   GroupEntity,
   MILESTONE_DURATION,
   MilestoneEntity,
+  ParallelEdgeDependencyError,
+  SelfLoopDependencyError,
   TaskEntity,
   UnresolvableScheduleError,
 } from "../common/models";
@@ -195,5 +198,75 @@ suite("ganttModelService", () => {
       workingCalendar: { daysOff: [6, 7] },
       workingDayHours: 8,
     });
+  });
+});
+
+suite("ganttModelService DAG invariants", () => {
+  test("builds a graph spanning every task, milestone, and group id", () => {
+    const model = hydrateDocument(SAMPLE_DOCUMENT);
+    assert.deepStrictEqual([...model.graph.nodes].sort(), [
+      "g1",
+      "m1",
+      "t1",
+      "t2",
+    ]);
+    assert.deepStrictEqual([...model.graph.successors("t2")], ["t1"]);
+    assert.deepStrictEqual([...model.graph.predecessors("t1")], ["t2"]);
+    assert.strictEqual(model.graph.hasCycle(), false);
+  });
+
+  test("orders the hydrated graph topologically over every entity", () => {
+    const order = [...hydrateDocument(SAMPLE_DOCUMENT).graph.topologicalSort()];
+    assert.deepStrictEqual([...order].sort(), ["g1", "m1", "t1", "t2"]);
+    assert.ok(order.indexOf("t2") < order.indexOf("t1"));
+  });
+
+  test("hydrates a document whose entities form disconnected components", () => {
+    const document: GanttDocument = {
+      ...SAMPLE_DOCUMENT,
+      dependencies: [],
+    };
+    const model = hydrateDocument(document);
+    assert.strictEqual(model.graph.connectedComponents().length, 4);
+  });
+
+  test("rejects a self-referencing dependency", () => {
+    const document: GanttDocument = {
+      ...SAMPLE_DOCUMENT,
+      dependencies: [
+        { id: "d1", sourceId: "t1", targetId: "t1", type: "startAfter" },
+      ],
+    };
+    assert.throws(() => hydrateDocument(document), SelfLoopDependencyError);
+  });
+
+  test("rejects two dependencies sharing the same source and target", () => {
+    const document: GanttDocument = {
+      ...SAMPLE_DOCUMENT,
+      dependencies: [
+        { id: "d1", sourceId: "t2", targetId: "t1", type: "startAfter" },
+        { id: "d2", sourceId: "t2", targetId: "t1", type: "startWith" },
+      ],
+    };
+    assert.throws(() => hydrateDocument(document), ParallelEdgeDependencyError);
+  });
+
+  test("rejects a dependency set that closes a cycle", () => {
+    const document: GanttDocument = {
+      ...SAMPLE_DOCUMENT,
+      dependencies: [
+        { id: "d1", sourceId: "t1", targetId: "t2", type: "startAfter" },
+        { id: "d2", sourceId: "t2", targetId: "t1", type: "startAfter" },
+      ],
+    };
+    assert.throws(
+      () => hydrateDocument(document),
+      (error: unknown) => {
+        assert.ok(error instanceof CyclicDependencyError);
+        assert.ok(error.cycle.includes("t1"));
+        assert.ok(error.cycle.includes("t2"));
+        return true;
+      },
+    );
   });
 });

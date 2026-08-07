@@ -9,32 +9,87 @@
 
 import { formatIsoDate, parseIsoDate } from "../common/dates";
 import {
+  CyclicDependencyError,
+  Dependency,
+  DependencyGraph,
   GanttDocument,
   GanttModel,
   Group,
   GroupEntity,
   Milestone,
   MilestoneEntity,
+  ParallelEdgeDependencyError,
+  SelfLoopDependencyError,
   Task,
   TaskEntity,
 } from "../common/models";
 
 /**
  * Converts a validated plain document into a {@link GanttModel}, parsing each
- * ISO date string into a `Date`.
+ * ISO date string into a `Date` and asserting that the dependency set forms a
+ * directed acyclic graph.
  *
  * @param document The plain document to hydrate.
  * @returns The hydrated in-memory model.
+ * @throws {SelfLoopDependencyError} When a dependency links an entity to itself.
+ * @throws {ParallelEdgeDependencyError} When two dependencies share the same
+ * source/target pair.
+ * @throws {CyclicDependencyError} When the dependencies close a directed cycle.
  */
 export function hydrateDocument(document: GanttDocument): GanttModel {
+  const tasks = document.tasks.map(toTaskEntity);
+  const milestones = document.milestones.map(toMilestoneEntity);
+  const groups = document.groups.map(toGroupEntity);
+  const dependencies = document.dependencies.map((dependency) => ({
+    ...dependency,
+  }));
+  const nodeIds = [...tasks, ...milestones, ...groups].map(
+    (entity) => entity.id,
+  );
+
   return new GanttModel(
-    document.tasks.map(toTaskEntity),
-    document.milestones.map(toMilestoneEntity),
-    document.groups.map(toGroupEntity),
-    document.dependencies.map((dependency) => ({ ...dependency })),
+    tasks,
+    milestones,
+    groups,
+    dependencies,
     document.version,
+    buildGraph(nodeIds, dependencies),
     document.settings,
   );
+}
+
+/**
+ * Builds the structural DAG, rejecting self-loops, parallel edges, and cycles
+ * so a returned {@link GanttModel} is always acyclic.
+ *
+ * @param nodeIds Every entity id in the document.
+ * @param dependencies The document's dependency records.
+ */
+function buildGraph(
+  nodeIds: readonly string[],
+  dependencies: readonly Dependency[],
+): DependencyGraph {
+  const seenPairs = new Set<string>();
+  for (const dependency of dependencies) {
+    if (dependency.sourceId === dependency.targetId) {
+      throw new SelfLoopDependencyError(dependency.id);
+    }
+    const pair = `${dependency.sourceId}\u0000${dependency.targetId}`;
+    if (seenPairs.has(pair)) {
+      throw new ParallelEdgeDependencyError(
+        dependency.sourceId,
+        dependency.targetId,
+      );
+    }
+    seenPairs.add(pair);
+  }
+
+  const graph = new DependencyGraph(nodeIds, dependencies);
+  const cycle = graph.findCycle();
+  if (cycle.length > 0) {
+    throw new CyclicDependencyError(cycle);
+  }
+  return graph;
 }
 
 /**

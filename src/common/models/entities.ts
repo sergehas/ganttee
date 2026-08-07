@@ -15,6 +15,7 @@
 
 import { addDays, diffInDays } from "../dates";
 import { Dependency } from "./dependency";
+import { DependencyGraph } from "./dependencyGraph";
 import { ProjectSettings } from "./document";
 import { BaseTask, MILESTONE_DURATION, TaskStatus } from "./task";
 
@@ -257,6 +258,7 @@ export class GanttModel {
    * @param groups The hydrated group entities.
    * @param dependencies The plain dependency records (unchanged by hydration).
    * @param version The document schema version.
+   * @param graph The structural DAG over all entity ids and dependencies.
    * @param settings Reserved project-level settings (calendar and hours).
    */
   constructor(
@@ -265,6 +267,7 @@ export class GanttModel {
     readonly groups: readonly GroupEntity[],
     readonly dependencies: readonly Dependency[],
     readonly version: number,
+    readonly graph: DependencyGraph,
     readonly settings?: ProjectSettings,
   ) {}
 }

@@ -61,6 +61,14 @@ suite("dependencyGraphService", () => {
     assert.deepStrictEqual(result.danglingDependencyIds, ["a-missing"]);
   });
 
+  test("accepts dependencies that reference a milestone", () => {
+    const document = documentWith(["a"], [dep("a", "m1")]);
+    document.milestones = [{ id: "m1", name: "M", date: "2026-01-03" }];
+    const result = validateGraph(document);
+    assert.strictEqual(result.ok, true);
+    assert.deepStrictEqual(result.danglingDependencyIds, []);
+  });
+
   test("wouldCreateCycle detects a closing edge", () => {
     const existing = [dep("a", "b"), dep("b", "c")];
     assert.strictEqual(wouldCreateCycle(existing, dep("c", "a")), true);
