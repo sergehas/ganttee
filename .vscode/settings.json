@@ -16,5 +16,8 @@
     {
       "file": ".github/instructions/git-workflow.instructions.md"
     }
-  ]
+  ],
+  "git.inputValidation": true,
+  "git.inputValidationSubjectLength": null,
+  "git.inputValidationLength": 72
 }
