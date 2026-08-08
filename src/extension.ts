@@ -1,11 +1,12 @@
 import * as vscode from "vscode";
 import { createEmptyDocument, Task } from "./common/models";
+import { EditableEntityRef } from "./common/protocol";
 import { GanttStore } from "./ganttStore";
 import { serializeDocument } from "./services/ganttDocumentService";
 import { GanttEditorProvider } from "./views/editor/ganttEditorProvider";
 import {
+  entityRefOf,
   GanttExplorerProvider,
-  taskIdOf,
 } from "./views/sidebar/ganttExplorerProvider";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -41,9 +42,9 @@ function registerCommands(
 
   register("ganttee.refreshExplorer", () => explorer.refresh());
 
-  register("ganttee.revealTask", (taskId) => {
-    if (typeof taskId === "string") {
-      store.active?.revealTask(taskId);
+  register("ganttee.revealEntity", (entity) => {
+    if (isEntityRef(entity)) {
+      store.active?.revealEntity(entity);
     }
   });
 
@@ -55,21 +56,35 @@ function registerCommands(
       );
       return;
     }
-    const task = createDefaultTask();
+    const task = createDefaultTask(vscode.l10n.t("New Task"));
     await controller.upsertTask(task);
-    controller.editTask(task.id);
+    controller.editEntity({ kind: "task", id: task.id });
   });
 
   register("ganttee.editTask", (node) => {
-    const taskId = taskIdOf(node);
-    if (taskId) {
-      store.active?.editTask(taskId);
+    const entity = entityRefOf(node);
+    if (entity?.kind === "task") {
+      store.active?.editEntity(entity);
+    }
+  });
+
+  register("ganttee.editMilestone", (node) => {
+    const entity = entityRefOf(node);
+    if (entity?.kind === "milestone") {
+      store.active?.editEntity(entity);
+    }
+  });
+
+  register("ganttee.editGroup", (node) => {
+    const entity = entityRefOf(node);
+    if (entity?.kind === "group") {
+      store.active?.editEntity(entity);
     }
   });
 
   register("ganttee.deleteTask", async (node) => {
-    const taskId = taskIdOf(node);
-    if (!taskId) {
+    const entity = entityRefOf(node);
+    if (entity?.kind !== "task") {
       return;
     }
     const deleteLabel = vscode.l10n.t("Delete");
@@ -79,23 +94,72 @@ function registerCommands(
       deleteLabel,
     );
     if (confirmation === deleteLabel) {
-      await store.active?.deleteTask(taskId);
+      await store.active?.deleteEntity(entity);
+    }
+  });
+
+  register("ganttee.deleteMilestone", async (node) => {
+    const entity = entityRefOf(node);
+    if (entity?.kind !== "milestone") {
+      return;
+    }
+    const deleteLabel = vscode.l10n.t("Delete");
+    const confirmation = await vscode.window.showWarningMessage(
+      vscode.l10n.t("Delete this milestone?"),
+      { modal: true },
+      deleteLabel,
+    );
+    if (confirmation === deleteLabel) {
+      await store.active?.deleteEntity(entity);
+    }
+  });
+
+  register("ganttee.deleteGroup", async (node) => {
+    const entity = entityRefOf(node);
+    if (entity?.kind !== "group") {
+      return;
+    }
+    await store.active?.deleteEntity(entity);
+  });
+
+  register("ganttee.requestEditEntity", (entity) => {
+    if (isEntityRef(entity)) {
+      store.active?.editEntity(entity);
     }
   });
 }
 
-function createDefaultTask(): Task {
+/**
+ * Creates a new task template with a localized default name.
+ */
+function createDefaultTask(name: string): Task {
   const today = new Date();
   const end = new Date(today);
   end.setDate(end.getDate() + 3);
   return {
     id: generateId("task"),
-    name: "New Task",
+    name,
     start: toIsoDate(today),
     end: toIsoDate(end),
     progress: 0,
     status: "todo",
   };
+}
+
+/**
+ * Returns whether a value is an {@link EditableEntityRef}.
+ */
+function isEntityRef(value: unknown): value is EditableEntityRef {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const candidate = value as { kind?: unknown; id?: unknown };
+  return (
+    (candidate.kind === "task" ||
+      candidate.kind === "milestone" ||
+      candidate.kind === "group") &&
+    typeof candidate.id === "string"
+  );
 }
 
 function toIsoDate(date: Date): string {

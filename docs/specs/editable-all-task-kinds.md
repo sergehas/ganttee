@@ -1,12 +1,12 @@
 ---
-Status: Reviewed
+Status: Implementing
 Owner: Copilot
 Last updated: 2026-08-08
 ---
 
 # Feature: Editable Work Item Kinds (Tasks, Milestones, Groups)
 
-![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
+![Status: Implementing](https://img.shields.io/badge/status-Implementing-F59F00?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in

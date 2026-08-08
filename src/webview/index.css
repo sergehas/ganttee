@@ -104,6 +104,10 @@ body {
   padding: 0;
 }
 
+.ganttee-form input[type="checkbox"] {
+  width: auto;
+}
+
 .ganttee-form button {
   padding: var(--vscode-spacing-size60, 6px) var(--vscode-spacing-size120, 12px);
   border: none;
@@ -170,4 +174,10 @@ body {
   justify-content: space-between;
   gap: var(--vscode-spacing-size80, 8px);
   font-size: var(--vscode-fontSize-label1, 12px);
+}
+
+.ganttee-dependencies li > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

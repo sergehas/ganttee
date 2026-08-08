@@ -1,25 +1,27 @@
 import type {
-  CustomSeriesRenderItem,
-  CustomSeriesRenderItemAPI,
-  CustomSeriesRenderItemParams,
-  CustomSeriesRenderItemReturn,
+    CustomSeriesRenderItem,
+    CustomSeriesRenderItemAPI,
+    CustomSeriesRenderItemParams,
+    CustomSeriesRenderItemReturn,
 } from "echarts";
 import { CustomChart } from "echarts/charts";
 import {
-  DataZoomComponent,
-  GridComponent,
-  TooltipComponent,
+    DataZoomComponent,
+    GridComponent,
+    TooltipComponent,
 } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
 import {
-  DependencyType,
-  effectiveEnd,
-  effectiveStart,
-  GanttDocument,
-  Task,
+    DependencyType,
+    effectiveEnd,
+    effectiveStart,
+    GanttDocument,
+    Milestone,
+    Task,
 } from "../common/models";
+import { EditableEntityRef } from "../common/protocol";
 
 echarts.use([
   CustomChart,
@@ -40,9 +42,9 @@ interface Row {
 
 interface GanttChartProps {
   document: GanttDocument;
-  selectedTaskId: string | null;
-  onSelectTask: (taskId: string) => void;
-  onEditTask: (taskId: string) => void;
+  selectedEntity: EditableEntityRef | null;
+  onSelectEntity: (entity: EditableEntityRef) => void;
+  onEditEntity: (entity: EditableEntityRef) => void;
 }
 
 /** Renders the Gantt timeline with Apache ECharts using a custom series. */
@@ -62,15 +64,15 @@ export function GanttChart(props: GanttChartProps): JSX.Element {
     chartRef.current = chart;
 
     chart.on("click", (params) => {
-      const taskId = taskIdFromEvent(params);
-      if (taskId) {
-        propsRef.current.onSelectTask(taskId);
+      const entity = entityFromEvent(params);
+      if (entity) {
+        propsRef.current.onSelectEntity(entity);
       }
     });
     chart.on("dblclick", (params) => {
-      const taskId = taskIdFromEvent(params);
-      if (taskId) {
-        propsRef.current.onEditTask(taskId);
+      const entity = entityFromEvent(params);
+      if (entity) {
+        propsRef.current.onEditEntity(entity);
       }
     });
 
@@ -88,13 +90,13 @@ export function GanttChart(props: GanttChartProps): JSX.Element {
     if (!chart) {
       return;
     }
-    chart.setOption(buildOption(props.document, props.selectedTaskId), true);
+    chart.setOption(buildOption(props.document, props.selectedEntity), true);
     if (containerRef.current) {
       const rows = countRows(props.document);
       containerRef.current.style.height = `${Math.max(rows, 1) * ROW_HEIGHT + 80}px`;
       chart.resize();
     }
-  }, [props.document, props.selectedTaskId]);
+  }, [props.document, props.selectedEntity]);
 
   return <div className="ganttee-chart" ref={containerRef} />;
 }
@@ -126,7 +128,7 @@ function buildRows(document: GanttDocument): {
 
 function buildOption(
   document: GanttDocument,
-  selectedTaskId: string | null,
+  selectedEntity: EditableEntityRef | null,
 ): echarts.EChartsCoreOption {
   const { rows, indexById } = buildRows(document);
   const range = dateRange(document);
@@ -141,7 +143,8 @@ function buildOption(
       return {
         value: [indexById.get(task.id) ?? 0, toMs(start), toMs(end)],
         task,
-        selected: task.id === selectedTaskId,
+        selected:
+          selectedEntity?.kind === "task" && selectedEntity.id === task.id,
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
@@ -149,12 +152,14 @@ function buildOption(
   const milestoneData = document.milestones.map((milestone) => ({
     value: [indexById.get(milestone.id) ?? 0, toMs(milestone.date)],
     milestone,
+    selected:
+      selectedEntity?.kind === "milestone" && selectedEntity.id === milestone.id,
   }));
 
   const linkData = document.dependencies
     .map((dep) => {
-      const source = document.tasks.find((task) => task.id === dep.sourceId);
-      const target = document.tasks.find((task) => task.id === dep.targetId);
+      const source = schedulableById(document, dep.sourceId);
+      const target = schedulableById(document, dep.targetId);
       if (!source || !target) {
         return undefined;
       }
@@ -260,7 +265,10 @@ const renderMilestone: CustomSeriesRenderItem = (
         [point[0] - size, point[1]],
       ],
     },
-    style: api.style(),
+    style: api.style({
+      stroke: "var(--vscode-editor-foreground)",
+      lineWidth: 1,
+    }),
   };
 };
 
@@ -304,10 +312,16 @@ function tooltipFormatter(params: unknown): string {
   return "";
 }
 
-function taskIdFromEvent(params: unknown): string | undefined {
-  const event = params as { seriesName?: string; data?: { task?: Task } };
+function entityFromEvent(params: unknown): EditableEntityRef | undefined {
+  const event = params as {
+    seriesName?: string;
+    data?: { task?: Task; milestone?: Milestone };
+  };
   if (event.seriesName === "tasks" && event.data?.task) {
-    return event.data.task.id;
+    return { kind: "task", id: event.data.task.id };
+  }
+  if (event.seriesName === "milestones" && event.data?.milestone) {
+    return { kind: "milestone", id: event.data.milestone.id };
   }
   return undefined;
 }
@@ -341,13 +355,13 @@ function dateRange(document: GanttDocument): { min: number; max: number } {
  */
 function dependencyLinkEndpoints(
   type: DependencyType,
-  source: Task,
-  target: Task,
+  source: SchedulableRef,
+  target: SchedulableRef,
 ): [number, number] | undefined {
-  const sourceStart = effectiveStart(source);
-  const sourceEnd = effectiveEnd(source);
-  const targetStart = effectiveStart(target);
-  const targetEnd = effectiveEnd(target);
+  const sourceStart = source.start;
+  const sourceEnd = source.end;
+  const targetStart = target.start;
+  const targetEnd = target.end;
   switch (type) {
     case "startAfter":
       return endpointsOf(targetEnd, sourceStart);
@@ -358,6 +372,31 @@ function dependencyLinkEndpoints(
     case "endBefore":
       return endpointsOf(targetStart, sourceEnd);
   }
+}
+
+interface SchedulableRef {
+  id: string;
+  start: string | undefined;
+  end: string | undefined;
+}
+
+function schedulableById(
+  document: GanttDocument,
+  id: string,
+): SchedulableRef | undefined {
+  const task = document.tasks.find((current) => current.id === id);
+  if (task) {
+    return {
+      id: task.id,
+      start: effectiveStart(task),
+      end: effectiveEnd(task),
+    };
+  }
+  const milestone = document.milestones.find((current) => current.id === id);
+  if (!milestone) {
+    return undefined;
+  }
+  return { id: milestone.id, start: milestone.date, end: milestone.date };
 }
 
 /**

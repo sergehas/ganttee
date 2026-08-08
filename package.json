@@ -59,10 +59,39 @@
         "icon": "$(edit)"
       },
       {
+        "command": "ganttee.editMilestone",
+        "title": "%command.editMilestone.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "ganttee.editGroup",
+        "title": "%command.editGroup.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(edit)"
+      },
+      {
         "command": "ganttee.deleteTask",
         "title": "%command.deleteTask.title%",
         "category": "%extension.displayName%",
         "icon": "$(trash)"
+      },
+      {
+        "command": "ganttee.deleteMilestone",
+        "title": "%command.deleteMilestone.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ganttee.deleteGroup",
+        "title": "%command.deleteGroup.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ganttee.revealEntity",
+        "title": "%command.revealEntity.title%",
+        "category": "%extension.displayName%"
       },
       {
         "command": "ganttee.refreshExplorer",
@@ -93,6 +122,26 @@
         {
           "command": "ganttee.deleteTask",
           "when": "view == ganttee.explorer && viewItem == ganttee.task",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "ganttee.editMilestone",
+          "when": "view == ganttee.explorer && viewItem == ganttee.milestone",
+          "group": "inline@1"
+        },
+        {
+          "command": "ganttee.deleteMilestone",
+          "when": "view == ganttee.explorer && viewItem == ganttee.milestone",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "ganttee.editGroup",
+          "when": "view == ganttee.explorer && viewItem == ganttee.group",
+          "group": "inline@1"
+        },
+        {
+          "command": "ganttee.deleteGroup",
+          "when": "view == ganttee.explorer && viewItem == ganttee.group",
           "group": "1_modification@1"
         }
       ]

@@ -1,6 +1,6 @@
 import { Dependency } from "./models/dependency";
 import { GanttDocument } from "./models/document";
-import { Milestone, Task } from "./models/task";
+import { Group, Milestone, Task } from "./models/task";
 
 /**
  * Message protocol between the extension host and the editor webview.
@@ -13,15 +13,50 @@ import { Milestone, Task } from "./models/task";
 export type HostToWebviewMessage =
   | { type: "init"; document: GanttDocument }
   | { type: "documentChanged"; document: GanttDocument }
-  | { type: "selectTask"; taskId: string }
-  | { type: "editTask"; taskId: string };
+  | { type: "selectEntity"; entity: EditableEntityRef }
+  | { type: "editEntity"; entity: EditableEntityRef };
+
+/** Supported editable entity kinds. */
+export type EditableEntityKind = "task" | "milestone" | "group";
+
+/** Lightweight identity reference used by routing messages. */
+export interface EditableEntityRef {
+  kind: EditableEntityKind;
+  id: string;
+}
+
+/**
+ * Persisted entity payload mapped by editable kind.
+ */
+export interface EditableEntityMap {
+  task: Task;
+  milestone: Milestone;
+  group: Group;
+}
+
+/** Strategy to apply when deleting a non-empty group. */
+export type GroupDeleteStrategy = "cascade" | "reparent";
+
+/**
+ * Message posted by the webview to save an edited entity.
+ */
+export type UpdateEntityMessage = {
+  [K in EditableEntityKind]: {
+    type: "updateEntity";
+    kind: K;
+    entity: EditableEntityMap[K];
+  };
+}[EditableEntityKind];
 
 /** Messages sent from the webview to the extension host. */
 export type WebviewToHostMessage =
   | { type: "ready" }
-  | { type: "updateTask"; task: Task }
-  | { type: "updateMilestone"; milestone: Milestone }
+  | UpdateEntityMessage
   | { type: "addDependency"; dependency: Dependency }
   | { type: "removeDependency"; dependencyId: string }
-  | { type: "deleteTask"; taskId: string }
-  | { type: "requestEditTask"; taskId: string };
+  | {
+      type: "deleteEntity";
+      entity: EditableEntityRef;
+      strategy?: GroupDeleteStrategy;
+    }
+  | { type: "requestEditEntity"; entity: EditableEntityRef };
