@@ -65,6 +65,15 @@ DOM + JSX); the host project ([tsconfig.json](../tsconfig.json)) excludes
   placeholders — never string concatenation.
 - **JSDoc is mandatory** on every class, method, and member (public and private).
 - **Branch coverage must stay ≥ 90%.**
+- **Code design (DRY/SOLID):** apply the principles in
+  [code-design-principles](instructions/code-design-principles.instructions.md)
+  pragmatically — keep pure logic in `services/`, inject dependencies, and avoid
+  premature abstraction.
+- **Reporting issues/risks/questions:** when an agent or skill reports issues,
+  findings, risks, or open questions, use the shared severity scale in
+  [reporting-standard](instructions/reporting-standard.instructions.md) (🟣
+  critical → 🔵 nice to have, in that order). Terminal verdicts are unchanged.
+  -
 - Register every disposable on `context.subscriptions` or a `Disposable` you own.
 - Webview CSP uses a per-render nonce; only load scripts/styles from `dist/`.
 - CSS: extension webviews receive `--vscode-*` **theme color** variables. The
@@ -80,6 +89,17 @@ Use the customization set in this folder:
 - Delegate spec drafting to the **Spec Writer** agent, layering/boundary checks to
   the **Architecture Guard** agent, and test planning to the **Test Planner** agent.
 - Before merging, run the `release-readiness` skill checklist.
+
+## Git Workflow
+
+Commits follow **Conventional Commits** and branches follow **gitflow**. These
+are enforced locally by husky hooks (`commitlint` + a branch-name check).
+
+- Write commits and name branches per
+  [git-workflow.instructions.md](instructions/git-workflow.instructions.md), or
+  use the `git-workflow` skill to compose them.
+- Run `git config commit.template .gitmessage` once per clone to pre-fill the
+  commit format.
 
 ## Inherited Instructions (VS Code core)
 

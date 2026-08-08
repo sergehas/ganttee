@@ -38,3 +38,12 @@ applyTo: src/**
 
 - For editor highlights, use a regular editor decoration with an `inlineClassName` or `className` plus a CSS rule.
 - `ICodeEditorService.registerDecorationType` / `setDecorationsByType` is reserved for the extension host API and should be avoided at all cost.
+
+## Error handling
+
+- Handle errors at boundaries: command handlers, provider entry points, and message handlers.
+- Treat expected cancellations/aborts as non-errors; return early without user-facing noise.
+- Use typed/custom errors (with cause/context) for recoverable domain failures.
+- Show user-facing messages only for actionable failures; keep wording localized and specific.
+- Always log technical details (error object plus context) through the project's logging path.
+- Never swallow errors silently; either recover explicitly or rethrow after logging.

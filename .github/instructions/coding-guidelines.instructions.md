@@ -19,6 +19,9 @@ These are non-negotiable and enforced in review:
    change that drops coverage below the threshold is not mergeable.
 3. **Full JSDoc:** Every class, interface, enum, method, function, and member — **public and
    private** — MUST carry a JSDoc comment describing its purpose.
+4. **Cyclomatic complexity ≤ 15:** Every function and method MUST have a cyclomatic
+   complexity of 15 or less. Refactor higher-complexity code (extract helpers, use lookup tables
+   , simplify branching) before merging.
 
 ## Indentation
 
@@ -76,6 +79,7 @@ Use spaces, not tabs.
 - Prefer `async`/`await` over `Promise.then()`
 - Localize all user-facing messages (mandatory — see [Mandatory Requirements](#mandatory-requirements))
 - Keep branch coverage ≥ 90% (mandatory — see [Mandatory Requirements](#mandatory-requirements) and the test guidelines)
+- Keep cyclomatic complexity ≤ 15 per function/method (mandatory — see [Mandatory Requirements](#mandatory-requirements))
 - Document every class, method, and member with JSDoc (mandatory — see [Mandatory Requirements](#mandatory-requirements))
 - Prefer named regex capture groups over numbered ones
 - Do not use `any` or `unknown` unless absolutely necessary

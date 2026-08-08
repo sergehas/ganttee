@@ -3,5 +3,6 @@
   "Delete this task?": "Delete this task?",
   "Delete": "Delete",
   "Cannot add dependency: it would create a cycle.": "Cannot add dependency: it would create a cycle.",
-  "Ganttee: {0}": "Ganttee: {0}"
+  "Ganttee: {0}": "Ganttee: {0}",
+  "Ganttee: invalid dependency graph. {0}": "Ganttee: invalid dependency graph. {0}"
 }

@@ -17,7 +17,7 @@ function documentWith(
   const document = createEmptyDocument();
   document.tasks = taskIds.map((id) => ({
     id,
-    title: id,
+    name: id,
     start: "2026-01-01",
     end: "2026-01-02",
   }));
@@ -59,6 +59,14 @@ suite("dependencyGraphService", () => {
     const document = documentWith(["a"], [dep("a", "missing")]);
     const result = validateGraph(document);
     assert.deepStrictEqual(result.danglingDependencyIds, ["a-missing"]);
+  });
+
+  test("accepts dependencies that reference a milestone", () => {
+    const document = documentWith(["a"], [dep("a", "m1")]);
+    document.milestones = [{ id: "m1", name: "M", date: "2026-01-03" }];
+    const result = validateGraph(document);
+    assert.strictEqual(result.ok, true);
+    assert.deepStrictEqual(result.danglingDependencyIds, []);
   });
 
   test("wouldCreateCycle detects a closing edge", () => {

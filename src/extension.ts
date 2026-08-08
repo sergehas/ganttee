@@ -90,7 +90,7 @@ function createDefaultTask(): Task {
   end.setDate(end.getDate() + 3);
   return {
     id: generateId("task"),
-    title: "New Task",
+    name: "New Task",
     start: toIsoDate(today),
     end: toIsoDate(end),
     progress: 0,

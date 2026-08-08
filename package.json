@@ -110,7 +110,10 @@
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "check-types": "tsc --noEmit && tsc --noEmit --project tsconfig.webview.json",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "prepare": "husky",
+    "commitlint": "commitlint --edit",
+    "check-branch": "node scripts/check-branch-name.mjs"
   },
   "dependencies": {
     "echarts": "^5.5.1",
@@ -118,6 +121,9 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "husky": "^9.1.7",
     "@types/vscode": "^1.125.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",

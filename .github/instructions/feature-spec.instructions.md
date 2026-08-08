@@ -7,6 +7,7 @@ description: "Use when writing, structuring, or reviewing a Ganttee feature spec
 A Ganttee feature spec is implementation-ready when an engineer can build and test
 it without further clarification. Keep specs concise; link to code rather than
 restating it.
+Specs are written using english prose. Use mermaid for diagrams.
 
 ## Required Sections
 
@@ -24,7 +25,9 @@ restating it.
    design terms (see the `design-philosophy` skill), not pixels.
 8. **Test Strategy** — unit (services/models), integration (commands/editor),
    and webview interaction slices. Branch coverage must stay ≥ 90%.
-9. **Risks & Open Questions.**
+9. **Risks & Open Questions.** Rank each item with the shared severity scale in
+   [reporting-standard](./reporting-standard.instructions.md) (🟣 critical → 🔵
+   nice to have, in that order).
 
 ## Acceptance Criteria Format
 
@@ -46,3 +49,44 @@ Then the edit is rejected and an inline validation message is shown
 - All user-facing strings are localized (`vscode.l10n.t()` / `nls`); note new
   strings in the spec.
 - Use the `ganttee-feature-spec` skill to scaffold a spec from the template.
+- Front matter `Status` is canonical for workflow state.
+- The status badge must appear directly under `# Feature: <name>` and must match
+  front matter `Status` in the same edit.
+- Use this mapping for badge sync:
+  - `To be defined` →
+    `![Status: To be defined](https://img.shields.io/badge/status-To%20be%20defined-ADB5BD?style=for-the-badge)`
+  - `Draft` →
+    `![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)`
+  - `Reviewed` →
+    `![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)`
+  - `Implementing` →
+    `![Status: Implementing](https://img.shields.io/badge/status-Implementing-F59F00?style=for-the-badge)`
+  - `Implemented` →
+    `![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge)`
+  - `Blocked` →
+    `![Status: Blocked](https://img.shields.io/badge/status-Blocked-C92A2A?style=for-the-badge)`
+  - `On Hold` →
+    `![Status: On Hold](https://img.shields.io/badge/status-On%20Hold-7048E8?style=for-the-badge)`
+- If `Status` uses a value outside this mapping, keep `Status` unchanged and add
+  a follow-up note in _Risks & Open Questions_ to resolve the mismatch.
+
+## Status Lifecycle
+
+States flow in order; each transition has one owner. Every status change updates
+the spec front matter **and** its badge (when a spec file exists) **and** the
+matching `docs/specs/ROADMAP.md` row (Status text + Badge column) in the same
+edit. See [the spec workflow](../../docs/specs/README.md) for who does what.
+
+- **To be defined** — roadmap-only; no spec file yet. Brainstorm requirements in
+  general chat (default agent) to feed the next step.
+- **Draft** — initial spec authored. Owner: **Spec Writer**.
+- **Reviewed** (optional) — spec checked, ready to build. Owner: **Spec
+  Reviewer**. May be skipped (Draft → Implementing).
+- **Implementing** — coding has started. Owner: **Spec Implementer** (set on
+  plan approval).
+- **Implemented** — the PR is raised. Owner: **Spec Implementer**; also add a
+  `CHANGELOG.md` entry under `## [Unreleased]`.
+
+**Blocked** / **On Hold** are reversible side-states settable from any state
+before **Implementing**; note the state to resume in _Risks & Open Questions_
+and follow the same spec + roadmap sync rule.

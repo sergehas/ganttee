@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-    Dependency,
-    DependencyType,
-    GanttDocument,
-    Task,
-    TaskStatus,
+  Dependency,
+  DependencyType,
+  GanttDocument,
+  Task,
+  TaskStatus,
 } from "../common/models";
 
 interface TaskFormProps {
@@ -26,8 +26,8 @@ const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
 const DEPENDENCY_OPTIONS: { value: DependencyType; label: string }[] = [
   { value: "startAfter", label: "Start After" },
   { value: "startWith", label: "Start With" },
-  { value: "finishAfter", label: "Finish After" },
-  { value: "finishWith", label: "Finish With" },
+  { value: "endBefore", label: "End Before" },
+  { value: "endWith", label: "End With" },
 ];
 
 /** Editable form for a single task, including its dependencies. */
@@ -78,11 +78,11 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
       </div>
 
       <label className="ganttee-field">
-        <span>Title</span>
+        <span>Name</span>
         <input
           type="text"
-          value={draft.title}
-          onChange={(event) => update("title", event.target.value)}
+          value={draft.name}
+          onChange={(event) => update("name", event.target.value)}
           required
         />
       </label>
@@ -101,18 +101,50 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
           <span>Start</span>
           <input
             type="date"
-            value={draft.start}
-            onChange={(event) => update("start", event.target.value)}
-            required
+            value={draft.start ?? ""}
+            onChange={(event) =>
+              update("start", event.target.value || undefined)
+            }
           />
         </label>
         <label className="ganttee-field">
           <span>End</span>
           <input
             type="date"
-            value={draft.end}
-            onChange={(event) => update("end", event.target.value)}
-            required
+            value={draft.end ?? ""}
+            onChange={(event) => update("end", event.target.value || undefined)}
+          />
+        </label>
+      </div>
+
+      <div className="ganttee-field-row">
+        <label className="ganttee-field">
+          <span>Duration</span>
+          <input
+            type="number"
+            min={0}
+            step="any"
+            value={draft.duration ?? ""}
+            onChange={(event) =>
+              update(
+                "duration",
+                event.target.value === ""
+                  ? undefined
+                  : Number(event.target.value),
+              )
+            }
+          />
+        </label>
+        <label className="ganttee-field">
+          <span>Progress</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round((draft.progress ?? 0) * 100)}
+            onChange={(event) =>
+              update("progress", Number(event.target.value) / 100)
+            }
           />
         </label>
       </div>
@@ -130,18 +162,6 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
               </option>
             ))}
           </select>
-        </label>
-        <label className="ganttee-field">
-          <span>Progress</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round((draft.progress ?? 0) * 100)}
-            onChange={(event) =>
-              update("progress", Number(event.target.value) / 100)
-            }
-          />
         </label>
       </div>
 
@@ -201,7 +221,7 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
             <option value="">Select task…</option>
             {candidateTargets.map((other) => (
               <option key={other.id} value={other.id}>
-                {other.title}
+                {other.name}
               </option>
             ))}
           </select>
@@ -233,5 +253,5 @@ function describeDependency(dep: Dependency, document: GanttDocument): string {
   const label = DEPENDENCY_OPTIONS.find(
     (option) => option.value === dep.type,
   )?.label;
-  return `${source?.title ?? "?"} → ${label} → ${target?.title ?? "?"}`;
+  return `${source?.name ?? "?"} → ${label} → ${target?.name ?? "?"}`;
 }

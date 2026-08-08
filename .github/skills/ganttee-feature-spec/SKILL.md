@@ -27,7 +27,9 @@ Produce an implementation-ready specification for a Ganttee feature.
    describe the migration.
 5. Write acceptance criteria for happy paths **and** error paths (cycle rejection,
    dangling dependencies, invalid dates). Ensure each is test-verifiable.
-6. Hand the finished spec to the **Test Planner** agent for a coverage plan and to
+6. Sync status badge with front matter `Status`: place the mapped badge directly
+   under `# Feature: <name>` and update it whenever `Status` changes.
+7. Hand the finished spec to the **Test Planner** agent for a coverage plan and to
    the **Architecture Guard** agent for a boundary check.
 
 ## Reminders
@@ -35,3 +37,6 @@ Produce an implementation-ready specification for a Ganttee feature.
 - User-facing strings are localized (`vscode.l10n.t()` / `nls`).
 - Branch coverage must stay ≥ 90%.
 - Reason about UX in design terms (see the `design-philosophy` skill).
+- Rank each item in _Risks & Open Questions_ with the shared severity scale in
+  [reporting-standard.instructions.md](../../instructions/reporting-standard.instructions.md)
+  (🟣 critical → 🔵 nice to have, in that order).
