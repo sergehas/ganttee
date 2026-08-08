@@ -103,7 +103,7 @@ those specs build on.
 - **NFR-1 — Localization (single source).** All user-facing form strings shall
   be localizable from a single source resolved on the host via `vscode.l10n`.
   The webview shall render only localized strings delivered through the l10n
-  bridge; it shall contain no hardcoded user-facing English. The bridge is
+  bridge; it shall contain no hardcoded user-facing English (US). The bridge is
   specified at the mechanism level only (the host resolves strings and delivers
   a localized string map to the webview); concrete message shapes are defined
   by the implementing feature spec.
