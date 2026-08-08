@@ -158,7 +158,7 @@ round-trip stability.
 ## 10. Validation Outcome
 
 - Spec is implementation-ready.
-- Status is `Validated`.
+- Spec remains at `Implementing` before PR.
 - Risk treatment and migration-window policy are explicit.
 - Acceptance criteria now match parser architecture and include timeline
   semantic stability after migration.

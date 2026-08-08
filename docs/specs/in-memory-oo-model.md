@@ -329,7 +329,7 @@ changes.
 
 ## 10. Review Outcome
 
-- Spec is implementation-ready; status is `Reviewed`.
+- Spec is implementation-ready and remains at `Implementing` before PR.
 - Findings resolved:
   - 🔴 Version bump vs precedent — decision recorded to **keep no version bump**
     with an idempotent always-run rename pass; rationale added contrasting it with

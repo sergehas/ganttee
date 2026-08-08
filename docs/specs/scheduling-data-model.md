@@ -32,8 +32,8 @@ computation.
 - Fix milestone (`duration=0`, `date` alias) and group (effective-only) shapes.
 - Add a project-level working-calendar placeholder (Saturday/Sunday off, fixed for
   now; per-week configuration deferred to a future requirement).
-- Bump schema version and migrate legacy documents (start+end → start+end
-  constraint pair, duration derived).
+- Keep the current schema version and migrate legacy documents in parse-time
+  migration (start+end → start+end constraint pair, duration derived).
 
 ### Non-goals
 
@@ -149,7 +149,7 @@ milestone. Both externalized via `vscode.l10n.t()` with `{0}` placeholders.
 
 ## 10. Review Outcome
 
-- Status is `Reviewed`.
+- Spec remains at `Implementing` before PR.
 - Resolved the non-working-day open question at the data-model boundary
   (store-as-is; engine interprets on read); deferred only the fractional
   working-day arithmetic to the scheduling-engine spec.
@@ -159,5 +159,6 @@ milestone. Both externalized via `vscode.l10n.t()` with `{0}` placeholders.
   explicit constraint-descriptor status, making them independently testable.
 - Noted the new localized strings (derived/computed label; milestone non-zero
   duration rejection).
-- No layer-boundary or schema-migration gaps found: `version` bump + migration
-  are specified and `common`/`services` stay `vscode`-free.
+- No layer-boundary or schema-migration gaps found: no version bump with
+  deterministic migration is specified, and `common`/`services` stay
+  `vscode`-free.
