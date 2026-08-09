@@ -20,6 +20,28 @@
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/dist/**/*.js"],
       "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
+      "name": "Smoke Tests",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionTestsPath=${workspaceFolder}/out/test/smoke",
+        "--disable-extensions",
+        "--extensions-dir",
+        "${workspaceFolder}/.vscode-test/smoke-extensions",
+        "${workspaceFolder}/src/test/fixtures"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/out/**/*.js",
+        "${workspaceFolder}/dist/**/*.js"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
+      "preLaunchTask": "npm: compile-tests"
     }
   ]
 }

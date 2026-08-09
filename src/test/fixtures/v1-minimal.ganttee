@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "t1",
+      "title": "Analysis",
+      "start": "2026-01-05",
+      "end": "2026-01-09"
+    },
+    {
+      "id": "t2",
+      "title": "Development",
+      "start": "2026-01-12",
+      "end": "2026-01-23"
+    }
+  ],
+  "groups": [
+    {
+      "id": "g1",
+      "name": "Phase 1"
+    }
+  ],
+  "milestones": [
+    {
+      "id": "m1",
+      "title": "Kickoff",
+      "date": "2026-01-05"
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "d1",
+      "sourceId": "t1",
+      "targetId": "t2",
+      "type": "finishWith"
+    }
+  ]
+}

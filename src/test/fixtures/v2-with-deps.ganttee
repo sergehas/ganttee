@@ -1,0 +1,63 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "id": "t1",
+      "name": "Analysis",
+      "start": "2026-01-05",
+      "end": "2026-01-09"
+    },
+    {
+      "id": "t2",
+      "name": "Design",
+      "start": "2026-01-12",
+      "end": "2026-01-16"
+    },
+    {
+      "id": "t3",
+      "name": "Build",
+      "start": "2026-01-19",
+      "end": "2026-01-30"
+    },
+    {
+      "id": "t4",
+      "name": "Test",
+      "start": "2026-02-02",
+      "end": "2026-02-06"
+    }
+  ],
+  "groups": [],
+  "milestones": [
+    {
+      "id": "m1",
+      "name": "Scope freeze",
+      "date": "2026-01-09"
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "d1",
+      "sourceId": "t2",
+      "targetId": "t1",
+      "type": "startAfter"
+    },
+    {
+      "id": "d2",
+      "sourceId": "t3",
+      "targetId": "t2",
+      "type": "startWith"
+    },
+    {
+      "id": "d3",
+      "sourceId": "t4",
+      "targetId": "t3",
+      "type": "endWith"
+    },
+    {
+      "id": "d4",
+      "sourceId": "m1",
+      "targetId": "t1",
+      "type": "endBefore"
+    }
+  ]
+}
