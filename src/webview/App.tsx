@@ -5,8 +5,10 @@ import {
   EditableEntityMap,
   EditableEntityRef,
 } from "../common/protocol";
+import { buildShiftByDaysPatch } from "../services/entityEditWorkflowService";
 import { GanttChart } from "./GanttChart";
 import { TaskForm } from "./TaskForm";
+import { useEntityEditWorkflow } from "./useEntityEditWorkflow";
 import { onHostMessage, postToHost } from "./vscodeApi";
 
 interface SaveEntityOptions {
@@ -42,13 +44,7 @@ export function App(): JSX.Element {
     return unsubscribe;
   }, []);
 
-  if (!document) {
-    return <div className="ganttee-empty">Loading Gantt chart…</div>;
-  }
-
-  const editingTarget = resolveEntity(document, editingEntity);
-
-  const saveEntity = (
+  const saveEntityToHost = (
     kind: EditableEntityKind,
     entity: EditableEntityMap[EditableEntityKind],
     options?: SaveEntityOptions,
@@ -81,7 +77,7 @@ export function App(): JSX.Element {
     }
   };
 
-  const deleteEntity = (entity: EditableEntityRef) => {
+  const deleteEntityToHost = (entity: EditableEntityRef) => {
     postToHost({ type: "deleteEntity", entity });
     setEditingEntity(null);
   };
@@ -98,6 +94,27 @@ export function App(): JSX.Element {
   const removeDependency = (dependencyId: string) =>
     postToHost({ type: "removeDependency", dependencyId });
 
+  const workflow = useEntityEditWorkflow({
+    onSave: saveEntityToHost,
+    onDelete: deleteEntityToHost,
+    onAddDependency: addDependency,
+    onRemoveDependency: removeDependency,
+  });
+
+  if (!document) {
+    return <div className="ganttee-empty">Loading Gantt chart…</div>;
+  }
+
+  const editingTarget = resolveEntity(document, editingEntity);
+
+  const nudgeEntityByDays = (entity: EditableEntityRef, days: number) => {
+    const patch = buildShiftByDaysPatch(document, entity, days);
+    if (!patch) {
+      return;
+    }
+    workflow.patchEntityDatesFromChart(document, entity, patch);
+  };
+
   return (
     <div className="ganttee-layout">
       <div className="ganttee-timeline">
@@ -111,6 +128,7 @@ export function App(): JSX.Element {
             selectedEntity={selectedEntity}
             onSelectEntity={setSelectedEntity}
             onEditEntity={setEditingEntity}
+            onNudgeEntityByDays={nudgeEntityByDays}
           />
         )}
       </div>
@@ -119,11 +137,14 @@ export function App(): JSX.Element {
           <TaskForm
             editingEntity={editingTarget}
             document={document}
-            onSave={saveEntity}
-            onDelete={deleteEntity}
+            onSave={workflow.saveEntity}
+            onDelete={workflow.deleteEntity}
             onClose={() => setEditingEntity(null)}
-            onAddDependency={addDependency}
-            onRemoveDependency={removeDependency}
+            onAddDependency={workflow.addDependency}
+            onRemoveDependency={workflow.removeDependency}
+            onUngroupEntity={(entity, options) =>
+              workflow.ungroupEntity(document, entity, options)
+            }
             onRequestEditEntity={requestEditEntity}
           />
         </aside>

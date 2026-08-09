@@ -23,18 +23,21 @@ Run each step; stop and report on the first hard failure (types/lint/build/tests
 3. **Build both bundles:** `node esbuild.js` (or `npm run compile`) — must succeed;
    for a release also run `npm run package` (production, minified).
 4. **Tests:** `npm test` — all passing.
-5. **Branch coverage ≥ 90%:** verify coverage; if unavailable, confirm every new
+5. **Multi-surface edit parity:** when chart and form both edit entities,
+   verify they route through the same shared workflow contract and parity
+   scenarios pass.
+6. **Branch coverage ≥ 90%:** verify coverage; if unavailable, confirm every new
    branch (conditionals, switch cases, error paths) has a covering test.
-6. **Localization:** every user-facing string is externalized via
+7. **Localization:** every user-facing string is externalized via
    `vscode.l10n.t()` / `nls` and package NLS keys — no raw literals in messages,
    command titles, or view names.
-7. **JSDoc:** every class, method, and member (public and private) is documented.
-8. **Manifest sanity:** `contributes` (customEditors, views, commands, menus) is
+8. **JSDoc:** every class, method, and member (public and private) is documented.
+9. **Manifest sanity:** `contributes` (customEditors, views, commands, menus) is
    consistent with the code; `activationEvents` and `main` are correct; the
    webview CSP uses a nonce and loads only from `dist/`.
-9. **Boundaries:** no `vscode`/Node imports in `common/`, `services/`, or
-   `webview/` (delegate to the **Architecture Guard** agent if unsure).
-10. **Changelog:** the change has an entry under `## [Unreleased]` in
+10. **Boundaries:** no `vscode`/Node imports in `common/`, `services/`, or
+    `webview/` (delegate to the **Architecture Guard** agent if unsure).
+11. **Changelog:** the change has an entry under `## [Unreleased]` in
     `CHANGELOG.md`.
 
 ## Output Format

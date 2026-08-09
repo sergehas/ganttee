@@ -31,6 +31,9 @@ model is rebroadcast to the webview and the sidebar tree.
 - `src/webview/**` MUST NOT import `vscode` or Node modules. It talks to the host
   only through `postMessage` via [vscodeApi.ts](../../src/webview/vscodeApi.ts) and
   the shared protocol.
+- Multi-surface edit rules (form, chart, or future editors) MUST be centralized
+  in a shared workflow module; visual components must not duplicate validation
+  or mutation logic.
 - Only `src/views/**`, `src/ganttStore.ts`, and `src/extension.ts` import `vscode`.
 - The webview is type-checked by its own project
   ([tsconfig.webview.json](../../tsconfig.webview.json), DOM + JSX); the host

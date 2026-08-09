@@ -1,25 +1,25 @@
 import type {
-    CustomSeriesRenderItem,
-    CustomSeriesRenderItemAPI,
-    CustomSeriesRenderItemParams,
-    CustomSeriesRenderItemReturn,
+  CustomSeriesRenderItem,
+  CustomSeriesRenderItemAPI,
+  CustomSeriesRenderItemParams,
+  CustomSeriesRenderItemReturn,
 } from "echarts";
 import { CustomChart } from "echarts/charts";
 import {
-    DataZoomComponent,
-    GridComponent,
-    TooltipComponent,
+  DataZoomComponent,
+  GridComponent,
+  TooltipComponent,
 } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
 import {
-    DependencyType,
-    effectiveEnd,
-    effectiveStart,
-    GanttDocument,
-    Milestone,
-    Task,
+  DependencyType,
+  effectiveEnd,
+  effectiveStart,
+  GanttDocument,
+  Milestone,
+  Task,
 } from "../common/models";
 import { EditableEntityRef } from "../common/protocol";
 
@@ -45,6 +45,7 @@ interface GanttChartProps {
   selectedEntity: EditableEntityRef | null;
   onSelectEntity: (entity: EditableEntityRef) => void;
   onEditEntity: (entity: EditableEntityRef) => void;
+  onNudgeEntityByDays?: (entity: EditableEntityRef, days: number) => void;
 }
 
 /** Renders the Gantt timeline with Apache ECharts using a custom series. */
@@ -72,6 +73,10 @@ export function GanttChart(props: GanttChartProps): JSX.Element {
     chart.on("dblclick", (params) => {
       const entity = entityFromEvent(params);
       if (entity) {
+        if (isDirectEditGesture(params)) {
+          propsRef.current.onNudgeEntityByDays?.(entity, 1);
+          return;
+        }
         propsRef.current.onEditEntity(entity);
       }
     });
@@ -153,7 +158,8 @@ function buildOption(
     value: [indexById.get(milestone.id) ?? 0, toMs(milestone.date)],
     milestone,
     selected:
-      selectedEntity?.kind === "milestone" && selectedEntity.id === milestone.id,
+      selectedEntity?.kind === "milestone" &&
+      selectedEntity.id === milestone.id,
   }));
 
   const linkData = document.dependencies
@@ -299,8 +305,11 @@ const renderLink: CustomSeriesRenderItem = (
 };
 
 function tooltipFormatter(params: unknown): string {
-  const data = (params as { data?: { task?: Task; milestone?: { name: string; date: string } } })
-    .data;
+  const data = (
+    params as {
+      data?: { task?: Task; milestone?: { name: string; date: string } };
+    }
+  ).data;
   if (data?.task) {
     const start = effectiveStart(data.task) ?? "—";
     const end = effectiveEnd(data.task) ?? "—";
@@ -324,6 +333,24 @@ function entityFromEvent(params: unknown): EditableEntityRef | undefined {
     return { kind: "milestone", id: event.data.milestone.id };
   }
   return undefined;
+}
+
+/**
+ * Returns whether a chart event should be treated as a direct-edit gesture.
+ *
+ * Ctrl/Cmd + double-click nudges the selected item forward by one day as an
+ * initial direct-edit pathway while preserving default double-click editing.
+ */
+function isDirectEditGesture(params: unknown): boolean {
+  const event = params as {
+    event?: {
+      event?: {
+        ctrlKey?: boolean;
+        metaKey?: boolean;
+      };
+    };
+  };
+  return Boolean(event.event?.event?.ctrlKey || event.event?.event?.metaKey);
 }
 
 function dateRange(document: GanttDocument): { min: number; max: number } {

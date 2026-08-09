@@ -77,6 +77,8 @@ Use spaces, not tabs.
 
 - Include Microsoft copyright header in all files
 - Prefer `async`/`await` over `Promise.then()`
+- For React webview code, keep components declarative and move branching
+  business logic into hooks or pure helpers backed by tests.
 - Localize all user-facing messages (mandatory — see [Mandatory Requirements](#mandatory-requirements))
 - Keep branch coverage ≥ 90% (mandatory — see [Mandatory Requirements](#mandatory-requirements) and the test guidelines)
 - Keep cyclomatic complexity ≤ 15 per function/method (mandatory — see [Mandatory Requirements](#mandatory-requirements))
