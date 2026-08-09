@@ -34,6 +34,7 @@ import { hydrateDocument } from "../../services/ganttModelService";
 export class GanttEditorController {
   private _model: GanttDocument = createEmptyDocument();
   private _graph: GanttModel = hydrateDocument(this._model);
+  private _isDisposed = false;
   private readonly _disposables: vscode.Disposable[] = [];
   private readonly _onDidChangeModel = new vscode.EventEmitter<void>();
 
@@ -130,6 +131,9 @@ export class GanttEditorController {
    * Adds a dependency after cycle validation.
    */
   async addDependency(dependency: Dependency): Promise<boolean> {
+    if (this._isDisposed) {
+      return false;
+    }
     if (wouldCreateCycle(this._model.dependencies, dependency)) {
       void vscode.window.showErrorMessage(
         vscode.l10n.t("Cannot add dependency: it would create a cycle."),
@@ -153,6 +157,7 @@ export class GanttEditorController {
 
   /** Disposes event subscriptions owned by this controller. */
   dispose(): void {
+    this._isDisposed = true;
     this._onDidChangeModel.dispose();
     for (const disposable of this._disposables) {
       disposable.dispose();
@@ -282,6 +287,9 @@ export class GanttEditorController {
     groupId: string,
     strategy?: GroupDeleteStrategy,
   ): Promise<void> {
+    if (this._isDisposed) {
+      return;
+    }
     const group = this._model.groups.find((current) => current.id === groupId);
     if (!group) {
       void vscode.window.showWarningMessage(
@@ -416,6 +424,9 @@ export class GanttEditorController {
    * Re-parses the underlying text document and updates cached models.
    */
   private reparse(): void {
+    if (this._isDisposed) {
+      return;
+    }
     try {
       const model = parseDocument(this.document.getText());
       const graph = hydrateDocument(model);
@@ -450,6 +461,9 @@ export class GanttEditorController {
    * Validates and applies a full-document replacement through WorkspaceEdit.
    */
   private async applyModel(next: GanttDocument): Promise<void> {
+    if (this._isDisposed) {
+      return;
+    }
     try {
       parseDocument(serializeDocument(next));
     } catch (error) {
@@ -475,6 +489,9 @@ export class GanttEditorController {
    * Posts a typed message to the webview.
    */
   private post(message: HostToWebviewMessage): void {
+    if (this._isDisposed) {
+      return;
+    }
     void this.webviewPanel.webview.postMessage(message);
   }
 
@@ -482,6 +499,9 @@ export class GanttEditorController {
    * Shows a localized warning for update/delete requests targeting unknown ids.
    */
   private showUnknownIdWarning(kind: EditableEntityKind, id: string): void {
+    if (this._isDisposed) {
+      return;
+    }
     void vscode.window.showWarningMessage(
       vscode.l10n.t("No {0} found for id '{1}'.", kind, id),
     );
