@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "id": "t1",
+      "name": "Design",
+      "start": "2026-01-05",
+      "end": "2026-01-09",
+      "progress": 1,
+      "status": "done",
+      "groupId": "g1"
+    },
+    {
+      "id": "t2",
+      "name": "Build",
+      "start": "2026-01-12",
+      "end": "2026-01-23",
+      "progress": 0.5,
+      "status": "inProgress",
+      "groupId": "g1"
+    },
+    {
+      "id": "t3",
+      "name": "Standalone task",
+      "start": "2026-01-26",
+      "duration": 5
+    }
+  ],
+  "groups": [
+    {
+      "id": "g1",
+      "name": "Delivery"
+    }
+  ],
+  "milestones": [
+    {
+      "id": "m1",
+      "name": "Kickoff",
+      "date": "2026-01-05"
+    }
+  ],
+  "dependencies": []
+}

@@ -1,0 +1,6 @@
+{
+  "spec": "out/test/integration/**/*.test.js",
+  "timeout": 10000,
+  "ui": "tdd",
+  "reporter": "spec"
+}

@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+      - "bugfix/**"
+      - "release/**"
+  pull_request:
+    branches:
+      - main
+      - develop
+      - "release/**"
+
+jobs:
+  # ── 1. Type-check and lint ─────────────────────────────────────────────────
+  quality:
+    name: Quality (type-check + lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: npm run check-types
+
+      - run: npm run lint
+
+  # ── 2. Build both bundles ──────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: node esbuild.js
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  # ── 3. Integration tests (plain Node, no VS Code runtime) ──────────────────
+  test-integration:
+    name: Integration tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - run: npm run compile-tests
+
+      - run: npm run test:integration
+
+  # ── 4. VS Code tests (unit + smoke, requires a display) ───────────────────
+  test-vscode:
+    name: VS Code tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - run: npm run compile-tests
+
+      - name: Run unit tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:unit
+
+      - name: Run unit tests (Windows)
+        if: runner.os == 'Windows'
+        run: npm run test:unit
+
+      - name: Run smoke tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:smoke
+
+      - name: Run smoke tests (Windows)
+        if: runner.os == 'Windows'
+        run: npm run test:smoke
