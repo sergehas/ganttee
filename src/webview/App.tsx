@@ -1,21 +1,26 @@
 import { useEffect, useState } from "react";
 import { Dependency, GanttDocument } from "../common/models";
 import {
-    EditableEntityKind,
-    EditableEntityMap,
-    EditableEntityRef,
+  EditableEntityKind,
+  EditableEntityMap,
+  EditableEntityRef,
 } from "../common/protocol";
 import { GanttChart } from "./GanttChart";
 import { TaskForm } from "./TaskForm";
 import { onHostMessage, postToHost } from "./vscodeApi";
+
+interface SaveEntityOptions {
+  keepEditorOpen?: boolean;
+}
 
 /** Root editor UI: the ECharts timeline and the entity edit panel. */
 export function App(): JSX.Element {
   const [document, setDocument] = useState<GanttDocument | null>(null);
   const [selectedEntity, setSelectedEntity] =
     useState<EditableEntityRef | null>(null);
-  const [editingEntity, setEditingEntity] =
-    useState<EditableEntityRef | null>(null);
+  const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(
+    null,
+  );
 
   useEffect(() => {
     const unsubscribe = onHostMessage((message) => {
@@ -46,6 +51,7 @@ export function App(): JSX.Element {
   const saveEntity = (
     kind: EditableEntityKind,
     entity: EditableEntityMap[EditableEntityKind],
+    options?: SaveEntityOptions,
   ) => {
     switch (kind) {
       case "task":
@@ -70,12 +76,20 @@ export function App(): JSX.Element {
         });
         break;
     }
-    setEditingEntity(null);
+    if (!options?.keepEditorOpen) {
+      setEditingEntity(null);
+    }
   };
 
   const deleteEntity = (entity: EditableEntityRef) => {
     postToHost({ type: "deleteEntity", entity });
     setEditingEntity(null);
+  };
+
+  const requestEditEntity = (entity: EditableEntityRef) => {
+    setSelectedEntity(entity);
+    setEditingEntity(entity);
+    postToHost({ type: "requestEditEntity", entity });
   };
 
   const addDependency = (dependency: Dependency) =>
@@ -110,6 +124,7 @@ export function App(): JSX.Element {
             onClose={() => setEditingEntity(null)}
             onAddDependency={addDependency}
             onRemoveDependency={removeDependency}
+            onRequestEditEntity={requestEditEntity}
           />
         </aside>
       )}

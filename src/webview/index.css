@@ -71,6 +71,12 @@ body {
   gap: var(--vscode-spacing-size40, 4px);
 }
 
+.ganttee-field.ganttee-field--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--vscode-spacing-size80, 8px);
+}
+
 .ganttee-field > span {
   font-size: var(--vscode-fontSize-label1, 12px);
   color: var(--vscode-descriptionForeground);
@@ -106,6 +112,11 @@ body {
 
 .ganttee-form input[type="checkbox"] {
   width: auto;
+  margin: 0;
+}
+
+.ganttee-field.ganttee-field--checkbox > span {
+  color: var(--vscode-foreground);
 }
 
 .ganttee-form button {
@@ -180,4 +191,33 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ganttee-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--vscode-fontSize-label1, 12px);
+}
+
+.ganttee-table th,
+.ganttee-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--vscode-spacing-size40, 4px)
+    var(--vscode-spacing-size60, 6px);
+  border-bottom: var(--vscode-strokeThickness, 1px) solid
+    var(--vscode-panel-border);
+}
+
+.ganttee-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ganttee-table a {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+}
+
+.ganttee-table a:hover {
+  text-decoration: underline;
 }
