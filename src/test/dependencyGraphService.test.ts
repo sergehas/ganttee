@@ -75,6 +75,11 @@ suite("dependencyGraphService", () => {
     assert.strictEqual(wouldCreateCycle(existing, dep("a", "c")), false);
   });
 
+  test("wouldCreateCycle detects cycles that include milestones", () => {
+    const existing: Dependency[] = [dep("t1", "m1"), dep("m1", "t2")];
+    assert.strictEqual(wouldCreateCycle(existing, dep("t2", "t1")), true);
+  });
+
   test("topologicalOrder places predecessors first", () => {
     const document = documentWith(
       ["a", "b", "c"],

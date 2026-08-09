@@ -1,14 +1,26 @@
 import { useEffect, useState } from "react";
-import { Dependency, GanttDocument, Task } from "../common/models";
+import { Dependency, GanttDocument } from "../common/models";
+import {
+  EditableEntityKind,
+  EditableEntityMap,
+  EditableEntityRef,
+} from "../common/protocol";
 import { GanttChart } from "./GanttChart";
 import { TaskForm } from "./TaskForm";
 import { onHostMessage, postToHost } from "./vscodeApi";
 
-/** Root editor UI: the ECharts timeline and the task edit panel. */
+interface SaveEntityOptions {
+  keepEditorOpen?: boolean;
+}
+
+/** Root editor UI: the ECharts timeline and the entity edit panel. */
 export function App(): JSX.Element {
   const [document, setDocument] = useState<GanttDocument | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [selectedEntity, setSelectedEntity] =
+    useState<EditableEntityRef | null>(null);
+  const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(
+    null,
+  );
 
   useEffect(() => {
     const unsubscribe = onHostMessage((message) => {
@@ -17,12 +29,12 @@ export function App(): JSX.Element {
         case "documentChanged":
           setDocument(message.document);
           break;
-        case "selectTask":
-          setSelectedTaskId(message.taskId);
+        case "selectEntity":
+          setSelectedEntity(message.entity);
           break;
-        case "editTask":
-          setSelectedTaskId(message.taskId);
-          setEditingTaskId(message.taskId);
+        case "editEntity":
+          setSelectedEntity(message.entity);
+          setEditingEntity(message.entity);
           break;
       }
     });
@@ -34,16 +46,50 @@ export function App(): JSX.Element {
     return <div className="ganttee-empty">Loading Gantt chart…</div>;
   }
 
-  const editingTask = document.tasks.find((task) => task.id === editingTaskId);
+  const editingTarget = resolveEntity(document, editingEntity);
 
-  const saveTask = (task: Task) => {
-    postToHost({ type: "updateTask", task });
-    setEditingTaskId(null);
+  const saveEntity = (
+    kind: EditableEntityKind,
+    entity: EditableEntityMap[EditableEntityKind],
+    options?: SaveEntityOptions,
+  ) => {
+    switch (kind) {
+      case "task":
+        postToHost({
+          type: "updateEntity",
+          kind,
+          entity: entity as EditableEntityMap["task"],
+        });
+        break;
+      case "milestone":
+        postToHost({
+          type: "updateEntity",
+          kind,
+          entity: entity as EditableEntityMap["milestone"],
+        });
+        break;
+      case "group":
+        postToHost({
+          type: "updateEntity",
+          kind,
+          entity: entity as EditableEntityMap["group"],
+        });
+        break;
+    }
+    if (!options?.keepEditorOpen) {
+      setEditingEntity(null);
+    }
   };
 
-  const deleteTask = (taskId: string) => {
-    postToHost({ type: "deleteTask", taskId });
-    setEditingTaskId(null);
+  const deleteEntity = (entity: EditableEntityRef) => {
+    postToHost({ type: "deleteEntity", entity });
+    setEditingEntity(null);
+  };
+
+  const requestEditEntity = (entity: EditableEntityRef) => {
+    setSelectedEntity(entity);
+    setEditingEntity(entity);
+    postToHost({ type: "requestEditEntity", entity });
   };
 
   const addDependency = (dependency: Dependency) =>
@@ -62,25 +108,56 @@ export function App(): JSX.Element {
         ) : (
           <GanttChart
             document={document}
-            selectedTaskId={selectedTaskId}
-            onSelectTask={setSelectedTaskId}
-            onEditTask={setEditingTaskId}
+            selectedEntity={selectedEntity}
+            onSelectEntity={setSelectedEntity}
+            onEditEntity={setEditingEntity}
           />
         )}
       </div>
-      {editingTask && (
+      {editingTarget && (
         <aside className="ganttee-panel">
           <TaskForm
-            task={editingTask}
+            editingEntity={editingTarget}
             document={document}
-            onSave={saveTask}
-            onDelete={deleteTask}
-            onClose={() => setEditingTaskId(null)}
+            onSave={saveEntity}
+            onDelete={deleteEntity}
+            onClose={() => setEditingEntity(null)}
             onAddDependency={addDependency}
             onRemoveDependency={removeDependency}
+            onRequestEditEntity={requestEditEntity}
           />
         </aside>
       )}
     </div>
   );
+}
+
+interface ResolvedEditingEntity {
+  kind: EditableEntityKind;
+  entity: EditableEntityMap[EditableEntityKind];
+}
+
+function resolveEntity(
+  document: GanttDocument,
+  ref: EditableEntityRef | null,
+): ResolvedEditingEntity | null {
+  if (!ref) {
+    return null;
+  }
+  switch (ref.kind) {
+    case "task": {
+      const entity = document.tasks.find((task) => task.id === ref.id);
+      return entity ? { kind: "task", entity } : null;
+    }
+    case "milestone": {
+      const entity = document.milestones.find(
+        (milestone) => milestone.id === ref.id,
+      );
+      return entity ? { kind: "milestone", entity } : null;
+    }
+    case "group": {
+      const entity = document.groups.find((group) => group.id === ref.id);
+      return entity ? { kind: "group", entity } : null;
+    }
+  }
 }

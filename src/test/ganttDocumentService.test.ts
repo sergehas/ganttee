@@ -103,6 +103,61 @@ suite("ganttDocumentService", () => {
     assert.throws(() => parseDocument(text), GanttParseError);
   });
 
+  test("rejects a task when start is after end", () => {
+    const text = JSON.stringify({
+      tasks: [
+        {
+          id: "t1",
+          name: "Bad order",
+          start: "2026-02-10",
+          end: "2026-02-01",
+        },
+      ],
+    });
+    assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("rejects a group that points to itself as parent", () => {
+    const text = JSON.stringify({
+      groups: [{ id: "g1", name: "Group", groupId: "g1" }],
+    });
+    assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("rejects a parent cycle in the group hierarchy", () => {
+    const text = JSON.stringify({
+      groups: [
+        { id: "g1", name: "G1", groupId: "g2" },
+        { id: "g2", name: "G2", groupId: "g1" },
+      ],
+    });
+    assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("rejects dangling task and milestone group references", () => {
+    const text = JSON.stringify({
+      groups: [{ id: "g1", name: "Known" }],
+      tasks: [
+        {
+          id: "t1",
+          name: "Task",
+          start: "2026-01-01",
+          end: "2026-01-02",
+          groupId: "missing",
+        },
+      ],
+      milestones: [
+        {
+          id: "m1",
+          name: "Milestone",
+          date: "2026-01-03",
+          groupId: "missing",
+        },
+      ],
+    });
+    assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
   test("clamps progress into the 0..1 range", () => {
     const text = JSON.stringify({
       tasks: [

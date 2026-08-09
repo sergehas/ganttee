@@ -13,21 +13,21 @@
     },
     {
       "id": "task-build",
-      "name": "Build",
+      "name": "Implement",
       "start": "2026-01-13",
       "end": "2026-01-27",
       "progress": 0.4,
       "status": "inProgress",
-      "groupId": "group-delivery"
+      "groupId": "group-Build"
     },
     {
       "id": "task-test",
-      "name": "Test",
+      "name": "QA",
       "start": "2026-01-28",
       "end": "2026-02-04",
       "progress": 0,
       "status": "todo",
-      "groupId": "group-delivery"
+      "groupId": "group-Test"
     },
     {
       "id": "task-9kcoliei",
@@ -37,7 +37,8 @@
       "duration": 10,
       "description": "# content\nThis pahse is dedicated to **user acceptance** test\nit must be conclude by a sign-of",
       "progress": 0,
-      "status": "todo"
+      "status": "todo",
+      "groupId": "group-Test"
     },
     {
       "id": "task-mlf0py0m",
@@ -48,6 +49,16 @@
       "progress": 0,
       "status": "todo",
       "groupId": "group-discovery"
+    },
+    {
+      "id": "task-4p1xeki1",
+      "name": "UAT 1",
+      "start": "2026-03-02",
+      "end": "2026-03-23",
+      "duration": 10,
+      "progress": 0,
+      "status": "todo",
+      "groupId": "group-UAT"
     }
   ],
   "groups": [
@@ -58,13 +69,33 @@
     {
       "id": "group-delivery",
       "name": "Delivery"
+    },
+    {
+      "id": "group-Build",
+      "name": "Build",
+      "groupId": "group-delivery"
+    },
+    {
+      "id": "group-Test",
+      "name": "Test",
+      "groupId": "group-delivery"
+    },
+    {
+      "id": "group-UAT",
+      "name": "User Acceptance Test"
     }
   ],
   "milestones": [
     {
+      "id": "milestone-Release",
+      "name": "Release",
+      "date": "2026-02-28",
+      "groupId": "group-delivery"
+    },
+    {
       "id": "milestone-launch",
       "name": "Launch",
-      "date": "2026-02-05"
+      "date": "2026-03-25"
     }
   ],
   "dependencies": [
@@ -97,6 +128,24 @@
       "sourceId": "task-mlf0py0m",
       "targetId": "task-build",
       "type": "endWith"
+    },
+    {
+      "id": "dep-6espp8ui",
+      "sourceId": "milestone-launch",
+      "targetId": "task-4p1xeki1",
+      "type": "startAfter"
+    },
+    {
+      "id": "dep-8rybjfjw",
+      "sourceId": "milestone-Release",
+      "targetId": "task-9kcoliei",
+      "type": "startAfter"
+    },
+    {
+      "id": "dep-uckl17or",
+      "sourceId": "task-4p1xeki1",
+      "targetId": "milestone-Release",
+      "type": "startAfter"
     }
   ],
   "settings": {

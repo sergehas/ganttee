@@ -6,6 +6,7 @@ import {
   Milestone,
   Task,
 } from "../../common/models";
+import { EditableEntityRef } from "../../common/protocol";
 import { GanttStore } from "../../ganttStore";
 
 type GanttNode =
@@ -102,9 +103,9 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
     item.iconPath = new vscode.ThemeIcon("checklist");
     item.id = `task:${task.id}`;
     item.command = {
-      command: "ganttee.revealTask",
+      command: "ganttee.revealEntity",
       title: "Reveal Task",
-      arguments: [task.id],
+      arguments: [{ kind: "task", id: task.id }],
     };
     return item;
   }
@@ -118,18 +119,29 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
     item.contextValue = "ganttee.milestone";
     item.iconPath = new vscode.ThemeIcon("milestone");
     item.id = `milestone:${milestone.id}`;
+    item.command = {
+      command: "ganttee.revealEntity",
+      title: "Reveal Milestone",
+      arguments: [{ kind: "milestone", id: milestone.id }],
+    };
     return item;
   }
 }
 
-/** Extracts the task id from a tree node, if it is a task. */
-export function taskIdOf(node: unknown): string | undefined {
-  if (
-    typeof node === "object" &&
-    node !== null &&
-    (node as GanttNode).kind === "task"
-  ) {
-    return (node as { task: Task }).task.id;
+/**
+ * Extracts the editable entity identity from a tree node.
+ */
+export function entityRefOf(node: unknown): EditableEntityRef | undefined {
+  if (typeof node !== "object" || node === null) {
+    return undefined;
   }
-  return undefined;
+  const candidate = node as GanttNode;
+  switch (candidate.kind) {
+    case "task":
+      return { kind: "task", id: candidate.task.id };
+    case "milestone":
+      return { kind: "milestone", id: candidate.milestone.id };
+    case "group":
+      return { kind: "group", id: candidate.group.id };
+  }
 }

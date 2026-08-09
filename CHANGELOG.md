@@ -14,6 +14,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - In-memory OO `GanttModel` entities implementing `Schedulable` with `Date`
   accessors.
 - Shared date utilities for parse/format and calendar-day arithmetic.
+- End-to-end editing support for tasks, milestones, and groups from timeline
+  and sidebar entry points, including kind-aware edit routing.
+- Milestone dependency editing parity with task dependency behavior and host-side
+  cycle rejection.
 
 ### Changed
 
@@ -23,3 +27,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
   `parentId` → `groupId`, with serializer writing only new keys.
 - Task data model now supports exactly two constraints from
   `{start, duration, end}` with derived endpoint behavior.
+- Unified protocol/controller/webview editing flow around discriminated entity
+  operations for task, milestone, and group updates.
+- Group hierarchy validation now rejects self-parenting and ancestor cycles;
+  document validation and tests were expanded accordingly.

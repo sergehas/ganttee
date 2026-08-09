@@ -1,8 +1,19 @@
 {
   "Open a Gantt chart to add a task.": "Open a Gantt chart to add a task.",
+  "New Task": "New Task",
   "Delete this task?": "Delete this task?",
+  "Delete this milestone?": "Delete this milestone?",
+  "Delete this group?": "Delete this group?",
+  "Delete Group And Contents": "Delete Group And Contents",
+  "Ungroup/Reparent Contents": "Ungroup/Reparent Contents",
   "Delete": "Delete",
   "Cannot add dependency: it would create a cycle.": "Cannot add dependency: it would create a cycle.",
+  "Cannot update task: start date must not be after end date.": "Cannot update task: start date must not be after end date.",
+  "Cannot update group: a group cannot be its own parent.": "Cannot update group: a group cannot be its own parent.",
+  "Cannot update group: this parent would create a hierarchy cycle.": "Cannot update group: this parent would create a hierarchy cycle.",
+  "Cannot apply update: {0}": "Cannot apply update: {0}",
+  "No {0} found for id '{1}'.": "No {0} found for id '{1}'.",
+  "Cannot delete group '{0}': no matching id.": "Cannot delete group '{0}': no matching id.",
   "Ganttee: {0}": "Ganttee: {0}",
   "Ganttee: invalid dependency graph. {0}": "Ganttee: invalid dependency graph. {0}"
 }

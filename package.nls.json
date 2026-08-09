@@ -6,6 +6,11 @@
   "view.explorer.name": "Tasks",
   "command.newTask.title": "New Task",
   "command.editTask.title": "Edit Task",
+  "command.editMilestone.title": "Edit Milestone",
+  "command.editGroup.title": "Edit Group",
   "command.deleteTask.title": "Delete Task",
+  "command.deleteMilestone.title": "Delete Milestone",
+  "command.deleteGroup.title": "Delete Group",
+  "command.revealEntity.title": "Reveal Work Item",
   "command.refreshExplorer.title": "Refresh"
 }

@@ -1,12 +1,12 @@
 ---
-Status: Reviewed
-Owner: Copilot
-Last updated: 2026-08-08
+Status: Implemented
+Owner: Developer
+Last updated: 2026-08-09
 ---
 
 # Feature: Editable Work Item Kinds (Tasks, Milestones, Groups)
 
-![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
+![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in
@@ -24,7 +24,7 @@ Today only Task entities are fully editable end-to-end from the timeline and sid
 - Enable dependency editing for milestones with the same functional behavior and UI as task dependency editing.
 - Reuse one editing surface pattern in the webview panel while preserving kind-specific fields and validation.
 - Ensure all edits are applied via host-side WorkspaceEdit and document reparse in the existing unidirectional flow.
-- Add predictable error feedback for invalid edits (invalid dates, dependency cycles for tasks and milestones, dangling references when deleting or reparenting).
+- Add predictable error feedback for invalid edits (invalid dates, dependency cycles for tasks and milestones, dangling references when deleting or re-parenting).
 - Preserve strict layer boundaries between common models, services, extension host, and webview.
 - Keep branch coverage at or above 90% for changed modules.
 
@@ -95,7 +95,11 @@ Then the host rejects it and shows a localized error message identical to task c
 
 Given deletion of a group that still contains tasks, milestones, or child groups
 When I confirm delete
-Then a confirmation dialog asks whether to cascade-delete the subtree or ungroup/reparent its contents; the chosen operation updates all affected entities atomically and is reflected in the next documentChanged payload
+Then a confirmation dialog asks whether to cascade-delete the subtree or ungroup/re-parent its contents; the chosen operation updates all affected entities atomically and is reflected in the next documentChanged payload
+
+Given an open group edit panel with an owned-entity row (task, milestone, or child group) directly associated to the group
+When I click Remove on that row
+Then the host receives an updateEntity message for that entity with groupId unset, the entity is removed from the group, the document is updated accordingly, and the current group edit panel remains open
 
 Given deletion of a milestone referenced only by its own id (no dependency edges)
 When I confirm delete
@@ -165,7 +169,11 @@ Then all new strings are localized through vscode.l10n.t() or nls, with placehol
   - Kind-specific fields:
     - Task: start/end, status, progress, duration, dependencies.
     - Milestone: date, dependencies.
-    - Group: collapsed state, list of owned entities (readonly).
+    - Group: collapsed state; readonly effective start/end/duration fields;
+      owned-entities table with Name, type, and Remove columns, where Name links
+      to the related task/milestone/group edit form and Remove unsets that
+      entity's groupId (removes it from the group) without closing the current
+      group form.
   - Validation philosophy:
     - Prevent invalid save actions at field level when possible.
     - Surface host-side rejections as localized global messages when needed.
@@ -193,6 +201,7 @@ Design rationale (values → principles → moves):
   - App message handling for edit/select across all kinds.
   - Timeline double-click milestone opens milestone editor.
   - Entity form save/delete emits expected WebviewToHost message with correct payload.
+  - Group owned-entity Remove unsets groupId and keeps the current group edit panel open.
   - Validation tests: invalid input blocks postToHost calls.
   - Milestone dependency add/remove emits correct updateMilestone message; cycle input triggers a localized rejection.
 
@@ -204,7 +213,7 @@ Design rationale (values → principles → moves):
 
 ## 9. Risks & Open Questions
 
-- 🔴 High — Risk: Group delete semantics can surprise users; **Decision: Option C** — present a confirmation dialog asking the user to choose between cascade-delete and ungroup/reparent; no silent default.
+- 🔴 High — Risk: Group delete semantics can surprise users; **Decision: Option C** — present a confirmation dialog asking the user to choose between cascade-delete and ungroup/re-parent; no silent default.
 - 🟡 Medium — Risk: protocol migration churn while moving existing task-only edit/select messages to generic entity-discriminated messages; mitigation is exhaustive switch tests on both host and webview.
 - 🟡 Medium — Risk: Validation duplication between webview and host can diverge; mitigation is host as canonical validator plus minimal client-side checks for UX.
 - 🟡 Medium — Risk: Existing users may rely on current sidebar command set; confirm contribution points and context keys remain backward compatible.

@@ -69,7 +69,89 @@ function validate(raw: unknown): GanttDocument {
   if (settings !== undefined) {
     document.settings = settings;
   }
+  validateRelations(document);
   return document;
+}
+
+/**
+ * Validates cross-entity constraints that require the full document context.
+ */
+function validateRelations(document: GanttDocument): void {
+  validateTaskDateOrder(document.tasks);
+  validateGroupHierarchy(document.groups);
+  validateGroupReferences(document);
+}
+
+/**
+ * Validates that each task keeps `start <= end` when both endpoints exist.
+ */
+function validateTaskDateOrder(tasks: Task[]): void {
+  tasks.forEach((task, index) => {
+    if (
+      task.start !== undefined &&
+      task.end !== undefined &&
+      task.start > task.end
+    ) {
+      throw new GanttParseError(
+        `tasks[${index}] has an invalid date range: start must be on or before end.`,
+      );
+    }
+  });
+}
+
+/**
+ * Validates group self-parent, parent existence, and ancestor-cycle constraints.
+ */
+function validateGroupHierarchy(groups: Group[]): void {
+  const groupById = new Map(groups.map((group) => [group.id, group]));
+  groups.forEach((group, index) => {
+    if (group.groupId === undefined) {
+      return;
+    }
+    if (group.groupId === group.id) {
+      throw new GanttParseError(
+        `groups[${index}] cannot reference itself as parent group.`,
+      );
+    }
+    if (!groupById.has(group.groupId)) {
+      throw new GanttParseError(
+        `groups[${index}].groupId references an unknown group id.`,
+      );
+    }
+
+    const visited = new Set<string>([group.id]);
+    let cursor: string | undefined = group.groupId;
+    while (cursor !== undefined) {
+      if (visited.has(cursor)) {
+        throw new GanttParseError(
+          `groups[${index}] creates a parent cycle in group hierarchy.`,
+        );
+      }
+      visited.add(cursor);
+      cursor = groupById.get(cursor)?.groupId;
+    }
+  });
+}
+
+/**
+ * Validates that every group reference points to an existing group id.
+ */
+function validateGroupReferences(document: GanttDocument): void {
+  const groupIds = new Set(document.groups.map((group) => group.id));
+  document.tasks.forEach((task, index) => {
+    if (task.groupId !== undefined && !groupIds.has(task.groupId)) {
+      throw new GanttParseError(
+        `tasks[${index}].groupId references an unknown group id.`,
+      );
+    }
+  });
+  document.milestones.forEach((milestone, index) => {
+    if (milestone.groupId !== undefined && !groupIds.has(milestone.groupId)) {
+      throw new GanttParseError(
+        `milestones[${index}].groupId references an unknown group id.`,
+      );
+    }
+  });
 }
 
 /**
