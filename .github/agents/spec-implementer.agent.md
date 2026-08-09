@@ -1,7 +1,7 @@
 ---
 description: "Use to plan and execute the implementation of a Ganttee feature spec — pick the spec (or ask which one), confirm it is `Reviewed` (or offer a Spec Reviewer handoff), present an implementation plan, implement only after your validation, set the status to `Implementing`, run type-check/lint/tests, and on a raised PR flip the spec and roadmap to `Implemented` and add a changelog entry. Delegate spec-implementation tasks here."
 name: "Spec Implementer"
-tools: [read, search, edit, execute, agent]
+tools: [read, edit, execute, agent]
 user-invocable: true
 ---
 
@@ -29,6 +29,9 @@ live in `docs/specs/` by default; the roadmap is `docs/specs/ROADMAP.md`.
   concatenation), and add JSDoc on every class, method, and member.
 - ASK when the target spec, the intent, or a design choice is unclear rather than
   guessing.
+- DO NOT run broad codebase scans directly. Delegate discovery scans to the
+  Codebase Scout agent and use this agent for implementation reasoning, edits,
+  and validation.
 
 ## Plan-First Mode (Required)
 
@@ -42,22 +45,24 @@ live in `docs/specs/` by default; the roadmap is `docs/specs/ROADMAP.md`.
 
 1. Identify the target spec in `docs/specs/`. If none is given, or several match,
    ask which one.
-2. Read the spec, `feature-spec.instructions.md`, and any cross-referenced specs
+2. Delegate broad discovery scans (candidate files, symbols, and references) to
+   Codebase Scout and request a ranked shortlist before local reads.
+3. Read the spec, `feature-spec.instructions.md`, and any cross-referenced specs
    so the work is grounded in real content.
-3. Check the spec's status in `docs/specs/ROADMAP.md`:
+4. Check the spec's status in `docs/specs/ROADMAP.md`:
    - If it is **not `Reviewed`**, offer to delegate to the **Spec Reviewer** agent
      first. Proceed with implementation only after the user decides.
-4. Present a concrete implementation plan: the files to add/change per layer
+5. Present a concrete implementation plan: the files to add/change per layer
    (`common/models`, `services`, `views/editor`, `views/sidebar`, `webview`,
    `common/protocol`), any `.ganttee` schema `version` bump + migration, the tests
    to add, and the acceptance criteria each change satisfies.
-5. **Wait for explicit user validation of the plan before editing any code.**
-6. On approval, set the status to `Implementing` (spec front matter + badge and
+6. **Wait for explicit user validation of the plan before editing any code.**
+7. On approval, set the status to `Implementing` (spec front matter + badge and
    the roadmap row), then implement the change following the plan and the coding
    guidelines. Add or update tests to keep branch coverage healthy.
-7. Validate: run `npm run check-types`, `npm run lint`, and `npm test`. Fix any
+8. Validate: run `npm run check-types`, `npm run lint`, and `npm test`. Fix any
    failures until all three pass.
-8. Raise the PR (or confirm the user has). Then set the status to `Implemented`
+9. Raise the PR (or confirm the user has). Then set the status to `Implemented`
    (spec front matter + badge and the roadmap row) and add a `CHANGELOG.md` entry
    under `## [Unreleased]`.
 

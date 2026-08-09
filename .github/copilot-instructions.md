@@ -90,6 +90,23 @@ Use the customization set in this folder:
   the **Architecture Guard** agent, and test planning to the **Test Planner** agent.
 - Before merging, run the `release-readiness` skill checklist.
 
+## Model Routing Policy
+
+Route tasks by capability and cost:
+
+- Use a **reasoning-capable model** for planning, trade-off analysis, reviews,
+  architecture judgments, and final synthesis.
+- Use a **cheap scan-oriented model** for broad repository discovery, file
+  matching, symbol/reference hunts, and large grep/search passes.
+
+Enforcement rules for custom agents:
+
+- Broad codebase scanning must be delegated to the **Codebase Scout** agent.
+- Reasoning agents may read exact files from scout output for validation and
+  decision-making, but should not perform broad discovery scans directly.
+- Prefer capability-based routing and tool boundaries over hard-pinned model
+  names so policy remains stable as model catalogs change.
+
 ## Git Workflow
 
 Commits follow **Conventional Commits** and branches follow **gitflow**. These
