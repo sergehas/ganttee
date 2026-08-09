@@ -39,6 +39,8 @@ Always call `sinon.restore()` in `teardown` to avoid leaking mocks.
 - Minimize assertions per test — prefer one `assert.deepStrictEqual` snapshot over many fine-grained assertions
 - Don't add tests to the wrong suite — find the relevant `suite` block
 - Follow existing patterns (`describe`/`test` or `suite`/`test`) consistently within a file
+- For shared edit workflows, test rule branches once at the workflow level; UI
+  tests should focus on interaction-to-workflow mapping.
 - Don't stub globals (e.g., `(mainWindow as any).X = ...`) — make dependencies injectable instead
 
 ### Snapshot Testing

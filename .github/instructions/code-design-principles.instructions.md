@@ -16,6 +16,9 @@ only when a real second use case or a real change pressure appears.
 - Extract shared logic **after** genuine duplication appears (rule of three), not
   in anticipation of it. Two similar-looking blocks that evolve independently are
   not duplication.
+- When multiple UI entry points trigger the same domain mutation, consolidate
+  rule enforcement behind one typed workflow API instead of re-implementing it
+  per surface.
 - The `.ganttee` `TextDocument` is the single source of truth — don't cache or
   re-derive model state in parallel. Compute from the parsed model, not copies.
 - Reuse the existing parse/validate/serialize helpers in `src/services/` and the
@@ -43,6 +46,8 @@ only when a real second use case or a real change pressure appears.
   dependencies through constructors/parameters rather than reaching for globals
   or singletons, and keep `common/`/`services/` free of `vscode` so higher layers
   depend inward on pure logic.
+- In webview code, UI components depend on workflow abstractions (callbacks/hooks);
+  the workflow must not depend on concrete component implementations.
 
 ## When principles collide
 
