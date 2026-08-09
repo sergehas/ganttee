@@ -162,6 +162,7 @@
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "vscode-test",
     "test:integration": "mocha --config .mocharc.integration.json",
+    "pretest:smoke": "npm run pretest",
     "test:smoke": "vscode-test --config .vscode-test-smoke.mjs",
     "prepare": "husky",
     "commitlint": "commitlint --edit",
