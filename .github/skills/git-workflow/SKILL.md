@@ -40,8 +40,13 @@ Reference file [.gitmessage](../../../.gitmessage) for the template and rules.
 
 1. Choose the **type** (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
    `test`, `build`, `ci`, `chore`, `revert`).
-2. Choose an optional **scope** from `editor`, `sidebar`, `webview`, `services`,
-   `models`, `protocol`, `store`, `build`, `deps`, `docs`, `test`.
+2. Choose an optional **scope**. The suggested list is a warning-only hint, so
+   introduce a new scope when none fits:
+   - Product surfaces — `editor`, `sidebar`, `webview`.
+   - Shared layers — `services`, `models`, `protocol`.
+   - Project & tooling — `specs`, `build`, `deps`, `docs`, `test`.
+   - Agentic tooling (instructions, skills, agents, prompts, hooks) —
+     `agentic`.
 3. Write the header as `type(scope): subject` — imperative mood, 72 chars max, no
    trailing period.
 4. Add a body (what & why) when the change needs more details or an explanation.
@@ -63,4 +68,5 @@ feat(editor): add milestone drag-and-drop
 fix(services): reject dependency cycles during validation
 docs(specs): add scheduling-engine acceptance criteria
 build(deps): bump echarts to 5.5.1
+chore(agentic): tighten the spec reviewer constraints
 ```

@@ -22,8 +22,11 @@
 #   chore    Maintenance not touching src/ behavior
 #   revert   Reverts a previous commit
 #
-# Suggested scopes: editor, sidebar, webview, services, models,
-#   protocol, store, build, deps, docs, test
+# Suggested scopes (warning only — a new scope is allowed when none fits):
+#   editor, sidebar, webview          product surfaces
+#   services, models, protocol        shared layers
+#   specs, build, deps, docs, test    project & tooling
+#   agentic                           instructions, skills, agents, hooks
 #
 # Breaking change: add "!" after type/scope AND a BREAKING CHANGE footer.
 #   e.g. feat(protocol)!: rename dependency payload
