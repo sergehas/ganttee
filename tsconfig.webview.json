@@ -12,5 +12,9 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["src/webview", "src/common"]
+  "include": [
+    "src/webview",
+    "src/common",
+    "src/services/taskConstraintService.ts"
+  ]
 }

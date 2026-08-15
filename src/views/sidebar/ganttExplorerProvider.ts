@@ -8,6 +8,7 @@ import {
 } from "../../common/models";
 import { EditableEntityRef } from "../../common/protocol";
 import { GanttStore } from "../../ganttStore";
+import { GraphValidationResult } from "../../services/dependencyGraphService";
 
 type GanttNode =
   | { kind: "group"; group: Group }
@@ -38,6 +39,56 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       case "milestone":
         return this.milestoneItem(node.milestone);
     }
+  }
+
+  /**
+   * Returns the validation result from the active editor, if any.
+   */
+  private getValidation(): GraphValidationResult | undefined {
+    return this.store.active?.validation;
+  }
+
+  /**
+   * Returns a human-readable message describing all violations for an entity id.
+   */
+  private getViolationMessage(entityId: string): string | undefined {
+    const validation = this.getValidation();
+    if (!validation) {
+      return undefined;
+    }
+
+    const messages: string[] = [];
+
+    if (validation.underConstrainedIds.includes(entityId)) {
+      messages.push(
+        vscode.l10n.t(
+          "Task '{0}' is under-constrained ({1} constraints, need 2).",
+          entityId,
+          "0",
+        ),
+      );
+    }
+
+    if (validation.overConstrainedIds.includes(entityId)) {
+      messages.push(
+        vscode.l10n.t(
+          "Task '{0}' is over-constrained ({1} constraints, need 2).",
+          entityId,
+          "3",
+        ),
+      );
+    }
+
+    if (validation.unanchoredComponentIds.includes(entityId)) {
+      messages.push(
+        vscode.l10n.t(
+          "Component containing '{0}' has no absolute date anchor.",
+          entityId,
+        ),
+      );
+    }
+
+    return messages.length > 0 ? messages.join("\n") : undefined;
   }
 
   getChildren(element?: GanttNode): GanttNode[] {
@@ -107,6 +158,14 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       title: "Reveal Task",
       arguments: [{ kind: "task", id: task.id }],
     };
+
+    const violationMessage = this.getViolationMessage(task.id);
+    if (violationMessage) {
+      item.tooltip = violationMessage;
+      // Cast to any to support badge property in newer vscode versions
+      (item as any).badge = { value: "!" };
+    }
+
     return item;
   }
 
@@ -124,6 +183,14 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       title: "Reveal Milestone",
       arguments: [{ kind: "milestone", id: milestone.id }],
     };
+
+    const violationMessage = this.getViolationMessage(milestone.id);
+    if (violationMessage) {
+      item.tooltip = violationMessage;
+      // Cast to any to support badge property in newer vscode versions
+      (item as any).badge = { value: "!" };
+    }
+
     return item;
   }
 }

@@ -50,14 +50,13 @@ suite("documentLoad integration", () => {
     assert.strictEqual(doc.dependencies.length, 0);
   });
 
-  test("loads a v2 with-deps fixture with all four dependency types", () => {
+  test("loads a v2 with-deps fixture with all three dependency types", () => {
     const doc = parseDocument(readFixture("v2-with-deps.ganttee"));
 
     const types = doc.dependencies.map((d) => d.type);
     assert.ok(types.includes("startAfter"), "missing startAfter");
     assert.ok(types.includes("startWith"), "missing startWith");
     assert.ok(types.includes("endWith"), "missing endWith");
-    assert.ok(types.includes("endBefore"), "missing endBefore");
   });
 
   /** `serializeDocument → parseDocument` must be lossless for a document without dependencies. */

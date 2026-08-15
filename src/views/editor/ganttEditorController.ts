@@ -18,7 +18,11 @@ import {
   HostToWebviewMessage,
   WebviewToHostMessage,
 } from "../../common/protocol";
-import { wouldCreateCycle } from "../../services/dependencyGraphService";
+import {
+  GraphValidationResult,
+  validateSemanticGraph,
+  wouldCreateCycle,
+} from "../../services/dependencyGraphService";
 import {
   GanttParseError,
   parseDocument,
@@ -34,6 +38,16 @@ import { hydrateDocument } from "../../services/ganttModelService";
 export class GanttEditorController {
   private _model: GanttDocument = createEmptyDocument();
   private _graph: GanttModel = hydrateDocument(this._model);
+  private _validation: GraphValidationResult = {
+    ok: true,
+    cycle: [],
+    danglingDependencyIds: [],
+    underConstrainedIds: [],
+    overConstrainedIds: [],
+    milestoneReverseOwnerIds: [],
+    groupDependencyIds: [],
+    unanchoredComponentIds: [],
+  };
   private _isDisposed = false;
   private readonly _disposables: vscode.Disposable[] = [];
   private readonly _onDidChangeModel = new vscode.EventEmitter<void>();
@@ -77,6 +91,14 @@ export class GanttEditorController {
    */
   get graph(): GanttModel {
     return this._graph;
+  }
+
+  /**
+   * The semantic validation result for the current model.
+   * Updated on every successful reparse.
+   */
+  get validation(): GraphValidationResult {
+    return this._validation;
   }
 
   /** Reveals the editor panel and posts the initial model to the webview. */
@@ -432,6 +454,7 @@ export class GanttEditorController {
       const graph = hydrateDocument(model);
       this._model = model;
       this._graph = graph;
+      this._validation = validateSemanticGraph(graph);
       this._onDidChangeModel.fire();
     } catch (error) {
       if (error instanceof GanttParseError) {

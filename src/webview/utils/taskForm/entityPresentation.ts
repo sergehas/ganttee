@@ -17,7 +17,6 @@ export const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
 export const DEPENDENCY_OPTIONS: { value: DependencyType; label: string }[] = [
   { value: "startAfter", label: "Start After" },
   { value: "startWith", label: "Start With" },
-  { value: "endBefore", label: "End Before" },
   { value: "endWith", label: "End With" },
 ];
 

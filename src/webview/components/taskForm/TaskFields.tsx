@@ -1,4 +1,5 @@
 import { TaskStatus } from "../../../common/models";
+import { describeTaskConstraints } from "../../../services/taskConstraintService";
 import { makeUpdater } from "../../hooks/useFieldUpdater";
 import { TaskFieldsProps } from "../../types/taskForm";
 import { STATUS_OPTIONS } from "../../utils/taskForm/entityPresentation";
@@ -10,6 +11,11 @@ export function TaskFields(props: TaskFieldsProps): JSX.Element {
   const { task, onChange, ...depProps } = props;
   const { document } = depProps;
   const update = makeUpdater(task, onChange);
+
+  const constraints = describeTaskConstraints(task);
+  const isProblematic =
+    constraints.status === "underConstrained" ||
+    constraints.status === "hyperstatic";
 
   return (
     <>
@@ -92,6 +98,16 @@ export function TaskFields(props: TaskFieldsProps): JSX.Element {
           ))}
         </select>
       </label>
+
+      {isProblematic && (
+        <div className="ganttee-validation-warning">
+          <p>
+            {constraints.status === "underConstrained"
+              ? `Task has ${constraints.count} constraint(s); need at least 2 to schedule.`
+              : `Task has ${constraints.count} constraints; typically 2 are used.`}
+          </p>
+        </div>
+      )}
 
       <DependencyFields {...depProps} />
     </>

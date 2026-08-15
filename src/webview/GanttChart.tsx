@@ -396,8 +396,6 @@ function dependencyLinkEndpoints(
       return endpointsOf(targetStart, sourceStart);
     case "endWith":
       return endpointsOf(targetEnd, sourceEnd);
-    case "endBefore":
-      return endpointsOf(targetStart, sourceEnd);
   }
 }
 

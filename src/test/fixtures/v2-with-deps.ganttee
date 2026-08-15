@@ -52,12 +52,6 @@
       "sourceId": "t4",
       "targetId": "t3",
       "type": "endWith"
-    },
-    {
-      "id": "d4",
-      "sourceId": "m1",
-      "targetId": "t1",
-      "type": "endBefore"
     }
   ]
 }

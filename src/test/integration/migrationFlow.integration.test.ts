@@ -33,7 +33,7 @@ suite("migrationFlow integration", () => {
   });
 
   /** Direction swap must happen at the raw-object level, before any typed model is constructed. */
-  test("v1 finishAfter type is renamed to endBefore with direction swap (raw migration)", () => {
+  test("v1 finishAfter type is no longer supported and remains unmigrated", () => {
     const raw = {
       version: 1,
       tasks: [
@@ -47,9 +47,10 @@ suite("migrationFlow integration", () => {
     const migrated = migrateDocument(raw) as Record<string, unknown>;
     const deps = migrated["dependencies"] as Array<Record<string, unknown>>;
 
-    assert.strictEqual(deps[0]["type"], "endBefore");
-    assert.strictEqual(deps[0]["sourceId"], "t2");
-    assert.strictEqual(deps[0]["targetId"], "t1");
+    // finishAfter is no longer supported; it remains unmigrated as finishAfter
+    assert.strictEqual(deps[0]["type"], "finishAfter");
+    assert.strictEqual(deps[0]["sourceId"], "t1");
+    assert.strictEqual(deps[0]["targetId"], "t2");
   });
 
   /** Idempotency lets callers call `migrateDocument` defensively

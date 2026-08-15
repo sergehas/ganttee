@@ -15,5 +15,10 @@
   "No {0} found for id '{1}'.": "No {0} found for id '{1}'.",
   "Cannot delete group '{0}': no matching id.": "Cannot delete group '{0}': no matching id.",
   "Ganttee: {0}": "Ganttee: {0}",
-  "Ganttee: invalid dependency graph. {0}": "Ganttee: invalid dependency graph. {0}"
+  "Ganttee: invalid dependency graph. {0}": "Ganttee: invalid dependency graph. {0}",
+  "Task '{0}' is under-constrained ({1} constraints, need 2).": "Task '{0}' is under-constrained ({1} constraints, need 2).",
+  "Task '{0}' is over-constrained ({1} constraints, need 2).": "Task '{0}' is over-constrained ({1} constraints, need 2).",
+  "Milestone '{0}' is a reverse-dependency owner.": "Milestone '{0}' is a reverse-dependency owner.",
+  "Dependency '{0}' involves a group (groups cannot carry dependencies).": "Dependency '{0}' involves a group (groups cannot carry dependencies).",
+  "Component containing '{0}' has no absolute date anchor.": "Component containing '{0}' has no absolute date anchor."
 }

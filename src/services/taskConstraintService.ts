@@ -1,4 +1,4 @@
-import { Task } from "../common/models";
+import { DependencyGraph, GanttModel, Task } from "../common/models";
 
 /**
  * Classification of a task's scheduling constraints based on how many of
@@ -35,8 +35,12 @@ export interface TaskConstraintDescriptor {
  * (exactly 2 constraints), hyperstatic (all 3), or under-constrained (fewer than
  * 2). Surfacing and validation of the non-determinate states is handled by the
  * graph-validation feature.
+ *
+ * Works with both Task (plain document) and TaskEntity (hydrated) forms.
  */
-export function describeTaskConstraints(task: Task): TaskConstraintDescriptor {
+export function describeTaskConstraints(
+  task: Task | { start?: unknown; duration?: number; end?: unknown },
+): TaskConstraintDescriptor {
   const hasStart = task.start !== undefined;
   const hasDuration = task.duration !== undefined;
   const hasEnd = task.end !== undefined;
@@ -52,4 +56,66 @@ export function describeTaskConstraints(task: Task): TaskConstraintDescriptor {
   }
 
   return { hasStart, hasDuration, hasEnd, count, status };
+}
+
+/**
+ * Returns the effective constraint count for a task, combining static
+ * constraints ({start, duration, end} that are set) with dependency-supplied
+ * endpoints.
+ *
+ * Dependency-supplied endpoints:
+ * - `startAfter` or `startWith` dependencies (where the task is the source)
+ *   supply the start endpoint
+ * - `endWith` dependencies (where the task is the source) supply the end endpoint
+ *
+ * A task with `duration` set and one or more outgoing `startAfter`/`startWith`
+ * dependencies is considered determinate even if `start` is unset.
+ *
+ * @param taskId The id of the task to evaluate.
+ * @param model The hydrated GanttModel (used to inspect outgoing dependencies).
+ * @param graph The dependency graph (used to find successors).
+ * @returns The effective constraint count (0..3).
+ */
+export function getEffectiveConstraintCount(
+  taskId: string,
+  model: GanttModel,
+  graph: DependencyGraph,
+): number {
+  const task = model.tasks.find((t) => t.id === taskId);
+  if (!task) {
+    return 0;
+  }
+
+  const staticDescriptor = describeTaskConstraints(task);
+  let effectiveCount = staticDescriptor.count;
+
+  // Find all dependencies where this task is the source (dependent)
+  for (const dependency of model.dependencies) {
+    if (dependency.sourceId !== taskId) {
+      continue;
+    }
+
+    // startAfter and startWith supply the start endpoint
+    if (
+      (dependency.type === "startAfter" || dependency.type === "startWith") &&
+      !staticDescriptor.hasStart
+    ) {
+      effectiveCount++;
+      break; // Only count once for start
+    }
+  }
+
+  // Check for endWith to supply the end endpoint
+  for (const dependency of model.dependencies) {
+    if (dependency.sourceId !== taskId || dependency.type !== "endWith") {
+      continue;
+    }
+
+    if (!staticDescriptor.hasEnd) {
+      effectiveCount++;
+      break; // Only count once for end
+    }
+  }
+
+  return effectiveCount;
 }
