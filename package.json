@@ -161,6 +161,8 @@
     "lint": "eslint src",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "vscode-test",
+    "test:unit:coverage": "vscode-test --coverage",
+    "test:coverage-check": "npm run test:unit:coverage && node scripts/check-coverage.mjs",
     "test:integration": "mocha --config .mocharc.integration.json",
     "pretest:smoke": "npm run pretest",
     "test:smoke": "vscode-test --config .vscode-test-smoke.mjs",

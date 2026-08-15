@@ -102,9 +102,24 @@ jobs:
 
       - run: npm run compile-tests
 
-      - name: Run unit tests (Linux)
+      # Linux run also collects coverage so the branch-coverage gate doesn't need its own unit-test run.
+      - name: Run unit tests with coverage (Linux)
         if: runner.os == 'Linux'
-        run: xvfb-run -a npm run test:unit
+        run: xvfb-run -a npm run test:unit:coverage
+
+      # continue-on-error keeps later steps (smoke tests) running; the final gate step below fails the job.
+      - name: Check branch coverage (Linux)
+        id: coverage-check
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        run: node scripts/check-coverage.mjs
+
+      - name: Upload coverage report (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: coverage/
 
       - name: Run unit tests (Windows)
         if: runner.os == 'Windows'
@@ -117,3 +132,7 @@ jobs:
       - name: Run smoke tests (Windows)
         if: runner.os == 'Windows'
         run: npm run test:smoke
+
+      - name: Fail job if branch coverage was below threshold (Linux)
+        if: runner.os == 'Linux' && steps.coverage-check.outcome == 'failure'
+        run: exit 1
