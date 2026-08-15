@@ -60,8 +60,9 @@ live in `docs/specs/` by default; the roadmap is `docs/specs/ROADMAP.md`.
 7. On approval, set the status to `Implementing` (spec front matter + badge and
    the roadmap row), then implement the change following the plan and the coding
    guidelines. Add or update tests to keep branch coverage healthy.
-8. Validate: run `npm run check-types`, `npm run lint`, and `npm test`. Fix any
-   failures until all three pass.
+8. Validate: run `npm test`. Its `pretest` lifecycle compiles tests, type-checks,
+   lints, builds both bundles, and runs the unit and integration tests. Fix any
+   failures until it passes.
 9. Raise the PR (or confirm the user has). Then set the status to `Implemented`
    (spec front matter + badge and the roadmap row) and add a `CHANGELOG.md` entry
    under `## [Unreleased]`.

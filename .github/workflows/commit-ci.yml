@@ -1,0 +1,117 @@
+name: Commit CI
+
+on:
+  push:
+    branches:
+      - "feature/**"
+      - "bugfix/**"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # ── 1. Skip commit checks when the commit is already covered by a PR ───────
+  detect-pr:
+    name: Detect open pull request
+    runs-on: ubuntu-latest
+    outputs:
+      has-open-pr: ${{ steps.lookup.outputs.has-open-pr }}
+    steps:
+      - id: lookup
+        name: Check commit association
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+            const hasOpenPr = pullRequests.some((pullRequest) => pullRequest.state === "open");
+            if (hasOpenPr) {
+              core.notice("Commit checks skipped because this commit is already covered by an open pull request.");
+              await core.summary
+                .addHeading("Commit checks skipped")
+                .addRaw("This commit is already covered by an open pull request. Full validation is running in the pull-request workflow.")
+                .write();
+            }
+            core.setOutput("has-open-pr", String(hasOpenPr));
+
+  # ── 2. Type-check and lint standalone commits ─────────────────────────────
+  quality:
+    name: Quality (type-check + lint)
+    if: needs.detect-pr.outputs.has-open-pr != 'true'
+    needs: detect-pr
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: npm run check-types
+
+      - run: npm run lint
+
+  # ── 3. Build the bundle used by the unit-test runners ──────────────────────
+  build:
+    name: Build
+    if: needs.detect-pr.outputs.has-open-pr != 'true'
+    needs: [detect-pr, quality]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: node esbuild.js
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: commit-dist
+          path: dist/
+
+  # ── 4. Unit tests on both supported operating systems ─────────────────────
+  test-unit:
+    name: Unit tests (${{ matrix.os }})
+    if: needs.detect-pr.outputs.has-open-pr != 'true'
+    needs: [detect-pr, build]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: commit-dist
+          path: dist/
+
+      - run: npm run compile-tests
+
+      - name: Run unit tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:unit
+
+      - name: Run unit tests (Windows)
+        if: runner.os == 'Windows'
+        run: npm run test:unit

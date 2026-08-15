@@ -42,14 +42,16 @@ imported by the browser webview.
 
 ## Build & Validate
 
-Always type-check and lint before declaring work complete. Do not run tests with
-compilation errors outstanding.
+The normal full validation command is `npm test`. Its `pretest` lifecycle runs
+test compilation and `npm run compile`, which covers type-checking, linting, and
+both bundles before the unit and integration tests run. Use the individual
+commands below for targeted debugging or when a narrower check is needed:
 
 - Type-check (host + webview): `npm run check-types`
 - Lint: `npm run lint`
 - Build both bundles: `node esbuild.js` (or `npm run compile`)
-- Run tests: `npm test`
 - Production build: `npm run package`
+- Full validation: `npm test`
 - Watch (background task): the `watch` task runs `watch:tsc` + `watch:esbuild`.
 
 The webview has its own TS project ([tsconfig.webview.json](../tsconfig.webview.json),
