@@ -1,12 +1,12 @@
 ---
-Status: Draft
+Status: Reviewed
 Owner: Copilot
-Last updated: 2026-08-07
+Last updated: 2026-08-15
 ---
 
 # Feature: Scheduling Graph Validation (cycle, determinacy, anchor, dangling)
 
-![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)
+![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in
@@ -19,8 +19,7 @@ Add the **semantic** layer of scheduling-graph validation on top of the
 hydration. Structural failures (self-loop, parallel edge, directed cycle) are
 already hard errors thrown by `hydrateDocument`; this feature adds the rules that
 cannot be expressed structurally: per-item determinacy (exactly 2 constraints,
-counting both static fields and dependency-supplied endpoints), conflicting end
-constraints, milestone-as-reverse-owner, dangling references, and an absolute
+counting both static fields and dependency-supplied endpoints), milestone-as-reverse-owner, dangling references, and an absolute
 date anchor per schedulable component. Semantic results are **advisory** — they
 are reported on the hydrated model, never thrown — so an invalid document still
 opens and can be repaired in the editor.
@@ -33,7 +32,6 @@ This is the decision that governs every acceptance criterion below.
 | ----------------------------------------------------- | ---------- | --------------------------------------------------------- |
 | Self-loop, parallel edge, directed cycle              | Structural | **Blocking** — thrown at hydration (already implemented). |
 | Under-/over-constrained item                          | Semantic   | Advisory — reported, document still opens.                |
-| Mixed `endWith` + `endBefore` on one owner            | Semantic   | Advisory — reported, document still opens.                |
 | Milestone as owner (`source`) of a reverse dependency | Semantic   | Advisory — reported, document still opens.                |
 | Group as either endpoint of a dependency              | Semantic   | Advisory — reported, document still opens.                |
 | Dangling source/target reference                      | Semantic   | Advisory — reported, document still opens.                |
@@ -50,7 +48,6 @@ is rejected before the `WorkspaceEdit` is applied (already implemented).
   `DependencyGraph`.
 - Determinacy check per task/milestone counting **static constraints plus
   dependency-supplied endpoints** (exactly 2; groups exempt).
-- Reject mixing `endWith` + `endBefore` reverse dependencies on the same owner.
 - Reject a milestone used as the owner (`source`) of a reverse dependency.
 - Report a group used as either endpoint of a dependency.
 - Anchor-per-component check (≥1 absolute date), scoped to components that
@@ -65,7 +62,7 @@ is rejected before the `WorkspaceEdit` is applied (already implemented).
   implemented in `DependencyGraph` and `hydrateDocument`).
 - Precedence normalization: per
   [in-memory-graph.md](../requirements/in-memory-graph.md), normalization is the
-  uniform edge reversal `target ⟶ source` for **all four** dependency types, so it
+  uniform edge reversal `target ⟶ source` for **all three** dependency types, so it
   is a whole-graph reversal that cannot change whether a cycle exists. It is
   therefore not required for detection and is deferred to the scheduling engine,
   which needs precedence _order_.
@@ -76,7 +73,21 @@ is rejected before the `WorkspaceEdit` is applied (already implemented).
 - Model shapes / duration field (see scheduling-data-model spec — prerequisite).
 - Rename/migration (see dependency-type-rename spec — prerequisite).
 
-## 3. User Stories
+## 3. Breaking Changes
+
+- **Remove support for `endBefore` dependency type:** This feature removes one of
+  the four supported dependency types. The `endBefore` type will be deleted from
+  the codebase (enum, UI, serialization, and all handlers). Existing documents
+  containing `endBefore` dependencies will become invalid at parse time. When a
+  document with an `endBefore` dependency is parsed, hydration throws a validation
+  error, the controller shows a localized message naming the dependency, and the
+  last valid model is preserved (per §1 Failure Model). **No document version
+  bump or migration logic is added** — documents containing `endBefore` are
+  already broken for the purposes of the scheduling engine (see [§9](#9-test-strategy)
+  and the [scheduling-engine spec](./scheduling-engine.md) for handling of
+  unschedulable documents).
+
+## 4. User Stories
 
 - As a planner, I want a dependency that would create a cycle to be blocked, so
   that my schedule stays computable.
@@ -85,7 +96,7 @@ is rejected before the `WorkspaceEdit` is applied (already implemented).
 - As a planner, I want a document with semantic problems to still open, so that I
   can repair it in the editor instead of being locked out of my file.
 
-## 4. Acceptance Criteria
+## 5. Acceptance Criteria
 
 ### Structural (already implemented — surfacing only)
 
@@ -113,11 +124,7 @@ is rejected before the `WorkspaceEdit` is applied (already implemented).
   Then it counts as determinate (the dependencies supply the start endpoint) and
   is **not** reported.
 
-- Given a task that owns both an `endWith` and an `endBefore` reverse dependency
-  When the model is validated
-  Then it is reported as having conflicting end constraints.
-
-- Given a milestone used as the owner (`source`) of a reverse dependency
+- Given a milestone used as the owner (`source`) of a reverse dependency (`endWith`)
   When the model is validated
   Then it is reported (milestones may only be the anchor of a reverse
   dependency).
@@ -149,7 +156,7 @@ is rejected before the `WorkspaceEdit` is applied (already implemented).
   When the document is opened
   Then the editor still opens and renders; no load is cancelled.
 
-## 5. Domain & Data Model Impact
+## 6. Domain & Data Model Impact
 
 No persisted shape change.
 
@@ -162,34 +169,34 @@ becomes a thin delegate that hydrates (or reuses the graph) and forwards.
 `describeTaskConstraints` helper in `src/services/taskConstraintService.ts` with
 the incoming edges from `model.graph.predecessors(id)`; it must not re-derive the
 static constraint count. `describeTaskConstraints` remains static-only — a new
-pure helper combines it with the dependency-supplied endpoints (`startAfter` /
-`startWith` supply _start_; `endWith` / `endBefore` supply _end_).
+pure helper `getEffectiveConstraintCount(taskId, model, graph): number` combines
+it with the dependency-supplied endpoints (`startAfter` / `startWith` supply
+_start_; `endWith` supplies _end_).
 
 **Result shape.** Extend `GraphValidationResult` in
 `src/services/dependencyGraphService.ts` with:
 
-| Field                      | Meaning                                                               |
-| -------------------------- | --------------------------------------------------------------------- |
-| `underConstrainedIds`      | Items with fewer than 2 effective constraints.                        |
-| `overConstrainedIds`       | Items with more than 2 effective constraints.                         |
-| `conflictingEndIds`        | Owners mixing `endWith` and `endBefore`.                              |
-| `milestoneReverseOwnerIds` | Dependency ids whose source is a milestone and whose type is reverse. |
-| `groupDependencyIds`       | Dependency ids with a group as source or target.                      |
-| `unanchoredComponentIds`   | Representative ids of components lacking an absolute date anchor.     |
+| Field                      | Meaning                                                                 |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `underConstrainedIds`      | Items with fewer than 2 effective constraints.                          |
+| `overConstrainedIds`       | Items with more than 2 effective constraints.                           |
+| `milestoneReverseOwnerIds` | Dependency ids whose source is a milestone and whose type is `endWith`. |
+| `groupDependencyIds`       | Dependency ids with a group as source or target.                        |
+| `unanchoredComponentIds`   | Representative ids of components lacking an absolute date anchor.       |
 
 The existing `cycle` field is retained but is always empty for a hydrated model
 (cycles throw earlier); it stays populated only on the unhydrated document path.
 
-## 6. Protocol Impact
+## 7. Protocol Impact
 
 `src/common/protocol.ts` gains no new message in this feature. Aggregated
 validation results stay host-side: the sidebar and error surfaces read them from
 the controller, and the webview receives no structured payload. The edit form's
 local pre-check does not need one either — the constraint helpers live in
 `src/services/` and are pure, so the webview imports them directly. Revisit only
-when the timeline needs per-item badges (see §7).
+when the timeline needs per-item badges (see §9).
 
-## 7. UX
+## 8. UX
 
 Because every semantic rule is advisory, the document always renders.
 
@@ -214,18 +221,19 @@ All externalized via `vscode.l10n.t()` with `{0}` placeholders and added to
 
 - under-constrained item (id, current constraint count)
 - over-constrained item (id, current constraint count)
-- conflicting `endWith`/`endBefore` on one owner (id)
 - milestone used as reverse-dependency owner (id)
 - group used as a dependency endpoint (id)
 - unanchored component (member ids)
 - self-loop dependency (dependency id)
 - parallel-edge dependency (source id, target id)
 
-## 8. Test Strategy
+## 9. Test Strategy
 
 - Unit (services): determinacy across every combination of static constraints ×
   incoming dependency types, including the `duration` + `startAfter` determinate
-  case; mixed `endWith`/`endBefore` rejection; milestone-as-reverse-owner;
+  case and the scenario matrix covering: zero static constraints
+  (under-constrained), two static (determinate), three static (hyperstatic);
+  end-anchored (`endWith`) constraint detection; milestone-as-reverse-owner;
   group-as-endpoint; anchor-per-component including the group-only-component
   exemption; dangling references.
 - Unit (models): structural detection is already covered by the DAG-backbone
@@ -237,8 +245,14 @@ All externalized via `vscode.l10n.t()` with `{0}` placeholders and added to
 - Webview interaction: constraint-count pre-check blocks save in the edit form.
 - Coverage: branch coverage ≥ 90% across every report path.
 
-## 9. Risks & Open Questions
+## 10. Risks & Open Questions
 
+- 🔴 High — Risk: breaking change — removal of `endBefore` dependency type
+  invalidates existing documents containing it. Treatment: existing `.ganttee`
+  files with `endBefore` dependencies will fail hydration with a localized error
+  message; users must either remove the `endBefore` dependencies or upgrade their
+  workflow. No forward migration path is provided. Scheduling-engine spec (spec #7)
+  should document handling of unschedulable documents.
 - 🔴 High — Risk: determinacy that counts dependency-supplied endpoints can
   disagree with the static-only `describeTaskConstraints` already used by the
   edit form, producing two different verdicts for one task. Treatment: the edit
