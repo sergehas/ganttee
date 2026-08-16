@@ -19,3 +19,4 @@ The Badge column mirrors each spec's status badge.
 | 12  | Project-level holidays periods                                                     | Intend       | ![Status: Intend](https://img.shields.io/badge/status-Intend-ADB5BD?style=for-the-badge)             |
 | 13  | Rendering off days in graphical view — option to hide off days                     | Intend       | ![Status: Intend](https://img.shields.io/badge/status-Intend-ADB5BD?style=for-the-badge)             |
 | 14  | Rendering holidays in graphical view — option to hide holidays                     | Intend       | ![Status: Intend](https://img.shields.io/badge/status-Intend-ADB5BD?style=for-the-badge)             |
+| 15  | [Diagnostics and problems view](diagnostics-problems-view.md)                      | Intend       | ![Status: Intend](https://img.shields.io/badge/status-Intend-ADB5BD?style=for-the-badge)             |
