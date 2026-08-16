@@ -6,12 +6,14 @@ import {
   Group,
   Milestone,
   Task,
+  UnresolvableScheduleError,
 } from "../common/models";
 import {
   EditableEntityKind,
   EditableEntityMap,
   EditableEntityRef,
 } from "../common/protocol";
+import { hydrateDocument } from "./ganttModelService";
 
 /** Optional behavior flags for save actions initiated by the webview. */
 export interface SaveEntityOptions {
@@ -238,6 +240,105 @@ export function buildShiftByDaysPatch(
   }
 
   return undefined;
+}
+
+/**
+ * Builds the next document after deleting a task or milestone. Every dependency
+ * connected to the deleted entity is removed. For an incoming `startWith` or
+ * `endWith` dependency, the surviving source task materializes its effective
+ * endpoint before its constraint is removed.
+ *
+ * @param document The current document.
+ * @param kind The kind of schedulable entity to delete.
+ * @param entityId The id of the task or milestone to delete.
+ * @returns The document after deletion, or `undefined` when the entity is absent.
+ */
+export function buildTaskOrMilestoneDeletionDocument(
+  document: GanttDocument,
+  kind: "task" | "milestone",
+  entityId: string,
+): GanttDocument | undefined {
+  const entities = kind === "task" ? document.tasks : document.milestones;
+  if (!entities.some((entity) => entity.id === entityId)) {
+    return undefined;
+  }
+
+  const model = hydrateDocument(document);
+  const deletedEntity =
+    kind === "task"
+      ? model.tasks.find((task) => task.id === entityId)
+      : model.milestones.find((milestone) => milestone.id === entityId);
+  if (!deletedEntity) {
+    return undefined;
+  }
+  const taskUpdates = new Map<string, Partial<Pick<Task, "start" | "end">>>();
+  for (const dependency of document.dependencies) {
+    if (dependency.targetId !== entityId) {
+      continue;
+    }
+    const sourceTask = model.tasks.find(
+      (task) => task.id === dependency.sourceId,
+    );
+    if (!sourceTask) {
+      continue;
+    }
+    const update = taskUpdates.get(sourceTask.id) ?? {};
+    if (dependency.type === "startWith") {
+      const start = resolveEffectiveStart(deletedEntity);
+      if (start !== undefined) {
+        update.start = start;
+      }
+    }
+    if (dependency.type === "endWith") {
+      const end = resolveEffectiveEnd(deletedEntity);
+      if (end !== undefined) {
+        update.end = end;
+      }
+    }
+    taskUpdates.set(sourceTask.id, update);
+  }
+
+  return {
+    ...document,
+    tasks: document.tasks
+      .filter((task) => kind !== "task" || task.id !== entityId)
+      .map((task) => ({ ...task, ...taskUpdates.get(task.id) })),
+    milestones: document.milestones.filter(
+      (milestone) => kind !== "milestone" || milestone.id !== entityId,
+    ),
+    dependencies: document.dependencies.filter(
+      (dependency) =>
+        dependency.sourceId !== entityId && dependency.targetId !== entityId,
+    ),
+  };
+}
+
+/** Resolves an entity's effective start without propagating under-constraint errors. */
+function resolveEffectiveStart(entity: {
+  effectiveStart: () => Date;
+}): string | undefined {
+  try {
+    return formatIsoDate(entity.effectiveStart());
+  } catch (error) {
+    if (error instanceof UnresolvableScheduleError) {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
+/** Resolves an entity's effective end without propagating under-constraint errors. */
+function resolveEffectiveEnd(entity: {
+  effectiveEnd: () => Date;
+}): string | undefined {
+  try {
+    return formatIsoDate(entity.effectiveEnd());
+  } catch (error) {
+    if (error instanceof UnresolvableScheduleError) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
 /** Returns whether a task draft passes save guards. */

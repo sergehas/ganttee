@@ -31,7 +31,7 @@ suite("ganttDocumentService", () => {
         groups: [{ id: "g1", name: "Phase 1" }],
         milestones: [{ id: "m1", name: "Kickoff", date: "2026-01-01" }],
         dependencies: [
-          { id: "d1", sourceId: "t1", targetId: "t1", type: "startAfter" },
+          { id: "d1", sourceId: "t1", targetId: "m1", type: "startAfter" },
         ],
       }),
     );
@@ -156,6 +156,26 @@ suite("ganttDocumentService", () => {
       ],
     });
     assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("rejects duplicate ids across entity kinds", () => {
+    const text = JSON.stringify({
+      tasks: [{ id: "shared", name: "Task" }],
+      groups: [{ id: "shared", name: "Group" }],
+    });
+
+    assert.throws(() => parseDocument(text), /must be unique/);
+  });
+
+  test("rejects dependencies with unknown endpoints", () => {
+    const text = JSON.stringify({
+      tasks: [{ id: "task", name: "Task" }],
+      dependencies: [
+        { id: "dependency", sourceId: "task", targetId: "missing", type: "startAfter" },
+      ],
+    });
+
+    assert.throws(() => parseDocument(text), /unknown entity/);
   });
 
   test("clamps progress into the 0..1 range", () => {

@@ -9,7 +9,10 @@ import {
   milestoneStart,
   Task,
 } from "../common/models";
-import { describeTaskConstraints } from "../services/taskConstraintService";
+import {
+  describeTaskConstraints,
+  getEffectiveTaskConstraintCount,
+} from "../services/taskConstraintService";
 
 /** Builds a task with the given optional constraints for a test case. */
 function task(overrides: Partial<Task>): Task {
@@ -66,6 +69,35 @@ suite("taskConstraintService", () => {
     assert.strictEqual(descriptor.hasStart, false);
     assert.strictEqual(descriptor.hasDuration, true);
     assert.strictEqual(descriptor.hasEnd, true);
+  });
+
+  test("counts a start dependency as an effective task constraint", () => {
+    const count = getEffectiveTaskConstraintCount(task({ duration: 4 }), [
+      {
+        id: "d1",
+        sourceId: "t1",
+        targetId: "t2",
+        type: "startAfter",
+      },
+    ]);
+
+    assert.strictEqual(count, 2);
+  });
+
+  test("does not count a dependency-supplied endpoint set statically", () => {
+    const count = getEffectiveTaskConstraintCount(
+      task({ start: "2026-01-01", duration: 4 }),
+      [
+        {
+          id: "d1",
+          sourceId: "t1",
+          targetId: "t2",
+          type: "startWith",
+        },
+      ],
+    );
+
+    assert.strictEqual(count, 2);
   });
 
   test("derives effectiveDuration from start and end", () => {

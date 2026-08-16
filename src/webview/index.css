@@ -158,6 +158,21 @@ body {
   margin-top: var(--vscode-spacing-size80, 8px);
 }
 
+.ganttee-validation-warning {
+  padding: var(--vscode-spacing-size80, 8px);
+  color: var(--vscode-inputValidation-warningForeground);
+  background-color: var(--vscode-inputValidation-warningBackground);
+  border: var(--vscode-strokeThickness, 1px) solid
+    var(--vscode-inputValidation-warningBorder);
+  border-radius: var(--vscode-cornerRadius-small, 4px);
+  font-size: var(--vscode-fontSize-label1, 12px);
+  line-height: 17px;
+}
+
+.ganttee-validation-warning p {
+  margin: 0;
+}
+
 .ganttee-dependencies {
   border: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
   border-radius: var(--vscode-cornerRadius-medium, 6px);

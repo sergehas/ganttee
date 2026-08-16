@@ -14,6 +14,7 @@ import {
   WorkingCalendar,
 } from "../common/models";
 import { migrateDocument } from "./ganttDocumentMigrationService";
+import { validateStructuralGraph } from "./dependencyGraphService";
 
 /** Raised when a `.ganttee` document cannot be parsed or is structurally invalid. */
 export class GanttParseError extends Error {}
@@ -77,9 +78,36 @@ function validate(raw: unknown): GanttDocument {
  * Validates cross-entity constraints that require the full document context.
  */
 function validateRelations(document: GanttDocument): void {
+  validateUniqueEntityIds(document);
   validateTaskDateOrder(document.tasks);
   validateGroupHierarchy(document.groups);
   validateGroupReferences(document);
+  try {
+    validateStructuralGraph(document, false);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new GanttParseError(error.message);
+    }
+    throw error;
+  }
+}
+
+/** Validates that every entity id is unique across all entity kinds. */
+function validateUniqueEntityIds(document: GanttDocument): void {
+  const seen = new Set<string>();
+  const entities = [
+    ...document.tasks,
+    ...document.groups,
+    ...document.milestones,
+  ];
+  for (const entity of entities) {
+    if (seen.has(entity.id)) {
+      throw new GanttParseError(
+        `Entity id "${entity.id}" must be unique across tasks, groups, and milestones.`,
+      );
+    }
+    seen.add(entity.id);
+  }
 }
 
 /**

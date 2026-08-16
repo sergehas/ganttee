@@ -7,10 +7,14 @@
  */
 
 import {
+  CyclicDependencyError,
+  DanglingDependencyError,
   Dependency,
   DependencyGraph,
   GanttDocument,
   GanttModel,
+  ParallelEdgeDependencyError,
+  SelfLoopDependencyError,
 } from "../common/models";
 import { getEffectiveConstraintCount } from "./taskConstraintService";
 
@@ -25,8 +29,8 @@ export interface GraphValidationResult {
   underConstrainedIds: string[];
   /** Task/milestone ids that are over-constrained (more than 2 effective constraints). */
   overConstrainedIds: string[];
-  /** Dependency ids whose source is a milestone and whose type is `endWith`. */
-  milestoneReverseOwnerIds: string[];
+  /** Effective constraint count by task id. */
+  constraintCounts: Record<string, number>;
   /** Dependency ids with a group as source or target. */
   groupDependencyIds: string[];
   /** Representative ids of components lacking an absolute date anchor. */
@@ -34,37 +38,54 @@ export interface GraphValidationResult {
 }
 
 /**
- * Validates a document's dependency graph: detects cycles and dependencies that
- * reference unknown tasks or milestones.
+ * Validates dependency endpoints and structural DAG rules before hydration.
  *
- * @param document The plain document to validate.
+ * @param document The plain document whose dependency graph is validated.
+ * @param checkCycles Whether to reject directed cycles in the edge set.
+ * @throws {DanglingDependencyError} When an endpoint is not an entity id.
+ * @throws {SelfLoopDependencyError} When a dependency links an entity to itself.
+ * @throws {ParallelEdgeDependencyError} When an ordered pair has two edges.
+ * @throws {CyclicDependencyError} When the dependency set contains a cycle.
  */
-export function validateGraph(document: GanttDocument): GraphValidationResult {
+export function validateStructuralGraph(
+  document: GanttDocument,
+  checkCycles = true,
+): DependencyGraph {
   const nodeIds = new Set([
     ...document.tasks.map((task) => task.id),
     ...document.milestones.map((milestone) => milestone.id),
+    ...document.groups.map((group) => group.id),
   ]);
-  const danglingDependencyIds = document.dependencies
-    .filter((dep) => !nodeIds.has(dep.sourceId) || !nodeIds.has(dep.targetId))
-    .map((dep) => dep.id);
 
-  const validDependencies = document.dependencies.filter(
-    (dep) => nodeIds.has(dep.sourceId) && nodeIds.has(dep.targetId),
-  );
-  const cycle = [
-    ...new DependencyGraph([...nodeIds], validDependencies).findCycle(),
-  ];
+  const seenPairs = new Set<string>();
+  for (const dependency of document.dependencies) {
+    if (!nodeIds.has(dependency.sourceId)) {
+      throw new DanglingDependencyError(dependency.id, dependency.sourceId);
+    }
+    if (!nodeIds.has(dependency.targetId)) {
+      throw new DanglingDependencyError(dependency.id, dependency.targetId);
+    }
+    if (dependency.sourceId === dependency.targetId) {
+      throw new SelfLoopDependencyError(dependency.id);
+    }
+    const pair = `${dependency.sourceId}\u0000${dependency.targetId}`;
+    if (seenPairs.has(pair)) {
+      throw new ParallelEdgeDependencyError(
+        dependency.sourceId,
+        dependency.targetId,
+      );
+    }
+    seenPairs.add(pair);
+  }
 
-  return {
-    ok: cycle.length === 0 && danglingDependencyIds.length === 0,
-    cycle,
-    danglingDependencyIds,
-    underConstrainedIds: [],
-    overConstrainedIds: [],
-    milestoneReverseOwnerIds: [],
-    groupDependencyIds: [],
-    unanchoredComponentIds: [],
-  };
+  const graph = new DependencyGraph([...nodeIds], document.dependencies);
+  if (checkCycles) {
+    const cycle = graph.findCycle();
+    if (cycle.length > 0) {
+      throw new CyclicDependencyError(cycle);
+    }
+  }
+  return graph;
 }
 
 /**
@@ -88,15 +109,22 @@ export function wouldCreateCycle(
  * @throws {CyclicDependencyError} When the graph contains a cycle.
  */
 export function topologicalOrder(document: GanttDocument): string[] {
-  const nodeIds = document.tasks.map((task) => task.id);
-  return [
-    ...new DependencyGraph(nodeIds, document.dependencies).topologicalSort(),
+  validateStructuralGraph(document);
+  const nodeIds = [
+    ...document.tasks.map((task) => task.id),
+    ...document.milestones.map((milestone) => milestone.id),
   ];
+  const nodeIdSet = new Set(nodeIds);
+  const dependencies = document.dependencies.filter(
+    (dependency) =>
+      nodeIdSet.has(dependency.sourceId) && nodeIdSet.has(dependency.targetId),
+  );
+  return [...new DependencyGraph(nodeIds, dependencies).topologicalSort()];
 }
 
 /**
  * Validates the semantic constraints of a hydrated model: determinacy,
- * milestone-as-reverse-owner, group-as-endpoint, and component anchoring.
+ * group-as-endpoint, and component anchoring.
  *
  * @param model The hydrated GanttModel.
  * @returns A validation result with semantic violation ids.
@@ -112,9 +140,11 @@ export function validateSemanticGraph(
   // Check determinacy per task
   const underConstrainedIds: string[] = [];
   const overConstrainedIds: string[] = [];
+  const constraintCounts: Record<string, number> = {};
 
   for (const task of model.tasks) {
     const effectiveCount = getEffectiveConstraintCount(task.id, model, graph);
+    constraintCounts[task.id] = effectiveCount;
     if (effectiveCount < 2) {
       underConstrainedIds.push(task.id);
     } else if (effectiveCount > 2) {
@@ -127,19 +157,10 @@ export function validateSemanticGraph(
   // For now, we'll consider milestones as always determinate (they have a hard date).
   // This may need adjustment based on the scheduling engine's requirements.
 
-  // Check milestone-as-reverse-owner and group-as-endpoint
-  const milestoneReverseOwnerIds: string[] = [];
+  // Check group-as-endpoint.
   const groupDependencyIds: string[] = [];
 
   for (const dependency of model.dependencies) {
-    // Milestone as source of endWith dependency
-    if (
-      dependency.type === "endWith" &&
-      milestoneIds.has(dependency.sourceId)
-    ) {
-      milestoneReverseOwnerIds.push(dependency.id);
-    }
-
     // Group as source or target
     if (
       groupIds.has(dependency.sourceId) ||
@@ -195,14 +216,13 @@ export function validateSemanticGraph(
     ok:
       underConstrainedIds.length === 0 &&
       overConstrainedIds.length === 0 &&
-      milestoneReverseOwnerIds.length === 0 &&
       groupDependencyIds.length === 0 &&
       unanchoredComponentIds.length === 0,
     cycle: [], // Semantic validation operates on a hydrated model, so cycles are already excluded
     danglingDependencyIds: [],
     underConstrainedIds,
     overConstrainedIds,
-    milestoneReverseOwnerIds,
+    constraintCounts,
     groupDependencyIds,
     unanchoredComponentIds,
   };

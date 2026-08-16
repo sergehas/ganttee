@@ -5,6 +5,7 @@ import {
   buildDependency,
   buildSaveUpdate,
   buildShiftByDaysPatch,
+  buildTaskOrMilestoneDeletionDocument,
   buildUngroupUpdate,
   canSaveEntity,
   createDependencyId,
@@ -290,6 +291,135 @@ suite("entityEditWorkflowService", () => {
       buildShiftByDaysPatch(document, { kind: "task", id: "t-bare" }, 1),
       undefined,
     );
+  });
+
+  test("deletes a task and every connected dependency", () => {
+    const document: GanttDocument = {
+      ...createDocument(),
+      tasks: [...createDocument().tasks, { id: "source", name: "Source" }],
+      dependencies: [
+        { id: "outgoing", sourceId: "t1", targetId: "m1", type: "startAfter" },
+        {
+          id: "incoming",
+          sourceId: "source",
+          targetId: "t1",
+          type: "startAfter",
+        },
+      ],
+    };
+
+    const next = buildTaskOrMilestoneDeletionDocument(document, "task", "t1");
+
+    assert.deepStrictEqual(next?.tasks, [{ id: "source", name: "Source" }]);
+    assert.deepStrictEqual(next?.dependencies, []);
+  });
+
+  test("materializes a source task start before removing its start-with anchor", () => {
+    const document: GanttDocument = {
+      ...createDocument(),
+      tasks: [
+        { id: "source", name: "Source", end: "2026-01-05", duration: 4 },
+        {
+          id: "anchor",
+          name: "Anchor",
+          start: "2026-01-03",
+          end: "2026-01-04",
+        },
+      ],
+      dependencies: [
+        {
+          id: "start-with",
+          sourceId: "source",
+          targetId: "anchor",
+          type: "startWith",
+        },
+      ],
+    };
+
+    const next = buildTaskOrMilestoneDeletionDocument(
+      document,
+      "task",
+      "anchor",
+    );
+
+    assert.deepStrictEqual(next?.tasks, [
+      {
+        id: "source",
+        name: "Source",
+        start: "2026-01-03",
+        end: "2026-01-05",
+        duration: 4,
+      },
+    ]);
+    assert.deepStrictEqual(next?.dependencies, []);
+  });
+
+  test("materializes a source task end before removing its end-with anchor", () => {
+    const document: GanttDocument = {
+      ...createDocument(),
+      tasks: [
+        { id: "source", name: "Source", start: "2026-01-01", duration: 4 },
+        {
+          id: "anchor",
+          name: "Anchor",
+          start: "2026-01-02",
+          end: "2026-01-08",
+        },
+      ],
+      dependencies: [
+        {
+          id: "end-with",
+          sourceId: "source",
+          targetId: "anchor",
+          type: "endWith",
+        },
+      ],
+    };
+
+    const next = buildTaskOrMilestoneDeletionDocument(
+      document,
+      "task",
+      "anchor",
+    );
+
+    assert.deepStrictEqual(next?.tasks, [
+      {
+        id: "source",
+        name: "Source",
+        start: "2026-01-01",
+        end: "2026-01-08",
+        duration: 4,
+      },
+    ]);
+    assert.deepStrictEqual(next?.dependencies, []);
+  });
+
+  test("materializes a task start before deleting a milestone start-with anchor", () => {
+    const document: GanttDocument = {
+      ...createDocument(),
+      tasks: [{ id: "source", name: "Source", duration: 4 }],
+      milestones: [{ id: "anchor", name: "Anchor", date: "2026-01-03" }],
+      dependencies: [
+        {
+          id: "start-with",
+          sourceId: "source",
+          targetId: "anchor",
+          type: "startWith",
+        },
+      ],
+    };
+
+    const next = buildTaskOrMilestoneDeletionDocument(
+      document,
+      "milestone",
+      "anchor",
+    );
+
+    assert.deepStrictEqual(next?.tasks, [
+      { id: "source", name: "Source", start: "2026-01-03", duration: 4 },
+    ]);
+    assert.deepStrictEqual(next?.milestones, []);
+    assert.deepStrictEqual(next?.dependencies, []);
   });
 
   test("shifts task with only start defined", () => {

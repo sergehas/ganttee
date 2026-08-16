@@ -1,4 +1,9 @@
-import { DependencyGraph, GanttModel, Task } from "../common/models";
+import {
+  Dependency,
+  DependencyGraph,
+  GanttModel,
+  Task,
+} from "../common/models";
 
 /**
  * Classification of a task's scheduling constraints based on how many of
@@ -86,36 +91,37 @@ export function getEffectiveConstraintCount(
     return 0;
   }
 
+  return getEffectiveTaskConstraintCount(task, model.dependencies);
+}
+
+/**
+ * Returns the effective constraint count for a plain task and its dependency
+ * set. This is suitable for the webview, where only the document shape exists.
+ *
+ * @param task The task to evaluate.
+ * @param dependencies The dependencies belonging to the document.
+ * @returns The effective constraint count (0..3).
+ */
+export function getEffectiveTaskConstraintCount(
+  task:
+    | Task
+    | { id: string; start?: unknown; duration?: number; end?: unknown },
+  dependencies: readonly Dependency[],
+): number {
   const staticDescriptor = describeTaskConstraints(task);
-  let effectiveCount = staticDescriptor.count;
+  const hasDependencyStart = dependencies.some(
+    (dependency) =>
+      dependency.sourceId === task.id &&
+      (dependency.type === "startAfter" || dependency.type === "startWith"),
+  );
+  const hasDependencyEnd = dependencies.some(
+    (dependency) =>
+      dependency.sourceId === task.id && dependency.type === "endWith",
+  );
 
-  // Find all dependencies where this task is the source (dependent)
-  for (const dependency of model.dependencies) {
-    if (dependency.sourceId !== taskId) {
-      continue;
-    }
-
-    // startAfter and startWith supply the start endpoint
-    if (
-      (dependency.type === "startAfter" || dependency.type === "startWith") &&
-      !staticDescriptor.hasStart
-    ) {
-      effectiveCount++;
-      break; // Only count once for start
-    }
-  }
-
-  // Check for endWith to supply the end endpoint
-  for (const dependency of model.dependencies) {
-    if (dependency.sourceId !== taskId || dependency.type !== "endWith") {
-      continue;
-    }
-
-    if (!staticDescriptor.hasEnd) {
-      effectiveCount++;
-      break; // Only count once for end
-    }
-  }
-
-  return effectiveCount;
+  return (
+    staticDescriptor.count +
+    Number(hasDependencyStart && !staticDescriptor.hasStart) +
+    Number(hasDependencyEnd && !staticDescriptor.hasEnd)
+  );
 }

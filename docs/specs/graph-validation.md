@@ -19,8 +19,9 @@ Add the **semantic** layer of scheduling-graph validation on top of the
 hydration. Structural failures (self-loop, parallel edge, directed cycle) are
 already hard errors thrown by `hydrateDocument`; this feature adds the rules that
 cannot be expressed structurally: per-item determinacy (exactly 2 constraints,
-counting both static fields and dependency-supplied endpoints), milestone-as-reverse-owner, dangling references, and an absolute
-date anchor per schedulable component. Semantic results are **advisory** — they
+counting both static fields and dependency-supplied endpoints),
+dangling references, and an absolute date anchor per schedulable component.
+Semantic results are **advisory** — they
 are reported on the hydrated model, never thrown — so an invalid document still
 opens and can be repaired in the editor.
 
@@ -32,13 +33,19 @@ This is the decision that governs every acceptance criterion below.
 | ----------------------------------------------------- | ---------- | --------------------------------------------------------- |
 | Self-loop, parallel edge, directed cycle              | Structural | **Blocking** — thrown at hydration (already implemented). |
 | Under-/over-constrained item                          | Semantic   | Advisory — reported, document still opens.                |
-| Milestone as owner (`source`) of a reverse dependency | Semantic   | Advisory — reported, document still opens.                |
 | Group as either endpoint of a dependency              | Semantic   | Advisory — reported, document still opens.                |
 | Dangling source/target reference                      | Semantic   | Advisory — reported, document still opens.                |
 | Component with no absolute date anchor                | Semantic   | Advisory — reported, document still opens.                |
 
 The one _preventive_ path is add-dependency: a candidate that would close a cycle
 is rejected before the `WorkspaceEdit` is applied (already implemented).
+
+Task and milestone deletion is also structural maintenance, not semantic
+validation: it creates one replacement document that removes every dependency
+touching the deleted id so no dangling edge is persisted. Before removing an
+incoming `startWith` or `endWith` dependency, it materializes the deleted
+anchor's effective start or end on the surviving source task when that endpoint
+can be resolved.
 
 ## 2. Goals / Non-goals
 
@@ -48,7 +55,6 @@ is rejected before the `WorkspaceEdit` is applied (already implemented).
   `DependencyGraph`.
 - Determinacy check per task/milestone counting **static constraints plus
   dependency-supplied endpoints** (exactly 2; groups exempt).
-- Reject a milestone used as the owner (`source`) of a reverse dependency.
 - Report a group used as either endpoint of a dependency.
 - Anchor-per-component check (≥1 absolute date), scoped to components that
   contain at least one task or milestone.
@@ -124,10 +130,9 @@ is rejected before the `WorkspaceEdit` is applied (already implemented).
   Then it counts as determinate (the dependencies supply the start endpoint) and
   is **not** reported.
 
-- Given a milestone used as the owner (`source`) of a reverse dependency (`endWith`)
+- Given a milestone used as the source of an `endWith` dependency
   When the model is validated
-  Then it is reported (milestones may only be the anchor of a reverse
-  dependency).
+  Then it follows the same rule as a task, using its date as its effective end.
 
 - Given a dependency whose source or target is a group id
   When the model is validated
@@ -156,6 +161,28 @@ is rejected before the `WorkspaceEdit` is applied (already implemented).
   When the document is opened
   Then the editor still opens and renders; no load is cancelled.
 
+### Delete cleanup
+
+- Given a task or milestone with one or more dependencies where it is the source
+  When the entity is deleted
+  Then each such dependency is removed in the same document update without an
+  additional validation check.
+
+- Given a task or milestone used as the target of a `startWith` dependency
+  When the target entity is deleted
+  Then the surviving source task receives the deleted target's effective start
+  date as its persisted `start`, and the dependency is removed atomically.
+
+- Given a task or milestone used as the target of an `endWith` dependency
+  When the target entity is deleted
+  Then the surviving source task receives the deleted target's effective end
+  date as its persisted `end`, and the dependency is removed atomically.
+
+- Given a task or milestone used as either endpoint of any other dependency
+  When the entity is deleted
+  Then the dependency is removed in the same document update, so the parser
+  never observes a dangling reference.
+
 ## 6. Domain & Data Model Impact
 
 No persisted shape change.
@@ -173,6 +200,15 @@ pure helper `getEffectiveConstraintCount(taskId, model, graph): number` combines
 it with the dependency-supplied endpoints (`startAfter` / `startWith` supply
 _start_; `endWith` supplies _end_).
 
+**Deletion.** `buildTaskOrMilestoneDeletionDocument` in
+`src/services/entityEditWorkflowService.ts` owns the atomic delete transform.
+It hydrates the current document only to read resolvable effective endpoints,
+updates surviving source tasks for incoming `startWith`/`endWith` edges, removes
+all edges touching the deleted id, and removes the entity in one replacement
+document. If an endpoint cannot be resolved, deletion still removes the edge and
+leaves that endpoint unset; ordinary semantic validation then reports any
+resulting under-constrained task.
+
 **Result shape.** Extend `GraphValidationResult` in
 `src/services/dependencyGraphService.ts` with:
 
@@ -180,7 +216,6 @@ _start_; `endWith` supplies _end_).
 | -------------------------- | ----------------------------------------------------------------------- |
 | `underConstrainedIds`      | Items with fewer than 2 effective constraints.                          |
 | `overConstrainedIds`       | Items with more than 2 effective constraints.                           |
-| `milestoneReverseOwnerIds` | Dependency ids whose source is a milestone and whose type is `endWith`. |
 | `groupDependencyIds`       | Dependency ids with a group as source or target.                        |
 | `unanchoredComponentIds`   | Representative ids of components lacking an absolute date anchor.       |
 
@@ -204,9 +239,12 @@ Because every semantic rule is advisory, the document always renders.
   validation payload crosses the protocol boundary.
 - Sidebar tree: invalid nodes flagged with a warning affordance and a localized
   tooltip describing the violated rule.
-- Edit form: inline validation of the effective constraint count on save,
-  computed in the webview by importing the pure constraint helper — the host
-  remains the canonical check when the edit is applied.
+- Edit form: the task form recalculates the effective constraint count as the
+  user edits static fields or dependencies and shows an inline advisory warning
+  unless the count is exactly two. The warning does **not** block Save; the host
+  remains the canonical check after the edit is applied. Milestones use their
+  date as both effective endpoints and follow the same dependency rules as
+  tasks.
 - Structural hydration failures continue to surface as a localized error message
   naming the offending ids.
 
@@ -221,7 +259,6 @@ All externalized via `vscode.l10n.t()` with `{0}` placeholders and added to
 
 - under-constrained item (id, current constraint count)
 - over-constrained item (id, current constraint count)
-- milestone used as reverse-dependency owner (id)
 - group used as a dependency endpoint (id)
 - unanchored component (member ids)
 - self-loop dependency (dependency id)
@@ -233,7 +270,7 @@ All externalized via `vscode.l10n.t()` with `{0}` placeholders and added to
   incoming dependency types, including the `duration` + `startAfter` determinate
   case and the scenario matrix covering: zero static constraints
   (under-constrained), two static (determinate), three static (hyperstatic);
-  end-anchored (`endWith`) constraint detection; milestone-as-reverse-owner;
+  end-anchored (`endWith`) constraint detection; milestone `endWith` ownership;
   group-as-endpoint; anchor-per-component including the group-only-component
   exemption; dangling references.
 - Unit (models): structural detection is already covered by the DAG-backbone
@@ -242,7 +279,12 @@ All externalized via `vscode.l10n.t()` with `{0}` placeholders and added to
 - Integration: add-dependency rejection path; hydration-failure path renders the
   localized message and preserves the last valid model; a semantically invalid
   document still opens.
-- Webview interaction: constraint-count pre-check blocks save in the edit form.
+- Webview interaction: task-form warnings use the dependency-aware effective
+  count; they remain advisory and do not block save. Milestones do not receive
+  a special dependency warning.
+- Unit (edit workflow): task/milestone deletion removes outgoing and incoming
+  dependencies atomically, materializes `startWith`/`endWith` target endpoints
+  on surviving source tasks, and supports milestones as deleted anchors.
 - Coverage: branch coverage ≥ 90% across every report path.
 
 ## 10. Risks & Open Questions

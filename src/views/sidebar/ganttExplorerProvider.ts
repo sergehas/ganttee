@@ -53,7 +53,8 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
    */
   private getViolationMessage(entityId: string): string | undefined {
     const validation = this.getValidation();
-    if (!validation) {
+    const model = this.store.active?.getGanttDocument();
+    if (!validation || !model) {
       return undefined;
     }
 
@@ -64,7 +65,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
         vscode.l10n.t(
           "Task '{0}' is under-constrained ({1} constraints, need 2).",
           entityId,
-          "0",
+          String(validation.constraintCounts[entityId] ?? 0),
         ),
       );
     }
@@ -74,9 +75,23 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
         vscode.l10n.t(
           "Task '{0}' is over-constrained ({1} constraints, need 2).",
           entityId,
-          "3",
+          String(validation.constraintCounts[entityId] ?? 0),
         ),
       );
+    }
+
+    for (const dependency of model.dependencies) {
+      if (
+        validation.groupDependencyIds.includes(dependency.id) &&
+        (dependency.sourceId === entityId || dependency.targetId === entityId)
+      ) {
+        messages.push(
+          vscode.l10n.t(
+            "Dependency '{0}' involves a group (groups cannot carry dependencies).",
+            dependency.id,
+          ),
+        );
+      }
     }
 
     if (validation.unanchoredComponentIds.includes(entityId)) {
@@ -92,7 +107,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   }
 
   getChildren(element?: GanttNode): GanttNode[] {
-    const model = this.store.active?.model;
+    const model = this.store.active?.getGanttDocument();
     if (!model) {
       return [];
     }
@@ -141,6 +156,11 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
     item.contextValue = "ganttee.group";
     item.iconPath = new vscode.ThemeIcon("folder");
     item.id = `group:${group.id}`;
+    const violationMessage = this.getViolationMessage(group.id);
+    if (violationMessage) {
+      item.tooltip = violationMessage;
+      (item as any).badge = { value: "!" };
+    }
     return item;
   }
 
