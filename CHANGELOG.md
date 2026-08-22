@@ -14,8 +14,8 @@ how to structure this file.
 - Shared date utilities for parse/format and calendar-day arithmetic.
 - End-to-end editing support for tasks, milestones, and groups from timeline
   and sidebar entry points, including kind-aware edit routing.
-- Milestone dependency editing parity with task dependency behavior and host-side
-  cycle rejection.
+- Milestone dependency editing parity with task dependency behavior and
+  host-side cycle rejection.
 - Schedule validation now detects circular dependencies, duplicate dependency
   links, self-links, invalid dependency endpoints, ambiguous task and milestone
   constraints, and schedule components without an absolute date anchor.
@@ -42,3 +42,11 @@ how to structure this file.
 - Task and milestone names, and group membership fields, now use the current
   document format (`name` and `groupId`).
 - Group hierarchy validation now rejects self-parenting and circular ancestry.
+- CI now runs dependency security audits, formatting, type checks, linting,
+  builds, integration tests, unit tests, smoke tests, and branch-coverage checks
+  across supported operating systems for pull requests.
+- Commits pushed to feature and bugfix branches receive standalone quality and
+  unit-test checks, with duplicate checks skipped when an open pull request
+  already covers the commit.
+- Dependency updates for npm packages and GitHub Actions are now grouped and
+  proposed weekly by Dependabot.
