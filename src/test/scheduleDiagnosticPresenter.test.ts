@@ -52,9 +52,13 @@ suite("scheduleDiagnosticPresenter", () => {
   });
 
   test("names the entity for determinacy and anchoring messages", () => {
-    assert.ok(describeDiagnostic(DIAGNOSTICS[0], "subject").includes("subject"));
+    assert.ok(
+      describeDiagnostic(DIAGNOSTICS[0], "subject").includes("subject"),
+    );
     assert.ok(describeDiagnostic(DIAGNOSTICS[0], "subject").includes("1"));
-    assert.ok(describeDiagnostic(DIAGNOSTICS[4], "subject").includes("subject"));
+    assert.ok(
+      describeDiagnostic(DIAGNOSTICS[4], "subject").includes("subject"),
+    );
   });
 
   test("names the dependency for endpoint messages", () => {

@@ -72,7 +72,12 @@ export function buildTaskOrMilestoneDeletionDocument(
     return undefined;
   }
 
-  const survivorDates = materializeSurvivorDates(document, model, deleted, entityId);
+  const survivorDates = materializeSurvivorDates(
+    document,
+    model,
+    deleted,
+    entityId,
+  );
   if (!survivorDates) {
     return undefined;
   }

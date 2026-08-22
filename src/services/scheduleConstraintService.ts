@@ -51,8 +51,14 @@ export function describeTaskEndpointConstraints(
   dependencies: readonly Dependency[],
 ): EndpointConstraints {
   return {
-    start: sourcesOf(task.start !== undefined, constrainsStart(task.id, dependencies)),
-    end: sourcesOf(task.end !== undefined, constrainsEnd(task.id, dependencies)),
+    start: sourcesOf(
+      task.start !== undefined,
+      constrainsStart(task.id, dependencies),
+    ),
+    end: sourcesOf(
+      task.end !== undefined,
+      constrainsEnd(task.id, dependencies),
+    ),
     hasDuration: task.duration !== undefined,
   };
 }

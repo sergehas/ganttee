@@ -1,50 +1,50 @@
 import * as vscode from "vscode";
 import {
-    createEmptyDocument,
-    CyclicDependencyError,
-    Dependency,
-    GanttDocument,
-    GanttModel,
-    Group,
-    Milestone,
-    ParallelEdgeDependencyError,
-    SelfLoopDependencyError,
-    Task,
+  createEmptyDocument,
+  CyclicDependencyError,
+  Dependency,
+  GanttDocument,
+  GanttModel,
+  Group,
+  Milestone,
+  ParallelEdgeDependencyError,
+  SelfLoopDependencyError,
+  Task,
 } from "../../common/models";
 import {
-    EditableEntityKind,
-    EditableEntityRef,
-    GroupDeleteStrategy,
-    HostToWebviewMessage,
-    WebviewToHostMessage,
+  EditableEntityKind,
+  EditableEntityRef,
+  GroupDeleteStrategy,
+  HostToWebviewMessage,
+  WebviewToHostMessage,
 } from "../../common/protocol";
 import { wouldCreateCycle } from "../../services/dependencyGraphService";
 import {
-    sanitizeScheduleGraph,
-    ScheduleGraphSanitization,
-} from "../../services/documentSanitizationService";
-import {
-    findEntity,
-    replaceEntity,
-    upsertEntity,
+  findEntity,
+  replaceEntity,
+  upsertEntity,
 } from "../../services/documentEntityService";
+import {
+  sanitizeScheduleGraph,
+  ScheduleGraphSanitization,
+} from "../../services/documentSanitizationService";
 import { buildTaskOrMilestoneDeletionDocument } from "../../services/entityRemovalService";
 import {
-    buildGroupDeletionDocument,
-    hasGroupContents,
-} from "../../services/groupDeletionService";
-import {
-    blockingDiagnostics,
-    evaluateScheduleGraph,
-    ScheduleDiagnostic,
-} from "../../services/scheduleGraphValidationService";
-import { summarizeBlockingDiagnostics } from "../scheduleDiagnosticPresenter";
-import {
-    GanttParseError,
-    parseDocument,
-    serializeDocument,
+  GanttParseError,
+  parseDocument,
+  serializeDocument,
 } from "../../services/ganttDocumentService";
 import { hydrateDocument } from "../../services/ganttModelService";
+import {
+  buildGroupDeletionDocument,
+  hasGroupContents,
+} from "../../services/groupDeletionService";
+import {
+  blockingDiagnostics,
+  evaluateScheduleGraph,
+  ScheduleDiagnostic,
+} from "../../services/scheduleGraphValidationService";
+import { summarizeBlockingDiagnostics } from "../scheduleDiagnosticPresenter";
 
 /**
  * Bridges a single `.ganttee` {@link vscode.TextDocument} with its webview and
@@ -375,8 +375,10 @@ export class GanttEditorController {
         : undefined,
     ].filter((message): message is string => message !== undefined);
     void vscode.window.showWarningMessage(
-      vscode.l10n.t("Ganttee: invalid scheduling structures removed. {0}",
-        details.join("; ")),
+      vscode.l10n.t(
+        "Ganttee: invalid scheduling structures removed. {0}",
+        details.join("; "),
+      ),
     );
     void this.applyDocumentText(sanitization.document);
   }

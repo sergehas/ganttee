@@ -1,5 +1,9 @@
 import * as assert from "assert";
-import { createEmptyDocument, Dependency, GanttDocument } from "../common/models";
+import {
+  createEmptyDocument,
+  Dependency,
+  GanttDocument,
+} from "../common/models";
 import {
   blockingDiagnostics,
   diagnosticsFor,

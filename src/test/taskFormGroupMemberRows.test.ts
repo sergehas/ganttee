@@ -19,7 +19,12 @@ suite("taskForm groupMemberRows", () => {
 
   test("returns no rows for a group with no direct members", () => {
     assert.deepStrictEqual(buildDirectGroupMemberRows(createDocument(), "g2"), [
-      { id: "task:t2", name: "Nested Task", kind: "task", entity: { kind: "task", id: "t2" } },
+      {
+        id: "task:t2",
+        name: "Nested Task",
+        kind: "task",
+        entity: { kind: "task", id: "t2" },
+      },
     ]);
   });
 });

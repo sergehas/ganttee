@@ -6,10 +6,7 @@
  */
 
 import { Dependency, Group, Milestone, Task } from "../common/models";
-import {
-  EditableEntityKind,
-  EditableEntityMap,
-} from "../common/protocol";
+import { EditableEntityKind, EditableEntityMap } from "../common/protocol";
 import {
   validateMilestoneConstraints,
   validateTaskConstraints,

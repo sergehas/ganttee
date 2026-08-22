@@ -87,11 +87,16 @@ export function evaluateScheduleGraph(
         validateMilestoneConstraints(milestone, document.dependencies),
       ),
     ),
-  ].filter((diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined);
+  ].filter(
+    (diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined,
+  );
 
   const endpoints = document.dependencies
     .map((dependency) => diagnoseEndpoints(dependency, entityIds, groupIds))
-    .filter((diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined);
+    .filter(
+      (diagnostic): diagnostic is ScheduleDiagnostic =>
+        diagnostic !== undefined,
+    );
 
   const graph = new DependencyGraph([...entityIds], document.dependencies);
   const schedulable = schedulableEntityIds(document);
@@ -112,9 +117,7 @@ export function evaluateScheduleGraph(
 export function blockingDiagnostics(
   diagnostics: readonly ScheduleDiagnostic[],
 ): readonly ScheduleDiagnostic[] {
-  return diagnostics.filter(
-    (diagnostic) => diagnostic.severity === "blocking",
-  );
+  return diagnostics.filter((diagnostic) => diagnostic.severity === "blocking");
 }
 
 /**

@@ -42,11 +42,9 @@ export function hasGroupContents(
   document: GanttDocument,
   groupId: string,
 ): boolean {
-  return [
-    ...document.tasks,
-    ...document.milestones,
-    ...document.groups,
-  ].some((entity) => entity.groupId === groupId);
+  return [...document.tasks, ...document.milestones, ...document.groups].some(
+    (entity) => entity.groupId === groupId,
+  );
 }
 
 /** Removes the group, everything nested inside it, and their dependencies. */

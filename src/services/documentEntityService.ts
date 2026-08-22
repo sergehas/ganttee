@@ -84,7 +84,10 @@ export function upsertEntity<K extends EditableEntityKind>(
   kind: K,
   entity: EditableEntityMap[K],
 ): GanttDocument {
-  return replaceEntity(document, kind, entity) ?? appendEntity(document, kind, entity);
+  return (
+    replaceEntity(document, kind, entity) ??
+    appendEntity(document, kind, entity)
+  );
 }
 
 /** Returns a document with one kind's collection replaced wholesale. */

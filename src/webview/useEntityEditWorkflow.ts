@@ -5,7 +5,10 @@ import {
   EditableEntityMap,
   EditableEntityRef,
 } from "../common/protocol";
-import { createDependencyId, buildDependency } from "../services/dependencyFactoryService";
+import {
+  buildDependency,
+  createDependencyId,
+} from "../services/dependencyFactoryService";
 import { buildUngroupUpdate } from "../services/entityRemovalService";
 import {
   buildSaveUpdate,
