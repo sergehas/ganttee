@@ -35,7 +35,6 @@
       "name": "Integration tests",
       "start": "2026-02-08",
       "end": "2026-02-26",
-      "duration": 10,
       "description": "# content\nThis phase is dedicated to **user acceptance** test\nit must be conclude by a sign-of",
       "progress": 0,
       "status": "todo",
