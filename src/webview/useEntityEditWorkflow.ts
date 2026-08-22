@@ -1,52 +1,62 @@
 import { useCallback, useMemo, useState } from "react";
 import { Dependency, DependencyType, GanttDocument } from "../common/models";
 import {
-    EditableEntityKind,
-    EditableEntityMap,
-    EditableEntityRef,
+  EditableEntityKind,
+  EditableEntityMap,
+  EditableEntityRef,
 } from "../common/protocol";
 import {
-    EntityDatePatch,
-    SaveEntityOptions,
-    buildDatePatchUpdate,
-    buildDependency,
-    buildSaveUpdate,
-    buildUngroupUpdate,
-    createDependencyId,
+  EntityDatePatch,
+  SaveEntityOptions,
+  buildDatePatchUpdate,
+  buildDependency,
+  buildSaveUpdate,
+  buildUngroupUpdate,
+  createDependencyId,
 } from "../services/entityEditWorkflowService";
 
 /** Host actions consumed by the shared webview edit workflow. */
 interface HostEditActions {
+  /** Sends an entity update to the host. */
   onSave: (
     kind: EditableEntityKind,
     entity: EditableEntityMap[EditableEntityKind],
     options?: SaveEntityOptions,
   ) => void;
+  /** Sends an entity deletion to the host. */
   onDelete: (entity: EditableEntityRef) => void;
+  /** Sends a new dependency to the host. */
   onAddDependency: (dependency: Dependency) => void;
+  /** Sends a dependency deletion to the host. */
   onRemoveDependency: (dependencyId: string) => void;
 }
 
 /** Public operations exposed by the shared webview edit workflow. */
 export interface EntityEditWorkflow {
+  /** Saves an entity through the host action boundary. */
   saveEntity: (
     kind: EditableEntityKind,
     entity: EditableEntityMap[EditableEntityKind],
     options?: SaveEntityOptions,
     dependencies?: Dependency[],
   ) => void;
+  /** Deletes an entity through the host action boundary. */
   deleteEntity: (entity: EditableEntityRef) => void;
+  /** Removes an entity from its group and saves the result. */
   ungroupEntity: (
     document: GanttDocument,
     entity: EditableEntityRef,
     options?: SaveEntityOptions,
   ) => void;
+  /** Creates and sends a dependency. */
   addDependency: (
     ownerId: string | undefined,
     targetId: string,
     type: DependencyType,
   ) => void;
+  /** Removes a dependency by identifier. */
   removeDependency: (dependencyId: string) => void;
+  /** Applies a chart date patch and saves the result. */
   patchEntityDatesFromChart: (
     document: GanttDocument,
     entity: EditableEntityRef,
@@ -57,14 +67,28 @@ export interface EntityEditWorkflow {
 
 /** Shared dependency-editor state and callbacks for task and milestone forms. */
 export interface DependencyEditorProps {
+  /** Current parsed Gantt document. */
   document: GanttDocument;
+  /** Dependencies involving the current owner. */
   dependencies: Dependency[];
+  /** Selected dependency type. */
   dependencyType: DependencyType;
+  /** Selected dependency target identifier. */
   dependencyTarget: string;
-  dependencyCandidates: { id: string; name: string }[];
+  /** Entities available as dependency targets. */
+  dependencyCandidates: {
+    /** Candidate entity identifier. */
+    id: string;
+    /** Candidate entity display name. */
+    name: string;
+  }[];
+  /** Updates the selected dependency type. */
   onDependencyTypeChange: (value: DependencyType) => void;
+  /** Updates the selected dependency target. */
   onDependencyTargetChange: (value: string) => void;
+  /** Adds the selected dependency. */
   onAddDependency: () => void;
+  /** Removes a dependency by identifier. */
   onRemoveDependency: (dependencyId: string) => void;
 }
 

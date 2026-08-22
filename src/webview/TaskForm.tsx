@@ -40,6 +40,7 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
     removeDependency: props.onRemoveDependency,
   });
 
+  /** Saves the active draft through the shared edit workflow. */
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     if (taskDraft) {

@@ -35,16 +35,24 @@ const ROW_HEIGHT = 28;
 const BAR_RATIO = 0.6;
 
 interface Row {
+  /** Entity identifier represented by the row. */
   id: string;
+  /** Label displayed on the chart axis. */
   label: string;
+  /** Entity kind represented by the row. */
   kind: "task" | "milestone";
 }
 
 interface GanttChartProps {
+  /** Current parsed Gantt document. */
   document: GanttDocument;
+  /** Entity currently selected in the editor. */
   selectedEntity: EditableEntityRef | null;
+  /** Handles selection of an entity from the chart. */
   onSelectEntity: (entity: EditableEntityRef) => void;
+  /** Opens an entity in the edit form. */
   onEditEntity: (entity: EditableEntityRef) => void;
+  /** Applies an optional direct date shift to an entity. */
   onNudgeEntityByDays?: (entity: EditableEntityRef, days: number) => void;
 }
 
@@ -106,10 +114,12 @@ export function GanttChart(props: GanttChartProps): JSX.Element {
   return <div className="ganttee-chart" ref={containerRef} />;
 }
 
+/** Counts task and milestone rows needed by the chart. */
 function countRows(document: GanttDocument): number {
   return document.tasks.length + document.milestones.length;
 }
 
+/** Builds chart rows and their entity-to-row index lookup. */
 function buildRows(document: GanttDocument): {
   rows: Row[];
   indexById: Map<string, number>;
@@ -131,6 +141,7 @@ function buildRows(document: GanttDocument): {
   return { rows, indexById };
 }
 
+/** Builds the ECharts option from the current document and selection. */
 function buildOption(
   document: GanttDocument,
   selectedEntity: EditableEntityRef | null,
@@ -235,6 +246,7 @@ function buildOption(
   };
 }
 
+/** Renders a task as a horizontal timeline bar. */
 const renderTaskBar: CustomSeriesRenderItem = (
   _params: CustomSeriesRenderItemParams,
   api: CustomSeriesRenderItemAPI,
@@ -258,6 +270,7 @@ const renderTaskBar: CustomSeriesRenderItem = (
   };
 };
 
+/** Renders a milestone as a diamond marker. */
 const renderMilestone: CustomSeriesRenderItem = (
   _params: CustomSeriesRenderItemParams,
   api: CustomSeriesRenderItemAPI,
@@ -283,6 +296,7 @@ const renderMilestone: CustomSeriesRenderItem = (
   };
 };
 
+/** Renders a dependency as an orthogonal link between entities. */
 const renderLink: CustomSeriesRenderItem = (
   _params: CustomSeriesRenderItemParams,
   api: CustomSeriesRenderItemAPI,
@@ -309,6 +323,7 @@ const renderLink: CustomSeriesRenderItem = (
   };
 };
 
+/** Formats task and milestone data for the chart tooltip. */
 function tooltipFormatter(params: unknown): string {
   const data = (
     params as {
@@ -326,6 +341,7 @@ function tooltipFormatter(params: unknown): string {
   return "";
 }
 
+/** Extracts an editable entity reference from an ECharts event payload. */
 function entityFromEvent(params: unknown): EditableEntityRef | undefined {
   const event = params as {
     seriesName?: string;
@@ -358,6 +374,7 @@ function isDirectEditGesture(params: unknown): boolean {
   return Boolean(event.event?.event?.ctrlKey || event.event?.event?.metaKey);
 }
 
+/** Computes the visible time range around all scheduled entities. */
 function dateRange(document: GanttDocument): { min: number; max: number } {
   const values: number[] = [];
   for (const task of document.tasks) {
@@ -408,11 +425,15 @@ function dependencyLinkEndpoints(
 }
 
 interface SchedulableRef {
+  /** Entity identifier used by a dependency endpoint. */
   id: string;
+  /** Effective start date, when available. */
   start: string | undefined;
+  /** Effective end date, when available. */
   end: string | undefined;
 }
 
+/** Resolves a task or milestone into dependency scheduling coordinates. */
 function schedulableById(
   document: GanttDocument,
   id: string,
@@ -448,10 +469,12 @@ function endpointsOf(
 
 const DAY = 24 * 60 * 60 * 1000;
 
+/** Converts an ISO calendar date to a local midnight timestamp. */
 function toMs(isoDate: string): number {
   return new Date(`${isoDate}T00:00:00`).getTime();
 }
 
+/** Escapes entity text before it is inserted into tooltip HTML. */
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")

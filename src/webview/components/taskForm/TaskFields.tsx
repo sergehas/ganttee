@@ -5,6 +5,7 @@ import { TaskFieldsProps } from "../../types/taskForm";
 import { STATUS_OPTIONS } from "../../utils/taskForm/entityPresentation";
 import { CommonTextFields } from "./CommonTextFields";
 import { DependencyFields } from "./DependencyFields";
+import { ValidationMessage } from "./ValidationMessage";
 
 /** Renders task-specific fields plus dependency editing controls. */
 export function TaskFields(props: TaskFieldsProps): JSX.Element {
@@ -100,24 +101,24 @@ export function TaskFields(props: TaskFieldsProps): JSX.Element {
       </label>
 
       {(validation.underConstrained || validation.overConstrained) && (
-        <div className="ganttee-validation-warning" role="status">
+        <>
+          {validation.blocking && (
+            <ValidationMessage severity="error">
+              {validation.underConstrained
+                ? `Task has ${validation.count} constraint(s); exactly 2 are needed to schedule.`
+                : `Task has ${validation.count} constraints; exactly 2 are needed to schedule.`}
+            </ValidationMessage>
+          )}
           {(validation.duplicateStart || validation.duplicateEnd) && (
-            <p>
+            <ValidationMessage severity="warning">
               {validation.duplicateStart && validation.duplicateEnd
                 ? "Task has duplicate start and end constraints."
                 : validation.duplicateStart
                   ? "Task has duplicate start constraints."
                   : "Task has duplicate end constraints."}
-            </p>
+            </ValidationMessage>
           )}
-          {validation.blocking && (
-            <p>
-              {validation.underConstrained
-                ? `Task has ${validation.count} constraint(s); exactly 2 are needed to schedule.`
-                : `Task has ${validation.count} constraints; exactly 2 are needed to schedule.`}
-            </p>
-          )}
-        </div>
+        </>
       )}
 
       <DependencyFields {...depProps} />

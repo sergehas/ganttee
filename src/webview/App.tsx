@@ -12,6 +12,7 @@ import { useEntityEditWorkflow } from "./useEntityEditWorkflow";
 import { onHostMessage, postToHost } from "./vscodeApi";
 
 interface SaveEntityOptions {
+  /** Keeps the edit panel open after the host update. */
   keepEditorOpen?: boolean;
 }
 
@@ -44,6 +45,7 @@ export function App(): JSX.Element {
     return unsubscribe;
   }, []);
 
+  /** Sends an entity update to the extension host. */
   const saveEntityToHost = (
     kind: EditableEntityKind,
     entity: EditableEntityMap[EditableEntityKind],
@@ -77,20 +79,24 @@ export function App(): JSX.Element {
     }
   };
 
+  /** Sends an entity deletion to the extension host and closes the editor. */
   const deleteEntityToHost = (entity: EditableEntityRef) => {
     postToHost({ type: "deleteEntity", entity });
     setEditingEntity(null);
   };
 
+  /** Selects an entity and asks the host to open it for editing. */
   const requestEditEntity = (entity: EditableEntityRef) => {
     setSelectedEntity(entity);
     setEditingEntity(entity);
     postToHost({ type: "requestEditEntity", entity });
   };
 
+  /** Sends a new dependency to the extension host. */
   const addDependency = (dependency: Dependency) =>
     postToHost({ type: "addDependency", dependency });
 
+  /** Sends a dependency deletion to the extension host. */
   const removeDependency = (dependencyId: string) =>
     postToHost({ type: "removeDependency", dependencyId });
 
@@ -107,6 +113,7 @@ export function App(): JSX.Element {
 
   const editingTarget = resolveEntity(document, editingEntity);
 
+  /** Applies a chart date shift to an entity through the shared workflow. */
   const nudgeEntityByDays = (entity: EditableEntityRef, days: number) => {
     const patch = buildShiftByDaysPatch(document, entity, days);
     if (!patch) {
@@ -154,10 +161,13 @@ export function App(): JSX.Element {
 }
 
 interface ResolvedEditingEntity {
+  /** Entity kind used to select the form section. */
   kind: EditableEntityKind;
+  /** Current entity data resolved from the document. */
   entity: EditableEntityMap[EditableEntityKind];
 }
 
+/** Resolves an editable entity reference against the current document. */
 function resolveEntity(
   document: GanttDocument,
   ref: EditableEntityRef | null,

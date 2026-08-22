@@ -3,6 +3,7 @@ import { makeUpdater } from "../../hooks/useFieldUpdater";
 import { MilestoneFieldsProps } from "../../types/taskForm";
 import { CommonTextFields } from "./CommonTextFields";
 import { DependencyFields } from "./DependencyFields";
+import { ValidationMessage } from "./ValidationMessage";
 
 /** Renders milestone-specific fields plus dependency editing controls. */
 export function MilestoneFields(props: MilestoneFieldsProps): JSX.Element {
@@ -36,14 +37,18 @@ export function MilestoneFields(props: MilestoneFieldsProps): JSX.Element {
       </label>
 
       {(validation.underConstrained || validation.overConstrained) && (
-        <div className="ganttee-validation-warning" role="status">
-          {validation.overConstrained && (
-            <p>Milestone has a duplicate date constraint.</p>
-          )}
+        <>
           {validation.blocking && (
-            <p>Milestone needs a date or an outgoing dependency.</p>
+            <ValidationMessage severity="error">
+              Milestone needs a date or an outgoing dependency.
+            </ValidationMessage>
           )}
-        </div>
+          {validation.overConstrained && (
+            <ValidationMessage severity="warning">
+              Milestone has a duplicate date constraint.
+            </ValidationMessage>
+          )}
+        </>
       )}
 
       <DependencyFields {...depProps} />

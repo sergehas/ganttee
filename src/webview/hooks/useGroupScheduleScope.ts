@@ -9,7 +9,16 @@ import {
 
 /** Derived group schedule and member rows for group-edit UI rendering. */
 export interface GroupScheduleScope {
-  schedule: { start?: string; end?: string; duration?: string };
+  /** Effective schedule derived from the group contents. */
+  schedule: {
+    /** Effective schedule start date. */
+    start?: string;
+    /** Effective schedule end date. */
+    end?: string;
+    /** Effective schedule duration. */
+    duration?: string;
+  };
+  /** Rows for entities directly contained by the group. */
   directMemberRows: DirectGroupMemberRow[];
 }
 
