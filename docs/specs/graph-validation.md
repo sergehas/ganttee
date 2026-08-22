@@ -14,16 +14,15 @@ Canonical status-to-badge mapping is defined in
 
 ## 1. Summary
 
-Add the **semantic** layer of scheduling-graph validation on top of the
-**structural** DAG guarantees the DAG-backbone feature already enforces at
-hydration. Structural failures (self-loop, parallel edge, directed cycle) are
-already hard errors thrown by `hydrateDocument`; this feature adds the rules that
-cannot be expressed structurally: endpoint-aware determinacy, dangling
-references, and an absolute date anchor per schedulable component. Determinacy
-considers static values, dependency-supplied endpoints, and duplicate
-constraints on one endpoint. Semantic results are advisory when an existing
-document is opened, so an invalid document still opens and can be repaired in
-the editor; invalid edits are rejected before they are persisted.
+Add graph validation on top of the **structural** DAG guarantees the DAG-backbone
+feature already enforces at hydration. Structural failures (self-loop, parallel
+edge, directed cycle, group dependency endpoint, and dangling dependency) are
+invalid graph inputs. This feature also validates endpoint-aware determinacy
+and absolute date anchors. The complete task and milestone constraint rules are
+defined in [constraint-endpoint-rules.md](../documentation/constraint-endpoint-rules.md).
+When an existing document contains an invalid dependency or unanchored
+component, the editor warns the user, atomically rewrites the source document
+to remove it, and builds the in-memory model from the rewritten document.
 
 ### Failure model
 
@@ -32,10 +31,12 @@ This is the decision that governs every acceptance criterion below.
 | Rule                                     | Class      | Behavior                                                  |
 | ---------------------------------------- | ---------- | --------------------------------------------------------- |
 | Self-loop, parallel edge, directed cycle | Structural | **Blocking** — thrown at hydration (already implemented). |
-| Under-/over-constrained item             | Semantic   | Advisory on open; invalid edits cannot be saved.          |
-| Group as either endpoint of a dependency | Semantic   | Advisory — reported, document still opens.                |
-| Dangling source/target reference         | Semantic   | Advisory — reported, document still opens.                |
-| Component with no absolute date anchor   | Semantic   | Advisory — reported, document still opens.                |
+| Under-constrained item                   | Semantic   | Advisory on open; invalid edits cannot be saved.          |
+| Ordinary over-constrained item           | Semantic   | Advisory on open; invalid edits cannot be saved.          |
+| Duplicate endpoint/date constraint       | Semantic   | Warning on open and save; scheduling resolves it.         |
+| Group as either endpoint of a dependency | Structural | Warning on open; dependency removed; save blocked.        |
+| Dangling source/target reference         | Structural | Warning on open; dependency removed; save blocked.        |
+| Component with no absolute date anchor   | Semantic   | Warning on open; component removed; save blocked.         |
 
 The one _preventive_ path is add-dependency: a candidate that would close a cycle
 is rejected before the `WorkspaceEdit` is applied (already implemented).
@@ -61,6 +62,9 @@ effective endpoint cannot be resolved, deletion is blocked.
 - Allow milestone `date` to be absent and inferred from outgoing dependencies;
   allow milestones to source `endWith`.
 - Report a group used as either endpoint of a dependency.
+- Remove group dependencies, dangling dependencies, and unanchored components
+  from the source document as an atomic automatic edit before building the
+  in-memory model.
 - Anchor-per-component check (≥1 absolute date), scoped to components that
   contain at least one task or milestone.
 - Surface structural hydration failures (`SelfLoopDependencyError`,
@@ -146,13 +150,15 @@ effective endpoint cannot be resolved, deletion is blocked.
   `startWith` dependencies
   When the model is validated
   Then it is reported as over-constrained because two constraints define the
-  same start endpoint, even if the total independent constraint count is two.
+  same start endpoint, even if the total independent constraint count is two,
+  and the edit remains saveable.
 
 - Given a task with a static `end` and one or more outgoing `endWith`
   dependencies
   When the model is validated
   Then it is reported as over-constrained because two constraints define the
-  same end endpoint, even if the total independent constraint count is two.
+  same end endpoint, even if the total independent constraint count is two,
+  and the edit remains saveable.
 
 - Given a task with outgoing dependencies on different endpoints
   When the model is validated
@@ -183,7 +189,8 @@ effective endpoint cannot be resolved, deletion is blocked.
   constrains start or end
   When the model is validated
   Then it is reported as over-constrained because `date` represents both
-  endpoints and the dependency duplicates that date constraint.
+  endpoints and the dependency duplicates that date constraint, but the edit
+  remains saveable.
 
 - Given a milestone used as the source of an `endWith` dependency
   When the model is validated
@@ -192,13 +199,16 @@ effective endpoint cannot be resolved, deletion is blocked.
 
 - Given a dependency whose source or target is a group id
   When the model is validated
-  Then it is reported as an unsupported group dependency (groups cannot carry
-  dependencies).
+  Then it is classified as a structural violation, a warning is raised when
+  the document opens, the dependency is removed from the source document, and
+  the resulting model contains no such dependency.
 
 - Given a connected component that contains at least one task or milestone and
   no absolute date anchor
   When the model is validated
-  Then it is reported as an unanchored (floating) component.
+  Then it is reported as an unanchored (floating) component, a warning is
+  raised when the document opens, the complete component is removed from the
+  source document, and the resulting model contains no such component.
 
 - Given a component consisting only of group nodes, or an isolated group node
   When the model is validated
@@ -207,7 +217,9 @@ effective endpoint cannot be resolved, deletion is blocked.
 - Given a dependency referencing an id that is neither a task, milestone, nor
   group
   When the model is validated
-  Then it is reported as dangling (existing behavior preserved).
+  Then it is classified as a structural violation, a warning is raised when
+  the document opens, the dependency is removed from the source document, and
+  the resulting model contains no such dependency.
 
 - Given a group
   When the model is validated
@@ -221,6 +233,27 @@ effective endpoint cannot be resolved, deletion is blocked.
   When the user attempts to save
   Then the save is blocked and the validation message identifies the missing
   constraint information.
+
+- Given an ordinary over-constrained task or milestone with more than two
+  independent constraints
+  When the user attempts to save
+  Then the save is blocked and the validation message identifies the excess
+  constraint information.
+
+- Given an edit that would create or preserve a group dependency endpoint, a
+  dangling dependency reference, or an unanchored component
+  When the user attempts to save
+  Then the save is blocked and the relevant invalid dependency or component is
+  not inserted into the source document.
+
+- Given a task or milestone with a duplicate endpoint or date constraint
+  When the user attempts to save
+  Then the save is allowed and the duplicate constraint warning remains
+  visible for scheduling-engine resolution.
+
+The complete editing decision table, including mixed warning and blocking-error
+cases, is defined in [constraint-endpoint-rules.md](../documentation/constraint-endpoint-rules.md#editing-behavior).
+This spec does not duplicate that functional table.
 
 ### Delete cleanup
 
@@ -316,21 +349,29 @@ when the timeline needs per-item badges (see §9).
 
 ## 8. UX
 
-Existing documents with semantic violations always render so users can repair
-them. Persistence actions apply the validation rules before changing the
-document.
+Existing documents with validation violations remain accessible for repair.
+Opening raises warnings for invalid dependencies and unanchored components,
+automatically rewrites the source document to remove them, and builds the
+in-memory model from the rewritten document. Persistence actions apply the
+validation rules before changing the document.
 
 - Timeline (ECharts): unchanged in this feature — no per-item badge, since no
   validation payload crosses the protocol boundary.
-- Sidebar tree: invalid nodes flagged with a warning affordance and a localized
-  tooltip describing the violated rule.
+- Sidebar tree: invalid nodes and affected dependencies are flagged with a
+  warning affordance and a localized tooltip describing the violated rule.
 - Edit form: task and milestone forms show endpoint-aware validation feedback as
   static fields and dependencies change. Saving an under-constrained or
-  duplicate-endpoint item is blocked. A milestone may be saved without a static
-  date only when its outgoing dependencies provide the required endpoint
-  information.
+  ordinary over-constrained item is blocked. Duplicate endpoint or date
+  conflicts remain warnings and may be saved for scheduling-engine resolution.
+  A milestone may be saved without a static date only when its outgoing
+  dependencies provide the required endpoint information.
 - Structural hydration failures continue to surface as a localized error message
   naming the offending ids.
+
+- Warning diagnostics use `vscode.window.showWarningMessage` when an existing
+  document is opened. The warning does not prevent the document from opening;
+  it explains which dependency or component was removed by the automatic
+  document edit.
 
 Design rationale (values → principles → moves): Value Trust · Principle: never
 trap the user in a file they cannot open · Move: block only what corrupts the
@@ -356,17 +397,22 @@ All externalized via `vscode.l10n.t()` with `{0}` placeholders and added to
   incoming dependency types and verify they do not alter the result.
 - Unit (services): duplicate static/outgoing start and end endpoint cases;
   multiple outgoing dependencies on one endpoint; milestone `endWith` source;
-  group-as-endpoint; anchor-per-component including the group-only-component
-  exemption; and dangling references.
+  group-as-endpoint omission; anchor-per-component including omission of an
+  unanchored component and the group-only-component exemption; and dangling
+  dependency omission.
 - Unit (models): structural detection is already covered by the DAG-backbone
   suite — assert only that semantic validation is reached for graphs that
   hydrate successfully.
 - Integration: add-dependency rejection path; hydration-failure path renders the
   localized message and preserves the last valid model; a semantically invalid
-  document still opens; under-constrained and duplicate-endpoint saves are
-  blocked.
+  document still opens; under-constrained and ordinary over-constrained saves
+  are blocked; duplicate endpoint/date saves are allowed and retain warnings.
+- Integration: opening a document with a group dependency, dangling dependency,
+  or unanchored component raises a warning, atomically rewrites the source
+  document, and builds a model without the invalid structure.
 - Webview interaction: task and milestone forms display endpoint-aware feedback,
-  allow existing invalid documents to open, and block invalid persistence.
+  show warnings and blocking errors independently, allow duplicate-only edits,
+  and block edits when any blocking error is also present.
 - Unit (edit workflow): task/milestone deletion removes outgoing and incoming
   dependencies atomically, materializes resolvable `startWith`/`endWith` target
   endpoints on surviving source tasks, supports milestones as deleted anchors,
@@ -388,6 +434,10 @@ All externalized via `vscode.l10n.t()` with `{0}` placeholders and added to
 - 🟡 Medium — Risk: optional milestone dates can make deletion cleanup unable to
   materialize an endpoint. **Treatment**: block the deletion and preserve the
   document when the required effective endpoint is unavailable.
+- 🟡 Medium — Risk: sanitizing invalid dependencies and components can make the
+  in-memory model differ from the source document. **Treatment**: retain the
+  source unchanged, raise a warning on open, identify every omitted structure,
+  and block edits that would create or preserve the same invalid structure.
 - 🟡 Medium — Risk: relaxing milestone date presence without a version bump could
   expose assumptions in existing consumers. **Treatment**: retain the canonical
   date semantics, add explicit absent-date validation cases, and verify both

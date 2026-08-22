@@ -1,22 +1,22 @@
 import { addDays, formatIsoDate, parseIsoDate } from "../common/dates";
 import {
-  Dependency,
-  DependencyType,
-  GanttDocument,
-  Group,
-  Milestone,
-  Task,
-  UnresolvableScheduleError,
+    Dependency,
+    DependencyType,
+    GanttDocument,
+    Group,
+    Milestone,
+    Task,
+    UnresolvableScheduleError,
 } from "../common/models";
 import {
-  EditableEntityKind,
-  EditableEntityMap,
-  EditableEntityRef,
+    EditableEntityKind,
+    EditableEntityMap,
+    EditableEntityRef,
 } from "../common/protocol";
 import { hydrateDocument } from "./ganttModelService";
 import {
-  describeMilestoneConstraintValidation,
-  describeTaskConstraintValidation,
+    describeMilestoneConstraintValidation,
+    describeTaskConstraintValidation,
 } from "./taskConstraintService";
 
 /** Optional behavior flags for save actions initiated by the webview. */
@@ -372,12 +372,7 @@ function canSaveTask(
     return false;
   }
   const validation = describeTaskConstraintValidation(task, dependencies);
-  return (
-    !validation.underConstrained &&
-    (!validation.overConstrained ||
-      validation.duplicateStart ||
-      validation.duplicateEnd)
-  );
+  return !validation.blocking;
 }
 
 /** Returns whether a milestone draft passes save guards. */
@@ -389,12 +384,7 @@ function canSaveMilestone(
     milestone,
     dependencies,
   );
-  return (
-    !validation.underConstrained &&
-    (!validation.overConstrained ||
-      validation.duplicateStart ||
-      validation.duplicateEnd)
-  );
+  return !validation.blocking;
 }
 
 /** Returns whether a group draft passes save guards. */

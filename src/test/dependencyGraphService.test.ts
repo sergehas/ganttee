@@ -5,6 +5,7 @@ import {
   GanttDocument,
 } from "../common/models";
 import {
+  sanitizeDocument,
   topologicalOrder,
   validateSemanticGraph,
   validateStructuralGraph,
@@ -38,6 +39,37 @@ function dep(sourceId: string, targetId: string): Dependency {
 }
 
 suite("dependencyGraphService", () => {
+  test("sanitizes invalid dependencies and unanchored components", () => {
+    const document = createEmptyDocument();
+    document.tasks = [
+      { id: "anchored", name: "Anchored", start: "2026-01-01", end: "2026-01-02" },
+      { id: "floating", name: "Floating" },
+      { id: "floating-2", name: "Floating 2" },
+      { id: "grouped", name: "Grouped", start: "2026-01-03", end: "2026-01-04" },
+    ];
+    document.groups = [{ id: "group", name: "Group" }];
+    document.dependencies = [
+      { id: "group-edge", sourceId: "grouped", targetId: "group", type: "startAfter" },
+      { id: "dangling", sourceId: "anchored", targetId: "missing", type: "startAfter" },
+      { id: "floating-edge", sourceId: "floating", targetId: "floating-2", type: "startAfter" },
+    ];
+
+    const result = sanitizeDocument(document);
+
+    assert.deepStrictEqual(result.removedDependencyIds, [
+      "group-edge",
+      "dangling",
+      "floating-edge",
+    ]);
+    assert.deepStrictEqual(result.removedEntityIds, ["floating", "floating-2"]);
+    assert.deepStrictEqual(result.document.tasks, [
+      document.tasks[0],
+      document.tasks[3],
+    ]);
+    assert.deepStrictEqual(result.document.dependencies, []);
+    assert.strictEqual(document.dependencies.length, 3);
+  });
+
   test("accepts a valid acyclic structural graph", () => {
     const document = documentWith(
       ["a", "b", "c"],

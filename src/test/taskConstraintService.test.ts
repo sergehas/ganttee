@@ -117,6 +117,7 @@ suite("taskConstraintService", () => {
       duplicateEnd: true,
       underConstrained: false,
       overConstrained: true,
+      blocking: true,
     });
   });
 
@@ -130,6 +131,18 @@ suite("taskConstraintService", () => {
     assert.strictEqual(validation.underConstrained, false);
     assert.strictEqual(validation.overConstrained, true);
     assert.strictEqual(validation.duplicateStart, true);
+    assert.strictEqual(validation.blocking, false);
+  });
+
+  test("blocks a mixed duplicate and ordinary over-constraint", () => {
+    const validation = describeTaskConstraintValidation(
+      task({ start: "2026-01-01", duration: 4, end: "2026-01-05" }),
+      [{ id: "s", sourceId: "t1", targetId: "t2", type: "startAfter" }],
+    );
+
+    assert.strictEqual(validation.duplicateStart, true);
+    assert.strictEqual(validation.overConstrained, true);
+    assert.strictEqual(validation.blocking, true);
   });
 
   test("treats multiple outgoing dependencies on one endpoint as one", () => {

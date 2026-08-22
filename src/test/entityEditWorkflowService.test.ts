@@ -82,6 +82,23 @@ suite("entityEditWorkflowService", () => {
     assert.strictEqual(milestoneUpdate?.kind, "milestone");
   });
 
+  test("blocks a mixed duplicate and ordinary over-constrained save", () => {
+    const update = buildSaveUpdate(
+      "task",
+      {
+        id: "t1",
+        name: "Task",
+        start: "2026-01-01",
+        duration: 2,
+        end: "2026-01-03",
+      },
+      undefined,
+      [{ id: "d1", sourceId: "t1", targetId: "t2", type: "startAfter" }],
+    );
+
+    assert.strictEqual(update, undefined);
+  });
+
   test("continues blocking ordinary over-constrained task saves", () => {
     const update = buildSaveUpdate("task", {
       id: "t1",

@@ -37,11 +37,12 @@ export function MilestoneFields(props: MilestoneFieldsProps): JSX.Element {
 
       {(validation.underConstrained || validation.overConstrained) && (
         <div className="ganttee-validation-warning" role="status">
-          <p>
-            {validation.overConstrained
-              ? "Milestone has a duplicate date constraint."
-              : "Milestone needs a date or an outgoing dependency."}
-          </p>
+          {validation.overConstrained && (
+            <p>Milestone has a duplicate date constraint.</p>
+          )}
+          {validation.blocking && (
+            <p>Milestone needs a date or an outgoing dependency.</p>
+          )}
         </div>
       )}
 

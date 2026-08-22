@@ -85,6 +85,53 @@ dependency type, gives the same result.
 A duplicate endpoint is always an over-constraint warning. It is not cancelled
 by the fact that the total number of constraints is otherwise two.
 
+A duplicate endpoint is a validation warning, not a persistence blocker. The
+edit may be saved so that the scheduling engine can resolve the conflict. This
+exception applies to duplicate task start or end constraints and to duplicate
+milestone date constraints. It does not apply to an under-constrained item or
+to an ordinary over-constrained item with more than two independent
+constraints.
+
+## Invalid dependency and component handling
+
+Group dependency endpoints, dangling dependency references, and unanchored
+components are invalid inputs for the scheduling model. They are not resolved
+as scheduling conflicts.
+
+When an existing document is opened, each invalid dependency or component
+raises a warning through the standard warning diagnostic. The application then
+performs an atomic automatic edit on the source document:
+
+- a group dependency endpoint is removed;
+- a dangling dependency reference is removed;
+- an unanchored component and its dependencies are removed.
+
+The rewritten document is the source of truth. The in-memory model is built
+only after this rewrite and therefore contains none of the removed invalid
+dependencies or components.
+
+An edit that would create or preserve a group dependency endpoint, a dangling
+dependency reference, or an unanchored component is blocked before it is
+persisted. Duplicate endpoint and date conflicts remain warning-only because
+they can be resolved by the scheduling engine.
+
+## Editing behavior
+
+The edit form evaluates blocking errors and warnings independently. A warning
+does not make an otherwise invalid edit saveable.
+
+| Validation state                                | User feedback              | Save result |
+| ----------------------------------------------- | -------------------------- | ----------- |
+| No warning or error                             | None                       | Allowed     |
+| Duplicate endpoint or milestone date only       | Warning                    | Allowed     |
+| Under-constrained item                          | Blocking error             | Blocked     |
+| Ordinary over-constrained item                  | Blocking error             | Blocked     |
+| Duplicate warning plus under-constraint         | Warning and blocking error | Blocked     |
+| Duplicate warning plus ordinary over-constraint | Warning and blocking error | Blocked     |
+
+When an item has both a duplicate warning and a blocking error, the form shows
+both diagnostics and the blocking error determines the save result.
+
 ## Milestone rules
 
 A milestone has one optional canonical static value: `date`.[^milestone-date]

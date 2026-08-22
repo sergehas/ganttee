@@ -1,33 +1,34 @@
 import * as vscode from "vscode";
 import {
-  createEmptyDocument,
-  CyclicDependencyError,
-  Dependency,
-  GanttDocument,
-  GanttModel,
-  Group,
-  Milestone,
-  ParallelEdgeDependencyError,
-  SelfLoopDependencyError,
-  Task,
+    createEmptyDocument,
+    CyclicDependencyError,
+    Dependency,
+    GanttDocument,
+    GanttModel,
+    Group,
+    Milestone,
+    ParallelEdgeDependencyError,
+    SelfLoopDependencyError,
+    Task,
 } from "../../common/models";
 import {
-  EditableEntityKind,
-  EditableEntityRef,
-  GroupDeleteStrategy,
-  HostToWebviewMessage,
-  WebviewToHostMessage,
+    EditableEntityKind,
+    EditableEntityRef,
+    GroupDeleteStrategy,
+    HostToWebviewMessage,
+    WebviewToHostMessage,
 } from "../../common/protocol";
 import {
-  GraphValidationResult,
-  validateSemanticGraph,
-  wouldCreateCycle,
+    GraphValidationResult,
+    sanitizeDocument,
+    validateSemanticGraph,
+    wouldCreateCycle,
 } from "../../services/dependencyGraphService";
 import { buildTaskOrMilestoneDeletionDocument } from "../../services/entityEditWorkflowService";
 import {
-  GanttParseError,
-  parseDocument,
-  serializeDocument,
+    GanttParseError,
+    parseDocument,
+    serializeDocument,
 } from "../../services/ganttDocumentService";
 import { hydrateDocument } from "../../services/ganttModelService";
 
@@ -458,7 +459,16 @@ export class GanttEditorController {
       return;
     }
     try {
-      const document = parseDocument(this.document.getText());
+      const parsedDocument = parseDocument(this.document.getText());
+      const sanitization = sanitizeDocument(parsedDocument);
+      if (
+        sanitization.removedDependencyIds.length > 0 ||
+        sanitization.removedEntityIds.length > 0
+      ) {
+        this.warnAndApplySanitization(sanitization);
+        return;
+      }
+      const document = sanitization.document;
       const hydratedModel = hydrateDocument(document);
       this._document = document;
       this._model = hydratedModel;
@@ -489,6 +499,49 @@ export class GanttEditorController {
   }
 
   /**
+   * Warns about invalid scheduling structures and rewrites the source document
+   * with their sanitized replacement.
+   */
+  private warnAndApplySanitization(
+    sanitization: ReturnType<typeof sanitizeDocument>,
+  ): void {
+    const removedDependencies = sanitization.removedDependencyIds.join(", ");
+    const removedEntities = sanitization.removedEntityIds.join(", ");
+    const details = [
+      removedDependencies.length > 0
+        ? vscode.l10n.t("removed dependencies: {0}", removedDependencies)
+        : undefined,
+      removedEntities.length > 0
+        ? vscode.l10n.t("removed entities: {0}", removedEntities)
+        : undefined,
+    ].filter((message): message is string => message !== undefined);
+    void vscode.window.showWarningMessage(
+      vscode.l10n.t("Ganttee: invalid scheduling structures removed. {0}",
+        details.join("; ")),
+    );
+    void this.applyDocumentText(sanitization.document);
+  }
+
+  /** Applies a document replacement without running semantic save validation. */
+  private async applyDocumentText(next: GanttDocument): Promise<void> {
+    if (this._isDisposed) {
+      return;
+    }
+    const edit = new vscode.WorkspaceEdit();
+    const fullRange = new vscode.Range(
+      this.document.positionAt(0),
+      this.document.positionAt(this.document.getText().length),
+    );
+    edit.replace(this.document.uri, fullRange, serializeDocument(next));
+    const applied = await vscode.workspace.applyEdit(edit);
+    if (!applied) {
+      void vscode.window.showErrorMessage(
+        vscode.l10n.t("Cannot apply automatic scheduling cleanup."),
+      );
+    }
+  }
+
+  /**
    * Validates and applies a full-document replacement through WorkspaceEdit.
    */
   private async applyModel(next: GanttDocument): Promise<void> {
@@ -499,10 +552,15 @@ export class GanttEditorController {
       const parsed = parseDocument(serializeDocument(next));
       const validation = validateSemanticGraph(hydrateDocument(parsed));
       const blockingViolations = [
-        ...validation.underConstrainedIds,
+        ...validation.underConstrainedIds.filter(
+          id => !validation.duplicateEndpointIds.includes(id),
+        ),
         ...validation.overConstrainedIds.filter(
           (id) => !validation.duplicateEndpointIds.includes(id),
         ),
+        ...validation.danglingDependencyIds,
+        ...validation.groupDependencyIds,
+        ...validation.unanchoredComponentIds,
       ];
       if (blockingViolations.length > 0) {
         const violations = [

@@ -42,6 +42,119 @@ export interface GraphValidationResult {
   unanchoredComponentIds: string[];
 }
 
+/** Result of removing invalid scheduling structures from a document. */
+export interface DocumentSanitizationResult {
+  /** The document after invalid dependencies and components are removed. */
+  document: GanttDocument;
+  /** Dependency ids removed during sanitization. */
+  removedDependencyIds: string[];
+  /** Entity ids removed as part of unanchored components. */
+  removedEntityIds: string[];
+}
+
+/**
+ * Removes invalid dependencies and unanchored components from a document.
+ *
+ * This is a pure normalization step. It does not mutate the input document and
+ * leaves task and milestone determinacy violations for semantic validation.
+ */
+export function sanitizeDocument(
+  document: GanttDocument,
+): DocumentSanitizationResult {
+  const entityIds = new Set([
+    ...document.tasks.map(task => task.id),
+    ...document.milestones.map(milestone => milestone.id),
+    ...document.groups.map(group => group.id),
+  ]);
+  const groupIds = new Set(document.groups.map(group => group.id));
+  const removedDependencyIds: string[] = [];
+  const validDependencies = document.dependencies.filter(dependency => {
+    const isDangling =
+      !entityIds.has(dependency.sourceId) ||
+      !entityIds.has(dependency.targetId);
+    const usesGroup =
+      groupIds.has(dependency.sourceId) || groupIds.has(dependency.targetId);
+    if (isDangling || usesGroup) {
+      removedDependencyIds.push(dependency.id);
+      return false;
+    }
+    return true;
+  });
+
+  const graph = new DependencyGraph(
+    [...entityIds],
+    validDependencies,
+  );
+  const taskIds = new Set(document.tasks.map(task => task.id));
+  const milestoneIds = new Set(document.milestones.map(milestone => milestone.id));
+  const removedEntityIds = new Set<string>();
+
+  for (const component of graph.connectedComponents()) {
+    const isSchedulable = component.some(
+      id => taskIds.has(id) || milestoneIds.has(id),
+    );
+    if (!isSchedulable || hasAbsoluteAnchor(component, document, taskIds, milestoneIds)) {
+      continue;
+    }
+    for (const id of component) {
+      removedEntityIds.add(id);
+    }
+  }
+
+  const remainingEntityIds = new Set(
+    [...entityIds].filter(id => !removedEntityIds.has(id)),
+  );
+  const dependencies = validDependencies.filter(
+    dependency =>
+      remainingEntityIds.has(dependency.sourceId) &&
+      remainingEntityIds.has(dependency.targetId),
+  );
+  removedEntityIds.forEach(id => {
+    document.dependencies.forEach(dependency => {
+      if (
+        (dependency.sourceId === id || dependency.targetId === id) &&
+        !removedDependencyIds.includes(dependency.id)
+      ) {
+        removedDependencyIds.push(dependency.id);
+      }
+    });
+  });
+
+  return {
+    document: {
+      ...document,
+      tasks: document.tasks.filter(task => !removedEntityIds.has(task.id)),
+      milestones: document.milestones.filter(
+        milestone => !removedEntityIds.has(milestone.id),
+      ),
+      groups: document.groups.filter(group => !removedEntityIds.has(group.id)),
+      dependencies,
+    },
+    removedDependencyIds,
+    removedEntityIds: [...removedEntityIds],
+  };
+}
+
+/** Returns whether a dependency component contains a static date anchor. */
+function hasAbsoluteAnchor(
+  component: readonly string[],
+  document: GanttDocument,
+  taskIds: ReadonlySet<string>,
+  milestoneIds: ReadonlySet<string>,
+): boolean {
+  return component.some(id => {
+    if (taskIds.has(id)) {
+      const task = document.tasks.find(candidate => candidate.id === id);
+      return task?.start !== undefined || task?.end !== undefined;
+    }
+    if (milestoneIds.has(id)) {
+      const milestone = document.milestones.find(candidate => candidate.id === id);
+      return milestone?.date !== undefined;
+    }
+    return false;
+  });
+}
+
 /**
  * Validates dependency endpoints and structural DAG rules before hydration.
  *
