@@ -5,7 +5,7 @@ import {
   EditableEntityMap,
   EditableEntityRef,
 } from "../common/protocol";
-import { buildShiftByDaysPatch } from "../services/entityEditWorkflowService";
+import { buildShiftByDaysPatch } from "../services/entitySchedulePatchService";
 import { GanttChart } from "./GanttChart";
 import { TaskForm } from "./TaskForm";
 import { useEntityEditWorkflow } from "./useEntityEditWorkflow";

@@ -11,7 +11,7 @@ import {
   EditableEntityMap,
   EditableEntityRef,
 } from "../../common/protocol";
-import { SaveEntityOptions } from "../../services/entityEditWorkflowService";
+import { SaveEntityOptions } from "../../services/entitySaveGuardService";
 import { DependencyEditorProps } from "../useEntityEditWorkflow";
 
 /** Routed editing target consumed by the TaskForm orchestrator. */

@@ -28,7 +28,7 @@ import {
     replaceEntity,
     upsertEntity,
 } from "../../services/documentEntityService";
-import { buildTaskOrMilestoneDeletionDocument } from "../../services/entityEditWorkflowService";
+import { buildTaskOrMilestoneDeletionDocument } from "../../services/entityRemovalService";
 import {
     buildGroupDeletionDocument,
     hasGroupContents,
