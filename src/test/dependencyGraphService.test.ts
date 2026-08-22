@@ -12,7 +12,6 @@ import {
   wouldCreateCycle,
 } from "../services/dependencyGraphService";
 import { hydrateDocument } from "../services/ganttModelService";
-import { getEffectiveConstraintCount } from "../services/taskConstraintService";
 
 function documentWith(
   taskIds: string[],
@@ -413,12 +412,9 @@ suite("dependencyGraphService", () => {
       { id: "start", sourceId: "task", targetId: "after", type: "startWith" },
       { id: "end", sourceId: "task", targetId: "with", type: "endWith" },
     ];
-    const model = hydrateDocument(document);
+    const result = validateSemanticGraph(hydrateDocument(document));
 
-    assert.strictEqual(
-      getEffectiveConstraintCount("task", model, model.graph),
-      3,
-    );
+    assert.strictEqual(result.constraintCounts["task"], 3);
   });
 
   test("does not add dependency endpoints when static endpoints exist", () => {
@@ -430,20 +426,9 @@ suite("dependencyGraphService", () => {
     document.dependencies = [
       { id: "start", sourceId: "task", targetId: "target", type: "startAfter" },
     ];
-    const model = hydrateDocument(document);
 
-    assert.strictEqual(
-      getEffectiveConstraintCount("task", model, model.graph),
-      2,
-    );
-  });
+    const result = validateSemanticGraph(hydrateDocument(document));
 
-  test("returns no constraints for an unknown task", () => {
-    const model = hydrateDocument(createEmptyDocument());
-
-    assert.strictEqual(
-      getEffectiveConstraintCount("missing", model, model.graph),
-      0,
-    );
+    assert.strictEqual(result.constraintCounts["task"], 2);
   });
 });

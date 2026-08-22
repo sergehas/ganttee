@@ -15,9 +15,9 @@ import {
 } from "../common/protocol";
 import { hydrateDocument } from "./ganttModelService";
 import {
-    describeMilestoneConstraintValidation,
-    describeTaskConstraintValidation,
-} from "./taskConstraintService";
+    validateMilestoneConstraints,
+    validateTaskConstraints,
+} from "./scheduleConstraintService";
 
 /** Optional behavior flags for save actions initiated by the webview. */
 export interface SaveEntityOptions {
@@ -371,7 +371,7 @@ function canSaveTask(
   ) {
     return false;
   }
-  const validation = describeTaskConstraintValidation(task, dependencies);
+  const validation = validateTaskConstraints(task, dependencies);
   return !validation.blocking;
 }
 
@@ -380,7 +380,7 @@ function canSaveMilestone(
   milestone: Milestone,
   dependencies: readonly Dependency[],
 ): boolean {
-  const validation = describeMilestoneConstraintValidation(
+  const validation = validateMilestoneConstraints(
     milestone,
     dependencies,
   );

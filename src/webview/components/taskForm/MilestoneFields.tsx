@@ -1,4 +1,4 @@
-import { describeMilestoneConstraintValidation } from "../../../services/taskConstraintService";
+import { validateMilestoneConstraints } from "../../../services/scheduleConstraintService";
 import { makeUpdater } from "../../hooks/useFieldUpdater";
 import { MilestoneFieldsProps } from "../../types/taskForm";
 import { CommonTextFields } from "./CommonTextFields";
@@ -10,7 +10,7 @@ export function MilestoneFields(props: MilestoneFieldsProps): JSX.Element {
   const { milestone, onChange, ...depProps } = props;
   const { document } = depProps;
   const update = makeUpdater(milestone, onChange);
-  const validation = describeMilestoneConstraintValidation(
+  const validation = validateMilestoneConstraints(
     milestone,
     document.dependencies,
   );

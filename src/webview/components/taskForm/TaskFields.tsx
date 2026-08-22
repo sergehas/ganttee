@@ -1,5 +1,5 @@
 import { TaskStatus } from "../../../common/models";
-import { describeTaskConstraintValidation } from "../../../services/taskConstraintService";
+import { validateTaskConstraints } from "../../../services/scheduleConstraintService";
 import { makeUpdater } from "../../hooks/useFieldUpdater";
 import { TaskFieldsProps } from "../../types/taskForm";
 import { STATUS_OPTIONS } from "../../utils/taskForm/entityPresentation";
@@ -13,10 +13,7 @@ export function TaskFields(props: TaskFieldsProps): JSX.Element {
   const { document } = depProps;
   const update = makeUpdater(task, onChange);
 
-  const validation = describeTaskConstraintValidation(
-    task,
-    document.dependencies,
-  );
+  const validation = validateTaskConstraints(task, document.dependencies);
 
   return (
     <>

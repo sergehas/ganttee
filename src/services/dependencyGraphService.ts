@@ -13,13 +13,39 @@ import {
   DependencyGraph,
   GanttDocument,
   GanttModel,
+  Milestone,
+  MilestoneEntity,
   ParallelEdgeDependencyError,
   SelfLoopDependencyError,
+  Task,
+  TaskEntity,
 } from "../common/models";
+import { formatIsoDate } from "../common/dates";
 import {
-  describeMilestoneConstraintValidation,
-  describeTaskConstraintValidation,
-} from "./taskConstraintService";
+  validateMilestoneConstraints,
+  validateTaskConstraints,
+} from "./scheduleConstraintService";
+
+/** Projects a hydrated task back to the document shape the rules operate on. */
+function taskRecordOf(task: TaskEntity): Task {
+  return {
+    id: task.id,
+    name: task.name,
+    start: task.start === undefined ? undefined : formatIsoDate(task.start),
+    end: task.end === undefined ? undefined : formatIsoDate(task.end),
+    duration: task.duration,
+  };
+}
+
+/** Projects a hydrated milestone back to the document shape. */
+function milestoneRecordOf(milestone: MilestoneEntity): Milestone {
+  return {
+    id: milestone.id,
+    name: milestone.name,
+    date:
+      milestone.date === undefined ? undefined : formatIsoDate(milestone.date),
+  };
+}
 
 /** Result of validating the dependency graph of a document. */
 export interface GraphValidationResult {
@@ -263,8 +289,8 @@ export function validateSemanticGraph(
   const constraintCounts: Record<string, number> = {};
 
   for (const task of model.tasks) {
-    const validation = describeTaskConstraintValidation(
-      task,
+    const validation = validateTaskConstraints(
+      taskRecordOf(task),
       model.dependencies,
     );
     constraintCounts[task.id] = validation.count;
@@ -279,15 +305,8 @@ export function validateSemanticGraph(
   }
 
   for (const milestone of model.milestones) {
-    const validation = describeMilestoneConstraintValidation(
-      {
-        id: milestone.id,
-        name: milestone.name,
-        date:
-          milestone.date === undefined
-            ? undefined
-            : milestone.date.toISOString().slice(0, 10),
-      },
+    const validation = validateMilestoneConstraints(
+      milestoneRecordOf(milestone),
       model.dependencies,
     );
     constraintCounts[milestone.id] = validation.count;
