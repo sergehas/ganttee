@@ -23,8 +23,16 @@ import {
     sanitizeScheduleGraph,
     ScheduleGraphSanitization,
 } from "../../services/documentSanitizationService";
+import {
+    findEntity,
+    replaceEntity,
+    upsertEntity,
+} from "../../services/documentEntityService";
 import { buildTaskOrMilestoneDeletionDocument } from "../../services/entityEditWorkflowService";
-import { selectGroupScheduleScope } from "../../services/groupHierarchyService";
+import {
+    buildGroupDeletionDocument,
+    hasGroupContents,
+} from "../../services/groupDeletionService";
 import {
     blockingDiagnostics,
     evaluateScheduleGraph,
@@ -50,45 +58,6 @@ export class GanttEditorController {
   private _isDisposed = false;
   private readonly _disposables: vscode.Disposable[] = [];
   private readonly _onDidChangeModel = new vscode.EventEmitter<void>();
-
-  /**
-   * Entity-specific mutation strategies using DRY principle.
-   *
-   * **Purpose & Benefits:**
-   * - Eliminates duplicate update/delete code for tasks, milestones, and groups
-   * - Each entity kind maps to get/set functions that abstract array access
-   * - Single source of truth for "how to mutate this entity type"
-   * - Adding a new entity type requires only one entry here, not multiple methods
-   * - Easier testing: mutations are standardized and testable in isolation
-   *
-   * **Single Responsibility (SOLID):** Each strategy is responsible only for
-   * accessing the correct entity array and reconstructing the model.
-   *
-   * **DRY (Don't Repeat Yourself):** Replaces three `updateExistingX` methods
-   * and three `deleteX` methods with generic handlers that use these strategies.
-   */
-  private readonly entityMutationStrategies: Record<
-    EditableEntityKind,
-    {
-      /** Get the current entity array from the model. */
-      get: () => (Task | Milestone | Group)[];
-      /** Reconstruct a new model with the updated entity array. */
-      set: (items: (Task | Milestone | Group)[]) => GanttDocument;
-    }
-  > = {
-    task: {
-      get: () => this._document.tasks,
-      set: (items) => ({ ...this._document, tasks: items as Task[] }),
-    },
-    milestone: {
-      get: () => this._document.milestones,
-      set: (items) => ({ ...this._document, milestones: items as Milestone[] }),
-    },
-    group: {
-      get: () => this._document.groups,
-      set: (items) => ({ ...this._document, groups: items as Group[] }),
-    },
-  };
 
   /** Fires whenever the parsed model changes. */
   readonly onDidChangeModel = this._onDidChangeModel.event;
@@ -164,8 +133,7 @@ export class GanttEditorController {
 
   /** Adds or replaces a task. Used by host-side creation flows. */
   async upsertTask(task: Task): Promise<void> {
-    const tasks = replaceById(this._document.tasks, task);
-    await this.applyModel({ ...this._document, tasks });
+    await this.applyModel(upsertEntity(this._document, "task", task));
   }
 
   /**
@@ -247,33 +215,24 @@ export class GanttEditorController {
   }
 
   /**
-   * Updates one existing entity using the mutation strategy for its kind.
-   * Shows a warning and no-ops if the entity id is not found.
-   *
-   * Uses {@link entityMutationStrategies} to eliminate duplication across
-   * task/milestone/group updates. This single method replaces three
-   * task-specific methods, reducing maintenance burden and risk of divergence.
+   * Updates one existing entity. Shows a warning and no-ops when the id is
+   * not found.
    */
   private async updateEntity(
     kind: EditableEntityKind,
     entity: Task | Milestone | Group,
   ): Promise<void> {
-    const strategy = this.entityMutationStrategies[kind];
-    const updated = findAndReplaceExistingById(strategy.get(), entity);
-    if (!updated) {
+    const next = replaceEntity(this._document, kind, entity);
+    if (!next) {
       this.showUnknownIdWarning(kind, entity.id);
       return;
     }
-    await this.applyModel(strategy.set(updated));
+    await this.applyModel(next);
   }
 
   /**
-   * Deletes one entity (task or milestone) and all edges connected to it.
-   * Shows a warning and no-ops if the entity id is not found.
-   *
-   * Uses {@link entityMutationStrategies} to consolidate task and milestone
-   * deletion. Groups are handled separately by {@link deleteGroup} due to
-   * their reparenting and cascade logic.
+   * Deletes one task or milestone and every edge connected to it. Groups go
+   * through {@link deleteGroup} instead, because they need a strategy.
    */
   private async deleteTaskOrMilestone(
     kind: "task" | "milestone",
@@ -302,118 +261,30 @@ export class GanttEditorController {
     if (this._isDisposed) {
       return;
     }
-    const group = this._document.groups.find(
-      (current) => current.id === groupId,
-    );
-    if (!group) {
+    if (!findEntity(this._document, "group", groupId)) {
       void vscode.window.showWarningMessage(
         vscode.l10n.t("Cannot delete group '{0}': no matching id.", groupId),
       );
       return;
     }
 
-    const hasContents = this.hasGroupContents(groupId);
     const resolvedStrategy =
-      hasContents && !strategy
+      strategy ??
+      (hasGroupContents(this._document, groupId)
         ? await this.askGroupDeleteStrategy()
-        : (strategy ?? "cascade");
+        : "cascade");
     if (!resolvedStrategy) {
       return;
     }
 
-    const nextModel = await this.buildGroupDeleteModel(
+    const next = buildGroupDeletionDocument(
+      this._document,
       groupId,
-      group.groupId,
       resolvedStrategy,
     );
-    if (nextModel) {
-      await this.applyModel(nextModel);
+    if (next) {
+      await this.applyModel(next);
     }
-  }
-
-  /**
-   * Builds the next model state after deleting a group via cascade or reparent.
-   * Extracted for testability and to separate model construction from application.
-   */
-  private async buildGroupDeleteModel(
-    groupId: string,
-    parentGroupId: string | undefined,
-    strategy: GroupDeleteStrategy,
-  ): Promise<GanttDocument | null> {
-    if (strategy === "cascade") {
-      return this.buildGroupDeleteCascadeModel(groupId);
-    }
-    return this.buildGroupDeleteReparentModel(groupId, parentGroupId);
-  }
-
-  /**
-   * Constructs the model state for cascade delete: removes the group subtree
-   * and all connected edges.
-   */
-  private buildGroupDeleteCascadeModel(groupId: string): GanttDocument {
-    const scope = selectGroupScheduleScope(this._document, groupId);
-    const deletedEntityIds = new Set([
-      ...scope.tasks.map((task) => task.id),
-      ...scope.milestones.map((milestone) => milestone.id),
-    ]);
-
-    return {
-      ...this._document,
-      groups: this._document.groups.filter(
-        (group) => !scope.groupIds.has(group.id),
-      ),
-      tasks: this._document.tasks.filter(
-        (task) => !deletedEntityIds.has(task.id),
-      ),
-      milestones: this._document.milestones.filter(
-        (milestone) => !deletedEntityIds.has(milestone.id),
-      ),
-      dependencies: this._document.dependencies.filter(
-        (dependency) =>
-          !deletedEntityIds.has(dependency.sourceId) &&
-          !deletedEntityIds.has(dependency.targetId),
-      ),
-    };
-  }
-
-  /**
-   * Constructs the model state for reparent delete: removes the group and
-   * reassigns its direct descendants to the parent group.
-   */
-  private buildGroupDeleteReparentModel(
-    groupId: string,
-    parentGroupId: string | undefined,
-  ): GanttDocument {
-    const groups = this._document.groups
-      .filter((group) => group.id !== groupId)
-      .map((group) =>
-        group.groupId === groupId
-          ? { ...group, groupId: parentGroupId }
-          : group,
-      );
-    const tasks = this._document.tasks.map((task) =>
-      task.groupId === groupId ? { ...task, groupId: parentGroupId } : task,
-    );
-    const milestones = this._document.milestones.map((milestone) =>
-      milestone.groupId === groupId
-        ? { ...milestone, groupId: parentGroupId }
-        : milestone,
-    );
-
-    return { ...this._document, groups, tasks, milestones };
-  }
-
-  /**
-   * Returns true when a group contains members or child groups.
-   */
-  private hasGroupContents(groupId: string): boolean {
-    return (
-      this._document.tasks.some((task) => task.groupId === groupId) ||
-      this._document.milestones.some(
-        (milestone) => milestone.groupId === groupId,
-      ) ||
-      this._document.groups.some((group) => group.groupId === groupId)
-    );
   }
 
   /**
@@ -590,32 +461,11 @@ export class GanttEditorController {
   }
 }
 
-/**
- * Replaces an entity by id, appending it when not found.
- * Generic utility unifying array mutation logic for all entity types.
- */
+/** Replaces a dependency by id, appending it when the id is new. */
 function replaceById<T extends { id: string }>(items: T[], next: T): T[] {
   const index = items.findIndex((item) => item.id === next.id);
   if (index === -1) {
     return [...items, next];
-  }
-  const copy = items.slice();
-  copy[index] = next;
-  return copy;
-}
-
-/**
- * Finds and replaces an entity by id, returning undefined when the id is missing.
- * Used by {@link GanttEditorController.updateEntity} to consolidate update logic
- * across task, milestone, and group types.
- */
-function findAndReplaceExistingById<T extends { id: string }>(
-  items: T[],
-  next: T,
-): T[] | undefined {
-  const index = items.findIndex((item) => item.id === next.id);
-  if (index === -1) {
-    return undefined;
   }
   const copy = items.slice();
   copy[index] = next;
