@@ -14,7 +14,7 @@ import {
   WorkingCalendar,
 } from "../common/models";
 import { migrateDocument } from "./ganttDocumentMigrationService";
-import { validateStructuralGraph } from "./dependencyGraphService";
+import { assertGraphIntegrity } from "./dependencyGraphService";
 
 /** Raised when a `.ganttee` document cannot be parsed or is structurally invalid. */
 export class GanttParseError extends Error {}
@@ -83,7 +83,7 @@ function validateRelations(document: GanttDocument): void {
   validateGroupHierarchy(document.groups);
   validateGroupReferences(document);
   try {
-    validateStructuralGraph(document, false, true);
+    assertGraphIntegrity(document);
   } catch (error) {
     if (error instanceof Error) {
       throw new GanttParseError(error.message);

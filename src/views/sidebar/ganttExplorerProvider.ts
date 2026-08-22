@@ -8,7 +8,11 @@ import {
 } from "../../common/models";
 import { EditableEntityRef } from "../../common/protocol";
 import { GanttStore } from "../../ganttStore";
-import { GraphValidationResult } from "../../services/dependencyGraphService";
+import {
+  diagnosticsFor,
+  ScheduleDiagnostic,
+} from "../../services/scheduleGraphValidationService";
+import { describeDiagnostic } from "../scheduleDiagnosticPresenter";
 
 type GanttNode =
   | { kind: "group"; group: Group }
@@ -42,78 +46,19 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   }
 
   /**
-   * Returns the validation result from the active editor, if any.
+   * Returns the diagnostics from the active editor, if any.
    */
-  private getValidation(): GraphValidationResult | undefined {
-    return this.store.active?.validation;
+  private getDiagnostics(): readonly ScheduleDiagnostic[] {
+    return this.store.active?.validation ?? [];
   }
 
   /**
    * Returns a human-readable message describing all violations for an entity id.
    */
   private getViolationMessage(entityId: string): string | undefined {
-    const validation = this.getValidation();
-    const model = this.store.active?.getGanttDocument();
-    if (!validation || !model) {
-      return undefined;
-    }
-
-    const messages: string[] = [];
-
-    if (validation.underConstrainedIds.includes(entityId)) {
-      messages.push(
-        vscode.l10n.t(
-          "Task '{0}' is under-constrained ({1} constraints, need 2).",
-          entityId,
-          String(validation.constraintCounts[entityId] ?? 0),
-        ),
-      );
-    }
-
-    if (validation.overConstrainedIds.includes(entityId)) {
-      messages.push(
-        vscode.l10n.t(
-          "Task '{0}' is over-constrained ({1} constraints, need 2).",
-          entityId,
-          String(validation.constraintCounts[entityId] ?? 0),
-        ),
-      );
-    }
-
-    for (const dependency of model.dependencies) {
-      if (
-        validation.danglingDependencyIds.includes(dependency.id) &&
-        (dependency.sourceId === entityId || dependency.targetId === entityId)
-      ) {
-        messages.push(
-          vscode.l10n.t(
-            "Dependency '{0}' references a missing entity.",
-            dependency.id,
-          ),
-        );
-      }
-      if (
-        validation.groupDependencyIds.includes(dependency.id) &&
-        (dependency.sourceId === entityId || dependency.targetId === entityId)
-      ) {
-        messages.push(
-          vscode.l10n.t(
-            "Dependency '{0}' involves a group (groups cannot carry dependencies).",
-            dependency.id,
-          ),
-        );
-      }
-    }
-
-    if (validation.unanchoredComponentIds.includes(entityId)) {
-      messages.push(
-        vscode.l10n.t(
-          "Component containing '{0}' has no absolute date anchor.",
-          entityId,
-        ),
-      );
-    }
-
+    const messages = diagnosticsFor(this.getDiagnostics(), entityId).map(
+      (diagnostic) => describeDiagnostic(diagnostic, entityId),
+    );
     return messages.length > 0 ? messages.join("\n") : undefined;
   }
 

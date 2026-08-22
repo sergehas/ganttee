@@ -18,13 +18,18 @@ import {
     HostToWebviewMessage,
     WebviewToHostMessage,
 } from "../../common/protocol";
+import { wouldCreateCycle } from "../../services/dependencyGraphService";
 import {
-    GraphValidationResult,
-    sanitizeDocument,
-    validateSemanticGraph,
-    wouldCreateCycle,
-} from "../../services/dependencyGraphService";
+    sanitizeScheduleGraph,
+    ScheduleGraphSanitization,
+} from "../../services/documentSanitizationService";
 import { buildTaskOrMilestoneDeletionDocument } from "../../services/entityEditWorkflowService";
+import {
+    blockingDiagnostics,
+    evaluateScheduleGraph,
+    ScheduleDiagnostic,
+} from "../../services/scheduleGraphValidationService";
+import { summarizeBlockingDiagnostics } from "../scheduleDiagnosticPresenter";
 import {
     GanttParseError,
     parseDocument,
@@ -40,17 +45,7 @@ import { hydrateDocument } from "../../services/ganttModelService";
 export class GanttEditorController {
   private _document: GanttDocument = createEmptyDocument();
   private _model: GanttModel = hydrateDocument(this._document);
-  private _validation: GraphValidationResult = {
-    ok: true,
-    cycle: [],
-    danglingDependencyIds: [],
-    underConstrainedIds: [],
-    overConstrainedIds: [],
-    duplicateEndpointIds: [],
-    constraintCounts: {},
-    groupDependencyIds: [],
-    unanchoredComponentIds: [],
-  };
+  private _diagnostics: readonly ScheduleDiagnostic[] = [];
   private _isDisposed = false;
   private readonly _disposables: vscode.Disposable[] = [];
   private readonly _onDidChangeModel = new vscode.EventEmitter<void>();
@@ -140,8 +135,8 @@ export class GanttEditorController {
    * The semantic validation result for the current model.
    * Updated on every successful reparse.
    */
-  get validation(): GraphValidationResult {
-    return this._validation;
+  get validation(): readonly ScheduleDiagnostic[] {
+    return this._diagnostics;
   }
 
   /** Reveals the editor panel and posts the initial model to the webview. */
@@ -194,7 +189,7 @@ export class GanttEditorController {
     if (this._isDisposed) {
       return false;
     }
-    if (wouldCreateCycle(this._document.dependencies, dependency)) {
+    if (wouldCreateCycle(this._document, dependency)) {
       void vscode.window.showErrorMessage(
         vscode.l10n.t("Cannot add dependency: it would create a cycle."),
       );
@@ -460,7 +455,7 @@ export class GanttEditorController {
     }
     try {
       const parsedDocument = parseDocument(this.document.getText());
-      const sanitization = sanitizeDocument(parsedDocument);
+      const sanitization = sanitizeScheduleGraph(parsedDocument);
       if (
         sanitization.removedDependencyIds.length > 0 ||
         sanitization.removedEntityIds.length > 0
@@ -472,7 +467,7 @@ export class GanttEditorController {
       const hydratedModel = hydrateDocument(document);
       this._document = document;
       this._model = hydratedModel;
-      this._validation = validateSemanticGraph(hydratedModel);
+      this._diagnostics = evaluateScheduleGraph(document);
       this._onDidChangeModel.fire();
     } catch (error) {
       if (error instanceof GanttParseError) {
@@ -503,7 +498,7 @@ export class GanttEditorController {
    * with their sanitized replacement.
    */
   private warnAndApplySanitization(
-    sanitization: ReturnType<typeof sanitizeDocument>,
+    sanitization: ScheduleGraphSanitization,
   ): void {
     const removedDependencies = sanitization.removedDependencyIds.join(", ");
     const removedEntities = sanitization.removedEntityIds.join(", ");
@@ -550,47 +545,13 @@ export class GanttEditorController {
     }
     try {
       const parsed = parseDocument(serializeDocument(next));
-      const validation = validateSemanticGraph(hydrateDocument(parsed));
-      const blockingViolations = [
-        ...validation.underConstrainedIds.filter(
-          id => !validation.duplicateEndpointIds.includes(id),
-        ),
-        ...validation.overConstrainedIds.filter(
-          (id) => !validation.duplicateEndpointIds.includes(id),
-        ),
-        ...validation.danglingDependencyIds,
-        ...validation.groupDependencyIds,
-        ...validation.unanchoredComponentIds,
-      ];
-      if (blockingViolations.length > 0) {
-        const violations = [
-          validation.underConstrainedIds.length > 0
-            ? vscode.l10n.t("under-constrained items: {0}",
-                validation.underConstrainedIds.join(", "))
-            : undefined,
-          validation.overConstrainedIds.some(
-            (id) => !validation.duplicateEndpointIds.includes(id),
-          )
-            ? vscode.l10n.t("over-constrained items: {0}",
-                validation.overConstrainedIds
-                  .filter((id) => !validation.duplicateEndpointIds.includes(id))
-                  .join(", "))
-            : undefined,
-          validation.danglingDependencyIds.length > 0
-            ? vscode.l10n.t("dangling dependencies: {0}",
-                validation.danglingDependencyIds.join(", "))
-            : undefined,
-          validation.groupDependencyIds.length > 0
-            ? vscode.l10n.t("group dependencies: {0}",
-                validation.groupDependencyIds.join(", "))
-            : undefined,
-          validation.unanchoredComponentIds.length > 0
-            ? vscode.l10n.t("unanchored components: {0}",
-                validation.unanchoredComponentIds.join(", "))
-            : undefined,
-        ].filter((message): message is string => message !== undefined);
+      const blocking = blockingDiagnostics(evaluateScheduleGraph(parsed));
+      if (blocking.length > 0) {
         void vscode.window.showErrorMessage(
-          vscode.l10n.t("Cannot apply update: {0}", violations.join("; ")),
+          vscode.l10n.t(
+            "Cannot apply update: {0}",
+            summarizeBlockingDiagnostics(blocking),
+          ),
         );
         return;
       }

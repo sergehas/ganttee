@@ -19,7 +19,7 @@ import {
   Task,
   TaskEntity,
 } from "../common/models";
-import { validateStructuralGraph } from "./dependencyGraphService";
+import { assertAcyclicGraph } from "./dependencyGraphService";
 
 /**
  * Converts a validated plain document into a {@link GanttModel}, parsing each
@@ -50,7 +50,7 @@ export function hydrateDocument(document: GanttDocument): GanttModel {
     groups,
     dependencies,
     document.version,
-    validateStructuralGraph(document, true, true),
+    assertAcyclicGraph(document),
     document.settings,
   );
 }
