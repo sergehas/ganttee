@@ -24,6 +24,7 @@ import {
     ScheduleGraphSanitization,
 } from "../../services/documentSanitizationService";
 import { buildTaskOrMilestoneDeletionDocument } from "../../services/entityEditWorkflowService";
+import { selectGroupScheduleScope } from "../../services/groupHierarchyService";
 import {
     blockingDiagnostics,
     evaluateScheduleGraph,
@@ -350,37 +351,29 @@ export class GanttEditorController {
    * and all connected edges.
    */
   private buildGroupDeleteCascadeModel(groupId: string): GanttDocument {
-    const groupIds = collectGroupSubtreeIds(this._document.groups, groupId);
-    const groupIdSet = new Set(groupIds);
-    const deletedEntityIds = new Set<string>();
+    const scope = selectGroupScheduleScope(this._document, groupId);
+    const deletedEntityIds = new Set([
+      ...scope.tasks.map((task) => task.id),
+      ...scope.milestones.map((milestone) => milestone.id),
+    ]);
 
-    const groups = this._document.groups.filter(
-      (group) => !groupIdSet.has(group.id),
-    );
-    const tasks = this._document.tasks.filter((task) => {
-      const inSubtree =
-        task.groupId !== undefined && groupIdSet.has(task.groupId);
-      if (inSubtree) {
-        deletedEntityIds.add(task.id);
-      }
-      return !inSubtree;
-    });
-    const milestones = this._document.milestones.filter((milestone) => {
-      const inSubtree =
-        milestone.groupId !== undefined && groupIdSet.has(milestone.groupId);
-      if (inSubtree) {
-        deletedEntityIds.add(milestone.id);
-      }
-      return !inSubtree;
-    });
-
-    const dependencies = this._document.dependencies.filter(
-      (dep) =>
-        !deletedEntityIds.has(dep.sourceId) &&
-        !deletedEntityIds.has(dep.targetId),
-    );
-
-    return { ...this._document, groups, tasks, milestones, dependencies };
+    return {
+      ...this._document,
+      groups: this._document.groups.filter(
+        (group) => !scope.groupIds.has(group.id),
+      ),
+      tasks: this._document.tasks.filter(
+        (task) => !deletedEntityIds.has(task.id),
+      ),
+      milestones: this._document.milestones.filter(
+        (milestone) => !deletedEntityIds.has(milestone.id),
+      ),
+      dependencies: this._document.dependencies.filter(
+        (dependency) =>
+          !deletedEntityIds.has(dependency.sourceId) &&
+          !deletedEntityIds.has(dependency.targetId),
+      ),
+    };
   }
 
   /**
@@ -627,28 +620,4 @@ function findAndReplaceExistingById<T extends { id: string }>(
   const copy = items.slice();
   copy[index] = next;
   return copy;
-}
-
-/**
- * Collects all group ids in a subtree, including the root group id.
- */
-function collectGroupSubtreeIds(
-  groups: Group[],
-  rootGroupId: string,
-): string[] {
-  const collected = new Set<string>([rootGroupId]);
-  let frontier = [rootGroupId];
-  while (frontier.length > 0) {
-    const nextFrontier: string[] = [];
-    for (const parentId of frontier) {
-      for (const group of groups) {
-        if (group.groupId === parentId && !collected.has(group.id)) {
-          collected.add(group.id);
-          nextFrontier.push(group.id);
-        }
-      }
-    }
-    frontier = nextFrontier;
-  }
-  return [...collected];
 }

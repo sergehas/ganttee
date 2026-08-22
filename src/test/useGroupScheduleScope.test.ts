@@ -3,14 +3,14 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { GanttDocument } from "../common/models";
 import {
-  GroupScheduleScope,
+  GroupScheduleScopeView,
   useGroupScheduleScope,
 } from "../webview/hooks/useGroupScheduleScope";
 
 suite("useGroupScheduleScope", () => {
   test("returns derived schedule and direct member rows", () => {
     const document = createDocument();
-    let capturedScope: GroupScheduleScope | undefined;
+    let capturedScope: GroupScheduleScopeView | undefined;
 
     const HookProbe = (): React.ReactElement => {
       capturedScope = useGroupScheduleScope(document, "g1");
@@ -22,7 +22,7 @@ suite("useGroupScheduleScope", () => {
     assert.deepStrictEqual(capturedScope?.schedule, {
       start: "2026-01-01",
       end: "2026-01-06",
-      duration: "5",
+      durationDays: 5,
     });
     assert.deepStrictEqual(
       capturedScope?.directMemberRows.map((row) => row.id).sort(),
