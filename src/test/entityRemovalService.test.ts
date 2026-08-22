@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { GanttDocument, Milestone, Task } from "../common/models";
+import { GanttDocument } from "../common/models";
 import {
   buildTaskOrMilestoneDeletionDocument,
   buildUngroupUpdate,
@@ -37,6 +37,13 @@ suite("entityRemovalService", () => {
     );
     assert.strictEqual(
       buildUngroupUpdate(document, { kind: "milestone", id: "missing" }),
+      undefined,
+    );
+  });
+
+  test("returns undefined when the entity to delete is missing", () => {
+    assert.strictEqual(
+      buildTaskOrMilestoneDeletionDocument(createDocument(), "task", "missing"),
       undefined,
     );
   });
@@ -170,6 +177,58 @@ suite("entityRemovalService", () => {
     assert.deepStrictEqual(next?.dependencies, []);
   });
 
+  test("materializes a task end before deleting a milestone end-with anchor", () => {
+    const document: GanttDocument = {
+      ...createDocument(),
+      tasks: [{ id: "source", name: "Source", start: "2026-01-01" }],
+      milestones: [{ id: "anchor", name: "Anchor", date: "2026-01-03" }],
+      dependencies: [
+        {
+          id: "end-with",
+          sourceId: "source",
+          targetId: "anchor",
+          type: "endWith",
+        },
+      ],
+    };
+
+    const next = buildTaskOrMilestoneDeletionDocument(
+      document,
+      "milestone",
+      "anchor",
+    );
+
+    assert.deepStrictEqual(next?.tasks, [
+      { id: "source", name: "Source", start: "2026-01-01", end: "2026-01-03" },
+    ]);
+  });
+
+  test("ignores dependencies from non-task sources and unrelated targets", () => {
+    const document: GanttDocument = {
+      ...createDocument(),
+      groups: [{ id: "source", name: "Source" }],
+      dependencies: [
+        {
+          id: "group-source",
+          sourceId: "source",
+          targetId: "t1",
+          type: "startWith",
+        },
+        {
+          id: "unrelated",
+          sourceId: "t1",
+          targetId: "m1",
+          type: "startAfter",
+        },
+      ],
+    };
+
+    const next = buildTaskOrMilestoneDeletionDocument(document, "task", "t1");
+
+    assert.deepStrictEqual(next?.tasks, []);
+    assert.deepStrictEqual(next?.dependencies, []);
+  });
+
   test("blocks deletion when a milestone anchor has no resolvable date", () => {
     const document: GanttDocument = {
       ...createDocument(),
@@ -186,6 +245,27 @@ suite("entityRemovalService", () => {
 
     assert.strictEqual(
       buildTaskOrMilestoneDeletionDocument(document, "milestone", "anchor"),
+      undefined,
+    );
+  });
+
+  test("blocks deletion when a task anchor has no resolvable date", () => {
+    const baseDocument = createDocument();
+    const document: GanttDocument = {
+      ...baseDocument,
+      tasks: [...baseDocument.tasks, { id: "anchor", name: "Undated" }],
+      dependencies: [
+        {
+          id: "start-with",
+          sourceId: "t1",
+          targetId: "anchor",
+          type: "startWith",
+        },
+      ],
+    };
+
+    assert.strictEqual(
+      buildTaskOrMilestoneDeletionDocument(document, "task", "anchor"),
       undefined,
     );
   });
