@@ -21,7 +21,14 @@ export default [{
 
         curly: "warn",
         eqeqeq: "warn",
+        "max-lines": ["warn", { max: 600, skipBlankLines: true, skipComments: true }],
         "no-throw-literal": "warn",
         semi: "warn",
+    },
+}, {
+    // Test files carry exhaustive rule matrices; size is data, not design.
+    files: ["src/test/**/*.ts"],
+    rules: {
+        "max-lines": "off",
     },
 }];

@@ -13,6 +13,13 @@ Canonical reference: https://github.com/microsoft/vscode/wiki/Writing-Tests
 error paths, early returns) needs a covering test. A change that drops branch coverage below 90%
 is not mergeable — add tests for the missing branches or justify and adjust the change.
 
+## Running Tests
+
+- Iterate on one suite: `npx vscode-test --grep "<suiteName>"`.
+- `out/` is never cleaned. After renaming or deleting a test file, delete `out/` first —
+  stale compiled suites keep running and silently inflate the pass count.
+- Run the full `npm test` gate before committing, not while iterating.
+
 ## Writing Unit Tests
 
 Tests use Mocha's BDD interface (`suite`/`test`) with the `assert` module and `sinon` for mocks.
