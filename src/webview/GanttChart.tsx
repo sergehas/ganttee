@@ -14,14 +14,22 @@ import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
 import {
-  DependencyType,
   effectiveEnd,
   effectiveStart,
   GanttDocument,
   Milestone,
-  Task,
 } from "../common/models";
 import { EditableEntityRef } from "../common/protocol";
+import {
+  buildChartRows,
+  chartDateRange,
+  chartTooltipFormatter,
+  countChartRows,
+  dependencyLinkEndpoints,
+  entityFromChartEvent,
+  schedulableById,
+  toChartMs,
+} from "./utils/chartUtils";
 
 echarts.use([
   CustomChart,
@@ -33,15 +41,6 @@ echarts.use([
 
 const ROW_HEIGHT = 28;
 const BAR_RATIO = 0.6;
-
-interface Row {
-  /** Entity identifier represented by the row. */
-  id: string;
-  /** Label displayed on the chart axis. */
-  label: string;
-  /** Entity kind represented by the row. */
-  kind: "task" | "milestone";
-}
 
 interface GanttChartProps {
   /** Current parsed Gantt document. */
@@ -73,13 +72,13 @@ export function GanttChart(props: GanttChartProps): JSX.Element {
     chartRef.current = chart;
 
     chart.on("click", (params) => {
-      const entity = entityFromEvent(params);
+      const entity = entityFromChartEvent(params);
       if (entity) {
         propsRef.current.onSelectEntity(entity);
       }
     });
     chart.on("dblclick", (params) => {
-      const entity = entityFromEvent(params);
+      const entity = entityFromChartEvent(params);
       if (entity) {
         if (isDirectEditGesture(params)) {
           propsRef.current.onNudgeEntityByDays?.(entity, 1);
@@ -105,7 +104,7 @@ export function GanttChart(props: GanttChartProps): JSX.Element {
     }
     chart.setOption(buildOption(props.document, props.selectedEntity), true);
     if (containerRef.current) {
-      const rows = countRows(props.document);
+      const rows = countChartRows(props.document);
       containerRef.current.style.height = `${Math.max(rows, 1) * ROW_HEIGHT + 80}px`;
       chart.resize();
     }
@@ -114,40 +113,13 @@ export function GanttChart(props: GanttChartProps): JSX.Element {
   return <div className="ganttee-chart" ref={containerRef} />;
 }
 
-/** Counts task and milestone rows needed by the chart. */
-function countRows(document: GanttDocument): number {
-  return document.tasks.length + document.milestones.length;
-}
-
-/** Builds chart rows and their entity-to-row index lookup. */
-function buildRows(document: GanttDocument): {
-  rows: Row[];
-  indexById: Map<string, number>;
-} {
-  const rows: Row[] = [
-    ...document.tasks.map(
-      (task): Row => ({ id: task.id, label: task.name, kind: "task" }),
-    ),
-    ...document.milestones.map(
-      (milestone): Row => ({
-        id: milestone.id,
-        label: milestone.name,
-        kind: "milestone",
-      }),
-    ),
-  ];
-  const indexById = new Map<string, number>();
-  rows.forEach((row, index) => indexById.set(row.id, index));
-  return { rows, indexById };
-}
-
 /** Builds the ECharts option from the current document and selection. */
 function buildOption(
   document: GanttDocument,
   selectedEntity: EditableEntityRef | null,
 ): echarts.EChartsCoreOption {
-  const { rows, indexById } = buildRows(document);
-  const range = dateRange(document);
+  const { rows, indexById } = buildChartRows(document);
+  const range = chartDateRange(document);
 
   const taskData = document.tasks
     .map((task) => {
@@ -157,7 +129,7 @@ function buildOption(
         return undefined;
       }
       return {
-        value: [indexById.get(task.id) ?? 0, toMs(start), toMs(end)],
+        value: [indexById.get(task.id) ?? 0, toChartMs(start), toChartMs(end)],
         task,
         selected:
           selectedEntity?.kind === "task" && selectedEntity.id === task.id,
@@ -171,7 +143,7 @@ function buildOption(
         milestone.date !== undefined,
     )
     .map((milestone) => ({
-      value: [indexById.get(milestone.id) ?? 0, toMs(milestone.date)],
+      value: [indexById.get(milestone.id) ?? 0, toChartMs(milestone.date)],
       milestone,
       selected:
         selectedEntity?.kind === "milestone" &&
@@ -200,7 +172,7 @@ function buildOption(
     animation: false,
     tooltip: {
       trigger: "item",
-      formatter: tooltipFormatter,
+      formatter: chartTooltipFormatter,
     },
     grid: { left: 160, right: 24, top: 40, bottom: 40 },
     xAxis: {
@@ -323,39 +295,6 @@ const renderLink: CustomSeriesRenderItem = (
   };
 };
 
-/** Formats task and milestone data for the chart tooltip. */
-function tooltipFormatter(params: unknown): string {
-  const data = (
-    params as {
-      data?: { task?: Task; milestone?: { name: string; date: string } };
-    }
-  ).data;
-  if (data?.task) {
-    const start = effectiveStart(data.task) ?? "—";
-    const end = effectiveEnd(data.task) ?? "—";
-    return `<strong>${escapeHtml(data.task.name)}</strong><br/>${start} → ${end}`;
-  }
-  if (data?.milestone) {
-    return `<strong>${escapeHtml(data.milestone.name)}</strong><br/>${data.milestone.date}`;
-  }
-  return "";
-}
-
-/** Extracts an editable entity reference from an ECharts event payload. */
-function entityFromEvent(params: unknown): EditableEntityRef | undefined {
-  const event = params as {
-    seriesName?: string;
-    data?: { task?: Task; milestone?: Milestone };
-  };
-  if (event.seriesName === "tasks" && event.data?.task) {
-    return { kind: "task", id: event.data.task.id };
-  }
-  if (event.seriesName === "milestones" && event.data?.milestone) {
-    return { kind: "milestone", id: event.data.milestone.id };
-  }
-  return undefined;
-}
-
 /**
  * Returns whether a chart event should be treated as a direct-edit gesture.
  *
@@ -372,112 +311,4 @@ function isDirectEditGesture(params: unknown): boolean {
     };
   };
   return Boolean(event.event?.event?.ctrlKey || event.event?.event?.metaKey);
-}
-
-/** Computes the visible time range around all scheduled entities. */
-function dateRange(document: GanttDocument): { min: number; max: number } {
-  const values: number[] = [];
-  for (const task of document.tasks) {
-    const start = effectiveStart(task);
-    const end = effectiveEnd(task);
-    if (start !== undefined) {
-      values.push(toMs(start));
-    }
-    if (end !== undefined) {
-      values.push(toMs(end));
-    }
-  }
-  for (const milestone of document.milestones) {
-    if (milestone.date === undefined) {
-      continue;
-    }
-    values.push(toMs(milestone.date));
-  }
-  if (values.length === 0) {
-    const now = Date.now();
-    return { min: now - DAY * 3, max: now + DAY * 14 };
-  }
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  return { min: min - DAY * 2, max: max + DAY * 2 };
-}
-
-/**
- * Resolves link endpoints as anchor-to-owner coordinates for the given type.
- */
-function dependencyLinkEndpoints(
-  type: DependencyType,
-  source: SchedulableRef,
-  target: SchedulableRef,
-): [number, number] | undefined {
-  const sourceStart = source.start;
-  const sourceEnd = source.end;
-  const targetStart = target.start;
-  const targetEnd = target.end;
-  switch (type) {
-    case "startAfter":
-      return endpointsOf(targetEnd, sourceStart);
-    case "startWith":
-      return endpointsOf(targetStart, sourceStart);
-    case "endWith":
-      return endpointsOf(targetEnd, sourceEnd);
-  }
-}
-
-interface SchedulableRef {
-  /** Entity identifier used by a dependency endpoint. */
-  id: string;
-  /** Effective start date, when available. */
-  start: string | undefined;
-  /** Effective end date, when available. */
-  end: string | undefined;
-}
-
-/** Resolves a task or milestone into dependency scheduling coordinates. */
-function schedulableById(
-  document: GanttDocument,
-  id: string,
-): SchedulableRef | undefined {
-  const task = document.tasks.find((current) => current.id === id);
-  if (task) {
-    return {
-      id: task.id,
-      start: effectiveStart(task),
-      end: effectiveEnd(task),
-    };
-  }
-  const milestone = document.milestones.find((current) => current.id === id);
-  if (!milestone) {
-    return undefined;
-  }
-  return { id: milestone.id, start: milestone.date, end: milestone.date };
-}
-
-/**
- * Converts a pair of optional ISO dates into millisecond endpoints, or
- * `undefined` when either date is missing.
- */
-function endpointsOf(
-  anchor: string | undefined,
-  owner: string | undefined,
-): [number, number] | undefined {
-  if (anchor === undefined || owner === undefined) {
-    return undefined;
-  }
-  return [toMs(anchor), toMs(owner)];
-}
-
-const DAY = 24 * 60 * 60 * 1000;
-
-/** Converts an ISO calendar date to a local midnight timestamp. */
-function toMs(isoDate: string): number {
-  return new Date(`${isoDate}T00:00:00`).getTime();
-}
-
-/** Escapes entity text before it is inserted into tooltip HTML. */
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
 }
