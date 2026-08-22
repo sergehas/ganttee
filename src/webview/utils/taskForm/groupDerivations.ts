@@ -1,3 +1,4 @@
+import { diffIsoDates } from "../../../common/dates";
 import {
   effectiveEnd,
   effectiveStart,
@@ -105,7 +106,7 @@ export function computeGroupEffectiveSchedule(
     starts[0],
   );
   const end = ends.reduce((max, date) => (date > max ? date : max), ends[0]);
-  const duration = Math.max(0, diffInDays(start, end));
+  const duration = Math.max(0, diffIsoDates(start, end));
 
   return {
     start,
@@ -150,11 +151,4 @@ export function buildDirectGroupMemberRows(
     }));
 
   return [...groupRows, ...taskRows, ...milestoneRows];
-}
-
-/** Returns the number of whole days between two ISO date strings (end minus start). */
-function diffInDays(start: string, end: string): number {
-  const startMs = new Date(`${start}T00:00:00`).getTime();
-  const endMs = new Date(`${end}T00:00:00`).getTime();
-  return (endMs - startMs) / (24 * 60 * 60 * 1000);
 }

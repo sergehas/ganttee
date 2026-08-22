@@ -160,7 +160,13 @@ export function chartTooltipFormatter(params: unknown): string {
   return "";
 }
 
-/** Converts an ISO calendar date to a local midnight timestamp. */
+/**
+ * Converts an ISO calendar date to a local midnight timestamp.
+ *
+ * Local (not UTC) midnight is deliberate: the ECharts axis is a `time` axis
+ * without `useUTC`, so it labels ticks in local time. Do not use this for date
+ * arithmetic — use {@link diffIsoDates} instead.
+ */
 export function toChartMs(isoDate: string): number {
   return new Date(`${isoDate}T00:00:00`).getTime();
 }

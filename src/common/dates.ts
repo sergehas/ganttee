@@ -54,3 +54,17 @@ export function addDays(date: Date, days: number): Date {
 export function diffInDays(from: Date, to: Date): number {
   return (to.getTime() - from.getTime()) / MS_PER_DAY;
 }
+
+/**
+ * Returns the number of calendar days between two date-only ISO strings.
+ *
+ * Parsing goes through {@link parseIsoDate}, so the result is free of the
+ * daylight-saving drift that local-midnight parsing introduces.
+ *
+ * @param start The inclusive start date (`YYYY-MM-DD`).
+ * @param end The end date (`YYYY-MM-DD`).
+ * @returns `end − start` expressed in decimal days.
+ */
+export function diffIsoDates(start: string, end: string): number {
+  return diffInDays(parseIsoDate(start), parseIsoDate(end));
+}
