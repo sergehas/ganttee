@@ -64,6 +64,30 @@ suite("entityEditWorkflowService", () => {
     assert.strictEqual(update?.kind, "milestone");
   });
 
+  test("blocks an undated milestone with both outgoing endpoint constraint types", () => {
+    const update = buildSaveUpdate(
+      "milestone",
+      { id: "m1", name: "Milestone" },
+      undefined,
+      [
+        {
+          id: "start",
+          sourceId: "m1",
+          targetId: "t1",
+          type: "startAfter",
+        },
+        {
+          id: "end",
+          sourceId: "m1",
+          targetId: "t1",
+          type: "endWith",
+        },
+      ],
+    );
+
+    assert.strictEqual(update, undefined);
+  });
+
   test("allows duplicate endpoint warnings to be saved", () => {
     const taskUpdate = buildSaveUpdate(
       "task",

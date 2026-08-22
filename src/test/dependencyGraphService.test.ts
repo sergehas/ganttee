@@ -42,16 +42,41 @@ suite("dependencyGraphService", () => {
   test("sanitizes invalid dependencies and unanchored components", () => {
     const document = createEmptyDocument();
     document.tasks = [
-      { id: "anchored", name: "Anchored", start: "2026-01-01", end: "2026-01-02" },
+      {
+        id: "anchored",
+        name: "Anchored",
+        start: "2026-01-01",
+        end: "2026-01-02",
+      },
       { id: "floating", name: "Floating" },
       { id: "floating-2", name: "Floating 2" },
-      { id: "grouped", name: "Grouped", start: "2026-01-03", end: "2026-01-04" },
+      {
+        id: "grouped",
+        name: "Grouped",
+        start: "2026-01-03",
+        end: "2026-01-04",
+      },
     ];
     document.groups = [{ id: "group", name: "Group" }];
     document.dependencies = [
-      { id: "group-edge", sourceId: "grouped", targetId: "group", type: "startAfter" },
-      { id: "dangling", sourceId: "anchored", targetId: "missing", type: "startAfter" },
-      { id: "floating-edge", sourceId: "floating", targetId: "floating-2", type: "startAfter" },
+      {
+        id: "group-edge",
+        sourceId: "grouped",
+        targetId: "group",
+        type: "startAfter",
+      },
+      {
+        id: "dangling",
+        sourceId: "anchored",
+        targetId: "missing",
+        type: "startAfter",
+      },
+      {
+        id: "floating-edge",
+        sourceId: "floating",
+        targetId: "floating-2",
+        type: "startAfter",
+      },
     ];
 
     const result = sanitizeDocument(document);
@@ -68,6 +93,68 @@ suite("dependencyGraphService", () => {
     ]);
     assert.deepStrictEqual(result.document.dependencies, []);
     assert.strictEqual(document.dependencies.length, 3);
+  });
+
+  test("sanitizes dangling source and target dependencies", () => {
+    const document = documentWith(
+      ["task"],
+      [
+        {
+          id: "missing-source",
+          sourceId: "missing",
+          targetId: "task",
+          type: "startAfter",
+        },
+        {
+          id: "missing-target",
+          sourceId: "task",
+          targetId: "missing",
+          type: "startAfter",
+        },
+      ],
+    );
+
+    const result = sanitizeDocument(document);
+
+    assert.deepStrictEqual(result.removedDependencyIds, [
+      "missing-source",
+      "missing-target",
+    ]);
+    assert.deepStrictEqual(result.document.dependencies, []);
+    assert.deepStrictEqual(
+      document.dependencies.map((dependency) => dependency.id),
+      ["missing-source", "missing-target"],
+    );
+  });
+
+  test("sanitizes group source and target dependencies without deleting the group", () => {
+    const document = documentWith(
+      ["task"],
+      [
+        {
+          id: "group-source",
+          sourceId: "group",
+          targetId: "task",
+          type: "startAfter",
+        },
+        {
+          id: "group-target",
+          sourceId: "task",
+          targetId: "group",
+          type: "endWith",
+        },
+      ],
+    );
+    document.groups = [{ id: "group", name: "Group" }];
+
+    const result = sanitizeDocument(document);
+
+    assert.deepStrictEqual(result.removedDependencyIds, [
+      "group-source",
+      "group-target",
+    ]);
+    assert.deepStrictEqual(result.removedEntityIds, []);
+    assert.deepStrictEqual(result.document.groups, document.groups);
   });
 
   test("accepts a valid acyclic structural graph", () => {
@@ -173,8 +260,18 @@ suite("dependencyGraphService", () => {
       { id: "duplicate", name: "Duplicate", date: "2026-01-03" },
     ];
     document.dependencies = [
-      { id: "inferred-end", sourceId: "inferred", targetId: "anchor", type: "endWith" },
-      { id: "duplicate-start", sourceId: "duplicate", targetId: "anchor", type: "startAfter" },
+      {
+        id: "inferred-end",
+        sourceId: "inferred",
+        targetId: "anchor",
+        type: "endWith",
+      },
+      {
+        id: "duplicate-start",
+        sourceId: "duplicate",
+        targetId: "anchor",
+        type: "startAfter",
+      },
     ];
 
     const result = validateSemanticGraph(hydrateDocument(document));
@@ -212,6 +309,7 @@ suite("dependencyGraphService", () => {
 
     assert.strictEqual(result.ok, true);
     assert.deepStrictEqual(result.unanchoredComponentIds, []);
+    assert.deepStrictEqual(result.cycle, []);
   });
 
   test("reports unanchored schedulable components and exempts group-only components", () => {

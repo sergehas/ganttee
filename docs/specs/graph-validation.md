@@ -1,7 +1,7 @@
 ---
 Status: Implementing
 Owner: Copilot
-Last updated: 2026-08-15
+Last updated: 2026-08-22
 ---
 
 # Feature: Scheduling Graph Validation (cycle, determinacy, anchor, dangling)
@@ -350,28 +350,37 @@ when the timeline needs per-item badges (see §9).
 ## 8. UX
 
 Existing documents with validation violations remain accessible for repair.
-Opening raises warnings for invalid dependencies and unanchored components,
-automatically rewrites the source document to remove them, and builds the
-in-memory model from the rewritten document. Persistence actions apply the
-validation rules before changing the document.
+Opening a document applies structural and semantic validation before the model
+is used by the editor. Parse failures and structural hydration failures show a
+localized VS Code error notification that names the offending ids. The previous
+valid model is preserved when hydration fails, so the editor does not replace a
+working view with an invalid or partial model.
+
+When sanitization finds an invalid dependency or an unanchored component, the
+host shows a localized warning and atomically rewrites the source document to
+remove the invalid structure. The model is then rebuilt from that rewritten
+document. If the cleanup rewrite fails, the host shows a localized cleanup
+failure error; it does not silently claim that the invalid structure was
+removed.
 
 - Timeline (ECharts): unchanged in this feature — no per-item badge, since no
   validation payload crosses the protocol boundary.
-- Sidebar tree: invalid nodes and affected dependencies are flagged with a
-  warning affordance and a localized tooltip describing the violated rule.
-- Edit form: task and milestone forms show endpoint-aware validation feedback as
-  static fields and dependencies change. Saving an under-constrained or
-  ordinary over-constrained item is blocked. Duplicate endpoint or date
-  conflicts remain warnings and may be saved for scheduling-engine resolution.
-  A milestone may be saved without a static date only when its outgoing
-  dependencies provide the required endpoint information.
-- Structural hydration failures continue to surface as a localized error message
-  naming the offending ids.
+- Sidebar tree: invalid nodes and affected dependencies display a warning badge.
+  Its localized tooltip is multiline so it can identify the affected ids and
+  describe each violated rule without truncating the diagnostic into one dense
+  line.
+- Edit form: task and milestone forms recompute the shared validation as static
+  fields and dependencies change. Blocking validation errors are shown inline
+  and separately from non-blocking duplicate endpoint or date warnings. Invalid
+  saves are suppressed; host validation reports localized errors and leaves the
+  source document unchanged. Duplicate-only saves are allowed, and their
+  warnings remain visible for scheduling-engine resolution. A milestone may use
+  a dependency-defined date and can be saved without a static date when its
+  outgoing dependencies provide the required endpoint information.
 
-- Warning diagnostics use `vscode.window.showWarningMessage` when an existing
-  document is opened. The warning does not prevent the document from opening;
-  it explains which dependency or component was removed by the automatic
-  document edit.
+Host notifications and sidebar diagnostics are localized. Current webview form
+validation messages are literal English; this is the current form behavior
+while the shared validation rules are used by both host and webview.
 
 Design rationale (values → principles → moves): Value Trust · Principle: never
 trap the user in a file they cannot open · Move: block only what corrupts the

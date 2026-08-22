@@ -1,9 +1,9 @@
 import {
-    Dependency,
-    DependencyGraph,
-    GanttModel,
-    Milestone,
-    Task,
+  Dependency,
+  DependencyGraph,
+  GanttModel,
+  Milestone,
+  Task,
 } from "../common/models";
 
 /** Endpoint-level validation result shared by host and webview consumers. */
@@ -136,9 +136,11 @@ export function getEffectiveTaskConstraintCount(
       dependency.sourceId === task.id && dependency.type === "endWith",
   );
 
-  return Number(staticDescriptor.hasStart || hasDependencyStart) +
+  return (
+    Number(staticDescriptor.hasStart || hasDependencyStart) +
     Number(staticDescriptor.hasDuration) +
-    Number(staticDescriptor.hasEnd || hasDependencyEnd);
+    Number(staticDescriptor.hasEnd || hasDependencyEnd)
+  );
 }
 
 /**
@@ -183,21 +185,20 @@ export function describeMilestoneConstraintValidation(
     milestone.id,
     dependencies,
   );
-  const hasDependencyEnd = hasOutgoingEndDependency(
-    milestone.id,
-    dependencies,
-  );
+  const hasDependencyEnd = hasOutgoingEndDependency(milestone.id, dependencies);
   const hasDate = milestone.date !== undefined && milestone.date.length > 0;
   const hasEffectiveDate = hasDate || hasDependencyStart || hasDependencyEnd;
   const duplicateDate = hasDate && (hasDependencyStart || hasDependencyEnd);
   const underConstrained = !hasEffectiveDate && !duplicateDate;
+  const ordinaryOverConstrained =
+    !hasDate && hasDependencyStart && hasDependencyEnd;
   return {
     count: hasEffectiveDate ? 2 : 0,
     duplicateStart: duplicateDate,
     duplicateEnd: duplicateDate,
     underConstrained,
-    overConstrained: duplicateDate,
-    blocking: underConstrained,
+    overConstrained: duplicateDate || ordinaryOverConstrained,
+    blocking: underConstrained || ordinaryOverConstrained,
   };
 }
 
