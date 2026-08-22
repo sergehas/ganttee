@@ -27,7 +27,7 @@ jobs:
 
   # ── 2. Type-check and lint ─────────────────────────────────────────────────
   quality:
-    name: Quality (type-check + lint)
+    name: Quality (type-check + format:check + lint)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -41,6 +41,8 @@ jobs:
       - run: npm ci
 
       - run: npm run check-types
+
+      - run: npm run format:check
 
       - run: npm run lint
 

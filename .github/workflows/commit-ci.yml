@@ -41,7 +41,7 @@ jobs:
 
   # ── 2. Type-check and lint standalone commits ─────────────────────────────
   quality:
-    name: Quality (type-check + lint)
+    name: Quality (type-check + format:check + lint)
     if: needs.detect-pr.outputs.has-open-pr != 'true'
     needs: detect-pr
     runs-on: ubuntu-latest
@@ -57,6 +57,8 @@ jobs:
       - run: npm ci
 
       - run: npm run check-types
+
+      - run: npm run format:check
 
       - run: npm run lint
 
