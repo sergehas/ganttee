@@ -146,7 +146,7 @@ export function entityFromChartEvent(
 export function chartTooltipFormatter(params: unknown): string {
   const data = (
     params as {
-      data?: { task?: Task; milestone?: { name: string; date: string } };
+      data?: { task?: Task; milestone?: Milestone };
     }
   ).data;
   if (data?.task) {
@@ -155,7 +155,8 @@ export function chartTooltipFormatter(params: unknown): string {
     return `<strong>${escapeChartHtml(data.task.name)}</strong><br/>${start} → ${end}`;
   }
   if (data?.milestone) {
-    return `<strong>${escapeChartHtml(data.milestone.name)}</strong><br/>${data.milestone.date}`;
+    const date = data.milestone.date ?? "—";
+    return `<strong>${escapeChartHtml(data.milestone.name)}</strong><br/>${date}`;
   }
   return "";
 }

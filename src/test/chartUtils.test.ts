@@ -150,7 +150,35 @@ suite("chartUtils", () => {
       }),
       "<strong>Milestone</strong><br/>2026-01-06",
     );
+    assert.strictEqual(
+      chartTooltipFormatter({
+        data: { milestone: { id: "m2", name: "Undated" } },
+      }),
+      "<strong>Undated</strong><br/>—",
+    );
     assert.strictEqual(chartTooltipFormatter({}), "");
+  });
+
+  test("omits an undated milestone from rows and range", () => {
+    const document = createDocument();
+    document.milestones.push({ id: "m-undated", name: "Undated" });
+
+    const rows = buildChartRows(document);
+    const range = chartDateRange(document);
+
+    assert.ok(rows.rows.some((row) => row.id === "m-undated"));
+    assert.ok(range.min < range.max);
+  });
+
+  test("resolves an undated milestone without dates", () => {
+    const document = createDocument();
+    document.milestones.push({ id: "m-undated", name: "Undated" });
+
+    assert.deepStrictEqual(schedulableById(document, "m-undated"), {
+      id: "m-undated",
+      start: undefined,
+      end: undefined,
+    });
   });
 });
 
