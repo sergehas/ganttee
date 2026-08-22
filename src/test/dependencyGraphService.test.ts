@@ -95,6 +95,46 @@ suite("dependencyGraphService", () => {
     assert.strictEqual(document.dependencies.length, 3);
   });
 
+  // Characterization: destruction is unconditional and fully reported, so the
+  // caller can only warn after the fact. Deliberate product behavior.
+  test("removes unanchored entities outright rather than proposing them", () => {
+    const document = createEmptyDocument();
+    document.tasks = [
+      { id: "floating", name: "Floating" },
+      { id: "floating-2", name: "Floating 2" },
+    ];
+    document.milestones = [{ id: "floating-ms", name: "Floating milestone" }];
+    document.dependencies = [
+      {
+        id: "floating-edge",
+        sourceId: "floating",
+        targetId: "floating-2",
+        type: "startAfter",
+      },
+      {
+        id: "floating-ms-edge",
+        sourceId: "floating-ms",
+        targetId: "floating-2",
+        type: "startAfter",
+      },
+    ];
+
+    const result = sanitizeDocument(document);
+
+    assert.deepStrictEqual(result.document.tasks, []);
+    assert.deepStrictEqual(result.document.milestones, []);
+    assert.deepStrictEqual(result.document.dependencies, []);
+    assert.deepStrictEqual(result.removedEntityIds.sort(), [
+      "floating",
+      "floating-2",
+      "floating-ms",
+    ]);
+    assert.deepStrictEqual(result.removedDependencyIds.sort(), [
+      "floating-edge",
+      "floating-ms-edge",
+    ]);
+  });
+
   test("sanitizes dangling source and target dependencies", () => {
     const document = documentWith(
       ["task"],
