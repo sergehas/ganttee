@@ -128,3 +128,7 @@ extension (`best-practices` toolbars/`ResourceLabel`, `observables`,
 `accessibility` `AccessibleContentProvider`, and the design **size** tokens).
 Apply their general spirit, but ignore references to internal `vs/*` modules that
 are unavailable here.
+
+## Language
+
+use **American English** spelling and grammar. Avoid British English, Canadian English, and other variants. Use ASD-STE100.

@@ -7,7 +7,7 @@ description: "Use when writing, structuring, or reviewing a Ganttee feature spec
 A Ganttee feature spec is implementation-ready when an engineer can build and test
 it without further clarification. Keep specs concise; link to code rather than
 restating it.
-Specs are written using english (US) prose. Use mermaid for diagrams.
+Specs are written using English prose. Use mermaid for diagrams.
 
 ## Required Sections
 

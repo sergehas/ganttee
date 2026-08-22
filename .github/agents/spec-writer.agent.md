@@ -16,7 +16,7 @@ file. Specs live in `docs/specs/` by default.
 
 - DO NOT write or edit production code, including configuration files — you **only produce the spec document**.
 - DO NOT include code snippets or implementation samples in the spec.
-  Describe behavior and contracts in plain English (US) or structured prose (tables,
+  Describe behavior and contracts in plain English or structured prose (tables,
   bullet lists, Given/When/Then). If a data-shape must be communicated, use a
   concise field table (name | type | description), never a TypeScript block.
 - Keep the spec at the **functional and architectural level**: what the system
