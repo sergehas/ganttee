@@ -1,6 +1,9 @@
 import * as assert from "assert";
 import { GanttDocument, Milestone, Task } from "../common/models";
-import { buildDatePatchUpdate, buildShiftByDaysPatch } from "../services/entitySchedulePatchService";
+import {
+  buildDatePatchUpdate,
+  buildShiftByDaysPatch,
+} from "../services/entitySchedulePatchService";
 
 suite("entitySchedulePatchService", () => {
   test("builds date patch updates for task and milestone", () => {
@@ -149,7 +152,6 @@ suite("entitySchedulePatchService", () => {
 
     assert.deepStrictEqual(patch, { start: "2026-03-02", end: undefined });
   });
-
 });
 
 function createDocument(): GanttDocument {

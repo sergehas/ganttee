@@ -1,6 +1,9 @@
 import * as assert from "assert";
 import { GanttDocument, Milestone, Task } from "../common/models";
-import { buildDependency, createDependencyId } from "../services/dependencyFactoryService";
+import {
+  buildDependency,
+  createDependencyId,
+} from "../services/dependencyFactoryService";
 
 suite("dependencyFactoryService", () => {
   test("builds dependency only when owner and target are present", () => {

@@ -77,9 +77,10 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       return [
         ...rootGroups.map((group): GanttNode => ({ kind: "group", group })),
         ...ungroupedTasks.map((task): GanttNode => ({ kind: "task", task })),
-        ...ungroupedMilestones.map(
-          (milestone): GanttNode => ({ kind: "milestone", milestone }),
-        ),
+        ...ungroupedMilestones.map((milestone): GanttNode => ({
+          kind: "milestone",
+          milestone,
+        })),
       ];
     }
 
@@ -95,9 +96,10 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       return [
         ...childGroups.map((group): GanttNode => ({ kind: "group", group })),
         ...tasks.map((task): GanttNode => ({ kind: "task", task })),
-        ...milestones.map(
-          (milestone): GanttNode => ({ kind: "milestone", milestone }),
-        ),
+        ...milestones.map((milestone): GanttNode => ({
+          kind: "milestone",
+          milestone,
+        })),
       ];
     }
 

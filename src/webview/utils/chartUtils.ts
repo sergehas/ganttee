@@ -42,16 +42,16 @@ export function buildChartRows(document: GanttDocument): {
   indexById: Map<string, number>;
 } {
   const rows: ChartRow[] = [
-    ...document.tasks.map(
-      (task): ChartRow => ({ id: task.id, label: task.name, kind: "task" }),
-    ),
-    ...document.milestones.map(
-      (milestone): ChartRow => ({
-        id: milestone.id,
-        label: milestone.name,
-        kind: "milestone",
-      }),
-    ),
+    ...document.tasks.map((task): ChartRow => ({
+      id: task.id,
+      label: task.name,
+      kind: "task",
+    })),
+    ...document.milestones.map((milestone): ChartRow => ({
+      id: milestone.id,
+      label: milestone.name,
+      kind: "milestone",
+    })),
   ];
   const indexById = new Map<string, number>();
   rows.forEach((row, index) => indexById.set(row.id, index));

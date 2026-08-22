@@ -1,6 +1,9 @@
 import * as assert from "assert";
 import { GanttDocument, Milestone, Task } from "../common/models";
-import { buildTaskOrMilestoneDeletionDocument, buildUngroupUpdate } from "../services/entityRemovalService";
+import {
+  buildTaskOrMilestoneDeletionDocument,
+  buildUngroupUpdate,
+} from "../services/entityRemovalService";
 
 suite("entityRemovalService", () => {
   test("builds ungroup updates for direct members", () => {
@@ -186,7 +189,6 @@ suite("entityRemovalService", () => {
       undefined,
     );
   });
-
 });
 
 function createDocument(): GanttDocument {

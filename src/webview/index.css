@@ -228,8 +228,7 @@ body {
 .ganttee-table td {
   text-align: left;
   vertical-align: top;
-  padding: var(--vscode-spacing-size40, 4px)
-    var(--vscode-spacing-size60, 6px);
+  padding: var(--vscode-spacing-size40, 4px) var(--vscode-spacing-size60, 6px);
   border-bottom: var(--vscode-strokeThickness, 1px) solid
     var(--vscode-panel-border);
 }

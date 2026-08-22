@@ -1,9 +1,9 @@
 import * as assert from "assert";
 import { CURRENT_DOCUMENT_VERSION } from "../common/models";
 import {
-    GanttParseError,
-    parseDocument,
-    serializeDocument,
+  GanttParseError,
+  parseDocument,
+  serializeDocument,
 } from "../services/ganttDocumentService";
 
 suite("ganttDocumentService", () => {
@@ -179,7 +179,12 @@ suite("ganttDocumentService", () => {
     const text = JSON.stringify({
       tasks: [{ id: "task", name: "Task" }],
       dependencies: [
-        { id: "dependency", sourceId: "task", targetId: "missing", type: "startAfter" },
+        {
+          id: "dependency",
+          sourceId: "task",
+          targetId: "missing",
+          type: "startAfter",
+        },
       ],
     });
 

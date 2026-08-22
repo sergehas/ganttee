@@ -1,6 +1,9 @@
 import * as assert from "assert";
 import { GanttDocument, Milestone, Task } from "../common/models";
-import { buildSaveUpdate, canSaveEntity } from "../services/entitySaveGuardService";
+import {
+  buildSaveUpdate,
+  canSaveEntity,
+} from "../services/entitySaveGuardService";
 
 suite("entitySaveGuardService", () => {
   test("rejects invalid task save updates", () => {
@@ -168,7 +171,6 @@ suite("entitySaveGuardService", () => {
       true,
     );
   });
-
 });
 
 function createDocument(): GanttDocument {
