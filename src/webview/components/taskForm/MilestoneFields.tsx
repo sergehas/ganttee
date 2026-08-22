@@ -1,3 +1,4 @@
+import { describeMilestoneConstraintValidation } from "../../../services/taskConstraintService";
 import { makeUpdater } from "../../hooks/useFieldUpdater";
 import { MilestoneFieldsProps } from "../../types/taskForm";
 import { CommonTextFields } from "./CommonTextFields";
@@ -8,6 +9,10 @@ export function MilestoneFields(props: MilestoneFieldsProps): JSX.Element {
   const { milestone, onChange, ...depProps } = props;
   const { document } = depProps;
   const update = makeUpdater(milestone, onChange);
+  const validation = describeMilestoneConstraintValidation(
+    milestone,
+    document.dependencies,
+  );
 
   return (
     <>
@@ -25,11 +30,20 @@ export function MilestoneFields(props: MilestoneFieldsProps): JSX.Element {
         <span>Date</span>
         <input
           type="date"
-          required
-          value={milestone.date}
+          value={milestone.date ?? ""}
           onChange={(event) => update("date", event.target.value)}
         />
       </label>
+
+      {(validation.underConstrained || validation.overConstrained) && (
+        <div className="ganttee-validation-warning" role="status">
+          <p>
+            {validation.overConstrained
+              ? "Milestone has a duplicate date constraint."
+              : "Milestone needs a date or an outgoing dependency."}
+          </p>
+        </div>
+      )}
 
       <DependencyFields {...depProps} />
     </>

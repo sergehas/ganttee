@@ -1,17 +1,19 @@
 import * as assert from "assert";
 import {
-  effectiveDuration,
-  effectiveEnd,
-  effectiveStart,
-  Milestone,
-  MILESTONE_DURATION,
-  milestoneEnd,
-  milestoneStart,
-  Task,
+    effectiveDuration,
+    effectiveEnd,
+    effectiveStart,
+    Milestone,
+    MILESTONE_DURATION,
+    milestoneEnd,
+    milestoneStart,
+    Task,
 } from "../common/models";
 import {
-  describeTaskConstraints,
-  getEffectiveTaskConstraintCount,
+    describeMilestoneConstraintValidation,
+    describeTaskConstraints,
+    describeTaskConstraintValidation,
+    getEffectiveTaskConstraintCount,
 } from "../services/taskConstraintService";
 
 /** Builds a task with the given optional constraints for a test case. */
@@ -98,6 +100,70 @@ suite("taskConstraintService", () => {
     );
 
     assert.strictEqual(count, 2);
+  });
+
+  test("reports duplicate start and end endpoint constraints", () => {
+    const validation = describeTaskConstraintValidation(
+      task({ start: "2026-01-01", duration: 4, end: "2026-01-05" }),
+      [
+        { id: "s", sourceId: "t1", targetId: "t2", type: "startWith" },
+        { id: "e", sourceId: "t1", targetId: "t3", type: "endWith" },
+      ],
+    );
+
+    assert.deepStrictEqual(validation, {
+      count: 3,
+      duplicateStart: true,
+      duplicateEnd: true,
+      underConstrained: false,
+      overConstrained: true,
+    });
+  });
+
+  test("prioritizes duplicate endpoint over under-constraint", () => {
+    const validation = describeTaskConstraintValidation(
+      task({ start: "2026-01-01" }),
+      [{ id: "s", sourceId: "t1", targetId: "t2", type: "startAfter" }],
+    );
+
+    assert.strictEqual(validation.count, 1);
+    assert.strictEqual(validation.underConstrained, false);
+    assert.strictEqual(validation.overConstrained, true);
+    assert.strictEqual(validation.duplicateStart, true);
+  });
+
+  test("treats multiple outgoing dependencies on one endpoint as one", () => {
+    const validation = describeTaskConstraintValidation(
+      task({ duration: 4 }),
+      [
+        { id: "s1", sourceId: "t1", targetId: "t2", type: "startAfter" },
+        { id: "s2", sourceId: "t1", targetId: "t3", type: "startWith" },
+      ],
+    );
+
+    assert.strictEqual(validation.count, 2);
+    assert.strictEqual(validation.underConstrained, false);
+    assert.strictEqual(validation.overConstrained, false);
+  });
+
+  test("validates milestone date presence and dependency-defined dates", () => {
+    const missing = describeMilestoneConstraintValidation(
+      { id: "m1", name: "Milestone" },
+      [],
+    );
+    const inferred = describeMilestoneConstraintValidation(
+      { id: "m1", name: "Milestone" },
+      [{ id: "d1", sourceId: "m1", targetId: "t1", type: "endWith" }],
+    );
+    const duplicate = describeMilestoneConstraintValidation(
+      { id: "m1", name: "Milestone", date: "2026-01-01" },
+      [{ id: "d1", sourceId: "m1", targetId: "t1", type: "startAfter" }],
+    );
+
+    assert.strictEqual(missing.underConstrained, true);
+    assert.strictEqual(inferred.underConstrained, false);
+    assert.strictEqual(inferred.overConstrained, false);
+    assert.strictEqual(duplicate.overConstrained, true);
   });
 
   test("derives effectiveDuration from start and end", () => {

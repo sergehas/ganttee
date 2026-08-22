@@ -2,8 +2,23 @@ import {
   Dependency,
   DependencyGraph,
   GanttModel,
+  Milestone,
   Task,
 } from "../common/models";
+
+/** Endpoint-level validation result shared by host and webview consumers. */
+export interface ConstraintValidation {
+  /** Number of independent static or dependency-defined constraints. */
+  count: number;
+  /** Whether the static start is also constrained by an outgoing dependency. */
+  duplicateStart: boolean;
+  /** Whether the static end is also constrained by an outgoing dependency. */
+  duplicateEnd: boolean;
+  /** Whether the item has fewer than two independent constraints. */
+  underConstrained: boolean;
+  /** Whether the item has more than two constraints or a duplicate endpoint. */
+  overConstrained: boolean;
+}
 
 /**
  * Classification of a task's scheduling constraints based on how many of
@@ -119,9 +134,84 @@ export function getEffectiveTaskConstraintCount(
       dependency.sourceId === task.id && dependency.type === "endWith",
   );
 
-  return (
-    staticDescriptor.count +
-    Number(hasDependencyStart && !staticDescriptor.hasStart) +
-    Number(hasDependencyEnd && !staticDescriptor.hasEnd)
+  return Number(staticDescriptor.hasStart || hasDependencyStart) +
+    Number(staticDescriptor.hasDuration) +
+    Number(staticDescriptor.hasEnd || hasDependencyEnd);
+}
+
+/**
+ * Describes task endpoint conflicts and independent constraint determinacy.
+ */
+export function describeTaskConstraintValidation(
+  task:
+    | Task
+    | { id: string; start?: unknown; duration?: number; end?: unknown },
+  dependencies: readonly Dependency[],
+): ConstraintValidation {
+  const descriptor = describeTaskConstraints(task);
+  const hasDependencyStart = hasOutgoingStartDependency(task.id, dependencies);
+  const hasDependencyEnd = hasOutgoingEndDependency(task.id, dependencies);
+  const count =
+    Number(descriptor.hasStart || hasDependencyStart) +
+    Number(descriptor.hasDuration) +
+    Number(descriptor.hasEnd || hasDependencyEnd);
+  const duplicateStart = descriptor.hasStart && hasDependencyStart;
+  const duplicateEnd = descriptor.hasEnd && hasDependencyEnd;
+  return {
+    count,
+    duplicateStart,
+    duplicateEnd,
+    underConstrained: count < 2 && !duplicateStart && !duplicateEnd,
+    overConstrained: count > 2 || duplicateStart || duplicateEnd,
+  };
+}
+
+/**
+ * Describes milestone date conflicts and determinacy.
+ */
+export function describeMilestoneConstraintValidation(
+  milestone: Milestone,
+  dependencies: readonly Dependency[],
+): ConstraintValidation {
+  const hasDependencyStart = hasOutgoingStartDependency(
+    milestone.id,
+    dependencies,
+  );
+  const hasDependencyEnd = hasOutgoingEndDependency(
+    milestone.id,
+    dependencies,
+  );
+  const hasDate = milestone.date !== undefined && milestone.date.length > 0;
+  const hasEffectiveDate = hasDate || hasDependencyStart || hasDependencyEnd;
+  const duplicateDate = hasDate && (hasDependencyStart || hasDependencyEnd);
+  return {
+    count: hasEffectiveDate ? 2 : 0,
+    duplicateStart: duplicateDate,
+    duplicateEnd: duplicateDate,
+    underConstrained: !hasEffectiveDate,
+    overConstrained: duplicateDate,
+  };
+}
+
+/** Returns whether a source has an outgoing dependency that constrains start. */
+function hasOutgoingStartDependency(
+  entityId: string,
+  dependencies: readonly Dependency[],
+): boolean {
+  return dependencies.some(
+    (dependency) =>
+      dependency.sourceId === entityId &&
+      (dependency.type === "startAfter" || dependency.type === "startWith"),
+  );
+}
+
+/** Returns whether a source has an outgoing dependency that constrains end. */
+function hasOutgoingEndDependency(
+  entityId: string,
+  dependencies: readonly Dependency[],
+): boolean {
+  return dependencies.some(
+    (dependency) =>
+      dependency.sourceId === entityId && dependency.type === "endWith",
   );
 }

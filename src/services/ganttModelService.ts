@@ -50,7 +50,7 @@ export function hydrateDocument(document: GanttDocument): GanttModel {
     groups,
     dependencies,
     document.version,
-    validateStructuralGraph(document),
+    validateStructuralGraph(document, true, true),
     document.settings,
   );
 }
@@ -99,7 +99,8 @@ function toMilestoneEntity(milestone: Milestone): MilestoneEntity {
     name: milestone.name,
     description: milestone.description,
     groupId: milestone.groupId,
-    date: parseIsoDate(milestone.date),
+    date:
+      milestone.date !== undefined ? parseIsoDate(milestone.date) : undefined,
   });
 }
 
@@ -158,8 +159,10 @@ function fromMilestoneEntity(milestone: MilestoneEntity): Milestone {
   const plain: Milestone = {
     id: milestone.id,
     name: milestone.name,
-    date: formatIsoDate(milestone.date),
   };
+  if (milestone.date !== undefined) {
+    plain.date = formatIsoDate(milestone.date);
+  }
   if (milestone.groupId !== undefined) {
     plain.groupId = milestone.groupId;
   }

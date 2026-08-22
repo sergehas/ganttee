@@ -154,13 +154,18 @@ function buildOption(
     })
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
-  const milestoneData = document.milestones.map((milestone) => ({
-    value: [indexById.get(milestone.id) ?? 0, toMs(milestone.date)],
-    milestone,
-    selected:
-      selectedEntity?.kind === "milestone" &&
-      selectedEntity.id === milestone.id,
-  }));
+  const milestoneData = document.milestones
+    .filter(
+      (milestone): milestone is Milestone & { date: string } =>
+        milestone.date !== undefined,
+    )
+    .map((milestone) => ({
+      value: [indexById.get(milestone.id) ?? 0, toMs(milestone.date)],
+      milestone,
+      selected:
+        selectedEntity?.kind === "milestone" &&
+        selectedEntity.id === milestone.id,
+    }));
 
   const linkData = document.dependencies
     .map((dep) => {
@@ -366,6 +371,9 @@ function dateRange(document: GanttDocument): { min: number; max: number } {
     }
   }
   for (const milestone of document.milestones) {
+    if (milestone.date === undefined) {
+      continue;
+    }
     values.push(toMs(milestone.date));
   }
   if (values.length === 0) {

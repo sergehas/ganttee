@@ -16,7 +16,10 @@ import {
   ParallelEdgeDependencyError,
   SelfLoopDependencyError,
 } from "../common/models";
-import { getEffectiveConstraintCount } from "./taskConstraintService";
+import {
+  describeMilestoneConstraintValidation,
+  describeTaskConstraintValidation,
+} from "./taskConstraintService";
 
 /** Result of validating the dependency graph of a document. */
 export interface GraphValidationResult {
@@ -29,6 +32,8 @@ export interface GraphValidationResult {
   underConstrainedIds: string[];
   /** Task/milestone ids that are over-constrained (more than 2 effective constraints). */
   overConstrainedIds: string[];
+  /** Items with duplicate constraints on the same endpoint. */
+  duplicateEndpointIds: string[];
   /** Effective constraint count by task id. */
   constraintCounts: Record<string, number>;
   /** Dependency ids with a group as source or target. */
@@ -50,6 +55,7 @@ export interface GraphValidationResult {
 export function validateStructuralGraph(
   document: GanttDocument,
   checkCycles = true,
+  allowDangling = false,
 ): DependencyGraph {
   const nodeIds = new Set([
     ...document.tasks.map((task) => task.id),
@@ -59,10 +65,10 @@ export function validateStructuralGraph(
 
   const seenPairs = new Set<string>();
   for (const dependency of document.dependencies) {
-    if (!nodeIds.has(dependency.sourceId)) {
+    if (!allowDangling && !nodeIds.has(dependency.sourceId)) {
       throw new DanglingDependencyError(dependency.id, dependency.sourceId);
     }
-    if (!nodeIds.has(dependency.targetId)) {
+    if (!allowDangling && !nodeIds.has(dependency.targetId)) {
       throw new DanglingDependencyError(dependency.id, dependency.targetId);
     }
     if (dependency.sourceId === dependency.targetId) {
@@ -140,22 +146,60 @@ export function validateSemanticGraph(
   // Check determinacy per task
   const underConstrainedIds: string[] = [];
   const overConstrainedIds: string[] = [];
+  const duplicateEndpointIds: string[] = [];
   const constraintCounts: Record<string, number> = {};
 
   for (const task of model.tasks) {
-    const effectiveCount = getEffectiveConstraintCount(task.id, model, graph);
-    constraintCounts[task.id] = effectiveCount;
-    if (effectiveCount < 2) {
+    const validation = describeTaskConstraintValidation(
+      task,
+      model.dependencies,
+    );
+    constraintCounts[task.id] = validation.count;
+    if (validation.underConstrained) {
       underConstrainedIds.push(task.id);
-    } else if (effectiveCount > 2) {
+    } else if (validation.overConstrained) {
       overConstrainedIds.push(task.id);
+    }
+    if (validation.duplicateStart || validation.duplicateEnd) {
+      duplicateEndpointIds.push(task.id);
     }
   }
 
-  // For milestones, apply determinacy check as well
-  // (they have a single `date` constraint, so they need 1 incoming dependency to be determinate)
-  // For now, we'll consider milestones as always determinate (they have a hard date).
-  // This may need adjustment based on the scheduling engine's requirements.
+  for (const milestone of model.milestones) {
+    const validation = describeMilestoneConstraintValidation(
+      {
+        id: milestone.id,
+        name: milestone.name,
+        date:
+          milestone.date === undefined
+            ? undefined
+            : milestone.date.toISOString().slice(0, 10),
+      },
+      model.dependencies,
+    );
+    constraintCounts[milestone.id] = validation.count;
+    if (validation.underConstrained) {
+      underConstrainedIds.push(milestone.id);
+    } else if (validation.overConstrained) {
+      overConstrainedIds.push(milestone.id);
+    }
+    if (validation.duplicateStart || validation.duplicateEnd) {
+      duplicateEndpointIds.push(milestone.id);
+    }
+  }
+
+  const knownIds = new Set([
+    ...model.tasks.map((task) => task.id),
+    ...model.milestones.map((milestone) => milestone.id),
+    ...model.groups.map((group) => group.id),
+  ]);
+  const danglingDependencyIds = model.dependencies
+    .filter(
+      (dependency) =>
+        !knownIds.has(dependency.sourceId) ||
+        !knownIds.has(dependency.targetId),
+    )
+    .map((dependency) => dependency.id);
 
   // Check group-as-endpoint.
   const groupDependencyIds: string[] = [];
@@ -195,9 +239,13 @@ export function validateSemanticGraph(
           break;
         }
       } else if (milestoneIds.has(id)) {
-        // Milestones always have a date, so they always provide an anchor
-        hasAnchor = true;
-        break;
+        const milestone = model.milestones.find(
+          (candidate) => candidate.id === id,
+        );
+        if (milestone?.date !== undefined) {
+          hasAnchor = true;
+          break;
+        }
       }
     }
 
@@ -215,13 +263,15 @@ export function validateSemanticGraph(
   return {
     ok:
       underConstrainedIds.length === 0 &&
-      overConstrainedIds.length === 0 &&
+      overConstrainedIds.every((id) => duplicateEndpointIds.includes(id)) &&
+      danglingDependencyIds.length === 0 &&
       groupDependencyIds.length === 0 &&
       unanchoredComponentIds.length === 0,
     cycle: [], // Semantic validation operates on a hydrated model, so cycles are already excluded
-    danglingDependencyIds: [],
+    danglingDependencyIds,
     underConstrainedIds,
     overConstrainedIds,
+    duplicateEndpointIds,
     constraintCounts,
     groupDependencyIds,
     unanchoredComponentIds,

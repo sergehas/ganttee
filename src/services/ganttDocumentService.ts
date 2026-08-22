@@ -83,7 +83,7 @@ function validateRelations(document: GanttDocument): void {
   validateGroupHierarchy(document.groups);
   validateGroupReferences(document);
   try {
-    validateStructuralGraph(document, false);
+    validateStructuralGraph(document, false, true);
   } catch (error) {
     if (error instanceof Error) {
       throw new GanttParseError(error.message);
@@ -292,8 +292,10 @@ function validateMilestone(raw: unknown, index: number): Milestone {
   const milestone: Milestone = {
     id: requireString(raw.id, `milestones[${index}].id`),
     name: requireString(raw.name, `milestones[${index}].name`),
-    date: requireDate(raw.date, `milestones[${index}].date`),
   };
+  if (raw.date !== undefined) {
+    milestone.date = requireDate(raw.date, `milestones[${index}].date`);
+  }
   if (raw.duration !== undefined && raw.duration !== 0) {
     throw new GanttParseError(
       `milestones[${index}].duration must be 0; milestones are zero-duration.`,

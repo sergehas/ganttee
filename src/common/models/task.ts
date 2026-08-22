@@ -71,19 +71,19 @@ export interface Group extends BaseTask {
  */
 export interface Milestone extends BaseTask {
   /** ISO-8601 date string (YYYY-MM-DD). */
-  date: string;
+  date?: string;
 }
 
 /** The fixed duration, in working days, of every milestone. */
 export const MILESTONE_DURATION = 0;
 
 /** Returns the effective start date of a milestone (its canonical date). */
-export function milestoneStart(milestone: Milestone): string {
+export function milestoneStart(milestone: Milestone): string | undefined {
   return milestone.date;
 }
 
 /** Returns the effective end date of a milestone (its canonical date). */
-export function milestoneEnd(milestone: Milestone): string {
+export function milestoneEnd(milestone: Milestone): string | undefined {
   return milestone.date;
 }
 

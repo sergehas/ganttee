@@ -1,9 +1,9 @@
 import * as assert from "assert";
 import { CURRENT_DOCUMENT_VERSION } from "../common/models";
 import {
-  GanttParseError,
-  parseDocument,
-  serializeDocument,
+    GanttParseError,
+    parseDocument,
+    serializeDocument,
 } from "../services/ganttDocumentService";
 
 suite("ganttDocumentService", () => {
@@ -83,6 +83,14 @@ suite("ganttDocumentService", () => {
       ],
     });
     assert.strictEqual(parseDocument(text).milestones.length, 1);
+  });
+
+  test("accepts a milestone without a date", () => {
+    const text = JSON.stringify({
+      milestones: [{ id: "m1", name: "Dependency-defined" }],
+    });
+
+    assert.strictEqual(parseDocument(text).milestones[0].date, undefined);
   });
 
   test("rejects a milestone with a non-zero duration", () => {
@@ -167,7 +175,7 @@ suite("ganttDocumentService", () => {
     assert.throws(() => parseDocument(text), /must be unique/);
   });
 
-  test("rejects dependencies with unknown endpoints", () => {
+  test("preserves dependencies with unknown endpoints for semantic validation", () => {
     const text = JSON.stringify({
       tasks: [{ id: "task", name: "Task" }],
       dependencies: [
@@ -175,7 +183,14 @@ suite("ganttDocumentService", () => {
       ],
     });
 
-    assert.throws(() => parseDocument(text), /unknown entity/);
+    assert.deepStrictEqual(parseDocument(text).dependencies, [
+      {
+        id: "dependency",
+        sourceId: "task",
+        targetId: "missing",
+        type: "startAfter",
+      },
+    ]);
   });
 
   test("clamps progress into the 0..1 range", () => {

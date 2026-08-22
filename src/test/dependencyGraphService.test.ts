@@ -130,6 +130,46 @@ suite("dependencyGraphService", () => {
     assert.deepStrictEqual(result.overConstrainedIds, ["over"]);
   });
 
+  test("reports milestone determinacy and duplicate endpoints", () => {
+    const document = createEmptyDocument();
+    document.tasks = [
+      { id: "anchor", name: "Anchor", start: "2026-01-01", end: "2026-01-02" },
+    ];
+    document.milestones = [
+      { id: "under", name: "Under" },
+      { id: "inferred", name: "Inferred" },
+      { id: "duplicate", name: "Duplicate", date: "2026-01-03" },
+    ];
+    document.dependencies = [
+      { id: "inferred-end", sourceId: "inferred", targetId: "anchor", type: "endWith" },
+      { id: "duplicate-start", sourceId: "duplicate", targetId: "anchor", type: "startAfter" },
+    ];
+
+    const result = validateSemanticGraph(hydrateDocument(document));
+
+    assert.deepStrictEqual(result.constraintCounts, {
+      anchor: 2,
+      under: 0,
+      inferred: 2,
+      duplicate: 2,
+    });
+    assert.deepStrictEqual(result.underConstrainedIds, ["under"]);
+    assert.deepStrictEqual(result.overConstrainedIds, ["duplicate"]);
+  });
+
+  test("reports dangling dependencies without rejecting hydration", () => {
+    const document = createEmptyDocument();
+    document.tasks = [
+      { id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" },
+    ];
+    document.dependencies = [dep("task", "missing")];
+
+    const result = validateSemanticGraph(hydrateDocument(document));
+
+    assert.deepStrictEqual(result.danglingDependencyIds, ["task-missing"]);
+    assert.strictEqual(result.ok, false);
+  });
+
   test("accepts a determinate anchored task", () => {
     const document = createEmptyDocument();
     document.tasks = [
@@ -188,6 +228,7 @@ suite("dependencyGraphService", () => {
     const result = validateSemanticGraph(hydrateDocument(document));
 
     assert.strictEqual(result.ok, true);
+    assert.deepStrictEqual(result.overConstrainedIds, ["milestone"]);
     assert.deepStrictEqual(result.groupDependencyIds, []);
   });
 

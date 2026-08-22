@@ -53,6 +53,47 @@ suite("entityEditWorkflowService", () => {
     assert.strictEqual(update, undefined);
   });
 
+  test("allows a dependency-defined milestone save", () => {
+    const update = buildSaveUpdate(
+      "milestone",
+      { id: "m1", name: "M" },
+      undefined,
+      [{ id: "d1", sourceId: "m1", targetId: "t1", type: "startAfter" }],
+    );
+
+    assert.strictEqual(update?.kind, "milestone");
+  });
+
+  test("allows duplicate endpoint warnings to be saved", () => {
+    const taskUpdate = buildSaveUpdate(
+      "task",
+      { id: "t1", name: "Task", start: "2026-01-01" },
+      undefined,
+      [{ id: "d1", sourceId: "t1", targetId: "t2", type: "startAfter" }],
+    );
+    const milestoneUpdate = buildSaveUpdate(
+      "milestone",
+      { id: "m1", name: "Milestone", date: "2026-01-01" },
+      undefined,
+      [{ id: "d2", sourceId: "m1", targetId: "t2", type: "endWith" }],
+    );
+
+    assert.strictEqual(taskUpdate?.kind, "task");
+    assert.strictEqual(milestoneUpdate?.kind, "milestone");
+  });
+
+  test("continues blocking ordinary over-constrained task saves", () => {
+    const update = buildSaveUpdate("task", {
+      id: "t1",
+      name: "Task",
+      start: "2026-01-01",
+      duration: 2,
+      end: "2026-01-03",
+    });
+
+    assert.strictEqual(update, undefined);
+  });
+
   test("buildSaveUpdate preserves save options", () => {
     const update = buildSaveUpdate(
       "task",
@@ -420,6 +461,26 @@ suite("entityEditWorkflowService", () => {
     ]);
     assert.deepStrictEqual(next?.milestones, []);
     assert.deepStrictEqual(next?.dependencies, []);
+  });
+
+  test("blocks deletion when a milestone anchor has no resolvable date", () => {
+    const document: GanttDocument = {
+      ...createDocument(),
+      milestones: [{ id: "anchor", name: "Undated" }],
+      dependencies: [
+        {
+          id: "start-with",
+          sourceId: "t1",
+          targetId: "anchor",
+          type: "startWith",
+        },
+      ],
+    };
+
+    assert.strictEqual(
+      buildTaskOrMilestoneDeletionDocument(document, "milestone", "anchor"),
+      undefined,
+    );
   });
 
   test("shifts task with only start defined", () => {

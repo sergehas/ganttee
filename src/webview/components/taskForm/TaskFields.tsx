@@ -1,5 +1,5 @@
 import { TaskStatus } from "../../../common/models";
-import { getEffectiveTaskConstraintCount } from "../../../services/taskConstraintService";
+import { describeTaskConstraintValidation } from "../../../services/taskConstraintService";
 import { makeUpdater } from "../../hooks/useFieldUpdater";
 import { TaskFieldsProps } from "../../types/taskForm";
 import { STATUS_OPTIONS } from "../../utils/taskForm/entityPresentation";
@@ -12,12 +12,10 @@ export function TaskFields(props: TaskFieldsProps): JSX.Element {
   const { document } = depProps;
   const update = makeUpdater(task, onChange);
 
-  const effectiveConstraintCount = getEffectiveTaskConstraintCount(
+  const validation = describeTaskConstraintValidation(
     task,
     document.dependencies,
   );
-  const isUnderConstrained = effectiveConstraintCount < 2;
-  const isOverConstrained = effectiveConstraintCount > 2;
 
   return (
     <>
@@ -101,12 +99,18 @@ export function TaskFields(props: TaskFieldsProps): JSX.Element {
         </select>
       </label>
 
-      {(isUnderConstrained || isOverConstrained) && (
+      {(validation.underConstrained || validation.overConstrained) && (
         <div className="ganttee-validation-warning" role="status">
           <p>
-            {isUnderConstrained
-              ? `Task has ${effectiveConstraintCount} constraint(s); exactly 2 are needed to schedule.`
-              : `Task has ${effectiveConstraintCount} constraints; exactly 2 are needed to schedule.`}
+            {validation.duplicateStart && validation.duplicateEnd
+              ? "Task has duplicate start and end constraints."
+              : validation.duplicateStart
+                ? "Task has duplicate start constraints."
+                : validation.duplicateEnd
+                  ? "Task has duplicate end constraints."
+                  : validation.underConstrained
+                    ? `Task has ${validation.count} constraint(s); exactly 2 are needed to schedule.`
+                    : `Task has ${validation.count} constraints; exactly 2 are needed to schedule.`}
           </p>
         </div>
       )}

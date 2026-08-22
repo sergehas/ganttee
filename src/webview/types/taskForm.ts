@@ -1,14 +1,15 @@
 import {
-  DependencyType,
-  GanttDocument,
-  Group,
-  Milestone,
-  Task,
+    Dependency,
+    DependencyType,
+    GanttDocument,
+    Group,
+    Milestone,
+    Task,
 } from "../../common/models";
 import {
-  EditableEntityKind,
-  EditableEntityMap,
-  EditableEntityRef,
+    EditableEntityKind,
+    EditableEntityMap,
+    EditableEntityRef,
 } from "../../common/protocol";
 import { SaveEntityOptions } from "../../services/entityEditWorkflowService";
 import { DependencyEditorProps } from "../useEntityEditWorkflow";
@@ -27,6 +28,7 @@ export interface TaskFormProps {
     kind: EditableEntityKind,
     entity: EditableEntityMap[EditableEntityKind],
     options?: { keepEditorOpen?: boolean },
+    dependencies?: Dependency[],
   ) => void;
   onDelete: (entity: EditableEntityRef) => void;
   onClose: () => void;

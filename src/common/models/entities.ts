@@ -167,7 +167,7 @@ export class TaskEntity extends BaseTaskEntity {
 /** Construction fields for a {@link MilestoneEntity}. */
 export interface MilestoneEntityProps extends BaseTask {
   /** The milestone's canonical date. */
-  date: Date;
+  date?: Date;
 }
 
 /**
@@ -175,7 +175,7 @@ export interface MilestoneEntityProps extends BaseTask {
  */
 export class MilestoneEntity extends BaseTaskEntity {
   /** The milestone's canonical date. */
-  readonly date: Date;
+  readonly date?: Date;
 
   /**
    * @param props The milestone fields, with the date already parsed to `Date`.
@@ -187,11 +187,21 @@ export class MilestoneEntity extends BaseTaskEntity {
 
   /** @inheritdoc */
   effectiveStart(): Date {
+    if (this.date === undefined) {
+      throw new UnresolvableScheduleError(
+        `Milestone "${this.id}" is under-constrained: cannot derive a date.`,
+      );
+    }
     return this.date;
   }
 
   /** @inheritdoc */
   effectiveEnd(): Date {
+    if (this.date === undefined) {
+      throw new UnresolvableScheduleError(
+        `Milestone "${this.id}" is under-constrained: cannot derive a date.`,
+      );
+    }
     return this.date;
   }
 

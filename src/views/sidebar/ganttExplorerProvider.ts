@@ -82,6 +82,17 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
 
     for (const dependency of model.dependencies) {
       if (
+        validation.danglingDependencyIds.includes(dependency.id) &&
+        (dependency.sourceId === entityId || dependency.targetId === entityId)
+      ) {
+        messages.push(
+          vscode.l10n.t(
+            "Dependency '{0}' references a missing entity.",
+            dependency.id,
+          ),
+        );
+      }
+      if (
         validation.groupDependencyIds.includes(dependency.id) &&
         (dependency.sourceId === entityId || dependency.targetId === entityId)
       ) {

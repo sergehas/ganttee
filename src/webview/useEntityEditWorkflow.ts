@@ -1,18 +1,18 @@
 import { useCallback, useMemo, useState } from "react";
 import { Dependency, DependencyType, GanttDocument } from "../common/models";
 import {
-  EditableEntityKind,
-  EditableEntityMap,
-  EditableEntityRef,
+    EditableEntityKind,
+    EditableEntityMap,
+    EditableEntityRef,
 } from "../common/protocol";
 import {
-  EntityDatePatch,
-  SaveEntityOptions,
-  buildDatePatchUpdate,
-  buildDependency,
-  buildSaveUpdate,
-  buildUngroupUpdate,
-  createDependencyId,
+    EntityDatePatch,
+    SaveEntityOptions,
+    buildDatePatchUpdate,
+    buildDependency,
+    buildSaveUpdate,
+    buildUngroupUpdate,
+    createDependencyId,
 } from "../services/entityEditWorkflowService";
 
 /** Host actions consumed by the shared webview edit workflow. */
@@ -33,6 +33,7 @@ export interface EntityEditWorkflow {
     kind: EditableEntityKind,
     entity: EditableEntityMap[EditableEntityKind],
     options?: SaveEntityOptions,
+    dependencies?: Dependency[],
   ) => void;
   deleteEntity: (entity: EditableEntityRef) => void;
   ungroupEntity: (
@@ -81,8 +82,9 @@ export function useEntityEditWorkflow(
       kind: EditableEntityKind,
       entity: EditableEntityMap[EditableEntityKind],
       options?: SaveEntityOptions,
+      dependencies: Dependency[] = [],
     ) => {
-      const update = buildSaveUpdate(kind, entity, options);
+      const update = buildSaveUpdate(kind, entity, options, dependencies);
       if (update) {
         actions.onSave(update.kind, update.entity, update.options);
       }

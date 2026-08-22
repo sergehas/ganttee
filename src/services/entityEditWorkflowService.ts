@@ -14,6 +14,10 @@ import {
   EditableEntityRef,
 } from "../common/protocol";
 import { hydrateDocument } from "./ganttModelService";
+import {
+  describeMilestoneConstraintValidation,
+  describeTaskConstraintValidation,
+} from "./taskConstraintService";
 
 /** Optional behavior flags for save actions initiated by the webview. */
 export interface SaveEntityOptions {
@@ -45,12 +49,13 @@ export interface EntityDatePatch {
 export function canSaveEntity(
   kind: EditableEntityKind,
   entity: EditableEntityMap[EditableEntityKind],
+  dependencies: readonly Dependency[] = [],
 ): boolean {
   switch (kind) {
     case "task":
-      return canSaveTask(entity as Task);
+      return canSaveTask(entity as Task, dependencies);
     case "milestone":
-      return canSaveMilestone(entity as Milestone);
+      return canSaveMilestone(entity as Milestone, dependencies);
     case "group":
       return canSaveGroup(entity as Group);
   }
@@ -65,8 +70,9 @@ export function buildSaveUpdate(
   kind: EditableEntityKind,
   entity: EditableEntityMap[EditableEntityKind],
   options?: SaveEntityOptions,
+  dependencies: readonly Dependency[] = [],
 ): EditableEntityUpdate | undefined {
-  if (!canSaveEntity(kind, entity)) {
+  if (!canSaveEntity(kind, entity, dependencies)) {
     return undefined;
   }
   switch (kind) {
@@ -169,14 +175,19 @@ export function buildDatePatchUpdate(
       start: patch.start ?? task.start,
       end: patch.end ?? task.end,
     };
-    return buildSaveUpdate("task", updatedTask, options);
+    return buildSaveUpdate(
+      "task",
+      updatedTask,
+      options,
+      document.dependencies,
+    );
   }
 
   if (ref.kind === "milestone") {
     const milestone = document.milestones.find(
       (entity) => entity.id === ref.id,
     );
-    if (!milestone) {
+    if (!milestone || milestone.date === undefined) {
       return undefined;
     }
     const date = patch.date ?? patch.start ?? patch.end;
@@ -187,7 +198,12 @@ export function buildDatePatchUpdate(
       ...milestone,
       date,
     };
-    return buildSaveUpdate("milestone", updatedMilestone, options);
+    return buildSaveUpdate(
+      "milestone",
+      updatedMilestone,
+      options,
+      document.dependencies,
+    );
   }
 
   return undefined;
@@ -231,7 +247,7 @@ export function buildShiftByDaysPatch(
     const milestone = document.milestones.find(
       (entity) => entity.id === ref.id,
     );
-    if (!milestone) {
+    if (!milestone || milestone.date === undefined) {
       return undefined;
     }
     return {
@@ -285,15 +301,17 @@ export function buildTaskOrMilestoneDeletionDocument(
     const update = taskUpdates.get(sourceTask.id) ?? {};
     if (dependency.type === "startWith") {
       const start = resolveEffectiveStart(deletedEntity);
-      if (start !== undefined) {
-        update.start = start;
+      if (start === undefined) {
+        return undefined;
       }
+      update.start = start;
     }
     if (dependency.type === "endWith") {
       const end = resolveEffectiveEnd(deletedEntity);
-      if (end !== undefined) {
-        update.end = end;
+      if (end === undefined) {
+        return undefined;
       }
+      update.end = end;
     }
     taskUpdates.set(sourceTask.id, update);
   }
@@ -342,7 +360,10 @@ function resolveEffectiveEnd(entity: {
 }
 
 /** Returns whether a task draft passes save guards. */
-function canSaveTask(task: Task): boolean {
+function canSaveTask(
+  task: Task,
+  dependencies: readonly Dependency[],
+): boolean {
   if (
     task.start !== undefined &&
     task.end !== undefined &&
@@ -350,12 +371,30 @@ function canSaveTask(task: Task): boolean {
   ) {
     return false;
   }
-  return true;
+  const validation = describeTaskConstraintValidation(task, dependencies);
+  return (
+    !validation.underConstrained &&
+    (!validation.overConstrained ||
+      validation.duplicateStart ||
+      validation.duplicateEnd)
+  );
 }
 
 /** Returns whether a milestone draft passes save guards. */
-function canSaveMilestone(milestone: Milestone): boolean {
-  return milestone.date.length > 0;
+function canSaveMilestone(
+  milestone: Milestone,
+  dependencies: readonly Dependency[],
+): boolean {
+  const validation = describeMilestoneConstraintValidation(
+    milestone,
+    dependencies,
+  );
+  return (
+    !validation.underConstrained &&
+    (!validation.overConstrained ||
+      validation.duplicateStart ||
+      validation.duplicateEnd)
+  );
 }
 
 /** Returns whether a group draft passes save guards. */

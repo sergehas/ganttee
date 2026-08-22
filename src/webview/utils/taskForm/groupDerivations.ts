@@ -89,6 +89,9 @@ export function computeGroupEffectiveSchedule(
   }
 
   for (const milestone of milestones) {
+    if (milestone.date === undefined) {
+      continue;
+    }
     starts.push(milestone.date);
     ends.push(milestone.date);
   }

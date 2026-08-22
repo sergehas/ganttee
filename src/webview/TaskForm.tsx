@@ -43,17 +43,22 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     if (taskDraft) {
-      props.onSave("task", taskDraft);
+      props.onSave("task", taskDraft, undefined, document.dependencies);
       return;
     }
     if (milestoneDraft) {
-      props.onSave("milestone", milestoneDraft);
+      props.onSave(
+        "milestone",
+        milestoneDraft,
+        undefined,
+        document.dependencies,
+      );
       return;
     }
     if (!groupDraft) {
       return;
     }
-    props.onSave("group", groupDraft);
+    props.onSave("group", groupDraft, undefined, document.dependencies);
   };
 
   return (
