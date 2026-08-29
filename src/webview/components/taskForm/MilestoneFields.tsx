@@ -1,13 +1,19 @@
+import { validateMilestoneConstraints } from "../../../services/scheduleConstraintService";
 import { makeUpdater } from "../../hooks/useFieldUpdater";
 import { MilestoneFieldsProps } from "../../types/taskForm";
 import { CommonTextFields } from "./CommonTextFields";
 import { DependencyFields } from "./DependencyFields";
+import { ValidationMessage } from "./ValidationMessage";
 
 /** Renders milestone-specific fields plus dependency editing controls. */
 export function MilestoneFields(props: MilestoneFieldsProps): JSX.Element {
   const { milestone, onChange, ...depProps } = props;
   const { document } = depProps;
   const update = makeUpdater(milestone, onChange);
+  const validation = validateMilestoneConstraints(
+    milestone,
+    document.dependencies,
+  );
 
   return (
     <>
@@ -25,11 +31,25 @@ export function MilestoneFields(props: MilestoneFieldsProps): JSX.Element {
         <span>Date</span>
         <input
           type="date"
-          required
-          value={milestone.date}
+          value={milestone.date ?? ""}
           onChange={(event) => update("date", event.target.value)}
         />
       </label>
+
+      {(validation.underConstrained || validation.overConstrained) && (
+        <>
+          {validation.blocking && (
+            <ValidationMessage severity="error">
+              Milestone needs a date or an outgoing dependency.
+            </ValidationMessage>
+          )}
+          {validation.overConstrained && (
+            <ValidationMessage severity="warning">
+              Milestone has a duplicate date constraint.
+            </ValidationMessage>
+          )}
+        </>
+      )}
 
       <DependencyFields {...depProps} />
     </>

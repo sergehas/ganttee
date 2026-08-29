@@ -22,10 +22,12 @@ These are non-negotiable and enforced in review:
 4. **Cyclomatic complexity ≤ 15:** Every function and method MUST have a cyclomatic
    complexity of 15 or less. Refactor higher-complexity code (extract helpers, use lookup tables
    , simplify branching) before merging.
+5. **Class size ≤ 600 lines:** Every class MUST be no more than 600 lines long. Split larger
+   classes into focused collaborators or extract cohesive responsibilities before merging.
 
 ## Indentation
 
-Use spaces, not tabs.
+Use spaces, not tabs. Width is enforced by Prettier.
 
 ## Naming
 
@@ -37,6 +39,14 @@ Use spaces, not tabs.
 
 - Do not export types or functions unless shared across multiple components
 - Do not introduce new types or values to the global namespace
+- Exported functions take named domain types — no inline anonymous shapes
+- No boolean flag parameters; use intent-named functions instead
+- Report findings as a list of discriminated records, never parallel id arrays
+
+## Dates
+
+- All date math goes through `src/common/dates.ts`. Never build a `Date` from an
+  ISO string elsewhere — local-midnight parsing drifts across DST.
 
 ## Comments
 
@@ -50,13 +60,15 @@ Use spaces, not tabs.
 - Inline comments inside a method body: at most 1 line, and only for a genuine workaround/hack, a
   non-obvious ordering constraint, or a surprising side effect. Never narrate the next statement
   (e.g. `// Expand the variable`, `// loop over args`).
+- Never justify a design decision or name a principle in JSDoc — the rationale belongs in the
+  commit message, not the source.
 
 ## Strings
 
-- `"double quotes"` for user-visible strings that need localization
-- `'single quotes'` for everything else
+- Quote style is owned by Prettier (`npm run format`), not by review
 - **Mandatory:** every user-visible string MUST be externalized via the localization framework
   (`vscode.l10n.t()` / `nls.localize()`) — no string concatenation, use `{0}` placeholders.
+- Every `l10n.t()` key exists in `l10n/bundle.l10n.json`, and the bundle carries no orphans.
 
 ## UI Labels
 
@@ -67,11 +79,10 @@ Use spaces, not tabs.
 ## Style
 
 - Arrow functions over anonymous function expressions
-- Only parenthesize arrow parameters when necessary: `x => x + x` not `(x) => x + x`
 - Always surround loop and conditional bodies with curly braces
-- Open curly braces on the same line
-- No surrounding whitespace in parenthesized constructs
 - Prefer `export function x(…) {…}` over `export const x = (…) => {…}` at top-level scope (better stack traces)
+- Everything else about layout — indentation, quotes, arrow parens, brace placement, wrapping
+  — is owned by Prettier. Run `npm run format`; `npm run compile` verifies it.
 
 ## Code Quality
 

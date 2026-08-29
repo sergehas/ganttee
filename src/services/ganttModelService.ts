@@ -10,19 +10,16 @@
 import { formatIsoDate, parseIsoDate } from "../common/dates";
 import {
   CyclicDependencyError,
-  Dependency,
-  DependencyGraph,
   GanttDocument,
   GanttModel,
   Group,
   GroupEntity,
   Milestone,
   MilestoneEntity,
-  ParallelEdgeDependencyError,
-  SelfLoopDependencyError,
   Task,
   TaskEntity,
 } from "../common/models";
+import { assertAcyclicGraph } from "./dependencyGraphService";
 
 /**
  * Converts a validated plain document into a {@link GanttModel}, parsing each
@@ -53,43 +50,9 @@ export function hydrateDocument(document: GanttDocument): GanttModel {
     groups,
     dependencies,
     document.version,
-    buildGraph(nodeIds, dependencies),
+    assertAcyclicGraph(document),
     document.settings,
   );
-}
-
-/**
- * Builds the structural DAG, rejecting self-loops, parallel edges, and cycles
- * so a returned {@link GanttModel} is always acyclic.
- *
- * @param nodeIds Every entity id in the document.
- * @param dependencies The document's dependency records.
- */
-function buildGraph(
-  nodeIds: readonly string[],
-  dependencies: readonly Dependency[],
-): DependencyGraph {
-  const seenPairs = new Set<string>();
-  for (const dependency of dependencies) {
-    if (dependency.sourceId === dependency.targetId) {
-      throw new SelfLoopDependencyError(dependency.id);
-    }
-    const pair = `${dependency.sourceId}\u0000${dependency.targetId}`;
-    if (seenPairs.has(pair)) {
-      throw new ParallelEdgeDependencyError(
-        dependency.sourceId,
-        dependency.targetId,
-      );
-    }
-    seenPairs.add(pair);
-  }
-
-  const graph = new DependencyGraph(nodeIds, dependencies);
-  const cycle = graph.findCycle();
-  if (cycle.length > 0) {
-    throw new CyclicDependencyError(cycle);
-  }
-  return graph;
 }
 
 /**
@@ -136,7 +99,8 @@ function toMilestoneEntity(milestone: Milestone): MilestoneEntity {
     name: milestone.name,
     description: milestone.description,
     groupId: milestone.groupId,
-    date: parseIsoDate(milestone.date),
+    date:
+      milestone.date !== undefined ? parseIsoDate(milestone.date) : undefined,
   });
 }
 
@@ -195,8 +159,10 @@ function fromMilestoneEntity(milestone: MilestoneEntity): Milestone {
   const plain: Milestone = {
     id: milestone.id,
     name: milestone.name,
-    date: formatIsoDate(milestone.date),
   };
+  if (milestone.date !== undefined) {
+    plain.date = formatIsoDate(milestone.date);
+  }
   if (milestone.groupId !== undefined) {
     plain.groupId = milestone.groupId;
   }

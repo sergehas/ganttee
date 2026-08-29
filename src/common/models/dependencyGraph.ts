@@ -50,6 +50,22 @@ export class CyclicDependencyError extends Error {
   }
 }
 
+/** Thrown when a dependency references an entity that is not in the document. */
+export class DanglingDependencyError extends Error {
+  /**
+   * @param dependencyId The id of the offending dependency.
+   * @param endpointId The missing source or target entity id.
+   */
+  constructor(
+    readonly dependencyId: string,
+    readonly endpointId: string,
+  ) {
+    super(
+      `Dependency "${dependencyId}" references unknown entity "${endpointId}".`,
+    );
+  }
+}
+
 /**
  * Immutable directed graph over a set of node ids and typed dependency edges.
  *

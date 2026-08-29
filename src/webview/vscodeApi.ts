@@ -1,11 +1,15 @@
 import { HostToWebviewMessage, WebviewToHostMessage } from "../common/protocol";
 
 interface VsCodeApi {
+  /** Sends a message to the extension host. */
   postMessage(message: WebviewToHostMessage): void;
+  /** Reads persisted webview state. */
   getState<T>(): T | undefined;
+  /** Persists webview state. */
   setState<T>(state: T): void;
 }
 
+/** Acquires the VS Code webview API exposed by the host. */
 declare function acquireVsCodeApi(): VsCodeApi;
 
 const vscode = acquireVsCodeApi();

@@ -30,9 +30,9 @@ suite("modelHydration integration", () => {
   test("hydrates v2-with-deps: dependency graph has the correct edge count", () => {
     const model = hydrateDocument(loadFixture("v2-with-deps.ganttee"));
 
-    assert.strictEqual(model.dependencies.length, 4);
+    assert.strictEqual(model.dependencies.length, 3);
     assert.strictEqual(model.graph.nodes.length, 5, "4 tasks + 1 milestone");
-    assert.strictEqual(model.dependencies.length, 4, "one edge per dependency");
+    assert.strictEqual(model.dependencies.length, 3, "three dependency edges");
   });
 
   /** Ensures the OO layer introduces no data loss when the document returns to its serialized form. */

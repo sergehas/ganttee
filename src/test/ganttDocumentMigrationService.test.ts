@@ -8,7 +8,7 @@ import {
 } from "../services/ganttDocumentService";
 
 suite("ganttDocumentMigrationService", () => {
-  test("migrates v1 dependency ids and types to v2", () => {
+  test("migrates v1 dependency ids and types to v2, skipping unsupported types", () => {
     const migrated = migrateDocument({
       version: 1,
       tasks: [
@@ -56,7 +56,13 @@ suite("ganttDocumentMigrationService", () => {
       ],
       dependencies: [
         { id: "d1", sourceId: "t2", targetId: "t1", type: "endWith" },
-        { id: "d2", sourceId: "t2", targetId: "t1", type: "endBefore" },
+        // finishAfter is no longer supported; remains unmigrated (raw)
+        {
+          id: "d2",
+          sourceId: "t1",
+          targetId: "t2",
+          type: "finishAfter",
+        },
         { id: "d3", sourceId: "t2", targetId: "t1", type: "startAfter" },
         { id: "d4", sourceId: "t2", targetId: "t1", type: "startWith" },
       ],

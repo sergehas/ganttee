@@ -1,15 +1,19 @@
 import { TaskStatus } from "../../../common/models";
+import { validateTaskConstraints } from "../../../services/scheduleConstraintService";
 import { makeUpdater } from "../../hooks/useFieldUpdater";
 import { TaskFieldsProps } from "../../types/taskForm";
 import { STATUS_OPTIONS } from "../../utils/taskForm/entityPresentation";
 import { CommonTextFields } from "./CommonTextFields";
 import { DependencyFields } from "./DependencyFields";
+import { ValidationMessage } from "./ValidationMessage";
 
 /** Renders task-specific fields plus dependency editing controls. */
 export function TaskFields(props: TaskFieldsProps): JSX.Element {
   const { task, onChange, ...depProps } = props;
   const { document } = depProps;
   const update = makeUpdater(task, onChange);
+
+  const validation = validateTaskConstraints(task, document.dependencies);
 
   return (
     <>
@@ -92,6 +96,27 @@ export function TaskFields(props: TaskFieldsProps): JSX.Element {
           ))}
         </select>
       </label>
+
+      {(validation.underConstrained || validation.overConstrained) && (
+        <>
+          {validation.blocking && (
+            <ValidationMessage severity="error">
+              {validation.underConstrained
+                ? `Task has ${validation.count} constraint(s); exactly 2 are needed to schedule.`
+                : `Task has ${validation.count} constraints; exactly 2 are needed to schedule.`}
+            </ValidationMessage>
+          )}
+          {(validation.duplicateStart || validation.duplicateEnd) && (
+            <ValidationMessage severity="warning">
+              {validation.duplicateStart && validation.duplicateEnd
+                ? "Task has duplicate start and end constraints."
+                : validation.duplicateStart
+                  ? "Task has duplicate start constraints."
+                  : "Task has duplicate end constraints."}
+            </ValidationMessage>
+          )}
+        </>
+      )}
 
       <DependencyFields {...depProps} />
     </>

@@ -18,27 +18,26 @@ clear PASS/FAIL with the failing items.
 
 Run each step; stop and report on the first hard failure (types/lint/build/tests).
 
-1. **Type-check (host + webview):** `npm run check-types` — must be clean.
-2. **Lint:** `npm run lint` — must be clean.
-3. **Build both bundles:** `node esbuild.js` (or `npm run compile`) — must succeed;
-   for a release also run `npm run package` (production, minified).
-4. **Tests:** `npm test` — all passing.
-5. **Multi-surface edit parity:** when chart and form both edit entities,
+1. **Full validation:** `npm test` — its `pretest` lifecycle compiles tests,
+   type-checks, lints, builds both bundles, and runs all tests.
+2. **Production build:** `npm run package` — required when verifying a release
+   artifact; this repeats the compile checks as part of packaging.
+3. **Multi-surface edit parity:** when chart and form both edit entities,
    verify they route through the same shared workflow contract and parity
    scenarios pass.
-6. **Branch coverage ≥ 90%:** verify coverage; if unavailable, confirm every new
+4. **Branch coverage ≥ 90%:** verify coverage; if unavailable, confirm every new
    branch (conditionals, switch cases, error paths) has a covering test.
-7. **Localization:** every user-facing string is externalized via
+5. **Localization:** every user-facing string is externalized via
    `vscode.l10n.t()` / `nls` and package NLS keys — no raw literals in messages,
    command titles, or view names.
-8. **JSDoc:** every class, method, and member (public and private) is documented.
-9. **Manifest sanity:** `contributes` (customEditors, views, commands, menus) is
+6. **JSDoc:** every class, method, and member (public and private) is documented.
+7. **Manifest sanity:** `contributes` (customEditors, views, commands, menus) is
    consistent with the code; `activationEvents` and `main` are correct; the
    webview CSP uses a nonce and loads only from `dist/`.
-10. **Boundaries:** no `vscode`/Node imports in `common/`, `services/`, or
-    `webview/` (delegate to the **Architecture Guard** agent if unsure).
-11. **Changelog:** the change has an entry under `## [Unreleased]` in
-    `CHANGELOG.md`.
+8. **Boundaries:** no `vscode`/Node imports in `common/`, `services/`, or
+   `webview/` (delegate to the **Architecture Guard** agent if unsure).
+9. **Changelog:** the change has an entry under `## [Unreleased]` in
+   `CHANGELOG.md`.
 
 ## Output Format
 

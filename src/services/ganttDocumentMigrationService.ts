@@ -134,6 +134,7 @@ function migrateDependency(raw: unknown): unknown {
 
 /**
  * Maps a persisted v1 dependency type string to the current vocabulary.
+ * Returns `undefined` for unsupported types, making them invalid at validation.
  */
 function migrateDependencyType(type: unknown): DependencyType | undefined {
   switch (type) {
@@ -143,7 +144,8 @@ function migrateDependencyType(type: unknown): DependencyType | undefined {
     case "finishWith":
       return "endWith";
     case "finishAfter":
-      return "endBefore";
+      // endBefore is no longer supported; return undefined to make it invalid
+      return undefined;
     default:
       return undefined;
   }

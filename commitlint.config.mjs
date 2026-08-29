@@ -26,25 +26,28 @@ export default {
         "revert",
       ],
     ],
+    // Warning-only: the list is a suggestion, not a closed set. A spec-driven
+    // change may legitimately introduce a new feature scope.
     "scope-enum": [
-      2,
+      1,
       "always",
       [
+        // Product surfaces
         "editor",
         "sidebar",
         "webview",
-        "charts",
+        // Shared layers
         "services",
         "models",
         "protocol",
-        "store",
-        "build",
-        "ci",
-        "deps",
+        // Project / tooling
         "specs",
+        "build",
+        "deps",
+        "docs",
         "test",
-        "instructions",
-        "agents",
+        // Agentic tooling: instructions, skills, agents, prompts, hooks
+        "agentic",
       ],
     ],
     "scope-empty": [0], // scope is optional

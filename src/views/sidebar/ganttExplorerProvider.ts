@@ -8,6 +8,11 @@ import {
 } from "../../common/models";
 import { EditableEntityRef } from "../../common/protocol";
 import { GanttStore } from "../../ganttStore";
+import {
+  diagnosticsFor,
+  ScheduleDiagnostic,
+} from "../../services/scheduleGraphValidationService";
+import { describeDiagnostic } from "../scheduleDiagnosticPresenter";
 
 type GanttNode =
   | { kind: "group"; group: Group }
@@ -40,8 +45,25 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
     }
   }
 
+  /**
+   * Returns the diagnostics from the active editor, if any.
+   */
+  private getDiagnostics(): readonly ScheduleDiagnostic[] {
+    return this.store.active?.validation ?? [];
+  }
+
+  /**
+   * Returns a human-readable message describing all violations for an entity id.
+   */
+  private getViolationMessage(entityId: string): string | undefined {
+    const messages = diagnosticsFor(this.getDiagnostics(), entityId).map(
+      (diagnostic) => describeDiagnostic(diagnostic, entityId),
+    );
+    return messages.length > 0 ? messages.join("\n") : undefined;
+  }
+
   getChildren(element?: GanttNode): GanttNode[] {
-    const model = this.store.active?.model;
+    const model = this.store.active?.getGanttDocument();
     if (!model) {
       return [];
     }
@@ -55,9 +77,10 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       return [
         ...rootGroups.map((group): GanttNode => ({ kind: "group", group })),
         ...ungroupedTasks.map((task): GanttNode => ({ kind: "task", task })),
-        ...ungroupedMilestones.map(
-          (milestone): GanttNode => ({ kind: "milestone", milestone }),
-        ),
+        ...ungroupedMilestones.map((milestone): GanttNode => ({
+          kind: "milestone",
+          milestone,
+        })),
       ];
     }
 
@@ -73,9 +96,10 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       return [
         ...childGroups.map((group): GanttNode => ({ kind: "group", group })),
         ...tasks.map((task): GanttNode => ({ kind: "task", task })),
-        ...milestones.map(
-          (milestone): GanttNode => ({ kind: "milestone", milestone }),
-        ),
+        ...milestones.map((milestone): GanttNode => ({
+          kind: "milestone",
+          milestone,
+        })),
       ];
     }
 
@@ -90,6 +114,11 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
     item.contextValue = "ganttee.group";
     item.iconPath = new vscode.ThemeIcon("folder");
     item.id = `group:${group.id}`;
+    const violationMessage = this.getViolationMessage(group.id);
+    if (violationMessage) {
+      item.tooltip = violationMessage;
+      (item as any).badge = { value: "!" };
+    }
     return item;
   }
 
@@ -107,6 +136,14 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       title: "Reveal Task",
       arguments: [{ kind: "task", id: task.id }],
     };
+
+    const violationMessage = this.getViolationMessage(task.id);
+    if (violationMessage) {
+      item.tooltip = violationMessage;
+      // Cast to any to support badge property in newer vscode versions
+      (item as any).badge = { value: "!" };
+    }
+
     return item;
   }
 
@@ -124,6 +161,14 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       title: "Reveal Milestone",
       arguments: [{ kind: "milestone", id: milestone.id }],
     };
+
+    const violationMessage = this.getViolationMessage(milestone.id);
+    if (violationMessage) {
+      item.tooltip = violationMessage;
+      // Cast to any to support badge property in newer vscode versions
+      (item as any).badge = { value: "!" };
+    }
+
     return item;
   }
 }

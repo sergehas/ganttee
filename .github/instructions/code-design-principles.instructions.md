@@ -49,6 +49,15 @@ only when a real second use case or a real change pressure appears.
 - In webview code, UI components depend on workflow abstractions (callbacks/hooks);
   the workflow must not depend on concrete component implementations.
 
+## Refactor tripwires
+
+Refactor when you hit one of these, while it is still small:
+
+- a result type gains a 3rd parallel id array → model as discriminated records
+- a function gains a 2nd boolean flag → split into intent-named functions
+- the same rule exists on both sides of the host/webview boundary → hoist to `services/`
+- a rule is expressed over two shapes (document and hydrated model) → pick one shape
+
 ## When principles collide
 
 - DRY vs. clarity → prefer clarity; a little duplication beats the wrong abstraction.

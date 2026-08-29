@@ -6,7 +6,7 @@
       "name": "Design",
       "start": "2026-01-05",
       "end": "2026-01-12",
-      "description": "Wireframes and visual design.",
+      "description": "Wireframe and visual design.",
       "progress": 1,
       "status": "done",
       "groupId": "group-discovery"
@@ -35,8 +35,7 @@
       "name": "Integration tests",
       "start": "2026-02-08",
       "end": "2026-02-26",
-      "duration": 10,
-      "description": "# content\nThis pahse is dedicated to **user acceptance** test\nit must be conclude by a sign-of",
+      "description": "# content\nThis phase is dedicated to **user acceptance** test\nit must be conclude by a sign-of",
       "progress": 0,
       "status": "todo",
       "groupId": "group-Test"
@@ -46,7 +45,7 @@
       "name": "SIT design",
       "start": "2026-01-15",
       "end": "2026-01-26",
-      "description": "Desing system integration tests",
+      "description": "Design system integration tests",
       "progress": 0,
       "status": "todo",
       "groupId": "group-discovery"
@@ -55,7 +54,7 @@
       "id": "task-4p1xeki1",
       "name": "UAT 1",
       "start": "2026-03-02",
-      "end": "2026-03-23",
+      "end": "2026-03-10",
       "duration": 10,
       "progress": 0,
       "status": "todo",
@@ -96,7 +95,7 @@
     {
       "id": "milestone-launch",
       "name": "Launch",
-      "date": "2026-03-25"
+      "date": "2026-03-11"
     }
   ],
   "dependencies": [
