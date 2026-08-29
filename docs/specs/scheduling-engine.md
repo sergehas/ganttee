@@ -51,9 +51,25 @@ dependency-type-rename, scheduling-data-model, and graph-validation specs.
 - As a planner, I want group bars to span their contents, so that rollups are
   accurate.
 
+rules:
+
+- a graph with unresolved error can not be scheduled (typically: under-constrained endpoint / node)
+- a graph with warning can be scheduled with endpoint constrains prioritization.
+
+- over-constrained endpoint:
+  - startDate/endDate + dependencies: start/end date is ignored
+- dependency prioritization:
+  - when multiple dependencies are defined, effective date is the highest date produced by all dependencies evaluation
+- group are not considered in scheduling :
+  - group effective start = min(effectiveStart of all task/milestone/subgroup owed y the current group)
+  - group effective end = max(effectiveEnd of all task/milestone/subgroup owed y the current group)
+
+- graph can be made of multiple discreet (non connected) subgraphs : all the must be scheduled
+- when a task / milestone is updated (crete, update, delete) in a subgraph, only the subgraph owning the updated entity should be rescheduled
+
 ## 4. Acceptance Criteria
 
-- Given a task with a static start and duration
+- Given a task with a static start and duration (no dependency)
   When scheduled
   Then `effectiveEnd = start + duration` counted in working days (weekends
   skipped).
@@ -76,10 +92,6 @@ dependency-type-rename, scheduling-data-model, and graph-validation specs.
   When scheduled
   Then `effectiveStart = effectiveEnd = target.effectiveEnd` (a milestone's start
   and end alias its date).
-
-- Given a group containing tasks/milestones/subgroups
-  When scheduled
-  Then its `effectiveStart` = min and `effectiveEnd` = max of descendants.
 
 - Given a task defined by start + end (duration derived)
   When scheduled
