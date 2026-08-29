@@ -42,14 +42,16 @@ imported by the browser webview.
 
 ## Build & Validate
 
-Always type-check and lint before declaring work complete. Do not run tests with
-compilation errors outstanding.
+The normal full validation command is `npm test`. Its `pretest` lifecycle runs
+test compilation and `npm run compile`, which covers type-checking, linting, and
+both bundles before the unit and integration tests run. Use the individual
+commands below for targeted debugging or when a narrower check is needed:
 
 - Type-check (host + webview): `npm run check-types`
 - Lint: `npm run lint`
 - Build both bundles: `node esbuild.js` (or `npm run compile`)
-- Run tests: `npm test`
 - Production build: `npm run package`
+- Full validation: `npm test`
 - Watch (background task): the `watch` task runs `watch:tsc` + `watch:esbuild`.
 
 The webview has its own TS project ([tsconfig.webview.json](../tsconfig.webview.json),
@@ -60,6 +62,9 @@ DOM + JSX); the host project ([tsconfig.json](../tsconfig.json)) excludes
 
 - Indent with **spaces**. Use **double quotes** (Prettier default, matches the
   scaffold). See [coding-guidelines](instructions/coding-guidelines.instructions.md).
+- **After editing or creating any file, run `npx prettier --write <file>`** (or
+  `npm run format` for a broader pass) before considering the change done —
+  don't rely on manual alignment or on the pre-commit hook to catch it.
 - **Localization is mandatory:** externalize every user-facing string via the
   localization framework (`vscode.l10n.t()` / `nls.localize()`), using `{0}`
   placeholders — never string concatenation.
@@ -126,3 +131,7 @@ extension (`best-practices` toolbars/`ResourceLabel`, `observables`,
 `accessibility` `AccessibleContentProvider`, and the design **size** tokens).
 Apply their general spirit, but ignore references to internal `vs/*` modules that
 are unavailable here.
+
+## Language
+
+use **American English** spelling and grammar. Avoid British English, Canadian English, and other variants. Use ASD-STE100.

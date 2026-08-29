@@ -68,13 +68,9 @@ dependency-type-rename, scheduling-data-model, and graph-validation specs.
   Then its `effectiveStart` equals the later end (`max`), regardless of
   processing order.
 
-- Given a task defined by end date + duration (`endWith`/`endBefore` or static end)
+- Given a task defined by end date + duration (`endWith` or static end)
   When scheduled
   Then `effectiveStart = effectiveEnd − duration` in working days.
-
-- Given an `endBefore` dependency (owner source, anchor target)
-  When scheduled
-  Then `source.effectiveEnd ≤ target.effectiveStart` holds.
 
 - Given a milestone (source) with a `startAfter` dependency
   When scheduled
@@ -126,7 +122,7 @@ recompute on each edit.
 ## 8. Test Strategy
 
 - Unit (services): golden-schedule fixtures — chain, diamond (multi-incoming
-  `max`), end-anchored propagation, `endBefore` inequality, milestone alias, group
+  `max`), end-anchored propagation, milestone alias, group
   rollup, start+end derived duration, working-day arithmetic (weekend skip,
   fractional working day), epoch-day arithmetic.
 - Property/perf: large synthetic graph completes in one pass; ordering-independence

@@ -30,16 +30,18 @@ constrains) is **always the `source`**; the **anchor** (the referenced entity) i
 | `startAfter` | direct  | source | target | `source.start ≥ target.end` (finish-to-start)           |
 | `startWith`  | direct  | source | target | `source.start ≥ target.start` (start-to-start)          |
 | `endWith`    | reverse | source | target | `source.end` aligned to `target.end` (finish-to-finish) |
-| `endBefore`  | reverse | source | target | `source.end ≤ target.start` (finish-to-start)           |
 
 Because the owner is always the source, the direct/reverse distinction only
 changes _which_ endpoint (start vs end) of the owner is constrained, never the
 owner role itself.
 
-`endWith` is renamed from `finishWith`; `endBefore` is renamed from `finishAfter`.
-The rename is accompanied by a `sourceId`/`targetId` swap in existing documents so
-that the owner (dependent entity) becomes the source — see the dependency-type
-rename specification.
+`endWith` is renamed from `finishWith`. The rename is accompanied by a
+`sourceId`/`targetId` swap in existing documents so that the owner (dependent
+entity) becomes the source — see the dependency-type rename specification.
+
+The former `endBefore` type (renamed from `finishAfter`) was removed by
+[graph-validation](../specs/graph-validation.md); it is neither accepted nor
+migrated.
 
 Groups cannot have dependencies (group dependency management may be implemented
 later).
@@ -56,10 +58,8 @@ A task scheduling supports 3 kinds of constraint:
   static value; never dependency-defined.
 - **end date** — defined by exactly one of:
   - a user-defined static end date, or
-  - one or more reverse dependencies, all of the **same** type; the effective end
-    is the aggregate (`max` for `endWith`, `min` for `endBefore`) across them.
-    Mixing `endWith` and `endBefore` on the same task is rejected (a conflicting
-    over-/under-constraint of the end).
+  - one or more `endWith` reverse dependencies; the effective end is the `max`
+    across them.
 
 When defining a task, **exactly 2** of {start date, duration, end date} must be
 set. Setting fewer than 2 (under-constrained) or more than 2 (hyperstatic) is
@@ -82,8 +82,8 @@ one of:
 
 A milestone may be the **anchor** (`target`) of any dependency — other entities can
 reference its date — but it can never be the **owner** (`source`) of a reverse
-dependency (`endWith`, `endBefore`), because its end is not independently
-constrained (`end = date`).
+dependency (`endWith`), because its end is not independently constrained
+(`end = date`).
 
 ### Group
 
@@ -104,7 +104,7 @@ via graph traversal.
 
 - Tasks, milestones and groups are vertices.
 - Scheduling dependencies are edges, each with a type (`startAfter`, `startWith`,
-  `endWith`, `endBefore`) as defined in [Dependency](#dependency).
+  `endWith`) as defined in [Dependency](#dependency).
 - Group membership is an edge of type `ownedBy`: each task, milestone and group
   has 0 or 1 such edge; its target must be a group. `ownedBy` edges are excluded
   from cycle detection and from scheduling traversal.
@@ -116,7 +116,7 @@ For scheduling and cycle detection, each scheduling dependency is normalized to 
 owner). Since the owner is always the source and the anchor always the target,
 this is uniform for every dependency type:
 
-- all types (`startAfter`, `startWith`, `endWith`, `endBefore`): `target ⟶ source`
+- all types (`startAfter`, `startWith`, `endWith`): `target ⟶ source`
 
 Cycle detection and topological ordering operate on this normalized precedence
 graph.
@@ -213,12 +213,7 @@ The owner is always the `source` and the anchor always the `target`.
 
 ##### Reverse dependencies (constrain the owner's end)
 
-All reverse dependencies on a given owner must be the same type (mixing is
-rejected; see [Task](#task)).
-
 - `endWith`: `source.effectiveEndDate = max(existing, target.effectiveEndDate)`;
-  `source.effectiveStartDate = source.effectiveEndDate − effectiveDuration`.
-- `endBefore`: `source.effectiveEndDate = min(existing, target.effectiveStartDate)`;
   `source.effectiveStartDate = source.effectiveEndDate − effectiveDuration`.
 
 #### Group rollup

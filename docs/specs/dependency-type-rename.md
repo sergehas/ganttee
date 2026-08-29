@@ -12,6 +12,11 @@ Last updated: 2026-07-19
 Canonical status-to-badge mapping is defined in
 .github/instructions/feature-spec.instructions.md (Rules section). -->
 
+> **Partly superseded.** This spec records the rename as it was implemented. The
+> `endBefore` type it introduced was later removed by
+> [graph-validation](graph-validation.md); `endBefore` and `finishAfter` are no
+> longer accepted or migrated. Every other statement below still holds.
+
 ## 1. Summary
 
 The scheduling model renames two dependency types to match the graph requirement

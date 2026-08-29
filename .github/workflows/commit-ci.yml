@@ -1,0 +1,137 @@
+name: Commit CI
+
+on:
+  push:
+    branches:
+      - "feature/**"
+      - "bugfix/**"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # ── 1. Skip commit checks when the commit is already covered by a PR ───────
+  detect-pr:
+    name: Detect open pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      has-open-pr: ${{ steps.lookup.outputs.has-open-pr }}
+    steps:
+      - id: lookup
+        name: Check commit association
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+            const hasOpenPr = pullRequests.some((pullRequest) => pullRequest.state === "open");
+            if (hasOpenPr) {
+              core.notice("Commit checks skipped because this commit is already covered by an open pull request.");
+              await core.summary
+                .addHeading("Commit checks skipped")
+                .addRaw("This commit is already covered by an open pull request. Full validation is running in the pull-request workflow.")
+                .write();
+            }
+            core.setOutput("has-open-pr", String(hasOpenPr));
+
+  # ── 2. Type-check and lint standalone commits ─────────────────────────────
+  quality:
+    name: Quality (type-check + format:check + lint)
+    if: needs.detect-pr.outputs.has-open-pr != 'true'
+    needs: detect-pr
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: npm run check-types
+
+      - run: npm run format:check
+
+      - run: npm run lint
+
+  # ── 3. Build the bundle used by the unit-test runners ──────────────────────
+  build:
+    name: Build
+    if: needs.detect-pr.outputs.has-open-pr != 'true'
+    needs: [detect-pr, quality]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: node esbuild.js
+
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: commit-dist
+          path: dist/
+
+  # ── 4. Unit tests on both supported operating systems ─────────────────────
+  test-unit:
+    name: Unit tests (${{ matrix.os }})
+    if: needs.detect-pr.outputs.has-open-pr != 'true'
+    needs: [detect-pr, build]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: commit-dist
+          path: dist/
+
+      - run: npm run compile-tests
+
+      # Bound cache staleness to a day since the "insiders" build changes frequently.
+      - name: Compute cache key date
+        id: cache-date
+        shell: bash
+        run: echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache VS Code test download
+        uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
+        with:
+          path: .vscode-test
+          key: vscode-test-${{ runner.os }}-insiders-${{ steps.cache-date.outputs.date }}
+          restore-keys: |
+            vscode-test-${{ runner.os }}-insiders-
+
+      - name: Run unit tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:unit
+
+      - name: Run unit tests (Windows)
+        if: runner.os == 'Windows'
+        run: npm run test:unit

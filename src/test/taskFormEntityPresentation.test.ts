@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { GanttDocument } from "../common/models";
+import { DependencyType, GanttDocument } from "../common/models";
 import {
   describeDependency,
   findEntityRefById,
@@ -50,9 +50,29 @@ suite("taskForm entityPresentation", () => {
       },
       document,
     );
+    const endWith = describeDependency(
+      {
+        id: "d3",
+        sourceId: "m1",
+        targetId: "t1",
+        type: "endWith",
+      },
+      document,
+    );
+    const unknownDependency = describeDependency(
+      {
+        id: "d4",
+        sourceId: "missing",
+        targetId: "t1",
+        type: "legacy" as DependencyType,
+      },
+      document,
+    );
 
     assert.strictEqual(known, "Task One -> Start After -> Milestone One");
     assert.strictEqual(unknownTarget, "Task One -> Start With -> ?");
+    assert.strictEqual(endWith, "Milestone One -> End With -> Task One");
+    assert.strictEqual(unknownDependency, "? -> legacy -> Task One");
   });
 });
 

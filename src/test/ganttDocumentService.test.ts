@@ -31,7 +31,7 @@ suite("ganttDocumentService", () => {
         groups: [{ id: "g1", name: "Phase 1" }],
         milestones: [{ id: "m1", name: "Kickoff", date: "2026-01-01" }],
         dependencies: [
-          { id: "d1", sourceId: "t1", targetId: "t1", type: "startAfter" },
+          { id: "d1", sourceId: "t1", targetId: "m1", type: "startAfter" },
         ],
       }),
     );
@@ -83,6 +83,14 @@ suite("ganttDocumentService", () => {
       ],
     });
     assert.strictEqual(parseDocument(text).milestones.length, 1);
+  });
+
+  test("accepts a milestone without a date", () => {
+    const text = JSON.stringify({
+      milestones: [{ id: "m1", name: "Dependency-defined" }],
+    });
+
+    assert.strictEqual(parseDocument(text).milestones[0].date, undefined);
   });
 
   test("rejects a milestone with a non-zero duration", () => {
@@ -156,6 +164,38 @@ suite("ganttDocumentService", () => {
       ],
     });
     assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("rejects duplicate ids across entity kinds", () => {
+    const text = JSON.stringify({
+      tasks: [{ id: "shared", name: "Task" }],
+      groups: [{ id: "shared", name: "Group" }],
+    });
+
+    assert.throws(() => parseDocument(text), /must be unique/);
+  });
+
+  test("preserves dependencies with unknown endpoints for semantic validation", () => {
+    const text = JSON.stringify({
+      tasks: [{ id: "task", name: "Task" }],
+      dependencies: [
+        {
+          id: "dependency",
+          sourceId: "task",
+          targetId: "missing",
+          type: "startAfter",
+        },
+      ],
+    });
+
+    assert.deepStrictEqual(parseDocument(text).dependencies, [
+      {
+        id: "dependency",
+        sourceId: "task",
+        targetId: "missing",
+        type: "startAfter",
+      },
+    ]);
   });
 
   test("clamps progress into the 0..1 range", () => {

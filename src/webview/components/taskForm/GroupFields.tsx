@@ -39,7 +39,11 @@ export function GroupFields(props: GroupFieldsProps): JSX.Element {
       <div className="ganttee-field-row">
         <label className="ganttee-field">
           <span>Duration</span>
-          <input type="text" value={schedule.duration ?? ""} readOnly />
+          <input
+            type="text"
+            value={schedule.durationDays?.toString() ?? ""}
+            readOnly
+          />
         </label>
 
         <label className="ganttee-field ganttee-field--checkbox">

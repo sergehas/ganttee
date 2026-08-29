@@ -1,27 +1,47 @@
+import eslintConfigPrettier from "eslint-config-prettier";
 import typescriptEslint from "typescript-eslint";
 
-export default [{
-    files: ["**/*.ts"],
-}, {
+export default [
+  {
+    files: ["**/*.ts", "**/*.tsx"],
+  },
+  {
     plugins: {
-        "@typescript-eslint": typescriptEslint.plugin,
+      "@typescript-eslint": typescriptEslint.plugin,
     },
 
     languageOptions: {
-        parser: typescriptEslint.parser,
-        ecmaVersion: 2022,
-        sourceType: "module",
+      parser: typescriptEslint.parser,
+      ecmaVersion: 2022,
+      sourceType: "module",
     },
 
     rules: {
-        "@typescript-eslint/naming-convention": ["warn", {
-            selector: "import",
-            format: ["camelCase", "PascalCase"],
-        }],
+      "@typescript-eslint/naming-convention": [
+        "warn",
+        {
+          selector: "import",
+          format: ["camelCase", "PascalCase"],
+        },
+      ],
 
-        curly: "warn",
-        eqeqeq: "warn",
-        "no-throw-literal": "warn",
-        semi: "warn",
+      curly: "warn",
+      eqeqeq: "warn",
+      "max-lines": [
+        "warn",
+        { max: 600, skipBlankLines: true, skipComments: true },
+      ],
+      "no-throw-literal": "warn",
+      semi: "warn",
     },
-}];
+  },
+  {
+    // Test files carry exhaustive rule matrices; size is data, not design.
+    files: ["src/test/**/*.ts"],
+    rules: {
+      "max-lines": "off",
+    },
+  },
+  // Must stay last: turns off every rule Prettier owns.
+  eslintConfigPrettier,
+];

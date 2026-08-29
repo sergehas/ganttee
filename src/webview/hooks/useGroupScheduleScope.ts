@@ -1,15 +1,20 @@
 import { useMemo } from "react";
 import { GanttDocument } from "../../common/models";
+import { selectGroupScheduleScope } from "../../services/groupHierarchyService";
+import {
+  deriveGroupSchedule,
+  GroupSchedule,
+} from "../../services/groupScheduleProjectionService";
 import {
   buildDirectGroupMemberRows,
-  collectGroupScope,
-  computeGroupEffectiveSchedule,
   DirectGroupMemberRow,
-} from "../utils/taskForm/groupDerivations";
+} from "../utils/taskForm/groupMemberRows";
 
 /** Derived group schedule and member rows for group-edit UI rendering. */
-export interface GroupScheduleScope {
-  schedule: { start?: string; end?: string; duration?: string };
+export interface GroupScheduleScopeView {
+  /** Effective schedule derived from the group contents. */
+  schedule: GroupSchedule;
+  /** Rows for entities directly contained by the group. */
   directMemberRows: DirectGroupMemberRow[];
 }
 
@@ -17,14 +22,10 @@ export interface GroupScheduleScope {
 export function useGroupScheduleScope(
   document: GanttDocument,
   groupId: string,
-): GroupScheduleScope {
-  const scope = useMemo(
-    () => collectGroupScope(document, groupId),
-    [document, groupId],
-  );
+): GroupScheduleScopeView {
   const schedule = useMemo(
-    () => computeGroupEffectiveSchedule(scope.tasks, scope.milestones),
-    [scope.tasks, scope.milestones],
+    () => deriveGroupSchedule(selectGroupScheduleScope(document, groupId)),
+    [document, groupId],
   );
   const directMemberRows = useMemo(
     () => buildDirectGroupMemberRows(document, groupId),

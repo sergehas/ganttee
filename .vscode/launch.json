@@ -8,7 +8,7 @@
     {
       "name": "Tests",
       "request": "launch",
-      "runtimeArgs": ["run-script", "test", "--", "--coverage"],
+      "runtimeArgs": ["run-script", "test:unit:coverage"],
       "runtimeExecutable": "npm",
       "skipFiles": ["<node_internals>/**"],
       "type": "node"
