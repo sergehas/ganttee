@@ -19,7 +19,7 @@ scheduled entities (tasks, milestones, groups) via single-pass topological
 constraint propagation (O(V+E)) over a dependency graph containing only tasks
 and milestones, followed by post-order group rollup. The graph substrate is
 Graphology; groups are excluded from graph nodes (they have no dependencies and
-are computed post-order from member effective dates). During Phases 1–3, the
+are computed post-order from member effective dates). During this phase, the
 webview is the only runtime that executes scheduling. The pure scheduling
 service remains importable by the host for future verification and other
 host-side consumers, but the host does not schedule or persist effective values
@@ -37,11 +37,13 @@ dependency endpoints before hydration).
 endWith target`.
 - Correct aggregation for multiple same-type incoming constraints (`max` for
   start-type constraints, `max` for end-type constraints, independent).
-- Working-day date arithmetic: skip weekends, support fractional working days,
-  retain precision (no rounding).
+- Working-interval date arithmetic: use UTC `Date` values, configured working
+  hours, configured days off, and fractional working-day precision without
+  rounding.
 - Post-order group rollup (separate from graph scheduling): `effectiveStart` =
   min of descendants; `effectiveEnd` = max of descendants.
-- Epoch-day internal representation; single ISO parse pass.
+- Epoch-millisecond internal representation; parse each input date once and
+  normalize effective values to UTC working intervals.
 - Pure service in `src/services/` (no `vscode`), importable by both host and
   webview, unit-testable.
 - Graphology as the graph substrate: immutable, browser-safe, enables future
@@ -60,7 +62,7 @@ endWith target`.
 - Rendering beyond consuming effective values.
 - Host verification or re-scheduling on webview save. The pure service remains
   host-compatible for future verification, CLI, or MCP use; those consumers are
-  deferred to future specifications.
+  deferred to future phases.
 
 ## 3. User Stories
 
@@ -70,16 +72,30 @@ endWith target`.
   accurate.
 - As a planner, I want immediate feedback when I save a task edit, including
   computed effective dates, without waiting for a host round-trip.
+- As a planner, I want fractional durations to respect my working hours and
+  days off, so that effective dates match the project calendar.
 
 ## 4. Acceptance Criteria
 
 - Given a task with a static `start` and `duration` (no dependencies)
   When scheduled
-  Then `effectiveEnd = start + duration` in working days (weekends skipped).
+  Then `effectiveStart` is the UTC working-day start on `start` and
+  `effectiveEnd` is computed by consuming exactly `duration` working days.
+
+- Given a task with `start` on Tuesday at 08:30 UTC, an eight-hour working day,
+  no days off, and a duration of `2`
+  When scheduled
+  Then `effectiveEnd` is Wednesday at 16:30 UTC.
+
+- Given no working-time settings in the document
+  When scheduling is requested
+  Then `workingDayStart` defaults to 09:00 UTC, `workingDayHours` defaults to
+  `8`, and an omitted or empty `daysOff` list treats every day as working.
 
 - Given a task ending Friday with a 1 working-day `startAfter` successor
   When scheduled
-  Then successor's `effectiveStart` is the following Monday.
+  Then successor's `effectiveStart` is the next working-day start, skipping
+  configured days off.
 
 - Given a task (source) with two `startAfter` dependencies to targets ending on
   different days
@@ -88,7 +104,8 @@ endWith target`.
 
 - Given a task defined by `end` and `duration` (end-anchored)
   When scheduled
-  Then `effectiveStart = effectiveEnd − duration` in working days.
+  Then `effectiveStart` is computed by consuming `duration` working days
+  backward from `effectiveEnd`, skipping configured days off.
 
 - Given a milestone with a `startAfter` dependency
   When scheduled
@@ -99,12 +116,42 @@ endWith target`.
   When scheduled
   Then `effectiveDuration = effectiveEnd − effectiveStart`.
 
+- Given a task whose effective start is inside a working interval
+  When its end is computed from a fractional duration
+  Then traversal consumes the remaining time in that interval before consuming
+  later working intervals.
+
+- Given an eight-hour working interval from 09:30 to 17:30 UTC, a task starting
+  Tuesday at 14:30 UTC, and a duration of `2.5` working days
+  When scheduled
+  Then the task ends Friday at 10:30 UTC after consuming only working time.
+
+- Given a static or dependency-derived timestamp before a working interval,
+  after its end, or on a configured day off
+  When the timestamp is normalized
+  Then it moves to the current working-day start, the next working-day start, or
+  the next working-day start respectively.
+
+- Given a `startWith` or `endWith` dependency
+  When the dependency endpoint is resolved
+  Then the source preserves the target's effective timestamp without applying a
+  working-day offset.
+
+- Given a task with a zero duration
+  When the document is validated or scheduled
+  Then the task is rejected as invalid; milestone duration remains zero.
+
 - Given a valid dependency graph (tasks + milestones only, no groups)
   When scheduled
   Then all schedulable vertices receive effective values in a single topological
   pass.
 
 - Given a task or milestone marked as under-constrained by validation
+  When scheduling is requested
+  Then the scheduling service raises a scheduling error and returns no partial
+  schedule.
+
+- Given an input whose effective start is after its effective end
   When scheduling is requested
   Then the scheduling service raises a scheduling error and returns no partial
   schedule.
@@ -124,6 +171,11 @@ endWith target`.
   Then the webview computes and displays updated effective dates immediately
   (no host round-trip).
 
+- Given multiple dependency candidates for the same endpoint
+  When scheduling is requested
+  Then the service selects the maximum UTC timestamp independently for each
+  constrained endpoint.
+
 ### Over-constraint resolution fallback (per constraint-endpoint-rules.md)
 
 - When multiple dependencies constrain the same endpoint: use `max` of all
@@ -133,9 +185,9 @@ endWith target`.
   constraint-endpoint-rules.md.
 - A task without a static `duration` may infer it from `effectiveStart` and
   `effectiveEnd` when both are available. If duration cannot be inferred, the
-  scheduling service uses a default duration of `1` working day. This fallback
-  resolves the missing duration for scheduling and is not persisted as a task
-  value.
+  scheduling service uses a default duration of `1` working day only when the
+  item is otherwise schedulable. Under-constrained input is rejected by
+  validation and causes scheduling to abort if received.
 
 ## 5. Domain & Data Model Impact
 
@@ -185,21 +237,82 @@ graph TD
     topological propagation (tasks + milestones).
   - `rollupGroupSchedules(groups: Group[], scheduledModel: ScheduledModel):
 GroupWithEffective[]` — derives group effective dates post-order.
-  - Webview imports and calls this service on task/milestone save (Phases 1–3).
-  - The host can import and call this service in the future, but does not call it
-    during Phases 1–3.
+  - Webview imports and calls this service on task/milestone save.
+  - The host can import and call this service in the future, but does not call it this phase (deferred to future specification).
+
+- **Working-time arithmetic**: The service uses UTC `Date` objects for effective
+  values and epoch milliseconds for arithmetic and comparisons. It reads
+  `settings.workingCalendar.daysOff`, `settings.workingDayHours` (default `8`),
+  and `settings.workingDayStart` (default `9`). An omitted or empty `daysOff`
+  list means every day is working. Working-time traversal skips non-working
+  intervals and preserves fractional precision.
+
+#### Working-time convention
+
+- Effective values use `effectiveStart`, `effectiveEnd`, and
+  `effectiveDuration`. Persisted task inputs remain `start`, `end`, and
+  `duration`; effective values are computed in memory and are not written to
+  the `.ganttee` file.
+- These settings are part of document version 2 and do not require a version
+  bump:
+
+  ```jsonc
+  {
+    "settings": {
+      "workingCalendar": { "daysOff": [] },
+      "workingDayHours": 8.0,
+      "workingDayStart": 9.0,
+    },
+  }
+  ```
+
+- `workingDayStart` is decimal hours in `[0, 24)`. For example, `8.5` means
+  08:30 UTC. Its default is `9.0`.
+- `workingDayHours` is positive and no greater than 24. Its default is `8.0`.
+- `daysOff` contains ISO weekday numbers (`1` = Monday, `7` = Sunday). An
+  omitted or empty list means every day is working.
+- All timestamps and working-day boundaries use UTC. Effective dates are UTC
+  date-times represented as JavaScript `Date` objects during scheduling. Date-
+  only inputs are interpreted at `00:00:00Z`.
+- The implementation may use `Temporal.Instant` and
+  `Temporal.ZonedDateTime` with UTC, with a compatible polyfill when needed.
+  The arithmetic layer must expose epoch milliseconds to the scheduling
+  service.
+- A working interval starts at `workingDayStart` and ends at
+  `workingDayStart + workingDayHours` on a working date.
+- A duration is measured in working days. A fractional part consumes the same
+  fraction of `workingDayHours`. Traversal consumes only working-interval time
+  and skips `daysOff`.
+- A two-working-day task starting Tuesday at 08:30 UTC with an eight-hour
+  working day ends Wednesday at 16:30 UTC.
+- A start inside a working interval consumes the remaining time in that
+  interval before later full intervals. For example, with an interval from
+  09:30 to 17:30, a Tuesday 14:30 start and a duration of `2.5` working days
+  ends Friday at 10:30 UTC.
+- A timestamp before its working interval is normalized to that day's start.
+  A timestamp at or after the interval end, or on a day off, is normalized to
+  the next working-day start. A timestamp inside the interval is preserved.
+  Static inputs remain unchanged; only effective values are normalized.
+- For `source startAfter target`, the candidate start is `target.effectiveEnd`
+  when it is inside the working interval; otherwise it is the next
+  working-day start. `source startWith target` uses the target's effective
+  start, and `source endWith target` uses the target's effective end.
+- Multiple dependency candidates use the maximum UTC timestamp independently
+  for each constrained endpoint. The complementary endpoint is computed by
+  working-time traversal and the entity's effective duration.
+- A zero-duration task is invalid. Milestones remain zero-duration.
 
 - **Graph instantiation**: Refactored from custom `DependencyGraph` to Graphology
   factory in `dependencyGraphService.ts`. Excludes groups from node set (only
   tasks + milestones); validates cycles, self-loops, and parallel edges on the
   filtered graph. Used by webview hydration for scheduling.
 
-- **Webview scheduling** (Phases 1–3, nominal case): On task/milestone form save,
+- **Webview scheduling** (nominal case): On task/milestone form save,
   webview locally hydrates a Graphology instance and calls `schedulingService`.
   Effective dates display immediately in the form (no host round-trip). Webview
   then posts the updated authoring document to the host.
 
-- **Host validation** (Phases 1–3): Host parses and validates the document
+- **Host validation** : Host parses and validates the document
   (structure, determinacy, anchors). Host does NOT re-schedule or persist
   effective values. It broadcasts the accepted authoring document to all
   consumers (sidebar, tree, timeline). A host document update supersedes any
@@ -220,14 +333,13 @@ GroupWithEffective[]` — derives group effective dates post-order.
 - Host→Webview broadcast: sends the validated authoring document to sidebar and
   tree for display. The webview derives effective values locally from that
   document.
-- Host→Webview correction (future, Phase 4+): if multi-source scheduling is
+- Host→Webview correction (deferred to future spec): if multi-source scheduling is
   introduced, host may verify and broadcast corrected state.
 
-**Serialization**: Effective date values are stored in the in-memory
-`GanttDocument`/scheduled model as ISO-string-compatible values, but are not
-written to the `.ganttee` file. The persisted document contains only authoring
-data. The webview derives effective values after hydration and after local
-edits adn scheduling; `Date` objects are webview-only during computation.
+**Serialization**: Effective date values are held as UTC `Date` objects in the
+in-memory scheduled model, but are not written to the `.ganttee` file. The
+persisted document contains only authoring data. The webview derives effective
+values after hydration and after local edits and scheduling.
 
 ## 7. UX
 
@@ -248,9 +360,12 @@ Design rationale: Value Flow (computed schedule is immediate) · Principle
 
 - **Unit (services)**:
   - `schedulingService`: golden fixtures — linear chains, diamonds (multi-incoming
-    `max`), end-anchored tasks, milestones, fractional working days, weekend
-    skip, epoch-day arithmetic, constraint conflict resolution, ordering
-    independence of `max` aggregation.
+    `max`), end-anchored tasks, milestones, working-interval traversal,
+    configured days off, default settings, UTC boundaries, fractional starts,
+    fractional durations, reverse traversal, boundary normalization,
+    `startWith`/`endWith`timestamp preservation, zero-duration rejection,
+    constraint conflict resolution, and ordering independence of`max`
+    aggregation.
   - `rollupGroupSchedules`: group hierarchy, nested groups, empty groups, single
     child, multiple children with different start/end dates.
   - Graphology instantiation: nodes include only task + milestone ids; groups
@@ -260,8 +375,8 @@ Design rationale: Value Flow (computed schedule is immediate) · Principle
   - The pure service can be invoked from host-side code and produces expected
     effective values (compare to golden output), without requiring `vscode`.
   - Webview local hydration produces the same scheduled result as the pure
-    service invoked from host-side code (no divergence). In this spec, host never
-    invoke scheduling service
+    service invoked from host-side code (no divergence). In this spec, the host
+    never invokes the scheduling service.
 
 - **Webview form interaction**:
   - Task/milestone save → webview calls `schedulingService` → effective dates
@@ -296,20 +411,22 @@ Design rationale: Value Flow (computed schedule is immediate) · Principle
   validation. **Treatment**: constraint-endpoint-rules.md rejects negative derived duration;
   the service raises a scheduling error and aborts rather than clamping.
 
-- 🟡 Medium — Open question: fractional working-day convention — how partial
-  working days map to the calendar; whether a static date on a non-working day
-  snaps forward or stays as-is.
+- 🟢 Low — Clarification: fractional working-day arithmetic is defined inline
+  in §5. Effective values use UTC `Date` objects, working intervals use
+  configured `daysOff`, `workingDayHours` defaults to `8`, and
+  `workingDayStart` defaults to `9`. Static inputs remain unchanged; effective
+  values are normalized for scheduling. No configurable timezone is stored.
 
 - 🟢 Low — Risk: webview scheduling correctness (single implementation).
   **Mitigation**: shared pure service; unit tests; the service is available to
   the host for future verification without making the host authoritative in
-  Phases 1–3.
+  this phase.
 
 - 🟢 Low — Open question: recompute granularity — full recompute per edit (simple,
-  recommended for Phase 1–3) or incremental dirty-subtree optimization
-  (Graphology node attributes enable this). **Treatment**: deferred to Phase 4+
+  recommended for this phase) or incremental dirty-subtree optimization
+  (Graphology node attributes enable this). **Treatment**: incremental dirty-subtree optimization deferred to future spec
 
-- 🟢 Low — Clarification: Phases 1–3 are webview-only scheduling (no host
+- 🟢 Low — Clarification: this phase webview-only scheduling (no host
   re-compute). **Treatment**: Host verification will be introduced only when
   CLI/MCP scheduling exists. This keeps the phase simple and avoids redundant
   computation.

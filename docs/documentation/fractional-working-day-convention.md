@@ -1,114 +1,116 @@
-# fractional working-day convention
+# Fractional Working-Day Convention
 
-## Prerequisites
+## Scope and settings
 
-- in ganttee document, add a new properties in settings :
+- Effective values use the existing names: `effectiveStart`, `effectiveEnd`,
+  and `effectiveDuration`.
+- Persisted task inputs remain `start`, `end`, and `duration`. Effective values
+  are computed in memory and are not written to the `.ganttee` file.
+- Settings are part of document version 2. No version bump is required:
 
   ```jsonc
+  {
     "settings": {
-      "workingCalendar": {
-        "daysOff": [/*no change*/]
-      },
-      "workingDayHours": 7.0, //no change
-      "workingDayStart": 8.5, // new property : time the working day start,
-                            // in 24h decimal format: 8.5 means '08.30 AM"
-                            // optional when loading document, default to 9.0
-      "workingTimezone": "UTC", //new property, define the timezone for tasks.. not sure it is useful
-    }
-  ```
-
-- do not bump document version, assume these attributes are part of the document V2 format
-
-## effective start / end computation basics
-
-- effective dates are always full date + time
-- for a task defined with `"startDate": "2026-08-25", "duration" : 2`, then
-  - its `effectiveStartDate` is the _`startDate + workingDayStart`_ so `"2026-08-25 00:00:00" + 8.5 hours = "2026-08-25 08:30:00"`
-  - its `effectiveEndDate` is _`effectiveStartDate + duration (in days)`_ so "2026-08-25 08:30:00" + (2-1) days + workingDayHours (decimal) = "2026-08-27 08:30:00"
-- all duration / date offset should be computed with epochs( milliseconds) for performance matter
-
-  principle illustration snippet
-
-  ```javascript
-  /**
-   * this code is for illustration purpose only as it does not consider 'workingCalendar.daysOff',
-   * nor the case where the effectiveStart is inferred from dependencies
-   */
-
-  // from task / milestone
-  const startDate = new Date("2026-08-25");
-  const duration = 2.0;
-  // from settings
-  const workingDayHours = 8.0;
-  const workingDayStart = 9.5;
-
-  const HOUR_TO_MS = 1000 * 60 * 60;
-  const DAY_TO_MS = HOUR_TO_MS * 24;
-
-  const effectiveStart = new Date(
-    startDate.getTime() + HOUR_TO_MS * workingDayStart,
-  );
-
-  let durationDays = Math.trunc(duration);
-  let durationFraction = duration - durationDays; //decimal day fraction
-
-  //days to add to the date
-  const fullDays =
-    durationFraction > 0 ? durationDays : Math.max(0, durationDays - 1);
-  //hours to add to the ending day
-  const fracDays = durationFraction > 0 ? durationFraction : 1;
-
-  const effectiveEnd = new Date(
-    effectiveStart.getTime() +
-      fullDays * DAY_TO_MS +
-      fracDays * workingDayHours * HOUR_TO_MS,
-  );
-
-  console.log(effectiveStart.toISOString());
-  console.log(effectiveEnd.toISOString());
-  ```
-
-## Inferring start and end dates
-
-### with `startAfter`
-
-when the current task `startAfter` another, then the current task `effectiveStart` (for this dependency) computation rule is :
-
-- if `target.effectiveEnd` is greater or equals to `endOfWorkingDay(target.effectiveEnd)`, then `source.effectiveStart=startOfWorkingDay(target.effectiveEnd + 1 day)`
-  else `source.effectiveStart=target.effectiveEnd`, with
-
-  ```javascript
-  // returns end of working date for a given date, considering settings workingDayHours & workingDayStart
-  endOfWorkingDay(date:Date): Date {
-    return new Date(date.getYear(), date.getMonth(), date.getDate(), 0, 0, 0, (workingDayStart+workingDayHours)*HOUR_TO_MS)
-  }
-
-  // returns start of working date for a given date, considering settings workingDayStart
-  startOfWorkingDay(date:Date): Date {
-    return new Date(date.getYear(), date.getMonth(), date.getDate(), 0, 0, 0, workingDayStart*HOUR_TO_MS)
+      "workingCalendar": { "daysOff": [] },
+      "workingDayHours": 8.0,
+      "workingDayStart": 9.0,
+    },
   }
   ```
 
-- as inferred `effectiveStart`
+- `workingDayStart` is decimal hours in the range `[0, 24)`. For example,
+  `8.5` means 08:30 UTC. Its default is `9.0`.
+- `workingDayHours` is a positive number no greater than 24. Its default is
+  `8.0`.
+- `daysOff` contains ISO weekday numbers (`1` = Monday, `7` = Sunday). An
+  omitted or empty list means every day is working.
+- All timestamps and working-day boundaries use UTC. No configurable timezone
+  is stored in the document.
 
-### with `startWith` & `endWith`
+## Time representation
 
-In this cases, no computation, just assignment :
+- Effective dates are UTC date-times represented as JavaScript `Date` objects
+  during scheduling. This convention does not define their wire or disk
+  serialization.
+- Date-only inputs are interpreted at `00:00:00Z`; a static `start` is normally
+  placed at `workingDayStart` on that date.
+- Scheduling traverses working intervals, not calendar milliseconds. Epoch
+  milliseconds are suitable for the internal representation and comparisons.
+- The implementation may use `Temporal.Instant` and `Temporal.ZonedDateTime`
+  with the UTC time zone. If the runtime does not provide Temporal, use the
+  project's compatible polyfill. The arithmetic layer must still expose epoch
+  millisecond values to the scheduling service.
 
-- current task `startWith` another, then the current task `source.effectiveStart` = `target.effectiveStart`
-- current task `endWith` another, then the current task `source.effectiveEnd` = `target.effectiveEnd`
+## Working intervals
 
-## Fractional duration
+- A working interval is:
+  - start: `workingDayStart`;
+  - end: `workingDayStart + workingDayHours`;
+  - only on a weekday not listed in `daysOff`.
+- A duration is measured in working days. A fractional part consumes the same
+  fraction of `workingDayHours`.
+- Traversal consumes only time inside working intervals. Crossing an interval
+  end continues at the next working-day start, skipping `daysOff`.
+- A positive two-working-day task that starts Tuesday at 08:30 and uses an
+  eight-hour working day ends Wednesday at 16:30.
+- A zero-duration task is invalid. Milestones remain zero-duration.
 
-Effective date boundaries can be within the ]'start of working day' - ' end of working day'[ range (so not strictly equals to start/end of working day ). In such a case, the computation logic is to 'extend' the duration with the already 'allocated time' of the start date, then compute as if the effectiveStart was the `startOfWorkingDay`
+Illustrative arithmetic for a full-day-aligned start:
 
-a fraction of the duration (if defined) is 'assigned' to current start (wtr. end) day, clamped by end of day. for example:
+```text
+start = Tuesday 08:30Z
+duration = 2.0 working days
+end = Wednesday 16:30Z
+```
 
-- task effectiveStart = "2026-08-25 14:30:00"
-- task duration = 2.5
-- workingDayHours = 8.0
-- workingDayStart = 9.5 // 09:30:00
-- then
-  - workingDayEnd = 17.5 // 17:30:00
-  - allocatedFraction for the day of effectiveStart is `(hourEndDecimal(effectiveStart) - workingDayStart)/ workingDayHours`, so `allocatedFraction = (14.5 - 9.5 )/8 = 0.625`
-  - effectiveEnd can then be computed as described in "effective start / end computation basics" section, with `startDate = dateOf(effectiveStart)` and `duration = duration + allocatedFraction`
+## Boundary normalization
+
+- A timestamp before the working interval is normalized to that day's working
+  start.
+- A timestamp at or after the working interval end is normalized to the next
+  working day's start.
+- A timestamp on a `daysOff` date is normalized to the next working day's start.
+- A timestamp inside the interval is preserved, including its fractional
+  position.
+- Static date values are retained as entered in the source document; only the
+  effective value is normalized for scheduling.
+
+## Dependency-derived endpoints
+
+The source is the constrained successor and the target supplies the reference
+date.
+
+- `source startAfter target`:
+  - candidate start is `target.effectiveEnd` when it is inside the working
+    interval;
+  - candidate start is the next working-day start when the target ends at or
+    after the interval end;
+  - multiple candidates use the maximum timestamp.
+- `source startWith target`: candidate start is `target.effectiveStart`.
+- `source endWith target`: candidate end is `target.effectiveEnd`.
+- `startWith` and `endWith` preserve the target timestamp. Multiple candidates
+  use the maximum timestamp, consistent with the scheduling specification.
+- After dependency candidates are collected, the complementary endpoint is
+  computed by working-time traversal and the entity's effective duration.
+
+## Fractional start and duration
+
+- A start inside a working interval consumes the remaining time in that
+  interval before subsequent full working intervals are counted.
+- Example with an eight-hour day from 09:30 to 17:30:
+  - start: Tuesday 14:30 UTC;
+  - duration: `2.5` working days;
+  - remaining Tuesday capacity: `3` hours (`0.375` working day);
+  - consume the remaining Tuesday, then two full working days and one hour;
+  - end: Friday 10:30 UTC.
+- No extra duration is added for time before the effective start. The elapsed
+  working time consumed is exactly the requested duration.
+
+## Invalid scheduling input
+
+- Validation reports under-constrained items as errors. Such an item
+  is not supposed to reach scheduling.
+- Negative duration, reversed effective endpoints, invalid settings, and
+  non-finite numeric values are scheduling errors.
+- When a scheduling error is encountered, the service raises a typed scheduling
+  error and returns no partial schedule.
