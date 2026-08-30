@@ -1,12 +1,12 @@
 ---
-Status: Draft
+Status: Reviewed
 Owner: Copilot
-Last updated: 2026-08-29
+Last updated: 2026-08-30
 ---
 
 # Feature: Scheduling Computation Engine (effective dates & rollup)
 
-![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-fade)
+![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in
@@ -241,28 +241,35 @@ GroupWithEffective[]` — derives group effective dates post-order.
   - The host can import and call this service in the future, but does not call it this phase (deferred to future specification).
 
 - **Working-time arithmetic**: The service uses UTC `Date` objects for effective
-  values and epoch milliseconds for arithmetic and comparisons. It reads
+  values and epoch milliseconds for arithmetic and comparisons. It reads (absolute paths)
   `settings.workingCalendar.daysOff`, `settings.workingDayHours` (default `8`),
   and `settings.workingDayStart` (default `9`). An omitted or empty `daysOff`
   list means every day is working. Working-time traversal skips non-working
   intervals and preserves fractional precision.
 
-#### Working-time convention
+#### Working-time convention and schema
+
+Document version is already 2 (per prior spec); these settings add to the existing
+version-2 structure without requiring a new version bump.
 
 - Effective values use `effectiveStart`, `effectiveEnd`, and
   `effectiveDuration`. Persisted task inputs remain `start`, `end`, and
   `duration`; effective values are computed in memory and are not written to
   the `.ganttee` file.
-- These settings are part of document version 2 and do not require a version
-  bump:
+- Working-time settings are stored in the document root at the paths shown below:
 
   ```jsonc
   {
+    "version": 2,
     "settings": {
       "workingCalendar": { "daysOff": [] },
       "workingDayHours": 8.0,
       "workingDayStart": 9.0,
     },
+    "tasks": [/* ... */],
+    "milestones": [/* ... */],
+    "groups": [/* ... */],
+    "dependencies": [/* ... */],
   }
   ```
 
@@ -302,6 +309,18 @@ GroupWithEffective[]` — derives group effective dates post-order.
   working-time traversal and the entity's effective duration.
 - A zero-duration task is invalid. Milestones remain zero-duration.
 
+### Type Definitions
+
+- **`GanttModel`**: The parsed, validated authoring document containing tasks,
+  milestones, groups, dependencies, and settings. Derived by the host from the
+  `.ganttee` TextDocument.
+- **`ScheduledModel`**: The in-memory result of scheduling, with all tasks and
+  milestones bearing `effectiveStart`, `effectiveEnd`, and `effectiveDuration`
+  fields (in addition to persisted inputs). Groups carry no effective values in
+  this object; group effective dates are computed separately by rollup.
+- **`Schedulable` accessors**: Computed properties on tasks and milestones that
+  return their effective start/end dates and duration, with type narrowing to
+  exclude groups (which are not schedulable in the graph).
 - **Graph instantiation**: Refactored from custom `DependencyGraph` to Graphology
   factory in `dependencyGraphService.ts`. Excludes groups from node set (only
   tasks + milestones); validates cycles, self-loops, and parallel edges on the
@@ -350,7 +369,8 @@ values after hydration and after local edits and scheduling.
 - **Edit form**: task/milestone form displays effective dates immediately after
   save (webview-computed). No "waiting for host" delay.
 - **Validation badges**: host-side validation results (under-constrained,
-  over-constrained, duplicate endpoint) displayed on sidebar items.
+  over-constrained, duplicate endpoint) displayed on sidebar items. Badge labels
+  are new user-facing strings and require localization via `vscode.l10n.t()`.
 
 Design rationale: Value Flow (computed schedule is immediate) · Principle
 (webview scheduling feels responsive; host authority ensures correctness) · Move
@@ -430,3 +450,25 @@ Design rationale: Value Flow (computed schedule is immediate) · Principle
   re-compute). **Treatment**: Host verification will be introduced only when
   CLI/MCP scheduling exists. This keeps the phase simple and avoids redundant
   computation.
+
+## 10. Review Outcome
+
+**Review completed**: 2026-08-30
+
+**Findings summary**:
+
+1. **Badge URL** — Fixed typo: `style=for-the-fade` → `style=for-the-badge` to
+   match feature-spec badge mapping.
+2. **Schema version clarity** — Added explicit statement: document version is
+   already 2; working-time settings add to the existing structure without a
+   new version bump.
+3. **Schema path documentation** — Updated all path references to use full
+   document paths (e.g., `root.settings.workingDayHours`); expanded jsonc
+   example to show complete document structure.
+4. **Type definitions** — Added new subsection in Domain & Data Model defining
+   `GanttModel`, `ScheduledModel`, and `Schedulable` accessors.
+5. **Localization note** — Added clarification in §7 UX that validation badge
+   labels are new user-facing strings requiring localization via
+   `vscode.l10n.t()`.
+
+**All issues resolved.** The spec is implementation-ready.

@@ -11,7 +11,7 @@ The Badge column mirrors each spec's status badge.
 | 4   | [DAG backbone](./DAG-backbone.md)                                                  | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
 | 5   | [Editable Work Item Kinds (Tasks, Milestones, Groups)](editable-all-task-kinds.md) | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
 | 6   | [Graph validation](graph-validation.md)                                            | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
-| 7   | [Scheduling engine](scheduling-engine.md)                                          | Draft       | ![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)             |
+| 7   | [Scheduling engine](scheduling-engine.md)                                          | Reviewed    | ![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)       |
 | 8   | Graphical rendering of groups and dependencies                                     | Intend      | ![Status: Intend](https://img.shields.io/badge/status-Intend-ADB5BD?style=for-the-badge)           |
 | 9   | [l10n bridge & webview codicons adoption](l10n-bridge.md)                          | Intend      | ![Status: Intend](https://img.shields.io/badge/status-Intend-ADB5BD?style=for-the-badge)           |
 | 10  | [TreeView enhancements](treeview-enhancements.md)                                  | Intend      | ![Status: Intend](https://img.shields.io/badge/status-Intend-ADB5BD?style=for-the-badge)           |
