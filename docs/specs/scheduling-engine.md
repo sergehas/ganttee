@@ -19,10 +19,12 @@ scheduled entities (tasks, milestones, groups) via single-pass topological
 constraint propagation (O(V+E)) over a dependency graph containing only tasks
 and milestones, followed by post-order group rollup. The graph substrate is
 Graphology; groups are excluded from graph nodes (they have no dependencies and
-are computed post-order from member effective dates). Output is a pure scheduled
-model, computed both host-side and webview-side, consumed by the webview
-timeline, sidebar, and edit forms. Prerequisite: graph-validation spec (which
-validates determinacy, cycles, anchors, and duplicate endpoints, rejecting group
+are computed post-order from member effective dates). During Phases 1–3, the
+webview is the only runtime that executes scheduling. The pure scheduling
+service remains importable by the host for future verification and other
+host-side consumers, but the host does not schedule or persist effective values
+in this phase. Prerequisite: graph-validation spec (which validates
+determinacy, cycles, anchors, and duplicate endpoints, rejecting group
 dependency endpoints before hydration).
 
 ## 2. Goals / Non-goals
@@ -30,7 +32,9 @@ dependency endpoints before hydration).
 ### Goals
 
 - Single-pass topological propagation computing `Schedulable` accessors on tasks
-  and milestones, with constraint source always the `source` entity.
+  and milestones. For every dependency, the source is the constrained
+  successor: `source startAfter target`, `source startWith target`, and `source
+endWith target`.
 - Correct aggregation for multiple same-type incoming constraints (`max` for
   start-type constraints, `max` for end-type constraints, independent).
 - Working-day date arithmetic: skip weekends, support fractional working days,
@@ -51,11 +55,12 @@ dependency endpoints before hydration).
   graph-validation spec; structural failures thrown at hydration).
 - Semantic validation (determinacy, anchor detection, duplicate-endpoint
   reporting — see graph-validation spec and constraint-endpoint-rules.md).
-- Resolution of under-constrained items (remain under-constrained; engine picks a
-  sane fallback per constraint-endpoint-rules.md).
+- Resolution of under-constrained items. Validation marks them as errors before
+  scheduling, so the scheduling service aborts if one is received.
 - Rendering beyond consuming effective values.
-- Host verification or re-scheduling on webview save (webview-computed result is
-  trusted; future CLI/MCP extensions may require this; deferred to Phase 4+).
+- Host verification or re-scheduling on webview save. The pure service remains
+  host-compatible for future verification, CLI, or MCP use; those consumers are
+  deferred to future specifications.
 
 ## 3. User Stories
 
@@ -81,7 +86,7 @@ dependency endpoints before hydration).
   When scheduled
   Then `effectiveStart` equals the later end, regardless of processing order.
 
-- Given a task defined by `end` and `duration` (start-anchored)
+- Given a task defined by `end` and `duration` (end-anchored)
   When scheduled
   Then `effectiveStart = effectiveEnd − duration` in working days.
 
@@ -96,27 +101,41 @@ dependency endpoints before hydration).
 
 - Given a valid dependency graph (tasks + milestones only, no groups)
   When scheduled
-  Then all vertices receive effective values in a single topological pass.
+  Then all schedulable vertices receive effective values in a single topological
+  pass.
+
+- Given a task or milestone marked as under-constrained by validation
+  When scheduling is requested
+  Then the scheduling service raises a scheduling error and returns no partial
+  schedule.
 
 - Given a group containing tasks and milestones with computed effective dates
   When rolled up
   Then group's `effectiveStart` = minimum of all member `effectiveStart` values
   and group's `effectiveEnd` = maximum of all member `effectiveEnd` values.
 
+- Given an empty group or a group whose children have no effective dates
+  When rolled up
+  Then the group's effective start and end are undefined, the group is omitted
+  from parent rollups, and the group is omitted from chart display.
+
 - Given a webview task/milestone edit form
   When the user saves the entity
   Then the webview computes and displays updated effective dates immediately
   (no host round-trip).
 
-### Constraint resolution fallback (per constraint-endpoint-rules.md)
+### Over-constraint resolution fallback (per constraint-endpoint-rules.md)
 
 - When multiple dependencies constrain the same endpoint: use `max` of all
   computed dates.
 - When a static value conflicts with a dependency on the same endpoint: the
   dependency takes precedence, per endpoint-specific rules in
   constraint-endpoint-rules.md.
-- When a task has no static `duration`: infer from `effectiveStart` and
-  `effectiveEnd` if both are available; else default to 1 working day.
+- A task without a static `duration` may infer it from `effectiveStart` and
+  `effectiveEnd` when both are available. If duration cannot be inferred, the
+  scheduling service uses a default duration of `1` working day. This fallback
+  resolves the missing duration for scheduling and is not persisted as a task
+  value.
 
 ## 5. Domain & Data Model Impact
 
@@ -166,8 +185,9 @@ graph TD
     topological propagation (tasks + milestones).
   - `rollupGroupSchedules(groups: Group[], scheduledModel: ScheduledModel):
 GroupWithEffective[]` — derives group effective dates post-order.
-  - Webview imports and calls this service on task/milestone save (Phase 1–3).
-  - Host verification path may call this in Phase 4+ (deferred).
+  - Webview imports and calls this service on task/milestone save (Phases 1–3).
+  - The host can import and call this service in the future, but does not call it
+    during Phases 1–3.
 
 - **Graph instantiation**: Refactored from custom `DependencyGraph` to Graphology
   factory in `dependencyGraphService.ts`. Excludes groups from node set (only
@@ -177,31 +197,37 @@ GroupWithEffective[]` — derives group effective dates post-order.
 - **Webview scheduling** (Phases 1–3, nominal case): On task/milestone form save,
   webview locally hydrates a Graphology instance and calls `schedulingService`.
   Effective dates display immediately in the form (no host round-trip). Webview
-  then POSTs the updated document to host.
+  then posts the updated authoring document to the host.
 
 - **Host validation** (Phases 1–3): Host parses and validates the document
-  (structure, determinacy, anchors). Host does NOT re-schedule; it trusts the
-  webview-computed effective dates and broadcasts the document to all consumers
-  (sidebar, tree, timeline).
+  (structure, determinacy, anchors). Host does NOT re-schedule or persist
+  effective values. It broadcasts the accepted authoring document to all
+  consumers (sidebar, tree, timeline). A host document update supersedes any
+  local webview schedule; the webview discards stale local state.
 
 ## 6. Protocol Impact
 
 `src/common/protocol.ts`:
 
 - `init` message: includes initial document (no scheduling; document is source).
-- `documentChanged` message: includes document after host validation (validated
-  structure, but effective dates from webview).
+- `documentChanged` message: includes the authoring document after host
+  validation. Effective values are derived model fields and are not serialized
+  to disk.
 - Webview→Host POST (new): `{ type: "entityUpdated", updatedDocument: GanttDocument }`
   — triggered by task/milestone form save; host re-parses and validates (does
-  not re-schedule).
-- Host→Webview broadcast: sends validated document to sidebar and tree for
-  display. Webview effective dates remain as webview computed them.
+  not re-schedule). The host rejects or ignores a stale post, and its current
+  document always wins a concurrent update.
+- Host→Webview broadcast: sends the validated authoring document to sidebar and
+  tree for display. The webview derives effective values locally from that
+  document.
 - Host→Webview correction (future, Phase 4+): if multi-source scheduling is
   introduced, host may verify and broadcast corrected state.
 
-**Serialization**: All effective date values serialized as ISO strings in `GanttDocument`
-shape. Webview computes effective dates on save and persists them. `Date` objects
-are webview-only during computation; serialization uses ISO strings.
+**Serialization**: Effective date values are stored in the in-memory
+`GanttDocument`/scheduled model as ISO-string-compatible values, but are not
+written to the `.ganttee` file. The persisted document contains only authoring
+data. The webview derives effective values after hydration and after local
+edits adn scheduling; `Date` objects are webview-only during computation.
 
 ## 7. UX
 
@@ -231,16 +257,19 @@ Design rationale: Value Flow (computed schedule is immediate) · Principle
     excluded; cycle detection works on filtered graph.
 
 - **Integration**:
-  - Host hydration + scheduling produces expected effective values (compare to
-    golden output).
-  - Webview local hydration produces same scheduled result as host (no
-    divergence).
+  - The pure service can be invoked from host-side code and produces expected
+    effective values (compare to golden output), without requiring `vscode`.
+  - Webview local hydration produces the same scheduled result as the pure
+    service invoked from host-side code (no divergence). In this spec, host never
+    invoke scheduling service
 
 - **Webview form interaction**:
   - Task/milestone save → webview calls `schedulingService` → effective dates
     display immediately in form.
   - Webview POSTs updated document to host.
   - Host validates (no re-scheduling) → broadcasts to sidebar and tree.
+  - A host document change supersedes a concurrent webview update and the
+    webview drops the stale local schedule.
 
 - **E2E**:
   - Edit task in webview form → form computes and shows effective dates → save
@@ -263,23 +292,24 @@ Design rationale: Value Flow (computed schedule is immediate) · Principle
   **Mitigation**: tree-shake unused Graphology standard-library functions; measure
   delta; acceptable for a specialized graph editor (estimated +50–100 KB).
 
-- 🟡 Medium — Risk: negative derived duration (when `effectiveStart >
-effectiveEnd`). Constraint-endpoint-rules.md rejects these at validation;
-  engine must handle gracefully (clamp to 0 or use 1-day default).
+- 🟡 Medium — Risk: invalid input reaches the scheduling service despite
+  validation. **Treatment**: constraint-endpoint-rules.md rejects negative derived duration;
+  the service raises a scheduling error and aborts rather than clamping.
 
 - 🟡 Medium — Open question: fractional working-day convention — how partial
   working days map to the calendar; whether a static date on a non-working day
   snaps forward or stays as-is.
 
-- 🟢 Low — Risk: webview scheduling correctness (single implementation). **Mitigation**:
-  shared pure service; unit tests; no divergence possible (only webview schedules).
-  Phase 4+ adds host verification if multi-source scheduling is needed.
+- 🟢 Low — Risk: webview scheduling correctness (single implementation).
+  **Mitigation**: shared pure service; unit tests; the service is available to
+  the host for future verification without making the host authoritative in
+  Phases 1–3.
 
 - 🟢 Low — Open question: recompute granularity — full recompute per edit (simple,
   recommended for Phase 1–3) or incremental dirty-subtree optimization
   (Graphology node attributes enable this). **Treatment**: deferred to Phase 4+
 
 - 🟢 Low — Clarification: Phases 1–3 are webview-only scheduling (no host
-  re-compute). **Treatment**: Host verification introduced only when CLI/MCP scheduling exists.
-  This is intentional to keep implementation simple and avoid
-  redundant computation.
+  re-compute). **Treatment**: Host verification will be introduced only when
+  CLI/MCP scheduling exists. This keeps the phase simple and avoids redundant
+  computation.

@@ -197,10 +197,8 @@ result.
 
 For a task without a static duration, the engine first infers duration from
 its effective start and effective end when both are available. If duration
-cannot be inferred, the task remains under-constrained and the warning remains
-visible because the source document still lacks a duration. For scheduling only,
-the engine must then use a default duration of `1`; this fallback is not
-persisted as a task value.
+cannot be inferred, the task remains under-constrained and the error remains
+visible because the source document still lacks a duration.
 
 [^milestone-date]:
     Milestone `date` is currently required by the persisted model,
