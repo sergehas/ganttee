@@ -1,4 +1,3 @@
-// Place your settings in this file to overwrite default and user settings.
 {
   "files.exclude": {
     "out": false, // set this to true to hide the "out" folder with the compiled JS files
@@ -12,6 +11,20 @@
   "js/ts.tsc.autoDetect": "off",
   // Generate commit messages that follow the Conventional Commits format
   // documented in the git-workflow instructions.
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.rulers": [100]
+  },
+  "[instructions]": {
+    "editor.rulers": [100]
+  },
+  "[skill]": {
+    "editor.rulers": [100]
+  },
+  "[chatagent]": {
+    "editor.rulers": [100]
+  },
   "github.copilot.chat.commitMessageGeneration.instructions": [
     {
       "file": ".github/instructions/git-workflow.instructions.md"
