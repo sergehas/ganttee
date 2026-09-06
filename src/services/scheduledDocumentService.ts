@@ -42,10 +42,14 @@ export function fromScheduledDocument(
   model: GanttModel,
   document: GanttScheduleDocument,
 ): ScheduledModel {
+  // Index model entities once to avoid a linear scan for every schedule entry.
+  const tasksById = new Map(model.tasks.map((task) => [task.id, task]));
+  const milestonesById = new Map(
+    model.milestones.map((milestone) => [milestone.id, milestone]),
+  );
+  const groupsById = new Map(model.groups.map((group) => [group.id, group]));
   const tasks = document.tasks.map((scheduledTask) => {
-    const task = model.tasks.find(
-      (candidate) => candidate.id === scheduledTask.id,
-    );
+    const task = tasksById.get(scheduledTask.id);
     if (task === undefined) {
       throw new SchedulingError(
         `Unknown scheduled task "${scheduledTask.id}".`,
@@ -59,9 +63,7 @@ export function fromScheduledDocument(
     );
   });
   const milestones = document.milestones.map((scheduledMilestone) => {
-    const milestone = model.milestones.find(
-      (candidate) => candidate.id === scheduledMilestone.id,
-    );
+    const milestone = milestonesById.get(scheduledMilestone.id);
     if (milestone === undefined) {
       throw new SchedulingError(
         `Unknown scheduled milestone "${scheduledMilestone.id}".`,
@@ -74,9 +76,7 @@ export function fromScheduledDocument(
   });
   const groups: ScheduledGroupEntity[] = document.groups.map(
     (scheduledGroup) => {
-      const group = model.groups.find(
-        (candidate) => candidate.id === scheduledGroup.id,
-      );
+      const group = groupsById.get(scheduledGroup.id);
       if (group === undefined) {
         throw new SchedulingError(
           `Unknown scheduled group "${scheduledGroup.id}".`,

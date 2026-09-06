@@ -37,17 +37,17 @@ import {
   serializeDocument,
 } from "../../services/ganttDocumentService";
 import { hydrateDocument } from "../../services/ganttModelService";
-import { schedule } from "../../services/schedulingService";
-import { toScheduledDocument } from "../../services/scheduledDocumentService";
 import {
   buildGroupDeletionDocument,
   hasGroupContents,
 } from "../../services/groupDeletionService";
+import { toScheduledDocument } from "../../services/scheduledDocumentService";
 import {
   blockingDiagnostics,
   evaluateScheduleGraph,
   ScheduleDiagnostic,
 } from "../../services/scheduleGraphValidationService";
+import { schedule } from "../../services/schedulingService";
 import { summarizeBlockingDiagnostics } from "../scheduleDiagnosticPresenter";
 
 /**
@@ -370,15 +370,28 @@ export class GanttEditorController {
       const document = sanitization.document;
       const hydratedModel = hydrateDocument(document);
       const diagnostics = evaluateScheduleGraph(document);
-      const scheduledModel =
-        blockingDiagnostics(diagnostics).length === 0
-          ? schedule(hydratedModel, hydratedModel.graph)
-          : undefined;
+      let scheduledModel: ScheduledModel | undefined;
+      let schedulingError: SchedulingError | undefined;
+      if (blockingDiagnostics(diagnostics).length === 0) {
+        try {
+          scheduledModel = schedule(hydratedModel, hydratedModel.graph);
+        } catch (error) {
+          if (!(error instanceof SchedulingError)) {
+            throw error;
+          }
+          schedulingError = error;
+        }
+      }
       this._document = document;
       this._model = hydratedModel;
       this._scheduledModel = scheduledModel;
       this._diagnostics = diagnostics;
       this._onDidChangeModel.fire();
+      if (schedulingError !== undefined) {
+        void vscode.window.showErrorMessage(
+          vscode.l10n.t("Ganttee: {0}", schedulingError.message),
+        );
+      }
     } catch (error) {
       if (error instanceof GanttParseError) {
         void vscode.window.showErrorMessage(

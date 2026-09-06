@@ -106,11 +106,10 @@ export function schedule(
       "The dependency graph omitted a schedulable entity.",
     );
   }
-  const schedulableModel = new ScheduledModel(tasks, milestones, []);
   return new ScheduledModel(
     tasks,
     milestones,
-    rollupGroupSchedules(model.groups, schedulableModel, settings),
+    rollupGroupSchedules(model.groups, tasks, milestones, settings),
   );
 }
 
@@ -123,14 +122,12 @@ export function schedule(
  */
 export function rollupGroupSchedules(
   groups: readonly GroupEntity[],
-  scheduledModel: ScheduledModel,
+  tasks: readonly ScheduledTaskEntity[],
+  milestones: readonly ScheduledMilestoneEntity[],
   settings: WorkingTimeSettings = defaultWorkingTimeSettings(),
 ): readonly ScheduledGroupEntity[] {
   const spans = new Map<string, DateSpan>();
-  for (const entity of [
-    ...scheduledModel.tasks,
-    ...scheduledModel.milestones,
-  ]) {
+  for (const entity of [...tasks, ...milestones]) {
     if (entity.groupId !== undefined) {
       mergeSpan(spans, entity.groupId, {
         start: entity.effectiveStart().getTime(),

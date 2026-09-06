@@ -14,17 +14,16 @@
     {
       "id": "task-build",
       "name": "Implement",
-      "start": "2026-01-13",
-      "end": "2026-01-27",
+      "duration": 13,
       "progress": 0.4,
       "status": "inProgress",
-      "groupId": "group-Build"
+      "groupId": "group-Build",
+      "start": "2026-01-14"
     },
     {
       "id": "task-test",
       "name": "QA",
-      "start": "2026-01-28",
-      "end": "2026-02-04",
+      "duration": 8,
       "description": "# quality acceptance tests\nrun & results must be  tracked\nmus comply to test scenarios",
       "progress": 0,
       "status": "todo",
@@ -33,7 +32,6 @@
     {
       "id": "task-9kcoliei",
       "name": "Integration tests",
-      "start": "2026-02-08",
       "end": "2026-02-26",
       "description": "# content\nThis phase is dedicated to **user acceptance** test\nit must be conclude by a sign-of",
       "progress": 0,
@@ -43,8 +41,6 @@
     {
       "id": "task-mlf0py0m",
       "name": "SIT design",
-      "start": "2026-01-15",
-      "end": "2026-01-26",
       "description": "Design system integration tests",
       "progress": 0,
       "status": "todo",
@@ -53,9 +49,7 @@
     {
       "id": "task-4p1xeki1",
       "name": "UAT 1",
-      "start": "2026-03-02",
       "end": "2026-03-10",
-      "duration": 10,
       "progress": 0,
       "status": "todo",
       "groupId": "group-UAT"
@@ -89,13 +83,13 @@
     {
       "id": "milestone-Release",
       "name": "Release",
-      "date": "2026-02-28",
+      "date": "2026-02-26",
       "groupId": "group-delivery"
     },
     {
       "id": "milestone-launch",
       "name": "Launch",
-      "date": "2026-03-11"
+      "date": "2026-03-10"
     }
   ],
   "dependencies": [

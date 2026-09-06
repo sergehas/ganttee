@@ -459,9 +459,6 @@ suite("schedulingService", () => {
     ];
     const model = hydrateDocument(document);
 
-    assert.deepStrictEqual(
-      rollupGroupSchedules(model.groups, schedule(model, model.graph)),
-      [],
-    );
+    assert.deepStrictEqual(rollupGroupSchedules(model.groups, [], []), []);
   });
 });
