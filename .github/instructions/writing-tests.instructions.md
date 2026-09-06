@@ -48,6 +48,8 @@ Always call `sinon.restore()` in `teardown` to avoid leaking mocks.
 
 ### Best Practices
 
+- For new behavior, write the functional test suite first, implement until it passes, then add
+  coverage-specific edge cases.
 - Minimize assertions per test — prefer one `assert.deepStrictEqual` snapshot over many fine-grained
   assertions
 - Don't add tests to the wrong suite — find the relevant `suite` block

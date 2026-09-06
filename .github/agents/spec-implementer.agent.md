@@ -55,14 +55,24 @@ changelog in sync. Specs live in `docs/specs/` by default; the roadmap is `docs/
 5. Present a concrete implementation plan: the files to add/change per layer (`common/models`,
    `services`, `views/editor`, `views/sidebar`, `webview`, `common/protocol`), any `.ganttee` schema
    `version` bump + migration, the tests to add, and the acceptance criteria each change satisfies.
+   The plan must also:
+
+- identify canonical state, derived state, and ownership boundaries;
+- identify external library responsibilities and representations that must not be duplicated;
+- list abstractions introduced and removed.
+
 6. **Wait for explicit user validation of the plan before editing any code.**
 7. On approval, set the status to `Implementing` (spec front matter + badge and the roadmap row),
    then implement the change following the plan and the coding guidelines. Add or update tests to
    keep branch coverage healthy.
-8. Validate: run `npm test`. Its `pretest` lifecycle compiles tests, type-checks, lints, builds both
+8. After the implementation tests first pass, perform an architecture simplification checkpoint:
+   check for duplicate models, parallel caches, unnecessary wrappers, custom implementations of
+   established library functionality, and redundant traversals. Refactor within the approved spec
+   scope before final validation.
+9. Validate: run `npm test`. Its `pretest` lifecycle compiles tests, type-checks, lints, builds both
    bundles, and runs the unit and integration tests. Fix any failures until it passes.
-9. Raise the PR (or confirm the user has). Then set the status to `Implemented` (spec front matter +
-   badge and the roadmap row) and add a `CHANGELOG.md` entry under `## [Unreleased]`.
+10. Raise the PR (or confirm the user has). Then set the status to `Implemented` (spec front
+    matter + badge and the roadmap row) and add a `CHANGELOG.md` entry under `## [Unreleased]`.
 
 ## Output Format
 

@@ -23,8 +23,10 @@ agent can use.
 
 1. Parse the caller request into scan goals (files, symbols, keywords, or references).
 2. Run broad discovery first, then narrow to the top candidate files.
-3. Read only enough file context to validate each candidate match.
-4. Return a ranked evidence pack with confidence notes and gaps.
+3. For implementation-option scans, inspect relevant package manifests, installed dependencies, and
+   available APIs so the reasoning agent can assess reuse before custom implementation.
+4. Read only enough file context to validate each candidate match.
+5. Return a ranked evidence pack with confidence notes and gaps.
 
 ## Output Format
 

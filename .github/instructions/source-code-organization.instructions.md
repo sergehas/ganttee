@@ -12,6 +12,15 @@ environment** and **layer**. The on-disk `.ganttee` `TextDocument` is the single
 edits flow one way: UI/command → controller applies a `WorkspaceEdit` → document re-parses → the new
 model is rebroadcast to the webview and the sidebar tree.
 
+## State ownership
+
+- Define one canonical owner for each data category. Any other representation must be explicitly
+  derived from that owner and replaceable from it.
+- Keep authored data separate from computed data. Computed data must be reproducible from its
+  declared inputs and safe to discard and rebuild.
+- Model only valid domain states. Do not invent placeholder values for entities that do not have the
+  represented capability.
+
 ## Folder Layout
 
 | Folder                   | Responsibility                                                                   | Target  | May import                                       |
