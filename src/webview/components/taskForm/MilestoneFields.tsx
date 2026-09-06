@@ -32,7 +32,7 @@ export function MilestoneFields(props: MilestoneFieldsProps): JSX.Element {
         <input
           type="date"
           value={milestone.date ?? ""}
-          onChange={(event) => update("date", event.target.value)}
+          onChange={(event) => update("date", event.target.value || undefined)}
         />
         {scheduledMilestone && (
           <output>{scheduledMilestone.effectiveStart().toISOString()}</output>
