@@ -15,15 +15,14 @@ Apply this rule when creating or updating custom agents for this repository.
 
 ## Required Patterns
 
-1. Reasoning agents must be structured for synthesis and decision work, not
-   broad repository discovery.
-2. Scanner agents must be structured for low-cost discovery and evidence
-   collection only.
-3. Reasoning agents must include explicit scan delegation guidance in their
-   Constraints or Approach section.
+1. Reasoning agents must be structured for synthesis and decision work, not broad repository
+   discovery.
+2. Scanner agents must be structured for low-cost discovery and evidence collection only.
+3. Reasoning agents must include explicit scan delegation guidance in their Constraints or Approach
+   section.
 4. Scanner agents must not make design or implementation decisions.
-5. Use tool-minimalism: reasoning agents should avoid direct broad-search tools
-   when a scanner agent can provide the same evidence.
+5. Use tool-minimalism: reasoning agents should avoid direct broad-search tools when a scanner agent
+   can provide the same evidence.
 
 ## Delegation Contract
 

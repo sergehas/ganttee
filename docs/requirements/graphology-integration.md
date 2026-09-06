@@ -4,7 +4,9 @@
 
 Relies on a optimized graph (DAG) library to hydrate a in memory representation of the GanttGraph.
 
-Allows usage of optimized Graphology libraries from graph manipulation, more specifically use [DAG](https://graphology.github.io/standard-library/dag) and [traversal](https://graphology.github.io/standard-library/traversal)
+Allows usage of optimized Graphology libraries from graph manipulation, more specifically use
+[DAG](https://graphology.github.io/standard-library/dag) and
+[traversal](https://graphology.github.io/standard-library/traversal)
 
 use [Graphology](https://graphology.github.io/) for graph structure.
 
@@ -13,12 +15,16 @@ use [Graphology](https://graphology.github.io/) for graph structure.
 - `graphology-traversal`
 - `graphology-dag`
 - suggest any other `graphology` library if needed
-  - other libraries listed in [standard library](https://graphology.github.io/standard-library/#standard-library) may be useful
-- Rendering & file format specialized libraries (`canvas`, `gexf`, `graphml`, `svg`...) must not be used (no rendering / import-export feature in the service layer)
+  - other libraries listed in
+    [standard library](https://graphology.github.io/standard-library/#standard-library) may be
+    useful
+- Rendering & file format specialized libraries (`canvas`, `gexf`, `graphml`, `svg`...) must not be
+  used (no rendering / import-export feature in the service layer)
 
 ## Implementation
 
-This implementation replaces actual `GanttModel` implementation (inc. `TaskEntity`, `MilestoneEntity` classes).
+This implementation replaces actual `GanttModel` implementation (inc. `TaskEntity`,
+`MilestoneEntity` classes).
 
 ## Graph Model
 
@@ -35,26 +41,31 @@ Graph attributes contains :
 
 ### nodes & edges
 
-> **Correction (2026-07-31):** This bullet originally read "Tasks and milestones
-> are nodes. Groups are **not**", which contradicts
-> [in-memory-graph.md](./in-memory-graph.md) (tasks, milestones **and** groups are
-> vertices, joined by `ownedBy` membership edges), the implemented `GroupEntity`,
-> and the group rollup in the scheduling-engine spec. Per the tech-lead decision,
-> the [Graphology graph backbone spec](../specs/DAG-backbone.md)
-> follows `in-memory-graph.md`: **groups are nodes** with `ownedBy` edges.
+> **Correction (2026-07-31):** This bullet originally read "Tasks and milestones are nodes. Groups
+> are **not**", which contradicts [in-memory-graph.md](./in-memory-graph.md) (tasks, milestones
+> **and** groups are vertices, joined by `ownedBy` membership edges), the implemented `GroupEntity`,
+> and the group rollup in the scheduling-engine spec. Per the tech-lead decision, the
+> [Graphology graph backbone spec](../specs/DAG-backbone.md) follows `in-memory-graph.md`: **groups
+> are nodes** with `ownedBy` edges.
 
-- Tasks, milestones and groups are nodes; group membership is an `ownedBy` edge
-  (excluded from scheduling traversal and cycle detection).
-  - Nodes extra attributes correspond to `TaskEntityProps` + `MilestoneEntityProps` (group nodes carry the group fields)
-  - to segregate node kinds, add an attribute `type` whose value is an `enum`: `TASK`, `MILESTONE`, `GROUP`
-  - `effectiveEnd`, `effectiveStart` and `effectiveDuration` are also materialized node's attributes. Apply already defined business rule to initialize them. Definitive computation rules deferred in the scheduling-engine spec.
+- Tasks, milestones and groups are nodes; group membership is an `ownedBy` edge (excluded from
+  scheduling traversal and cycle detection).
+  - Nodes extra attributes correspond to `TaskEntityProps` + `MilestoneEntityProps` (group nodes
+    carry the group fields)
+  - to segregate node kinds, add an attribute `type` whose value is an `enum`: `TASK`, `MILESTONE`,
+    `GROUP`
+  - `effectiveEnd`, `effectiveStart` and `effectiveDuration` are also materialized node's
+    attributes. Apply already defined business rule to initialize them. Definitive computation rules
+    deferred in the scheduling-engine spec.
 - dependencies are edges
-  - Edge extra attributes are `type:DependencyType` (from `Dependency` interface). Create a `DependencyProps` interface to reflect it.
+  - Edge extra attributes are `type:DependencyType` (from `Dependency` interface). Create a
+    `DependencyProps` interface to reflect it.
 
 Ideally
 
 - Nodes should implement interfaces `BaseTask`, `Schedulable` (if possible)
-- Edge should implement a new interface `ScheduleConstrain` exposing a `getType():DependencyType` method
+- Edge should implement a new interface `ScheduleConstrain` exposing a `getType():DependencyType`
+  method
 
 ## Impact
 

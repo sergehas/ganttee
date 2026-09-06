@@ -2,13 +2,17 @@
 
 ## What's in the folder
 
-**Ganttee** is a VS Code extension that provides an interactive Gantt chart editor for `.ganttee` files. It combines a custom editor (webview UI with React + ECharts) and a sidebar task explorer.
+**Ganttee** is a VS Code extension that provides an interactive Gantt chart editor for `.ganttee`
+files. It combines a custom editor (webview UI with React + ECharts) and a sidebar task explorer.
 
-- `package.json` — extension manifest, declaring the custom editor type (`ganttee.chartEditor`), sidebar views, and commands.
-- `src/extension.ts` — extension host entry point; registers the custom editor provider, sidebar tree view, and commands.
+- `package.json` — extension manifest, declaring the custom editor type (`ganttee.chartEditor`),
+  sidebar views, and commands.
+- `src/extension.ts` — extension host entry point; registers the custom editor provider, sidebar
+  tree view, and commands.
 - `src/views/editor/` — `CustomTextEditorProvider` and editor controller for `.ganttee` files.
 - `src/views/sidebar/` — sidebar tree view provider for the task explorer.
-- `src/webview/` — React UI (webview) bundled separately; handles rendering the Gantt chart via ECharts and user interactions.
+- `src/webview/` — React UI (webview) bundled separately; handles rendering the Gantt chart via
+  ECharts and user interactions.
 - `src/common/` — shared domain models and protocol types (host ↔ webview messaging).
 - `src/services/` — pure logic: document parsing, validation, dependency graph resolution.
 
@@ -49,7 +53,8 @@
 
 ## Structure & Architecture
 
-The `.ganttee` file (YAML/JSON) is the single source of truth. Edit flow: UI command → controller applies a `WorkspaceEdit` → document re-parses → new model is broadcast to webview and sidebar tree.
+The `.ganttee` file (YAML/JSON) is the single source of truth. Edit flow: UI command → controller
+applies a `WorkspaceEdit` → document re-parses → new model is broadcast to webview and sidebar tree.
 
 **Separation of concerns:**
 
@@ -59,7 +64,8 @@ The `.ganttee` file (YAML/JSON) is the single source of truth. Edit flow: UI com
 
 ## Localization & Conventions
 
-- All user-facing strings use `vscode.l10n.t()` with `{0}` placeholders (never string concatenation).
+- All user-facing strings use `vscode.l10n.t()` with `{0}` placeholders (never string
+  concatenation).
 - JSDoc is mandatory on every class, method, and member.
 - Branch coverage must stay ≥ 90%.
 - Follow Conventional Commits for git history.

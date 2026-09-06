@@ -34,9 +34,7 @@ Canonical status-to-badge mapping is defined in
 
 Given/When/Then, one testable scenario per bullet. Include edge and error paths.
 
-- Given <context>
-  When <action>
-  Then <observable outcome>
+- Given <context> When <action> Then <observable outcome>
 
 ## 5. Domain & Data Model Impact
 
@@ -45,8 +43,7 @@ Given/When/Then, one testable scenario per bullet. Include edge and error paths.
 
 ## 6. Protocol Impact
 
-- New/changed `HostToWebview` / `WebviewToHost` messages in
-  `src/common/protocol.ts`:
+- New/changed `HostToWebview` / `WebviewToHost` messages in `src/common/protocol.ts`:
 
 ## 7. UX
 
