@@ -4,14 +4,8 @@ description: Guidelines for writing code using observables and deriveds.
 
 ```ts
 class MyService extends Disposable {
-  private _myData1 = observableValue(
-    /* always put `this` here */ this,
-    /* initial value*/ 0,
-  );
-  private _myData2 = observableValue(
-    /* always put `this` here */ this,
-    /* initial value*/ 42,
-  );
+  private _myData1 = observableValue(/* always put `this` here */ this, /* initial value*/ 0);
+  private _myData2 = observableValue(/* always put `this` here */ this, /* initial value*/ 42);
 
   // Deriveds can combine/derive from other observables/deriveds
   private _myDerivedData = derived(this, (reader) => {
@@ -21,9 +15,7 @@ class MyService extends Disposable {
 
   private _myDerivedDataWithLifetime = derived(this, (reader) => {
     // The reader.store will get cleared just before the derived is re-evaluated or gets unsubscribed.
-    return reader.store.add(
-      new SomeDisposable(this._myDerivedData.read(reader)),
-    );
+    return reader.store.add(new SomeDisposable(this._myDerivedData.read(reader)));
   });
 
   constructor() {
@@ -75,7 +67,15 @@ Most important symbols:
   - [1] Avoid glitches
   - [2] **Choose the right observable value type:**
     - Use `observableValue(owner, initialValue)` for regular values
-    - Use `disposableObservableValue(owner, initialValue)` when storing disposable values - it automatically disposes the previous value when a new one is set, and disposes the current value when the observable itself is disposed (similar to `MutableDisposable` behavior)
+    - Use `disposableObservableValue(owner, initialValue)` when storing disposable values - it
+      automatically disposes the previous value when a new one is set, and disposes the current
+      value when the observable itself is disposed (similar to `MutableDisposable` behavior)
   - [3] **Choose the right event observable pattern:**
-    - Use `observableFromEvent(owner, event, valueComputer)` when you need to track a computed value that changes with the event, and you want updates only when the computed value actually changes
-    - Use `observableSignalFromEvent(owner, event)` when you need to force re-computation every time the event fires, regardless of value stability. This is important when the computed value might not change but dependent computations need fresh context (e.g., workspace folder changes where the folder array reference might be the same but file path calculations need to be refreshed)
+    - Use `observableFromEvent(owner, event, valueComputer)` when you need to track a computed value
+      that changes with the event, and you want updates only when the computed value actually
+      changes
+    - Use `observableSignalFromEvent(owner, event)` when you need to force re-computation every time
+      the event fires, regardless of value stability. This is important when the computed value
+      might not change but dependent computations need fresh context (e.g., workspace folder changes
+      where the folder array reference might be the same but file path calculations need to be
+      refreshed)

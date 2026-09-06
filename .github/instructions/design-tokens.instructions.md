@@ -1,27 +1,32 @@
 ---
-description: Design-system size tokens (spacing, corner radius, font size, codicon size, stroke). Use when writing or editing CSS to size, space, or round UI — prefer the `--vscode-*` token vars over hardcoded px values.
+description:
+  Design-system size tokens (spacing, corner radius, font size, codicon size, stroke). Use when
+  writing or editing CSS to size, space, or round UI — prefer the `--vscode-*` token vars over
+  hardcoded px values.
 applyTo: src/**/*.css
 ---
 
 # Design tokens for sizing, spacing & radii
 
-> **These tokens are the _moves_, not the reasoning.** They implement the
-> **design philosophy** (Values → Principles → Moves): reach for a token _after_
-> naming the feeling and the principle it serves - a radius is an _elevation
-> tier_, a font is a _type role_, not a number. See the
-> [`design-philosophy` skill](../skills/design-philosophy/SKILL.md) for the full
-> vocabulary, worked examples, and how to give UI feedback in design terms.
+> **These tokens are the _moves_, not the reasoning.** They implement the **design philosophy**
+> (Values → Principles → Moves): reach for a token _after_ naming the feeling and the principle it
+> serves - a radius is an _elevation tier_, a font is a _type role_, not a number. See the
+> [`design-philosophy` skill](../skills/design-philosophy/SKILL.md) for the full vocabulary, worked
+> examples, and how to give UI feedback in design terms.
 
-VS Code (and Ganttee inherits it) ships a design-system **size** ramp. These tokens are emitted as `--vscode-*` CSS variables. **When generating or editing CSS, use the token variable instead of a raw `px` value** wherever a token exists for that value. This keeps new UI visually consistent with the design system.
+VS Code (and Ganttee inherits it) ships a design-system **size** ramp. These tokens are emitted as
+`--vscode-*` CSS variables. **When generating or editing CSS, use the token variable instead of a
+raw `px` value** wherever a token exists for that value. This keeps new UI visually consistent with
+the design system.
 
-> Every `--vscode-*` size var you reference must already exist
-> (`"sizes"` array, alphabetically sorted) or stylelint/hygiene fails. Adding a
-> _new_ token means adding it both in `baseSizes.ts` and that JSON file.
+> Every `--vscode-*` size var you reference must already exist (`"sizes"` array, alphabetically
+> sorted) or stylelint/hygiene fails. Adding a _new_ token means adding it both in `baseSizes.ts`
+> and that JSON file.
 
 ## Spacing — padding, margin, gap
 
-Use for `padding`, `margin`, `gap`, and fixed `width`/`height` of spacers.
-The numeric token name is the value in tenths of a px (`size200` = 20px).
+Use for `padding`, `margin`, `gap`, and fixed `width`/`height` of spacers. The numeric token name is
+the value in tenths of a px (`size200` = 20px).
 
 | px  | Variable                    |
 | --- | --------------------------- |
@@ -49,13 +54,12 @@ padding: 8px 12px; /* on-scale raw px is fine */
 padding: 5px 7px; /* off-scale - breaks rhythm */
 ```
 
-**What matters is the value, not the token.** Adopting the `var()` is optional —
-a raw px value is fine **as long as it lands on the scale** (0, 2, 4, 6, 8, 10,
-12, 16, 20, 24, 28, 32, 36, 40). What breaks visual rhythm is an **off-scale**
-value (3, 5, 7, 14, 26px…). Snap those to the nearest scale value (ties round
-**up**), e.g. `5px → 6px`, `3px → 4px`, `1px → 2px`, `26px → 28px`. Each length
-of a shorthand is checked independently (`0 5px → 0 6px`). `auto`, `%`,
-`em`/`rem`, and any `var()`/`calc()` expression are left untouched.
+**What matters is the value, not the token.** Adopting the `var()` is optional — a raw px value is
+fine **as long as it lands on the scale** (0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 36, 40). What
+breaks visual rhythm is an **off-scale** value (3, 5, 7, 14, 26px…). Snap those to the nearest scale
+value (ties round **up**), e.g. `5px → 6px`, `3px → 4px`, `1px → 2px`, `26px → 28px`. Each length of
+a shorthand is checked independently (`0 5px → 0 6px`). `auto`, `%`, `em`/`rem`, and any
+`var()`/`calc()` expression are left untouched.
 
 ## Corner radius — `border-radius`
 
@@ -68,21 +72,19 @@ of a shorthand is checked independently (`0 5px → 0 6px`). `auto`, `%`,
 | 12   | `--vscode-cornerRadius-xLarge` | very prominent surfaces     |
 | 9999 | `--vscode-cornerRadius-circle` | fully rounded (pills, dots) |
 
-**Snap map** for off-scale literals (ties round **up**):
-`2→xSmall`, `3,4→small`, `5,6→medium`, `7,8→large`, `10,11,12→xLarge`,
-`14,16,18,20→xLarge`, `999→circle`.
+**Snap map** for off-scale literals (ties round **up**): `2→xSmall`, `3,4→small`, `5,6→medium`,
+`7,8→large`, `10,11,12→xLarge`, `14,16,18,20→xLarge`, `999→circle`.
 
-- **Pills** (radius ≈ half the element height, e.g. `28h`/`14r`, `36h`/`18r`,
-  `22×22`/`11r`) → `--vscode-cornerRadius-circle`, **not** xLarge. The
-  literal-nearest token would square them and lose the fully-rounded intent.
-- **Leave untouched:** `50%`, `0`, `0px`, `inherit`, and any `calc()`/`var()`
-  expression. Preserve `!important`.
+- **Pills** (radius ≈ half the element height, e.g. `28h`/`14r`, `36h`/`18r`, `22×22`/`11r`) →
+  `--vscode-cornerRadius-circle`, **not** xLarge. The literal-nearest token would square them and
+  lose the fully-rounded intent.
+- **Leave untouched:** `50%`, `0`, `0px`, `inherit`, and any `calc()`/`var()` expression. Preserve
+  `!important`.
 
 ## Font size — `font-size`
 
-Generic UI ramp — pair a **size** token with a **weight** token; "Strong"
-reuses the matching size token + `fontWeight.semiBold`, **never** a separate
-"strong" size:
+Generic UI ramp — pair a **size** token with a **weight** token; "Strong" reuses the matching size
+token + `fontWeight.semiBold`, **never** a separate "strong" size:
 
 | px  | Size var                     | Weight   |
 | --- | ---------------------------- | -------- |
@@ -95,8 +97,8 @@ reuses the matching size token + `fontWeight.semiBold`, **never** a separate
 | 11  | `--vscode-fontSize-label2`   | regular  |
 | 10  | `--vscode-fontSize-label3`   | regular  |
 
-**Deprecated** — the legacy `--vscode-bodyFontSize*` tokens are deprecated. Use
-the generic ramp above instead:
+**Deprecated** — the legacy `--vscode-bodyFontSize*` tokens are deprecated. Use the generic ramp
+above instead:
 
 | Deprecated                     | px  | Use instead                |
 | ------------------------------ | --- | -------------------------- |
@@ -104,8 +106,8 @@ the generic ramp above instead:
 | `--vscode-bodyFontSize-small`  | 12  | `--vscode-fontSize-label1` |
 | `--vscode-bodyFontSize-xSmall` | 11  | `--vscode-fontSize-body2`  |
 
-Agents window ramp (`src/vs/sessions/**`) — identical values, `agents-`-prefixed
-(pair size with a weight token, **never** add a separate "strong" size):
+Agents window ramp (`src/vs/sessions/**`) — identical values, `agents-`-prefixed (pair size with a
+weight token, **never** add a separate "strong" size):
 
 | px  | Size var                            | Weight   |
 | --- | ----------------------------------- | -------- |
@@ -118,29 +120,27 @@ Agents window ramp (`src/vs/sessions/**`) — identical values, `agents-`-prefix
 | 11  | `--vscode-agents-fontSize-label2`   | regular  |
 | 10  | `--vscode-agents-fontSize-label3`   | regular  |
 
-Weights: `--vscode-agents-fontWeight-regular` (400),
-`--vscode-agents-fontWeight-semiBold` (600). The ramp is **400/600 only** — there
-is no medium (500). "Strong" = same size token + `semiBold`. See
-[Font weight](#font-weight--font-weight) below.
+Weights: `--vscode-agents-fontWeight-regular` (400), `--vscode-agents-fontWeight-semiBold` (600).
+The ramp is **400/600 only** — there is no medium (500). "Strong" = same size token + `semiBold`.
+See [Font weight](#font-weight--font-weight) below.
 
 ## Font weight — `font-weight`
 
-Both the generic and agents ramps use a **two-weight ramp** — there are no other
-weights. Pair every text style with one of these:
+Both the generic and agents ramps use a **two-weight ramp** — there are no other weights. Pair every
+text style with one of these:
 
 | weight | Generic var                    | Agents var                            | Use                         |
 | ------ | ------------------------------ | ------------------------------------- | --------------------------- |
 | 400    | `--vscode-fontWeight-regular`  | `--vscode-agents-fontWeight-regular`  | body, labels, metadata      |
 | 600    | `--vscode-fontWeight-semiBold` | `--vscode-agents-fontWeight-semiBold` | headings, "strong" emphasis |
 
-- **No medium (500).** `font-weight: 500` is **off the ramp** — snap it to
-  `semiBold` (600). The same goes for `700`/`bold` and any other numeric weight:
-  round to the nearer of 400/600.
-- **"Strong" is not a separate size.** A "Body 1 Strong" / "Label 2 Strong"
-  style reuses the matching `--vscode-fontSize-*` (or `--vscode-agents-fontSize-*`)
-  token paired with `semiBold`. Never introduce a separate strong _size_ token.
-- `normal` ≡ 400 → `regular`. **Leave untouched:** `inherit`, `lighter`,
-  `bolder`, and any `var()`/`calc()` expression. Preserve `!important`.
+- **No medium (500).** `font-weight: 500` is **off the ramp** — snap it to `semiBold` (600). The
+  same goes for `700`/`bold` and any other numeric weight: round to the nearer of 400/600.
+- **"Strong" is not a separate size.** A "Body 1 Strong" / "Label 2 Strong" style reuses the
+  matching `--vscode-fontSize-*` (or `--vscode-agents-fontSize-*`) token paired with `semiBold`.
+  Never introduce a separate strong _size_ token.
+- `normal` ≡ 400 → `regular`. **Leave untouched:** `inherit`, `lighter`, `bolder`, and any
+  `var()`/`calc()` expression. Preserve `!important`.
 
 ```css
 /* avoid */
@@ -151,29 +151,28 @@ font-weight: var(--vscode-fontWeight-semiBold);
 
 ## Codicon size — icon `font-size`
 
-Codicons are **only ever 16px or 12px**. There is no in-between size — never use
-`14px` (or any other value) for a codicon. Pick the base or the compact token:
+Codicons are **only ever 16px or 12px**. There is no in-between size — never use `14px` (or any
+other value) for a codicon. Pick the base or the compact token:
 
 | px  | Variable                           | Use                 |
 | --- | ---------------------------------- | ------------------- |
 | 16  | `--vscode-codiconFontSize` (base)  | default icon size   |
 | 12  | `--vscode-codiconFontSize-compact` | dense/inline chrome |
 
-If a design or existing CSS sizes a codicon at 14px, treat it as a bug: snap it to
-16 (default) or 12 (compact) and flag it.
+If a design or existing CSS sizes a codicon at 14px, treat it as a bug: snap it to 16 (default) or
+12 (compact) and flag it.
 
-When sizing an icon at the **compact** 12px size, also swap the registered glyph
-to its `*Compact` variant (e.g. `Codicon.close` → `Codicon.closeCompact`) so the
-icon is visually optimized for the small size. CSS `font-size` alone only scales
-the icon — it does not change to the compact glyph. Only swap the glyph when no
-CSS selector targets the original glyph class (e.g. `.codicon-close`), otherwise
-update that selector too. Some icons (settings/sliders, agent, vm, info, lock,
-plus) have no compact variant — keep the regular glyph at the compact size.
+When sizing an icon at the **compact** 12px size, also swap the registered glyph to its `*Compact`
+variant (e.g. `Codicon.close` → `Codicon.closeCompact`) so the icon is visually optimized for the
+small size. CSS `font-size` alone only scales the icon — it does not change to the compact glyph.
+Only swap the glyph when no CSS selector targets the original glyph class (e.g. `.codicon-close`),
+otherwise update that selector too. Some icons (settings/sliders, agent, vm, info, lock, plus) have
+no compact variant — keep the regular glyph at the compact size.
 
 ## Stroke — border width
 
-The design system has a **single** stroke thickness: 1px. Any `border`/`outline`
-width of 1px should use the token.
+The design system has a **single** stroke thickness: 1px. Any `border`/`outline` width of 1px should
+use the token.
 
 | px  | Variable                   |
 | --- | -------------------------- |
@@ -186,15 +185,13 @@ border: var(--vscode-strokeThickness) solid var(--vscode-widget-border);
 border: 1px solid var(--vscode-widget-border);
 ```
 
-Applies to the `border: 1px solid <color>` shorthand and `border-width: 1px`.
-Other widths have no token — leave them as-is.
+Applies to the `border: 1px solid <color>` shorthand and `border-width: 1px`. Other widths have no
+token — leave them as-is.
 
 ## `.monaco-editor-background` must be opaque
 
-`.monaco-editor-background` must use a fully opaque color — making it
-`transparent` (or any partial alpha) is forbidden. Monaco reuses this layer to
-carve the reverse-rounded notches out of text selections, so a non-opaque
-background introduces subtle rendering bugs (blocky selection corners) and
-performance problems. To blend an embedded editor into its surface, keep
-`.monaco-editor` transparent and paint `.monaco-editor-background` with the
-container's solid background color.
+`.monaco-editor-background` must use a fully opaque color — making it `transparent` (or any partial
+alpha) is forbidden. Monaco reuses this layer to carve the reverse-rounded notches out of text
+selections, so a non-opaque background introduces subtle rendering bugs (blocky selection corners)
+and performance problems. To blend an embedded editor into its surface, keep `.monaco-editor`
+transparent and paint `.monaco-editor-background` with the container's solid background color.

@@ -25,14 +25,14 @@ export default [
         },
       ],
 
-      curly: "warn",
-      eqeqeq: "warn",
+      "curly": "warn",
+      "eqeqeq": "warn",
       "max-lines": [
         "warn",
         { max: 600, skipBlankLines: true, skipComments: true },
       ],
       "no-throw-literal": "warn",
-      semi: "warn",
+      "semi": "warn",
     },
   },
   {
