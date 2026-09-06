@@ -22,8 +22,8 @@ Do not create the PR until:
 1. **Target base branch is confirmed.** Infer it from gitflow conventions (`feature/*` → `develop`,
    `fix/*` → `develop`, `hotfix/*` → `main`, `release/*` → `develop` and `main`), but ask if the
    branch prefix is non-standard or the user hasn't stated a target.
-2. **The changelog is updated and committed.** `doc/CHANGELOG.md` must contain the PR's user-visible
-   changes under `Unreleased` in a commit on the branch.
+2. **The changelog is updated, committed, and pushed.** `docs/CHANGELOG.md` must contain the PR's
+   user-visible changes under `Unreleased` in a commit that is present on the remote branch.
 3. **Quality checks have been run** (see below) and either pass, or the user explicitly accepts
    creating the PR with known failures.
 4. **The PR description has been shown to the user and confirmed.** Always present the filled-in
@@ -35,19 +35,22 @@ Do not create the PR until:
 ### 1. Inspect the branch
 
 - `git status --short --branch` — confirm current branch, upstream, and whether there are
-  uncommitted changes. Uncommitted changes are the user's responsibility; do not commit or stash
-  them without being asked.
+  uncommitted changes. When uncommitted changes exist, show them to the user and wait for explicit
+  confirmation before continuing to the next step. Do not commit or stash them without being asked.
 - `git log <base>..HEAD --oneline` — list commits that will be in the PR.
 - `git diff --stat <base>...HEAD` — summarize the file-level diff to inform the Summary/Changes
   sections.
 - Confirm the branch is pushed to the remote (`git push -u origin <branch>` if not), since
   `gh pr create` requires a remote head branch.
 
-### 2. Update and commit the changelog
+### 2. Update, commit, and push the changelog
 
-- Update `doc/CHANGELOG.md` with the [`manage-changelog`](../manage-changelog/SKILL.md) skill.
+- Update `docs/CHANGELOG.md` with the [`manage-changelog`](../manage-changelog/SKILL.md) skill.
 - Confirm the update is committed on the branch. Do not create the PR while it remains uncommitted;
   ask the user to commit it or explicitly ask you to do so.
+- Push the branch after the changelog commit. Confirm the remote branch points to the local `HEAD`
+  by comparing `git rev-parse HEAD` with `git ls-remote origin refs/heads/<branch>`. Do not create
+  the PR until the commit containing the changelog update is present on the remote branch.
 
 ### 3. Run quality checks
 

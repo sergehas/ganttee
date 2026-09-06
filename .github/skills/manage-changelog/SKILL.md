@@ -1,14 +1,14 @@
 ---
 name: manage-changelog
 description: >-
-  Maintain doc/CHANGELOG.md in Keep a Changelog format. Use when: preparing a PR, release, tag, or
+  Maintain docs/CHANGELOG.md in Keep a Changelog format. Use when: preparing a PR, release, tag, or
   changelog entry from Conventional Commit history.
 argument-hint: "Optional: PR range, release version, or tag"
 ---
 
 # Manage Changelog
 
-Maintain [doc/CHANGELOG.md](../../../doc/CHANGELOG.md) using
+Maintain [docs/CHANGELOG.md](../../../docs/CHANGELOG.md) using
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) headings.
 
 ## Workflow
