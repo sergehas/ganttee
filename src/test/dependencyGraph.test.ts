@@ -102,6 +102,17 @@ suite("DependencyGraph", () => {
     assert.deepStrictEqual([...graph.successors("a")], []);
   });
 
+  test("reads source-owned dependencies from Graphology edge attributes", () => {
+    const dependency = dep("a", "b");
+    const graph = new DependencyGraph(["a", "b"], [dependency]);
+
+    assert.deepStrictEqual(graph.dependenciesOf("a"), [dependency]);
+    assert.deepStrictEqual(graph.dependenciesOf("missing"), []);
+
+    graph.dropEdge(dependency.id);
+    assert.deepStrictEqual(graph.dependenciesOf("a"), []);
+  });
+
   test("groups nodes into weakly-connected components", () => {
     const graph = new DependencyGraph(
       ["a", "b", "c", "d", "lonely"],

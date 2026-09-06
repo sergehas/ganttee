@@ -12,6 +12,12 @@
  */
 
 import { DirectedGraph } from "graphology";
+import { connectedComponents as graphologyConnectedComponents } from "graphology-components";
+import {
+  hasCycle as graphologyHasCycle,
+  topologicalSort as graphologyTopologicalSort,
+  willCreateCycle as graphologyWillCreateCycle,
+} from "graphology-dag";
 import { Dependency } from "./dependency";
 
 /** Thrown when a dependency links an entity to itself. */
@@ -68,7 +74,7 @@ export class DanglingDependencyError extends Error {
 }
 
 /**
- * Immutable directed graph over a set of node ids and typed dependency edges.
+ * Directed graph over a set of node ids and typed dependency edges.
  *
  * A graph built by hydration is guaranteed acyclic; instances built directly
  * (for validation of an unvalidated edge set) may contain cycles, which the
@@ -78,9 +84,6 @@ export class DependencyGraph extends DirectedGraph<
   Record<string, never>,
   { dependency: Dependency }
 > {
-  /** Dependencies indexed by their constrained source entity. */
-  private readonly _dependenciesBySource = new Map<string, Dependency[]>();
-
   /**
    * @param nodeIds All schedulable entity ids.
    * @param dependencies The dependency records forming the edges.
@@ -102,9 +105,6 @@ export class DependencyGraph extends DirectedGraph<
         dependency.sourceId,
         { dependency },
       );
-      const owned = this._dependenciesBySource.get(dependency.sourceId) ?? [];
-      owned.push(dependency);
-      this._dependenciesBySource.set(dependency.sourceId, owned);
     }
   }
 
@@ -113,7 +113,7 @@ export class DependencyGraph extends DirectedGraph<
    * `false` on a successfully hydrated `GanttModel.graph`.
    */
   hasCycle(): boolean {
-    return this.findCycle().length > 0;
+    return graphologyHasCycle(this);
   }
 
   /**
@@ -135,7 +135,17 @@ export class DependencyGraph extends DirectedGraph<
     if (candidate.sourceId === candidate.targetId) {
       return true;
     }
-    return isReachable(this, candidate.sourceId, candidate.targetId);
+    if (
+      !this.hasNode(candidate.sourceId) ||
+      !this.hasNode(candidate.targetId)
+    ) {
+      return false;
+    }
+    return graphologyWillCreateCycle(
+      this,
+      candidate.targetId,
+      candidate.sourceId,
+    );
   }
 
   /**
@@ -145,28 +155,14 @@ export class DependencyGraph extends DirectedGraph<
    * @throws {CyclicDependencyError} When the graph contains a cycle.
    */
   topologicalSort(): readonly string[] {
-    const inDegree = new Map<string, number>(
-      this.nodes().map((id) => [id, this.inDegree(id)]),
-    );
-    const queue = this.nodes().filter((id) => inDegree.get(id) === 0);
-    const order: string[] = [];
-
-    while (queue.length > 0) {
-      const id = queue.shift()!;
-      order.push(id);
-      for (const successor of this.outNeighbors(id)) {
-        const next = (inDegree.get(successor) ?? 0) - 1;
-        inDegree.set(successor, next);
-        if (next === 0) {
-          queue.push(successor);
-        }
+    try {
+      return graphologyTopologicalSort(this);
+    } catch (error) {
+      if (!graphologyHasCycle(this)) {
+        throw error;
       }
-    }
-
-    if (order.length !== this.order) {
       throw new CyclicDependencyError(this.findCycle());
     }
-    return order;
   }
 
   /**
@@ -174,25 +170,7 @@ export class DependencyGraph extends DirectedGraph<
    * nodes appear as single-element arrays.
    */
   connectedComponents(): readonly (readonly string[])[] {
-    const remaining = new Set(this.nodes());
-    const components: string[][] = [];
-    while (remaining.size > 0) {
-      const first = remaining.values().next().value!;
-      const component: string[] = [];
-      const queue = [first];
-      remaining.delete(first);
-      while (queue.length > 0) {
-        const nodeId = queue.shift()!;
-        component.push(nodeId);
-        for (const neighbor of this.neighbors(nodeId)) {
-          if (remaining.delete(neighbor)) {
-            queue.push(neighbor);
-          }
-        }
-      }
-      components.push(component);
-    }
-    return components;
+    return graphologyConnectedComponents(this);
   }
 
   /**
@@ -219,7 +197,12 @@ export class DependencyGraph extends DirectedGraph<
    * @param sourceId The constrained source entity id.
    */
   dependenciesOf(sourceId: string): readonly Dependency[] {
-    return this._dependenciesBySource.get(sourceId) ?? [];
+    if (!this.hasNode(sourceId)) {
+      return [];
+    }
+    return this.inEdges(sourceId).map((edge) =>
+      this.getEdgeAttribute(edge, "dependency"),
+    );
   }
 }
 
@@ -263,30 +246,4 @@ function findCycleIn(graph: DependencyGraph): readonly string[] {
     }
   }
   return [];
-}
-
-/** Returns whether `targetId` is reachable from `sourceId`. */
-function isReachable(
-  graph: DependencyGraph,
-  sourceId: string,
-  targetId: string,
-): boolean {
-  if (!graph.hasNode(sourceId) || !graph.hasNode(targetId)) {
-    return false;
-  }
-  const visited = new Set<string>([sourceId]);
-  const queue = [sourceId];
-  while (queue.length > 0) {
-    const nodeId = queue.shift()!;
-    for (const next of graph.outNeighbors(nodeId)) {
-      if (next === targetId) {
-        return true;
-      }
-      if (!visited.has(next)) {
-        visited.add(next);
-        queue.push(next);
-      }
-    }
-  }
-  return false;
 }
