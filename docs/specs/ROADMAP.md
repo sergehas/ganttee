@@ -1,7 +1,7 @@
 # Feature Roadmap
 
-See [the spec workflow](./README.md) for what each status means and who sets it.
-The Badge column mirrors each spec's status badge.
+See [the spec workflow](./README.md) for what each status means and who sets it. The Badge column
+mirrors each spec's status badge.
 
 | #   | Title                                                                              | Status      | Badge                                                                                              |
 | --- | ---------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------- |
