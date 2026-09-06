@@ -9,6 +9,7 @@ file.
 
 ### Added
 
+- Agent workflow and productivity skills with supporting engineering guidance.
 - Structural DAG validation at hydration time for self-loop, parallel-edge, and directed-cycle
   rejection.
 - Shared date utilities for parse/format and calendar-day arithmetic.
