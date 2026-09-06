@@ -46,3 +46,4 @@ file.
   with duplicate checks skipped when an open pull request already covers the commit.
 - Dependency updates for npm packages and GitHub Actions are now grouped and proposed weekly by
   Dependabot.
+- bump fast-uri from 3.1.5 to 3.1.7 (fix vulnerability report)
