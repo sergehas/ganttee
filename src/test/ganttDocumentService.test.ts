@@ -244,13 +244,18 @@ suite("ganttDocumentService", () => {
   test("preserves reserved project settings through parse", () => {
     const text = JSON.stringify({
       version: CURRENT_DOCUMENT_VERSION,
-      settings: { workingCalendar: { daysOff: [6, 7] }, workingDayHours: 8 },
+      settings: {
+        workingCalendar: { daysOff: [6, 7] },
+        workingDayHours: 8,
+        workingDayStart: 8.5,
+      },
     });
 
     const document = parseDocument(text);
     assert.deepStrictEqual(document.settings, {
       workingCalendar: { daysOff: [6, 7] },
       workingDayHours: 8,
+      workingDayStart: 8.5,
     });
     assert.deepStrictEqual(
       parseDocument(serializeDocument(document)),
@@ -275,6 +280,26 @@ suite("ganttDocumentService", () => {
       settings: { workingDayHours: "eight" },
     });
     assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("rejects out-of-range working-time settings", () => {
+    const invalidSettings = [
+      { workingDayHours: 0 },
+      { workingDayHours: 25 },
+      { workingDayStart: -0.5 },
+      { workingDayStart: 24 },
+      { workingCalendar: { daysOff: [0] } },
+      { workingCalendar: { daysOff: [8] } },
+      { workingCalendar: { daysOff: [1.5] } },
+    ];
+
+    for (const settings of invalidSettings) {
+      const text = JSON.stringify({
+        version: CURRENT_DOCUMENT_VERSION,
+        settings,
+      });
+      assert.throws(() => parseDocument(text), GanttParseError);
+    }
   });
 
   test("drops unknown settings keys and empty settings", () => {

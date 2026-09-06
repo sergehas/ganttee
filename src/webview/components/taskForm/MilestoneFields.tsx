@@ -7,7 +7,7 @@ import { ValidationMessage } from "./ValidationMessage";
 
 /** Renders milestone-specific fields plus dependency editing controls. */
 export function MilestoneFields(props: MilestoneFieldsProps): JSX.Element {
-  const { milestone, onChange, ...depProps } = props;
+  const { milestone, scheduledMilestone, onChange, ...depProps } = props;
   const { document } = depProps;
   const update = makeUpdater(milestone, onChange);
   const validation = validateMilestoneConstraints(
@@ -34,6 +34,9 @@ export function MilestoneFields(props: MilestoneFieldsProps): JSX.Element {
           value={milestone.date ?? ""}
           onChange={(event) => update("date", event.target.value)}
         />
+        {scheduledMilestone && (
+          <output>{scheduledMilestone.effectiveStart().toISOString()}</output>
+        )}
       </label>
 
       {(validation.underConstrained || validation.overConstrained) && (

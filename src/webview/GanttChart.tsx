@@ -13,22 +13,12 @@ import {
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
-import {
-  effectiveEnd,
-  effectiveStart,
-  GanttDocument,
-  Milestone,
-} from "../common/models";
 import { EditableEntityRef } from "../common/protocol";
+import { WebviewScheduleState } from "./scheduleState";
 import {
-  buildChartRows,
-  chartDateRange,
   chartTooltipFormatter,
-  countChartRows,
   dependencyLinkEndpoints,
   entityFromChartEvent,
-  schedulableById,
-  toChartMs,
 } from "./utils/chartUtils";
 
 echarts.use([
@@ -43,8 +33,8 @@ const ROW_HEIGHT = 28;
 const BAR_RATIO = 0.6;
 
 interface GanttChartProps {
-  /** Current parsed Gantt document. */
-  document: GanttDocument;
+  /** Current authoring document and locally computed schedule. */
+  scheduleState: WebviewScheduleState;
   /** Entity currently selected in the editor. */
   selectedEntity: EditableEntityRef | null;
   /** Handles selection of an entity from the chart. */
@@ -102,58 +92,113 @@ export function GanttChart(props: GanttChartProps): JSX.Element {
     if (!chart) {
       return;
     }
-    chart.setOption(buildOption(props.document, props.selectedEntity), true);
+    chart.setOption(
+      buildOption(props.scheduleState, props.selectedEntity),
+      true,
+    );
     if (containerRef.current) {
-      const rows = countChartRows(props.document);
+      const rows =
+        props.scheduleState.scheduledModel.tasks.length +
+        props.scheduleState.scheduledModel.milestones.length +
+        props.scheduleState.scheduledModel.groups.length;
       containerRef.current.style.height = `${Math.max(rows, 1) * ROW_HEIGHT + 80}px`;
       chart.resize();
     }
-  }, [props.document, props.selectedEntity]);
+  }, [props.scheduleState, props.selectedEntity]);
 
   return <div className="ganttee-chart" ref={containerRef} />;
 }
 
 /** Builds the ECharts option from the current document and selection. */
 function buildOption(
-  document: GanttDocument,
+  scheduleState: WebviewScheduleState,
   selectedEntity: EditableEntityRef | null,
 ): echarts.EChartsCoreOption {
-  const { rows, indexById } = buildChartRows(document);
-  const range = chartDateRange(document);
+  const { document, scheduledModel } = scheduleState;
+  const { tasks, milestones, groups } = scheduledModel;
+  const rows = [
+    ...tasks.map((task) => ({ id: task.id, label: task.name })),
+    ...milestones.map((milestone) => ({
+      id: milestone.id,
+      label: milestone.name,
+    })),
+    ...groups.map((group) => ({ id: group.id, label: group.name })),
+  ];
+  const indexById = new Map(rows.map((row, index) => [row.id, index]));
+  const timestamps = [
+    ...tasks.flatMap((task) => [
+      task.effectiveStart().getTime(),
+      task.effectiveEnd().getTime(),
+    ]),
+    ...milestones.map((milestone) => milestone.effectiveStart().getTime()),
+    ...groups.flatMap((group) => [
+      group.effectiveStart.getTime(),
+      group.effectiveEnd.getTime(),
+    ]),
+  ];
+  const range = {
+    min: Math.min(...timestamps) - 2 * 24 * 60 * 60 * 1000,
+    max: Math.max(...timestamps) + 2 * 24 * 60 * 60 * 1000,
+  };
 
-  const taskData = document.tasks
+  const taskData = tasks
     .map((task) => {
-      const start = effectiveStart(task);
-      const end = effectiveEnd(task);
-      if (start === undefined || end === undefined) {
-        return undefined;
-      }
+      const authoringTask = document.tasks.find(
+        (candidate) => candidate.id === task.id,
+      )!;
       return {
-        value: [indexById.get(task.id) ?? 0, toChartMs(start), toChartMs(end)],
-        task,
+        value: [
+          indexById.get(task.id) ?? 0,
+          task.effectiveStart().getTime(),
+          task.effectiveEnd().getTime(),
+        ],
+        task: authoringTask,
+        effectiveStart: task.effectiveStart().toISOString(),
+        effectiveEnd: task.effectiveEnd().toISOString(),
         selected:
           selectedEntity?.kind === "task" && selectedEntity.id === task.id,
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
-  const milestoneData = document.milestones
-    .filter(
-      (milestone): milestone is Milestone & { date: string } =>
-        milestone.date !== undefined,
-    )
-    .map((milestone) => ({
-      value: [indexById.get(milestone.id) ?? 0, toChartMs(milestone.date)],
-      milestone,
-      selected:
-        selectedEntity?.kind === "milestone" &&
-        selectedEntity.id === milestone.id,
-    }));
+  const milestoneData = milestones.map((milestone) => ({
+    value: [
+      indexById.get(milestone.id) ?? 0,
+      milestone.effectiveStart().getTime(),
+    ],
+    milestone: document.milestones.find(
+      (candidate) => candidate.id === milestone.id,
+    )!,
+    effectiveDate: milestone.effectiveStart().toISOString(),
+    selected:
+      selectedEntity?.kind === "milestone" &&
+      selectedEntity.id === milestone.id,
+  }));
+
+  const groupData = groups.map((group) => ({
+    value: [
+      indexById.get(group.id) ?? 0,
+      group.effectiveStart.getTime(),
+      group.effectiveEnd.getTime(),
+    ],
+    group: document.groups.find((candidate) => candidate.id === group.id)!,
+  }));
+
+  const scheduledById = new Map(
+    [...tasks, ...milestones].map((entity) => [
+      entity.id,
+      {
+        id: entity.id,
+        start: entity.effectiveStart().toISOString(),
+        end: entity.effectiveEnd().toISOString(),
+      },
+    ]),
+  );
 
   const linkData = document.dependencies
     .map((dep) => {
-      const source = schedulableById(document, dep.sourceId);
-      const target = schedulableById(document, dep.targetId);
+      const source = scheduledById.get(dep.sourceId);
+      const target = scheduledById.get(dep.targetId);
       if (!source || !target) {
         return undefined;
       }
@@ -197,6 +242,14 @@ function buildOption(
         data: linkData,
         z: 1,
         silent: true,
+      },
+      {
+        type: "custom",
+        name: "groups",
+        renderItem: renderTaskBar,
+        encode: { x: [1, 2], y: 0 },
+        data: groupData,
+        z: 2,
       },
       {
         type: "custom",

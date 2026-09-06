@@ -76,12 +76,22 @@ export function TaskForm(props: TaskFormProps): JSX.Element {
       </div>
 
       {taskDraft && (
-        <TaskFields task={taskDraft} onChange={setTaskDraft} {...depEditor} />
+        <TaskFields
+          task={taskDraft}
+          scheduledTask={props.schedule.tasks.find(
+            (task) => task.id === taskDraft.id,
+          )}
+          onChange={setTaskDraft}
+          {...depEditor}
+        />
       )}
 
       {milestoneDraft && (
         <MilestoneFields
           milestone={milestoneDraft}
+          scheduledMilestone={props.schedule.milestones.find(
+            (milestone) => milestone.id === milestoneDraft.id,
+          )}
           onChange={setMilestoneDraft}
           {...depEditor}
         />

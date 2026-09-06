@@ -6,6 +6,11 @@ import {
   EditableEntityRef,
 } from "../common/protocol";
 import { buildShiftByDaysPatch } from "../services/entitySchedulePatchService";
+import {
+  createWebviewScheduleState,
+  updateWebviewScheduleEntity,
+  WebviewScheduleState,
+} from "./scheduleState";
 import { GanttChart } from "./GanttChart";
 import { TaskForm } from "./TaskForm";
 import { useEntityEditWorkflow } from "./useEntityEditWorkflow";
@@ -19,6 +24,8 @@ interface SaveEntityOptions {
 /** Root editor UI: the ECharts timeline and the entity edit panel. */
 export function App(): JSX.Element {
   const [document, setDocument] = useState<GanttDocument | null>(null);
+  const [scheduleState, setScheduleState] =
+    useState<WebviewScheduleState | null>(null);
   const [selectedEntity, setSelectedEntity] =
     useState<EditableEntityRef | null>(null);
   const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(
@@ -31,6 +38,13 @@ export function App(): JSX.Element {
         case "init":
         case "documentChanged":
           setDocument(message.document);
+          try {
+            setScheduleState(
+              createWebviewScheduleState(message.document, message.revision),
+            );
+          } catch {
+            setScheduleState(null);
+          }
           break;
         case "selectEntity":
           setSelectedEntity(message.entity);
@@ -51,30 +65,21 @@ export function App(): JSX.Element {
     entity: EditableEntityMap[EditableEntityKind],
     options?: SaveEntityOptions,
   ) => {
-    switch (kind) {
-      case "task":
-        postToHost({
-          type: "updateEntity",
-          kind,
-          entity: entity as EditableEntityMap["task"],
-        });
-        break;
-      case "milestone":
-        postToHost({
-          type: "updateEntity",
-          kind,
-          entity: entity as EditableEntityMap["milestone"],
-        });
-        break;
-      case "group":
-        postToHost({
-          type: "updateEntity",
-          kind,
-          entity: entity as EditableEntityMap["group"],
-        });
-        break;
+    if (!scheduleState) {
+      return;
     }
-    if (!options?.keepEditorOpen) {
+    const next = updateWebviewScheduleEntity(scheduleState, kind, entity);
+    if (!next) {
+      return;
+    }
+    setDocument(next.document);
+    setScheduleState(next);
+    postToHost({
+      type: "entityUpdated",
+      updatedDocument: next.document,
+      baseRevision: scheduleState.revision,
+    });
+    if (kind === "group" && !options?.keepEditorOpen) {
       setEditingEntity(null);
     }
   };
@@ -111,6 +116,10 @@ export function App(): JSX.Element {
     return <div className="ganttee-empty">Loading Gantt chart…</div>;
   }
 
+  if (!scheduleState) {
+    return <div className="ganttee-empty">Loading Gantt chart…</div>;
+  }
+
   const editingTarget = resolveEntity(document, editingEntity);
 
   /** Applies a chart date shift to an entity through the shared workflow. */
@@ -131,7 +140,7 @@ export function App(): JSX.Element {
           </div>
         ) : (
           <GanttChart
-            document={document}
+            scheduleState={scheduleState}
             selectedEntity={selectedEntity}
             onSelectEntity={setSelectedEntity}
             onEditEntity={setEditingEntity}
@@ -144,6 +153,7 @@ export function App(): JSX.Element {
           <TaskForm
             editingEntity={editingTarget}
             document={document}
+            schedule={scheduleState.scheduledModel}
             onSave={workflow.saveEntity}
             onDelete={workflow.deleteEntity}
             onClose={() => setEditingEntity(null)}

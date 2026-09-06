@@ -147,11 +147,12 @@ suite("MilestoneEntity", () => {
 });
 
 suite("GroupEntity", () => {
-  test("uses a Unix-epoch placeholder with zero duration", () => {
+  test("contains authoring fields without a placeholder schedule", () => {
     const group = new GroupEntity({ id: "g", name: "G" });
-    assert.strictEqual(group.effectiveStart().getTime(), 0);
-    assert.strictEqual(group.effectiveEnd().getTime(), 0);
-    assert.strictEqual(group.effectiveDuration(), 0);
+    assert.deepStrictEqual(
+      { id: group.id, name: group.name, groupId: group.groupId },
+      { id: "g", name: "G", groupId: undefined },
+    );
   });
 });
 
@@ -202,23 +203,18 @@ suite("ganttModelService", () => {
 });
 
 suite("ganttModelService DAG invariants", () => {
-  test("builds a graph spanning every task, milestone, and group id", () => {
+  test("builds a Graphology graph spanning tasks and milestones only", () => {
     const model = hydrateDocument(SAMPLE_DOCUMENT);
-    assert.deepStrictEqual([...model.graph.nodes].sort(), [
-      "g1",
-      "m1",
-      "t1",
-      "t2",
-    ]);
-    assert.deepStrictEqual([...model.graph.successors("t2")], ["t1"]);
-    assert.deepStrictEqual([...model.graph.predecessors("t1")], ["t2"]);
+    assert.deepStrictEqual(model.graph.nodes().sort(), ["m1", "t1", "t2"]);
+    assert.deepStrictEqual([...model.graph.successors("t1")], ["t2"]);
+    assert.deepStrictEqual([...model.graph.predecessors("t2")], ["t1"]);
     assert.strictEqual(model.graph.hasCycle(), false);
   });
 
   test("orders the hydrated graph topologically over every entity", () => {
     const order = [...hydrateDocument(SAMPLE_DOCUMENT).graph.topologicalSort()];
-    assert.deepStrictEqual([...order].sort(), ["g1", "m1", "t1", "t2"]);
-    assert.ok(order.indexOf("t2") < order.indexOf("t1"));
+    assert.deepStrictEqual([...order].sort(), ["m1", "t1", "t2"]);
+    assert.ok(order.indexOf("t1") < order.indexOf("t2"));
   });
 
   test("hydrates a document whose entities form disconnected components", () => {
@@ -227,7 +223,7 @@ suite("ganttModelService DAG invariants", () => {
       dependencies: [],
     };
     const model = hydrateDocument(document);
-    assert.strictEqual(model.graph.connectedComponents().length, 4);
+    assert.strictEqual(model.graph.connectedComponents().length, 3);
   });
 
   test("rejects a self-referencing dependency", () => {

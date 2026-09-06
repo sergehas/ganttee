@@ -9,7 +9,7 @@ import { ValidationMessage } from "./ValidationMessage";
 
 /** Renders task-specific fields plus dependency editing controls. */
 export function TaskFields(props: TaskFieldsProps): JSX.Element {
-  const { task, onChange, ...depProps } = props;
+  const { task, scheduledTask, onChange, ...depProps } = props;
   const { document } = depProps;
   const update = makeUpdater(task, onChange);
 
@@ -37,6 +37,9 @@ export function TaskFields(props: TaskFieldsProps): JSX.Element {
               update("start", event.target.value || undefined)
             }
           />
+          {scheduledTask && (
+            <output>{scheduledTask.effectiveStart().toISOString()}</output>
+          )}
         </label>
         <label className="ganttee-field">
           <span>End</span>
@@ -46,6 +49,9 @@ export function TaskFields(props: TaskFieldsProps): JSX.Element {
             value={task.end ?? ""}
             onChange={(event) => update("end", event.target.value || undefined)}
           />
+          {scheduledTask && (
+            <output>{scheduledTask.effectiveEnd().toISOString()}</output>
+          )}
         </label>
       </div>
 
@@ -66,6 +72,9 @@ export function TaskFields(props: TaskFieldsProps): JSX.Element {
               )
             }
           />
+          {scheduledTask && (
+            <output>{scheduledTask.effectiveDuration()}</output>
+          )}
         </label>
         <label className="ganttee-field">
           <span>Progress</span>

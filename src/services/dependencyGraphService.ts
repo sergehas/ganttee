@@ -40,7 +40,7 @@ export function assertGraphIntegrity(document: GanttDocument): DependencyGraph {
     }
     seenPairs.add(pair);
   }
-  return new DependencyGraph([...nodeIdsOf(document)], document.dependencies);
+  return createSchedulableGraph(document);
 }
 
 /**
@@ -93,10 +93,7 @@ export function wouldCreateCycle(
   document: GanttDocument,
   candidate: Dependency,
 ): boolean {
-  return new DependencyGraph(
-    [...nodeIdsOf(document)],
-    document.dependencies,
-  ).wouldCreateCycle(candidate);
+  return createSchedulableGraph(document).wouldCreateCycle(candidate);
 }
 
 /**
@@ -109,17 +106,7 @@ export function wouldCreateCycle(
  * @throws {DanglingDependencyError} When an endpoint is not an entity id.
  */
 export function topologicalOrder(document: GanttDocument): string[] {
-  assertResolvableGraph(document);
-  const nodeIds = [
-    ...document.tasks.map((task) => task.id),
-    ...document.milestones.map((milestone) => milestone.id),
-  ];
-  const scheduled = new Set(nodeIds);
-  const dependencies = document.dependencies.filter(
-    (dependency) =>
-      scheduled.has(dependency.sourceId) && scheduled.has(dependency.targetId),
-  );
-  return [...new DependencyGraph(nodeIds, dependencies).topologicalSort()];
+  return [...assertResolvableGraph(document).topologicalSort()];
 }
 
 /** Returns the id of every entity that can take part in the dependency graph. */
@@ -129,4 +116,21 @@ function nodeIdsOf(document: GanttDocument): ReadonlySet<string> {
     ...document.milestones.map((milestone) => milestone.id),
     ...document.groups.map((group) => group.id),
   ]);
+}
+
+/** Builds the normalized Graphology graph over tasks and milestones only. */
+function createSchedulableGraph(document: GanttDocument): DependencyGraph {
+  const nodeIds = [
+    ...document.tasks.map((task) => task.id),
+    ...document.milestones.map((milestone) => milestone.id),
+  ];
+  const schedulableIds = new Set(nodeIds);
+  return new DependencyGraph(
+    nodeIds,
+    document.dependencies.filter(
+      (dependency) =>
+        schedulableIds.has(dependency.sourceId) &&
+        schedulableIds.has(dependency.targetId),
+    ),
+  );
 }

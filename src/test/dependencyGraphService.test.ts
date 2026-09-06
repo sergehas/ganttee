@@ -108,8 +108,8 @@ suite("dependencyGraphService", () => {
       [dep("a", "b"), dep("b", "c")],
     );
     const order = topologicalOrder(document);
-    assert.ok(order.indexOf("a") < order.indexOf("b"));
-    assert.ok(order.indexOf("b") < order.indexOf("c"));
+    assert.ok(order.indexOf("c") < order.indexOf("b"));
+    assert.ok(order.indexOf("b") < order.indexOf("a"));
   });
 
   test("topologicalOrder includes milestones and excludes groups", () => {

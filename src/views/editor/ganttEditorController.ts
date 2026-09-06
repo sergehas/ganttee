@@ -72,7 +72,11 @@ export class GanttEditorController {
       vscode.workspace.onDidChangeTextDocument((event) => {
         if (event.document.uri.toString() === this.document.uri.toString()) {
           this.reparse();
-          this.post({ type: "documentChanged", document: this._document });
+          this.post({
+            type: "documentChanged",
+            document: this._document,
+            revision: this.document.version,
+          });
         }
       }),
     );
@@ -111,7 +115,11 @@ export class GanttEditorController {
 
   /** Reveals the editor panel and posts the initial model to the webview. */
   sendInit(): void {
-    this.post({ type: "init", document: this._document });
+    this.post({
+      type: "init",
+      document: this._document,
+      revision: this.document.version,
+    });
   }
 
   /** Reveals the owning webview panel. */
@@ -199,6 +207,12 @@ export class GanttEditorController {
       case "updateEntity":
         await this.updateEntity(message.kind, message.entity);
         break;
+      case "entityUpdated":
+        await this.updateDocument(
+          message.updatedDocument,
+          message.baseRevision,
+        );
+        break;
       case "addDependency":
         await this.addDependency(message.dependency);
         break;
@@ -228,6 +242,22 @@ export class GanttEditorController {
       return;
     }
     await this.applyModel(next);
+  }
+
+  /** Applies a webview-computed authoring document unless its base is stale. */
+  private async updateDocument(
+    updatedDocument: GanttDocument,
+    baseRevision: number,
+  ): Promise<void> {
+    if (baseRevision !== this.document.version) {
+      this.post({
+        type: "documentChanged",
+        document: this._document,
+        revision: this.document.version,
+      });
+      return;
+    }
+    await this.applyModel(updatedDocument);
   }
 
   /**

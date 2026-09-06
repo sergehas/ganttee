@@ -36,6 +36,8 @@ export interface ProjectSettings {
    * scheduling until the configuration feature lands.
    */
   workingDayHours?: number;
+  /** UTC decimal hour at which each working interval starts. */
+  workingDayStart?: number;
 }
 
 /** The serialized shape of a `.ganttee` file. */

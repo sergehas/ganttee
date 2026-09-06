@@ -4,6 +4,9 @@ import {
   GanttDocument,
   Group,
   Milestone,
+  ScheduledMilestoneEntity,
+  ScheduledModel,
+  ScheduledTaskEntity,
   Task,
 } from "../../common/models";
 import {
@@ -28,6 +31,8 @@ export interface TaskFormProps {
   editingEntity: TaskFormEditingEntity;
   /** Current parsed Gantt document. */
   document: GanttDocument;
+  /** Current locally computed schedule. */
+  schedule: ScheduledModel;
   /** Saves an edited entity and its dependencies. */
   onSave: (
     kind: EditableEntityKind,
@@ -82,6 +87,8 @@ export interface TaskFieldsProps extends DependencyEditorProps {
   task: Task;
   /** Replaces the task draft. */
   onChange: (task: Task) => void;
+  /** Current computed schedule for the task. */
+  scheduledTask?: ScheduledTaskEntity;
 }
 
 /** Props for the milestone-specific fields section. */
@@ -90,6 +97,8 @@ export interface MilestoneFieldsProps extends DependencyEditorProps {
   milestone: Milestone;
   /** Replaces the milestone draft. */
   onChange: (milestone: Milestone) => void;
+  /** Current computed schedule for the milestone. */
+  scheduledMilestone?: ScheduledMilestoneEntity;
 }
 
 /** Props for the group-specific fields section. */

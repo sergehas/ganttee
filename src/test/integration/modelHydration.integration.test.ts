@@ -31,7 +31,7 @@ suite("modelHydration integration", () => {
     const model = hydrateDocument(loadFixture("v2-with-deps.ganttee"));
 
     assert.strictEqual(model.dependencies.length, 3);
-    assert.strictEqual(model.graph.nodes.length, 5, "4 tasks + 1 milestone");
+    assert.strictEqual(model.graph.nodes().length, 5, "4 tasks + 1 milestone");
     assert.strictEqual(model.dependencies.length, 3, "three dependency edges");
   });
 

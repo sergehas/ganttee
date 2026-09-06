@@ -45,7 +45,7 @@ export class UnresolvableScheduleError extends Error {}
  * Shared identity base for every entity, implementing {@link BaseTask} and
  * declaring the {@link Schedulable} contract its subclasses must satisfy.
  */
-export abstract class BaseTaskEntity implements BaseTask, Schedulable {
+export abstract class BaseTaskEntity implements BaseTask {
   /** Stable unique identifier. */
   readonly id: string;
   /** Human-readable display name. */
@@ -64,13 +64,6 @@ export abstract class BaseTaskEntity implements BaseTask, Schedulable {
     this.description = base.description;
     this.groupId = base.groupId;
   }
-
-  /** @inheritdoc */
-  abstract effectiveStart(): Date;
-  /** @inheritdoc */
-  abstract effectiveEnd(): Date;
-  /** @inheritdoc */
-  abstract effectiveDuration(): number;
 }
 
 /** Construction fields for a {@link TaskEntity}. */
@@ -211,6 +204,85 @@ export class MilestoneEntity extends BaseTaskEntity {
   }
 }
 
+/** Raised when scheduling cannot produce a complete valid model. */
+export class SchedulingError extends Error {}
+
+/** A task paired with immutable effective scheduling values. */
+export class ScheduledTaskEntity extends TaskEntity implements Schedulable {
+  /** Computed effective start in UTC. */
+  private readonly _effectiveStart: Date;
+  /** Computed effective end in UTC. */
+  private readonly _effectiveEnd: Date;
+  /** Computed duration in working days. */
+  private readonly _effectiveDuration: number;
+
+  /**
+   * @param task The authoring task represented by this scheduled projection.
+   * @param effectiveStart The computed UTC start.
+   * @param effectiveEnd The computed UTC end.
+   * @param effectiveDuration The computed duration in working days.
+   */
+  constructor(
+    task: TaskEntity,
+    effectiveStart: Date,
+    effectiveEnd: Date,
+    effectiveDuration: number,
+  ) {
+    super(task);
+    this._effectiveStart = new Date(effectiveStart.getTime());
+    this._effectiveEnd = new Date(effectiveEnd.getTime());
+    this._effectiveDuration = effectiveDuration;
+  }
+
+  /** @inheritdoc */
+  override effectiveStart(): Date {
+    return new Date(this._effectiveStart.getTime());
+  }
+
+  /** @inheritdoc */
+  override effectiveEnd(): Date {
+    return new Date(this._effectiveEnd.getTime());
+  }
+
+  /** @inheritdoc */
+  override effectiveDuration(): number {
+    return this._effectiveDuration;
+  }
+}
+
+/** A milestone paired with its immutable computed date. */
+export class ScheduledMilestoneEntity
+  extends MilestoneEntity
+  implements Schedulable
+{
+  /** Computed milestone date in UTC. */
+  private readonly _effectiveDate: Date;
+
+  /**
+   * @param milestone The authoring milestone represented by this projection.
+   * @param effectiveDate The computed UTC milestone date.
+   */
+  constructor(milestone: MilestoneEntity, effectiveDate: Date) {
+    super(milestone);
+    this._effectiveDate = new Date(effectiveDate.getTime());
+  }
+
+  /** @inheritdoc */
+  override effectiveStart(): Date {
+    return new Date(this._effectiveDate.getTime());
+  }
+
+  /** @inheritdoc */
+  override effectiveEnd(): Date {
+    return new Date(this._effectiveDate.getTime());
+  }
+
+  /** @inheritdoc */
+  override effectiveDuration(): number {
+    return MILESTONE_DURATION;
+  }
+}
+
 /** Construction fields for a {@link GroupEntity}. */
 export interface GroupEntityProps extends BaseTask {
   /** Whether the group is collapsed in the UI. */
@@ -218,10 +290,8 @@ export interface GroupEntityProps extends BaseTask {
 }
 
 /**
- * A named collection of entities. Groups carry no static schedule; their
- * effective span is a placeholder in this phase — a deterministic Unix-epoch
- * sentinel with zero duration — pending rollup from members by the scheduling
- * engine.
+ * A named collection of entities. Groups carry no static or placeholder
+ * schedule; the scheduling service creates a separate rollup projection.
  */
 export class GroupEntity extends BaseTaskEntity {
   /** Whether the group is collapsed in the UI. */
@@ -234,27 +304,34 @@ export class GroupEntity extends BaseTaskEntity {
     super(props);
     this.collapsed = props.collapsed;
   }
+}
 
+/** A group paired with effective dates rolled up from scheduled descendants. */
+export interface ScheduledGroup {
+  /** Stable group identifier. */
+  readonly id: string;
+  /** Human-readable group name. */
+  readonly name: string;
+  /** Parent group identifier, when nested. */
+  readonly groupId?: string;
+  /** Earliest effective descendant start. */
+  readonly effectiveStart: Date;
+  /** Latest effective descendant end. */
+  readonly effectiveEnd: Date;
+}
+
+/** Complete in-memory scheduling result for tasks, milestones, and groups. */
+export class ScheduledModel {
   /**
-   * Placeholder start — the Unix epoch — until the scheduling engine rolls up
-   * member dates.
+   * @param tasks Scheduled task projections.
+   * @param milestones Scheduled milestone projections.
+   * @param groups Scheduled non-empty group rollups.
    */
-  effectiveStart(): Date {
-    return new Date(0);
-  }
-
-  /**
-   * Placeholder end — the Unix epoch — until the scheduling engine rolls up
-   * member dates.
-   */
-  effectiveEnd(): Date {
-    return new Date(0);
-  }
-
-  /** Placeholder duration (0) until rollup is implemented. */
-  effectiveDuration(): number {
-    return 0;
-  }
+  constructor(
+    readonly tasks: readonly ScheduledTaskEntity[],
+    readonly milestones: readonly ScheduledMilestoneEntity[],
+    readonly groups: readonly ScheduledGroup[],
+  ) {}
 }
 
 /**
@@ -268,7 +345,7 @@ export class GanttModel {
    * @param groups The hydrated group entities.
    * @param dependencies The plain dependency records (unchanged by hydration).
    * @param version The document schema version.
-   * @param graph The structural DAG over all entity ids and dependencies.
+   * @param graph The normalized structural DAG over tasks and milestones.
    * @param settings Reserved project-level settings (calendar and hours).
    */
   constructor(

@@ -7,10 +7,11 @@
  * must not import from "vscode" or any browser/node globals, so a future
  * webview pre-flight validator can reuse it.
  *
- * Edges are oriented `sourceId → targetId`, mirroring the persisted
- * {@link Dependency} records.
+ * Edges are oriented `targetId → sourceId`, so topological traversal visits a
+ * dependency target before the constrained source.
  */
 
+import { DirectedGraph } from "graphology";
 import { Dependency } from "./dependency";
 
 /** Thrown when a dependency links an entity to itself. */
@@ -73,37 +74,38 @@ export class DanglingDependencyError extends Error {
  * (for validation of an unvalidated edge set) may contain cycles, which the
  * inspection methods report.
  */
-export class DependencyGraph {
-  /** Every node id, in insertion order. */
-  private readonly _nodes: readonly string[];
-  /** Outgoing adjacency: source id → target ids. */
-  private readonly _outgoing: ReadonlyMap<string, readonly string[]>;
-  /** Incoming adjacency: target id → source ids. */
-  private readonly _incoming: ReadonlyMap<string, readonly string[]>;
+export class DependencyGraph extends DirectedGraph<
+  Record<string, never>,
+  { dependency: Dependency }
+> {
+  /** Dependencies indexed by their constrained source entity. */
+  private readonly _dependenciesBySource = new Map<string, Dependency[]>();
 
   /**
-   * @param nodeIds All schedulable entity ids (tasks + milestones + groups).
-   * Ids referenced by a dependency but absent from this list are added to the
-   * node set so an unvalidated edge set is still fully traversable.
+   * @param nodeIds All schedulable entity ids.
    * @param dependencies The dependency records forming the edges.
    */
-  constructor(
-    nodeIds: readonly string[],
-    private readonly dependencies: readonly Dependency[],
-  ) {
+  constructor(nodeIds: readonly string[], dependencies: readonly Dependency[]) {
+    super({ allowSelfLoops: true, multi: false });
     const nodes = new Set(nodeIds);
     for (const dependency of dependencies) {
       nodes.add(dependency.sourceId);
       nodes.add(dependency.targetId);
     }
-    this._nodes = [...nodes];
-    this._outgoing = buildAdjacency(dependencies, false);
-    this._incoming = buildAdjacency(dependencies, true);
-  }
-
-  /** All node ids in the graph. */
-  get nodes(): readonly string[] {
-    return this._nodes;
+    for (const nodeId of nodes) {
+      this.addNode(nodeId, {});
+    }
+    for (const dependency of dependencies) {
+      this.addDirectedEdgeWithKey(
+        dependency.id,
+        dependency.targetId,
+        dependency.sourceId,
+        { dependency },
+      );
+      const owned = this._dependenciesBySource.get(dependency.sourceId) ?? [];
+      owned.push(dependency);
+      this._dependenciesBySource.set(dependency.sourceId, owned);
+    }
   }
 
   /**
@@ -120,7 +122,7 @@ export class DependencyGraph {
    * `GanttModel.graph`.
    */
   findCycle(): readonly string[] {
-    return findCycleIn(this._outgoing);
+    return findCycleIn(this);
   }
 
   /**
@@ -130,8 +132,10 @@ export class DependencyGraph {
    * @param candidate The dependency being considered.
    */
   wouldCreateCycle(candidate: Dependency): boolean {
-    const adjacency = buildAdjacency([...this.dependencies, candidate], false);
-    return findCycleIn(adjacency).length > 0;
+    if (candidate.sourceId === candidate.targetId) {
+      return true;
+    }
+    return isReachable(this, candidate.sourceId, candidate.targetId);
   }
 
   /**
@@ -142,24 +146,24 @@ export class DependencyGraph {
    */
   topologicalSort(): readonly string[] {
     const inDegree = new Map<string, number>(
-      this._nodes.map((id) => [id, this._incoming.get(id)?.length ?? 0]),
+      this.nodes().map((id) => [id, this.inDegree(id)]),
     );
-    const queue = this._nodes.filter((id) => inDegree.get(id) === 0);
+    const queue = this.nodes().filter((id) => inDegree.get(id) === 0);
     const order: string[] = [];
 
     while (queue.length > 0) {
       const id = queue.shift()!;
       order.push(id);
-      for (const target of this._outgoing.get(id) ?? []) {
-        const next = (inDegree.get(target) ?? 0) - 1;
-        inDegree.set(target, next);
+      for (const successor of this.outNeighbors(id)) {
+        const next = (inDegree.get(successor) ?? 0) - 1;
+        inDegree.set(successor, next);
         if (next === 0) {
-          queue.push(target);
+          queue.push(successor);
         }
       }
     }
 
-    if (order.length !== this._nodes.length) {
+    if (order.length !== this.order) {
       throw new CyclicDependencyError(this.findCycle());
     }
     return order;
@@ -170,38 +174,25 @@ export class DependencyGraph {
    * nodes appear as single-element arrays.
    */
   connectedComponents(): readonly (readonly string[])[] {
-    const parent = new Map<string, string>(this._nodes.map((id) => [id, id]));
-
-    const find = (id: string): string => {
-      let root = id;
-      while (parent.get(root) !== root) {
-        root = parent.get(root)!;
+    const remaining = new Set(this.nodes());
+    const components: string[][] = [];
+    while (remaining.size > 0) {
+      const first = remaining.values().next().value!;
+      const component: string[] = [];
+      const queue = [first];
+      remaining.delete(first);
+      while (queue.length > 0) {
+        const nodeId = queue.shift()!;
+        component.push(nodeId);
+        for (const neighbor of this.neighbors(nodeId)) {
+          if (remaining.delete(neighbor)) {
+            queue.push(neighbor);
+          }
+        }
       }
-      let cursor = id;
-      while (parent.get(cursor) !== root) {
-        const next = parent.get(cursor)!;
-        parent.set(cursor, root);
-        cursor = next;
-      }
-      return root;
-    };
-
-    for (const dependency of this.dependencies) {
-      const sourceRoot = find(dependency.sourceId);
-      const targetRoot = find(dependency.targetId);
-      if (sourceRoot !== targetRoot) {
-        parent.set(sourceRoot, targetRoot);
-      }
+      components.push(component);
     }
-
-    const components = new Map<string, string[]>();
-    for (const id of this._nodes) {
-      const root = find(id);
-      const members = components.get(root) ?? [];
-      members.push(id);
-      components.set(root, members);
-    }
-    return [...components.values()];
+    return components;
   }
 
   /**
@@ -210,7 +201,7 @@ export class DependencyGraph {
    * @param id The node to inspect.
    */
   predecessors(id: string): readonly string[] {
-    return this._incoming.get(id) ?? [];
+    return this.inNeighbors(id);
   }
 
   /**
@@ -219,30 +210,17 @@ export class DependencyGraph {
    * @param id The node to inspect.
    */
   successors(id: string): readonly string[] {
-    return this._outgoing.get(id) ?? [];
+    return this.outNeighbors(id);
   }
-}
 
-/**
- * Builds an adjacency map from the dependency edges.
- *
- * @param dependencies The edges to index.
- * @param reversed When `true`, indexes `targetId → sourceId` instead of
- * `sourceId → targetId`.
- */
-function buildAdjacency(
-  dependencies: readonly Dependency[],
-  reversed: boolean,
-): ReadonlyMap<string, readonly string[]> {
-  const adjacency = new Map<string, string[]>();
-  for (const dependency of dependencies) {
-    const from = reversed ? dependency.targetId : dependency.sourceId;
-    const to = reversed ? dependency.sourceId : dependency.targetId;
-    const neighbours = adjacency.get(from) ?? [];
-    neighbours.push(to);
-    adjacency.set(from, neighbours);
+  /**
+   * Returns every authoring dependency owned by a constrained source.
+   *
+   * @param sourceId The constrained source entity id.
+   */
+  dependenciesOf(sourceId: string): readonly Dependency[] {
+    return this._dependenciesBySource.get(sourceId) ?? [];
   }
-  return adjacency;
 }
 
 /**
@@ -251,9 +229,7 @@ function buildAdjacency(
  * @param adjacency The forward adjacency map to traverse.
  * @returns The ids forming the first cycle found, or `[]` when acyclic.
  */
-function findCycleIn(
-  adjacency: ReadonlyMap<string, readonly string[]>,
-): readonly string[] {
+function findCycleIn(graph: DependencyGraph): readonly string[] {
   const visited = new Set<string>();
   const stack = new Set<string>();
   const path: string[] = [];
@@ -262,7 +238,7 @@ function findCycleIn(
     visited.add(node);
     stack.add(node);
     path.push(node);
-    for (const next of adjacency.get(node) ?? []) {
+    for (const next of graph.outNeighbors(node)) {
       if (stack.has(next)) {
         return [...path.slice(path.indexOf(next)), next];
       }
@@ -278,7 +254,7 @@ function findCycleIn(
     return undefined;
   };
 
-  for (const node of adjacency.keys()) {
+  for (const node of graph.nodes()) {
     if (!visited.has(node)) {
       const found = visit(node);
       if (found) {
@@ -287,4 +263,30 @@ function findCycleIn(
     }
   }
   return [];
+}
+
+/** Returns whether `targetId` is reachable from `sourceId`. */
+function isReachable(
+  graph: DependencyGraph,
+  sourceId: string,
+  targetId: string,
+): boolean {
+  if (!graph.hasNode(sourceId) || !graph.hasNode(targetId)) {
+    return false;
+  }
+  const visited = new Set<string>([sourceId]);
+  const queue = [sourceId];
+  while (queue.length > 0) {
+    const nodeId = queue.shift()!;
+    for (const next of graph.outNeighbors(nodeId)) {
+      if (next === targetId) {
+        return true;
+      }
+      if (!visited.has(next)) {
+        visited.add(next);
+        queue.push(next);
+      }
+    }
+  }
+  return false;
 }
