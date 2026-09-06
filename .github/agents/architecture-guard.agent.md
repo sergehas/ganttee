@@ -34,6 +34,10 @@ change respects the project's layer boundaries and data-flow rules.
 5. **Disposables:** every disposable is registered (context.subscriptions or an owned `Disposable`).
 6. **Mandates:** user-facing strings localized; new/changed branches covered by tests (≥ 90%);
    public and private members carry JSDoc.
+7. **Semantic ownership:** no duplicate domain models, parallel state, or wrappers without a
+   distinct invariant and owner.
+8. **Library reuse:** standard functionality is delegated to established dependencies when they
+   provide the required contract; local adapters contain only project-specific semantics.
 
 ## Scan Delegation
 

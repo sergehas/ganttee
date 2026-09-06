@@ -25,6 +25,17 @@ thing that works and revisit only when a real second use case or a real change p
 - Prefer one well-named function over copy-pasted variants that differ by a flag only when the
   branches share real behavior; otherwise keep them separate.
 
+## Abstraction and reuse
+
+- One domain concept should have one model. Before adding a type, identify the distinct invariant it
+  owns and why an existing type cannot express that invariant.
+- Before implementing a standard algorithm or mechanism, check established libraries and their
+  companion packages. Keep adapters limited to project-specific semantics.
+- Avoid preflight validation when the operation already detects and reports the same failure.
+  Translate failures at the boundary where domain semantics are added.
+- Name types by their domain responsibility. Do not present UI state, transport state, or revision
+  metadata as a domain model.
+
 ## SOLID
 
 - **SRP (Single Responsibility):** Each module owns one reason to change. This is already encoded by

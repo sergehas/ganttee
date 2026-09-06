@@ -39,7 +39,7 @@ body {
 }
 
 .ganttee-panel {
-  flex: 0 0 320px;
+  flex: 0 0 350px;
   border-left: var(--vscode-strokeThickness, 1px) solid
     var(--vscode-panel-border);
   overflow: auto;

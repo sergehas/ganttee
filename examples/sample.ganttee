@@ -53,9 +53,7 @@
     {
       "id": "task-4p1xeki1",
       "name": "UAT 1",
-      "start": "2026-03-02",
       "end": "2026-03-10",
-      "duration": 10,
       "progress": 0,
       "status": "todo",
       "groupId": "group-UAT"

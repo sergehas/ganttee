@@ -1,4 +1,5 @@
 import * as assert from "assert";
+import { DirectedGraph } from "graphology";
 import {
   CyclicDependencyError,
   Dependency,
@@ -16,9 +17,14 @@ function dep(sourceId: string, targetId: string): Dependency {
 }
 
 suite("DependencyGraph", () => {
+  test("is a first-class Graphology directed graph", () => {
+    const graph = new DependencyGraph(["a"], []);
+    assert.ok(graph instanceof DirectedGraph);
+  });
+
   test("exposes the union of declared nodes and edge endpoints", () => {
     const graph = new DependencyGraph(["a", "b", "isolated"], [dep("a", "b")]);
-    assert.deepStrictEqual([...graph.nodes].sort(), ["a", "b", "isolated"]);
+    assert.deepStrictEqual(graph.nodes().sort(), ["a", "b", "isolated"]);
   });
 
   test("reports no cycle for an acyclic edge set", () => {
@@ -55,7 +61,14 @@ suite("DependencyGraph", () => {
     assert.strictEqual(graph.wouldCreateCycle(dep("c", "a")), true);
     assert.strictEqual(graph.wouldCreateCycle(dep("a", "c")), false);
     assert.strictEqual(graph.hasCycle(), false);
-    assert.deepStrictEqual([...graph.successors("c")], []);
+    assert.deepStrictEqual([...graph.successors("c")], ["b"]);
+  });
+
+  test("treats self-loops as cycles and unknown candidates as non-closing", () => {
+    const graph = new DependencyGraph(["a"], []);
+
+    assert.strictEqual(graph.wouldCreateCycle(dep("a", "a")), true);
+    assert.strictEqual(graph.wouldCreateCycle(dep("missing", "a")), false);
   });
 
   test("sorts predecessors before successors and includes isolated nodes", () => {
@@ -65,8 +78,8 @@ suite("DependencyGraph", () => {
     );
     const order = [...graph.topologicalSort()];
     assert.strictEqual(order.length, 4);
-    assert.ok(order.indexOf("a") < order.indexOf("b"));
-    assert.ok(order.indexOf("b") < order.indexOf("c"));
+    assert.ok(order.indexOf("c") < order.indexOf("b"));
+    assert.ok(order.indexOf("b") < order.indexOf("a"));
     assert.ok(order.includes("lonely"));
   });
 
@@ -83,10 +96,21 @@ suite("DependencyGraph", () => {
       ["a", "b", "c"],
       [dep("a", "c"), dep("b", "c")],
     );
-    assert.deepStrictEqual([...graph.successors("a")], ["c"]);
-    assert.deepStrictEqual([...graph.predecessors("c")].sort(), ["a", "b"]);
-    assert.deepStrictEqual([...graph.predecessors("a")], []);
-    assert.deepStrictEqual([...graph.successors("c")], []);
+    assert.deepStrictEqual([...graph.successors("c")].sort(), ["a", "b"]);
+    assert.deepStrictEqual([...graph.predecessors("a")], ["c"]);
+    assert.deepStrictEqual([...graph.predecessors("c")], []);
+    assert.deepStrictEqual([...graph.successors("a")], []);
+  });
+
+  test("reads source-owned dependencies from Graphology edge attributes", () => {
+    const dependency = dep("a", "b");
+    const graph = new DependencyGraph(["a", "b"], [dependency]);
+
+    assert.deepStrictEqual(graph.dependenciesOf("a"), [dependency]);
+    assert.deepStrictEqual(graph.dependenciesOf("missing"), []);
+
+    graph.dropEdge(dependency.id);
+    assert.deepStrictEqual(graph.dependenciesOf("a"), []);
   });
 
   test("groups nodes into weakly-connected components", () => {

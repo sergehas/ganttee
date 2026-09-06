@@ -18,6 +18,7 @@ import { GanttParseError } from "./documentShapeValidationService";
  */
 export function assertDocumentRelations(document: GanttDocument): void {
   assertUniqueEntityIds(document);
+  assertUniqueDependencyIds(document.dependencies);
   assertTaskDateOrder(document.tasks);
   assertGroupHierarchy(document.groups);
   assertGroupReferences(document);
@@ -28,6 +29,21 @@ export function assertDocumentRelations(document: GanttDocument): void {
       throw new GanttParseError(error.message);
     }
     throw error;
+  }
+}
+
+/** Asserts that every dependency id is unique within the document. */
+function assertUniqueDependencyIds(
+  dependencies: GanttDocument["dependencies"],
+): void {
+  const seen = new Set<string>();
+  for (const dependency of dependencies) {
+    if (seen.has(dependency.id)) {
+      throw new GanttParseError(
+        `Dependency id "${dependency.id}" must be unique.`,
+      );
+    }
+    seen.add(dependency.id);
   }
 }
 

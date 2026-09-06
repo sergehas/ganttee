@@ -50,5 +50,6 @@ export function parseDocument(text: string): GanttDocument {
  * @param document The document to write.
  */
 export function serializeDocument(document: GanttDocument): string {
-  return `${JSON.stringify(document, undefined, 2)}\n`;
+  const { schedule: _schedule, ...persistedDocument } = document;
+  return `${JSON.stringify(persistedDocument, undefined, 2)}\n`;
 }

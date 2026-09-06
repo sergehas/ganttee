@@ -3,6 +3,7 @@ import {
   effectiveEnd,
   effectiveStart,
   GanttDocument,
+  Group,
   Milestone,
   Task,
 } from "../../common/models";
@@ -131,13 +132,16 @@ export function entityFromChartEvent(
 ): EditableEntityRef | undefined {
   const event = params as {
     seriesName?: string;
-    data?: { task?: Task; milestone?: Milestone };
+    data?: { task?: Task; milestone?: Milestone; group?: Group };
   };
   if (event.seriesName === "tasks" && event.data?.task) {
     return { kind: "task", id: event.data.task.id };
   }
   if (event.seriesName === "milestones" && event.data?.milestone) {
     return { kind: "milestone", id: event.data.milestone.id };
+  }
+  if (event.seriesName === "groups" && event.data?.group) {
+    return { kind: "group", id: event.data.group.id };
   }
   return undefined;
 }
@@ -146,16 +150,22 @@ export function entityFromChartEvent(
 export function chartTooltipFormatter(params: unknown): string {
   const data = (
     params as {
-      data?: { task?: Task; milestone?: Milestone };
+      data?: {
+        task?: Task;
+        milestone?: Milestone;
+        effectiveStart?: string;
+        effectiveEnd?: string;
+        effectiveDate?: string;
+      };
     }
   ).data;
   if (data?.task) {
-    const start = effectiveStart(data.task) ?? "—";
-    const end = effectiveEnd(data.task) ?? "—";
+    const start = data.effectiveStart ?? effectiveStart(data.task) ?? "—";
+    const end = data.effectiveEnd ?? effectiveEnd(data.task) ?? "—";
     return `<strong>${escapeChartHtml(data.task.name)}</strong><br/>${start} → ${end}`;
   }
   if (data?.milestone) {
-    const date = data.milestone.date ?? "—";
+    const date = data.effectiveDate ?? data.milestone.date ?? "—";
     return `<strong>${escapeChartHtml(data.milestone.name)}</strong><br/>${date}`;
   }
   return "";
@@ -169,7 +179,9 @@ export function chartTooltipFormatter(params: unknown): string {
  * arithmetic — use {@link diffIsoDates} instead.
  */
 export function toChartMs(isoDate: string): number {
-  return new Date(`${isoDate}T00:00:00`).getTime();
+  return new Date(
+    isoDate.includes("T") ? isoDate : `${isoDate}T00:00:00`,
+  ).getTime();
 }
 
 /** Escapes entity text before it is inserted into tooltip HTML. */

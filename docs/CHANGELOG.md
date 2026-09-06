@@ -47,3 +47,9 @@ file.
 - Dependency updates for npm packages and GitHub Actions are now grouped and proposed weekly by
   Dependabot.
 - bump fast-uri from 3.1.5 to 3.1.7 (fix vulnerability report)
+
+### Fixed
+
+- Clearing a milestone's date field no longer fails to save; the field is now omitted instead of
+  being written as an empty string, so a milestone with a dependency-derived date can drop its
+  explicit date.

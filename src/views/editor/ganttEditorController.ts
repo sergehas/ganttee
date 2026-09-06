@@ -8,6 +8,8 @@ import {
   Group,
   Milestone,
   ParallelEdgeDependencyError,
+  ScheduledModel,
+  SchedulingError,
   SelfLoopDependencyError,
   Task,
 } from "../../common/models";
@@ -39,11 +41,13 @@ import {
   buildGroupDeletionDocument,
   hasGroupContents,
 } from "../../services/groupDeletionService";
+import { toScheduledDocument } from "../../services/scheduledDocumentService";
 import {
   blockingDiagnostics,
   evaluateScheduleGraph,
   ScheduleDiagnostic,
 } from "../../services/scheduleGraphValidationService";
+import { schedule } from "../../services/schedulingService";
 import { summarizeBlockingDiagnostics } from "../scheduleDiagnosticPresenter";
 
 /**
@@ -54,6 +58,7 @@ import { summarizeBlockingDiagnostics } from "../scheduleDiagnosticPresenter";
 export class GanttEditorController {
   private _document: GanttDocument = createEmptyDocument();
   private _model: GanttModel = hydrateDocument(this._document);
+  private _scheduledModel: ScheduledModel | undefined;
   private _diagnostics: readonly ScheduleDiagnostic[] = [];
   private _isDisposed = false;
   private readonly _disposables: vscode.Disposable[] = [];
@@ -72,7 +77,11 @@ export class GanttEditorController {
       vscode.workspace.onDidChangeTextDocument((event) => {
         if (event.document.uri.toString() === this.document.uri.toString()) {
           this.reparse();
-          this.post({ type: "documentChanged", document: this._document });
+          this.post({
+            type: "documentChanged",
+            document: this.transportDocument(),
+            revision: this.document.version,
+          });
         }
       }),
     );
@@ -101,6 +110,11 @@ export class GanttEditorController {
     return this._model;
   }
 
+  /** Returns the current host-computed schedule, when the document is schedulable. */
+  get scheduledModel(): ScheduledModel | undefined {
+    return this._scheduledModel;
+  }
+
   /**
    * The semantic validation result for the current model.
    * Updated on every successful reparse.
@@ -111,7 +125,11 @@ export class GanttEditorController {
 
   /** Reveals the editor panel and posts the initial model to the webview. */
   sendInit(): void {
-    this.post({ type: "init", document: this._document });
+    this.post({
+      type: "init",
+      document: this.transportDocument(),
+      revision: this.document.version,
+    });
   }
 
   /** Reveals the owning webview panel. */
@@ -199,6 +217,12 @@ export class GanttEditorController {
       case "updateEntity":
         await this.updateEntity(message.kind, message.entity);
         break;
+      case "entityUpdated":
+        await this.updateDocument(
+          message.updatedDocument,
+          message.baseRevision,
+        );
+        break;
       case "addDependency":
         await this.addDependency(message.dependency);
         break;
@@ -228,6 +252,22 @@ export class GanttEditorController {
       return;
     }
     await this.applyModel(next);
+  }
+
+  /** Applies an authoring document from the webview unless its base is stale. */
+  private async updateDocument(
+    updatedDocument: GanttDocument,
+    baseRevision: number,
+  ): Promise<void> {
+    if (baseRevision !== this.document.version) {
+      this.post({
+        type: "documentChanged",
+        document: this.transportDocument(),
+        revision: this.document.version,
+      });
+      return;
+    }
+    await this.applyModel(updatedDocument);
   }
 
   /**
@@ -329,10 +369,29 @@ export class GanttEditorController {
       }
       const document = sanitization.document;
       const hydratedModel = hydrateDocument(document);
+      const diagnostics = evaluateScheduleGraph(document);
+      let scheduledModel: ScheduledModel | undefined;
+      let schedulingError: SchedulingError | undefined;
+      if (blockingDiagnostics(diagnostics).length === 0) {
+        try {
+          scheduledModel = schedule(hydratedModel, hydratedModel.graph);
+        } catch (error) {
+          if (!(error instanceof SchedulingError)) {
+            throw error;
+          }
+          schedulingError = error;
+        }
+      }
       this._document = document;
       this._model = hydratedModel;
-      this._diagnostics = evaluateScheduleGraph(document);
+      this._scheduledModel = scheduledModel;
+      this._diagnostics = diagnostics;
       this._onDidChangeModel.fire();
+      if (schedulingError !== undefined) {
+        void vscode.window.showErrorMessage(
+          vscode.l10n.t("Ganttee: {0}", schedulingError.message),
+        );
+      }
     } catch (error) {
       if (error instanceof GanttParseError) {
         void vscode.window.showErrorMessage(
@@ -351,6 +410,10 @@ export class GanttEditorController {
             error.message,
           ),
         );
+        return;
+      }
+      if (error instanceof SchedulingError) {
+        this._scheduledModel = undefined;
         return;
       }
       throw error;
@@ -448,6 +511,17 @@ export class GanttEditorController {
       return;
     }
     void this.webviewPanel.webview.postMessage(message);
+  }
+
+  /** Creates the protocol document with its transient serialized schedule. */
+  private transportDocument(): GanttDocument {
+    if (this._scheduledModel === undefined) {
+      return { ...this._document };
+    }
+    return {
+      ...this._document,
+      schedule: toScheduledDocument(this._scheduledModel),
+    };
   }
 
   /**

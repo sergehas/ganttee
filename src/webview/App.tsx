@@ -9,6 +9,11 @@ import { buildShiftByDaysPatch } from "../services/entitySchedulePatchService";
 import { GanttChart } from "./GanttChart";
 import { TaskForm } from "./TaskForm";
 import { useEntityEditWorkflow } from "./useEntityEditWorkflow";
+import {
+  createGanttViewState,
+  GanttViewState,
+  updateGanttViewDocument,
+} from "./viewState";
 import { onHostMessage, postToHost } from "./vscodeApi";
 
 interface SaveEntityOptions {
@@ -18,7 +23,7 @@ interface SaveEntityOptions {
 
 /** Root editor UI: the ECharts timeline and the entity edit panel. */
 export function App(): JSX.Element {
-  const [document, setDocument] = useState<GanttDocument | null>(null);
+  const [viewState, setViewState] = useState<GanttViewState | null>(null);
   const [selectedEntity, setSelectedEntity] =
     useState<EditableEntityRef | null>(null);
   const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(
@@ -30,7 +35,13 @@ export function App(): JSX.Element {
       switch (message.type) {
         case "init":
         case "documentChanged":
-          setDocument(message.document);
+          try {
+            setViewState(
+              createGanttViewState(message.document, message.revision),
+            );
+          } catch {
+            setViewState(null);
+          }
           break;
         case "selectEntity":
           setSelectedEntity(message.entity);
@@ -51,30 +62,20 @@ export function App(): JSX.Element {
     entity: EditableEntityMap[EditableEntityKind],
     options?: SaveEntityOptions,
   ) => {
-    switch (kind) {
-      case "task":
-        postToHost({
-          type: "updateEntity",
-          kind,
-          entity: entity as EditableEntityMap["task"],
-        });
-        break;
-      case "milestone":
-        postToHost({
-          type: "updateEntity",
-          kind,
-          entity: entity as EditableEntityMap["milestone"],
-        });
-        break;
-      case "group":
-        postToHost({
-          type: "updateEntity",
-          kind,
-          entity: entity as EditableEntityMap["group"],
-        });
-        break;
+    if (!viewState) {
+      return;
     }
-    if (!options?.keepEditorOpen) {
+    const updatedDocument = updateGanttViewDocument(viewState, kind, entity);
+    if (!updatedDocument) {
+      return;
+    }
+    setViewState(null);
+    postToHost({
+      type: "entityUpdated",
+      updatedDocument,
+      baseRevision: viewState.revision,
+    });
+    if (kind === "group" && !options?.keepEditorOpen) {
       setEditingEntity(null);
     }
   };
@@ -107,31 +108,33 @@ export function App(): JSX.Element {
     onRemoveDependency: removeDependency,
   });
 
-  if (!document) {
+  if (!viewState) {
     return <div className="ganttee-empty">Loading Gantt chart…</div>;
   }
 
-  const editingTarget = resolveEntity(document, editingEntity);
+  const editingTarget = resolveEntity(viewState.document, editingEntity);
 
   /** Applies a chart date shift to an entity through the shared workflow. */
   const nudgeEntityByDays = (entity: EditableEntityRef, days: number) => {
-    const patch = buildShiftByDaysPatch(document, entity, days);
+    const patch = buildShiftByDaysPatch(viewState.document, entity, days);
     if (!patch) {
       return;
     }
-    workflow.patchEntityDatesFromChart(document, entity, patch);
+    workflow.patchEntityDatesFromChart(viewState.document, entity, patch);
   };
 
   return (
     <div className="ganttee-layout">
       <div className="ganttee-timeline">
-        {document.tasks.length === 0 && document.milestones.length === 0 ? (
+        {viewState.document.tasks.length === 0 &&
+        viewState.document.milestones.length === 0 ? (
           <div className="ganttee-empty">
             No tasks yet. Use the Ganttee sidebar to add one.
           </div>
         ) : (
           <GanttChart
-            document={document}
+            document={viewState.document}
+            schedule={viewState.scheduledModel}
             selectedEntity={selectedEntity}
             onSelectEntity={setSelectedEntity}
             onEditEntity={setEditingEntity}
@@ -143,14 +146,15 @@ export function App(): JSX.Element {
         <aside className="ganttee-panel">
           <TaskForm
             editingEntity={editingTarget}
-            document={document}
+            document={viewState.document}
+            schedule={viewState.scheduledModel}
             onSave={workflow.saveEntity}
             onDelete={workflow.deleteEntity}
             onClose={() => setEditingEntity(null)}
             onAddDependency={workflow.addDependency}
             onRemoveDependency={workflow.removeDependency}
             onUngroupEntity={(entity, options) =>
-              workflow.ungroupEntity(document, entity, options)
+              workflow.ungroupEntity(viewState.document, entity, options)
             }
             onRequestEditEntity={requestEditEntity}
           />

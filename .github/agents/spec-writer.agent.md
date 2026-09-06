@@ -4,7 +4,7 @@ description:
   request into implementation-ready epics, user stories, Given/When/Then acceptance criteria,
   data-model/protocol impact, and a test strategy. Delegate spec-writing tasks here."
 name: "Spec Writer"
-tools: [read, agent]
+tools: [read, agent, edit, todo]
 ---
 
 You are a specification writer for the Ganttee VS Code extension (an interactive Gantt chart

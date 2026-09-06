@@ -11,8 +11,8 @@ import { Group, Milestone, Task } from "./models/task";
 
 /** Messages sent from the extension host to the webview. */
 export type HostToWebviewMessage =
-  | { type: "init"; document: GanttDocument }
-  | { type: "documentChanged"; document: GanttDocument }
+  | { type: "init"; document: GanttDocument; revision: number }
+  | { type: "documentChanged"; document: GanttDocument; revision: number }
   | { type: "selectEntity"; entity: EditableEntityRef }
   | { type: "editEntity"; entity: EditableEntityRef };
 
@@ -52,6 +52,11 @@ export type UpdateEntityMessage = {
 export type WebviewToHostMessage =
   | { type: "ready" }
   | UpdateEntityMessage
+  | {
+      type: "entityUpdated";
+      updatedDocument: GanttDocument;
+      baseRevision: number;
+    }
   | { type: "addDependency"; dependency: Dependency }
   | { type: "removeDependency"; dependencyId: string }
   | {

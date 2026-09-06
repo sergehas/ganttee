@@ -69,9 +69,23 @@ function validateSettings(raw: unknown): ProjectSettings | undefined {
     settings.workingCalendar = validateWorkingCalendar(raw.workingCalendar);
   }
   if (raw.workingDayHours !== undefined) {
-    settings.workingDayHours = requireNonNegativeNumber(
+    settings.workingDayHours = requireNumberInRange(
       raw.workingDayHours,
       "settings.workingDayHours",
+      0,
+      24,
+      false,
+      true,
+    );
+  }
+  if (raw.workingDayStart !== undefined) {
+    settings.workingDayStart = requireNumberInRange(
+      raw.workingDayStart,
+      "settings.workingDayStart",
+      0,
+      24,
+      true,
+      false,
     );
   }
   return Object.keys(settings).length > 0 ? settings : undefined;
@@ -86,10 +100,7 @@ function validateWorkingCalendar(
   const calendar: WorkingCalendar = {};
   if (Array.isArray(raw.daysOff)) {
     calendar.daysOff = raw.daysOff.map((day, index) =>
-      requireNonNegativeNumber(
-        day,
-        `settings.workingCalendar.daysOff[${index}]`,
-      ),
+      requireIsoWeekday(day, `settings.workingCalendar.daysOff[${index}]`),
     );
   }
   return calendar;
@@ -250,6 +261,39 @@ function requireDate(value: unknown, field: string): string {
 function requireNonNegativeNumber(value: unknown, field: string): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
     throw new GanttParseError(`${field} must be a non-negative number.`);
+  }
+  return value;
+}
+
+/** Requires a finite number inside the configured lower and upper bounds. */
+function requireNumberInRange(
+  value: unknown,
+  field: string,
+  minimum: number,
+  maximum: number,
+  includeMinimum: boolean,
+  includeMaximum: boolean,
+): number {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    (includeMinimum ? value < minimum : value <= minimum) ||
+    (includeMaximum ? value > maximum : value >= maximum)
+  ) {
+    throw new GanttParseError(`${field} is outside its supported range.`);
+  }
+  return value;
+}
+
+/** Requires an ISO weekday integer from Monday 1 through Sunday 7. */
+function requireIsoWeekday(value: unknown, field: string): number {
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < 1 ||
+    value > 7
+  ) {
+    throw new GanttParseError(`${field} must be an ISO weekday from 1 to 7.`);
   }
   return value;
 }

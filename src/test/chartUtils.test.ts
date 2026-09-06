@@ -117,6 +117,13 @@ suite("chartUtils", () => {
       }),
       { kind: "milestone", id: "m1" },
     );
+    assert.deepStrictEqual(
+      entityFromChartEvent({
+        seriesName: "groups",
+        data: { group: { id: "g1", name: "Group" } },
+      }),
+      { kind: "group", id: "g1" },
+    );
     assert.strictEqual(
       entityFromChartEvent({ seriesName: "dependencies" }),
       undefined,
@@ -157,6 +164,23 @@ suite("chartUtils", () => {
       "<strong>Undated</strong><br/>—",
     );
     assert.strictEqual(chartTooltipFormatter({}), "");
+  });
+
+  test("formats computed effective timestamps from scheduled chart data", () => {
+    const start = "2026-01-01T11:30:00.000Z";
+    const end = "2026-01-02T14:15:00.000Z";
+
+    assert.strictEqual(
+      chartTooltipFormatter({
+        data: {
+          task: { id: "t1", name: "Task" },
+          effectiveStart: start,
+          effectiveEnd: end,
+        },
+      }),
+      `<strong>Task</strong><br/>${start} → ${end}`,
+    );
+    assert.strictEqual(toChartMs(start), new Date(start).getTime());
   });
 
   test("omits an undated milestone from rows and range", () => {

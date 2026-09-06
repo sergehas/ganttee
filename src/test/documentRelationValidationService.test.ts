@@ -19,6 +19,35 @@ suite("documentRelationValidationService", () => {
     );
   });
 
+  test("rejects duplicate dependency ids", () => {
+    const document = createEmptyDocument();
+    document.tasks = [
+      { id: "source-a", name: "Source A" },
+      { id: "target-a", name: "Target A" },
+      { id: "source-b", name: "Source B" },
+      { id: "target-b", name: "Target B" },
+    ];
+    document.dependencies = [
+      {
+        id: "duplicate",
+        sourceId: "source-a",
+        targetId: "target-a",
+        type: "startAfter",
+      },
+      {
+        id: "duplicate",
+        sourceId: "source-b",
+        targetId: "target-b",
+        type: "startAfter",
+      },
+    ];
+
+    assert.throws(
+      () => assertDocumentRelations(document),
+      /Dependency id "duplicate" must be unique/,
+    );
+  });
+
   test("rejects a task whose start is after its end", () => {
     const document = createEmptyDocument();
     document.tasks = [

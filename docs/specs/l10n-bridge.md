@@ -4,7 +4,7 @@ Owner: Copilot
 Last updated: 2026-08-15
 ---
 
-# Feature: l10n Bridge & Webview Codicon Adoption
+# Feature: l10n Bridge & Webview Codicons Adoption
 
 ![Status: Intend](https://img.shields.io/badge/status-Intend-ADB5BD?style=for-the-badge)
 
