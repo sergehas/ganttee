@@ -44,6 +44,21 @@ export function parseIsoDate(iso: string): Date {
 }
 
 /**
+ * Parses an ISO timestamp into a `Date`.
+ *
+ * @param iso The ISO-8601 timestamp to parse.
+ * @returns The parsed UTC timestamp.
+ * @throws {RangeError} When the timestamp is invalid.
+ */
+export function parseIsoTimestamp(iso: string): Date {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    throw new RangeError(`Invalid ISO timestamp: ${iso}`);
+  }
+  return date;
+}
+
+/**
  * Formats a `Date` as a date-only ISO string (`YYYY-MM-DD`) in UTC.
  *
  * @param date The date to format.
@@ -51,6 +66,11 @@ export function parseIsoDate(iso: string): Date {
  */
 export function formatIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+/** Formats a `Date` as a complete UTC ISO timestamp. */
+export function formatIsoTimestamp(date: Date): string {
+  return date.toISOString();
 }
 
 /**

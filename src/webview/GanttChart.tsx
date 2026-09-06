@@ -13,8 +13,8 @@ import {
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
+import { GanttDocument, ScheduledModel } from "../common/models";
 import { EditableEntityRef } from "../common/protocol";
-import { WebviewScheduleState } from "./scheduleState";
 import {
   chartTooltipFormatter,
   dependencyLinkEndpoints,
@@ -33,8 +33,10 @@ const ROW_HEIGHT = 28;
 const BAR_RATIO = 0.6;
 
 interface GanttChartProps {
-  /** Current authoring document and locally computed schedule. */
-  scheduleState: WebviewScheduleState;
+  /** Current authoring document. */
+  document: GanttDocument;
+  /** Current host-computed schedule. */
+  schedule: ScheduledModel;
   /** Entity currently selected in the editor. */
   selectedEntity: EditableEntityRef | null;
   /** Handles selection of an entity from the chart. */
@@ -93,28 +95,28 @@ export function GanttChart(props: GanttChartProps): JSX.Element {
       return;
     }
     chart.setOption(
-      buildOption(props.scheduleState, props.selectedEntity),
+      buildOption(props.document, props.schedule, props.selectedEntity),
       true,
     );
     if (containerRef.current) {
       const rows =
-        props.scheduleState.scheduledModel.tasks.length +
-        props.scheduleState.scheduledModel.milestones.length +
-        props.scheduleState.scheduledModel.groups.length;
+        props.schedule.tasks.length +
+        props.schedule.milestones.length +
+        props.schedule.groups.length;
       containerRef.current.style.height = `${Math.max(rows, 1) * ROW_HEIGHT + 80}px`;
       chart.resize();
     }
-  }, [props.scheduleState, props.selectedEntity]);
+  }, [props.document, props.schedule, props.selectedEntity]);
 
   return <div className="ganttee-chart" ref={containerRef} />;
 }
 
 /** Builds the ECharts option from the current document and selection. */
 function buildOption(
-  scheduleState: WebviewScheduleState,
+  document: GanttDocument,
+  scheduledModel: ScheduledModel,
   selectedEntity: EditableEntityRef | null,
 ): echarts.EChartsCoreOption {
-  const { document, scheduledModel } = scheduleState;
   const { tasks, milestones, groups } = scheduledModel;
   const rows = [
     ...tasks.map((task) => ({ id: task.id, label: task.name })),

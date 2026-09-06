@@ -307,7 +307,7 @@ export class GroupEntity extends BaseTaskEntity {
 }
 
 /** A group paired with effective dates rolled up from scheduled descendants. */
-export interface ScheduledGroup {
+export interface ScheduledGroupEntity {
   /** Stable group identifier. */
   readonly id: string;
   /** Human-readable group name. */
@@ -318,6 +318,8 @@ export interface ScheduledGroup {
   readonly effectiveStart: Date;
   /** Latest effective descendant end. */
   readonly effectiveEnd: Date;
+  /** Effective duration in working days. */
+  readonly effectiveDuration: number;
 }
 
 /** Complete in-memory scheduling result for tasks, milestones, and groups. */
@@ -330,7 +332,7 @@ export class ScheduledModel {
   constructor(
     readonly tasks: readonly ScheduledTaskEntity[],
     readonly milestones: readonly ScheduledMilestoneEntity[],
-    readonly groups: readonly ScheduledGroup[],
+    readonly groups: readonly ScheduledGroupEntity[],
   ) {}
 }
 

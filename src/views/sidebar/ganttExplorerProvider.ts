@@ -1,11 +1,5 @@
 import * as vscode from "vscode";
-import {
-  effectiveEnd,
-  effectiveStart,
-  Group,
-  Milestone,
-  Task,
-} from "../../common/models";
+import { Group, Milestone, ScheduledModel, Task } from "../../common/models";
 import { EditableEntityRef } from "../../common/protocol";
 import { GanttStore } from "../../ganttStore";
 import {
@@ -50,16 +44,6 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
    */
   private getDiagnostics(): readonly ScheduleDiagnostic[] {
     return this.store.active?.validation ?? [];
-  }
-
-  /**
-   * Returns a human-readable message describing all violations for an entity id.
-   */
-  private getViolationMessage(entityId: string): string | undefined {
-    const messages = diagnosticsFor(this.getDiagnostics(), entityId).map(
-      (diagnostic) => describeDiagnostic(diagnostic, entityId),
-    );
-    return messages.length > 0 ? messages.join("\n") : undefined;
   }
 
   getChildren(element?: GanttNode): GanttNode[] {
@@ -114,10 +98,16 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
     item.contextValue = "ganttee.group";
     item.iconPath = new vscode.ThemeIcon("folder");
     item.id = `group:${group.id}`;
-    const violationMessage = this.getViolationMessage(group.id);
-    if (violationMessage) {
-      item.tooltip = violationMessage;
-      (item as any).badge = { value: "!" };
+    this.applyDiagnosticPresentation(item, group.id);
+    const scheduledGroup = this.scheduledModel?.groups.find(
+      (candidate) => candidate.id === group.id,
+    );
+    if (scheduledGroup) {
+      item.description =
+        this.formatDateRange(
+          scheduledGroup.effectiveStart,
+          scheduledGroup.effectiveEnd,
+        ) + ` (${scheduledGroup.effectiveDuration}d)`;
     }
     return item;
   }
@@ -127,7 +117,15 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       task.name,
       vscode.TreeItemCollapsibleState.None,
     );
-    item.description = `${effectiveStart(task) ?? "—"} → ${effectiveEnd(task) ?? "—"}`;
+    const scheduledTask = this.scheduledModel?.tasks.find(
+      (candidate) => candidate.id === task.id,
+    );
+    if (scheduledTask) {
+      item.description = `${this.formatDateRange(
+        scheduledTask.effectiveStart(),
+        scheduledTask.effectiveEnd(),
+      )} (${scheduledTask.effectiveDuration()}d)`;
+    }
     item.contextValue = "ganttee.task";
     item.iconPath = new vscode.ThemeIcon("checklist");
     item.id = `task:${task.id}`;
@@ -137,12 +135,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       arguments: [{ kind: "task", id: task.id }],
     };
 
-    const violationMessage = this.getViolationMessage(task.id);
-    if (violationMessage) {
-      item.tooltip = violationMessage;
-      // Cast to any to support badge property in newer vscode versions
-      (item as any).badge = { value: "!" };
-    }
+    this.applyDiagnosticPresentation(item, task.id);
 
     return item;
   }
@@ -152,7 +145,14 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       milestone.name,
       vscode.TreeItemCollapsibleState.None,
     );
-    item.description = milestone.date;
+    const scheduledMilestone = this.scheduledModel?.milestones.find(
+      (candidate) => candidate.id === milestone.id,
+    );
+    if (scheduledMilestone) {
+      item.description = this.formatShortDate(
+        scheduledMilestone.effectiveStart(),
+      );
+    }
     item.contextValue = "ganttee.milestone";
     item.iconPath = new vscode.ThemeIcon("milestone");
     item.id = `milestone:${milestone.id}`;
@@ -162,14 +162,52 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       arguments: [{ kind: "milestone", id: milestone.id }],
     };
 
-    const violationMessage = this.getViolationMessage(milestone.id);
-    if (violationMessage) {
-      item.tooltip = violationMessage;
-      // Cast to any to support badge property in newer vscode versions
-      (item as any).badge = { value: "!" };
-    }
+    this.applyDiagnosticPresentation(item, milestone.id);
 
     return item;
+  }
+
+  /** Returns the current host-computed schedule. */
+  private get scheduledModel(): ScheduledModel | undefined {
+    return this.store.active?.scheduledModel;
+  }
+
+  /** Formats a pair of effective dates for a tree item description. */
+  private formatDateRange(start: Date, end: Date): string {
+    return `${this.formatShortDate(start)} → ${this.formatShortDate(end)}`;
+  }
+
+  /** Formats a UTC effective date using the user's locale and short date style. */
+  private formatShortDate(date: Date): string {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "short",
+      timeZone: "UTC",
+    }).format(date);
+  }
+
+  /** Applies the detailed tooltip and severity indicator for an entity. */
+  private applyDiagnosticPresentation(
+    item: vscode.TreeItem,
+    entityId: string,
+  ): void {
+    const diagnostics = diagnosticsFor(this.getDiagnostics(), entityId);
+    if (diagnostics.length === 0) {
+      return;
+    }
+    item.tooltip = diagnostics
+      .map((diagnostic) => describeDiagnostic(diagnostic, entityId))
+      .join("\n");
+    const hasBlockingDiagnostic = diagnostics.some(
+      (diagnostic) => diagnostic.severity === "blocking",
+    );
+    item.iconPath = new vscode.ThemeIcon(
+      hasBlockingDiagnostic ? "error" : "warning",
+      new vscode.ThemeColor(
+        hasBlockingDiagnostic
+          ? "list.errorForeground"
+          : "list.warningForeground",
+      ),
+    );
   }
 }
 

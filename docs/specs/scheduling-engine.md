@@ -18,11 +18,10 @@ Compute `effectiveStart`, `effectiveEnd`, and `effectiveDuration` for all schedu
 milestones, groups) via single-pass topological constraint propagation (O(V+E)) over a dependency
 graph containing only tasks and milestones, followed by post-order group rollup. The graph substrate
 is Graphology; groups are excluded from graph nodes (they have no dependencies and are computed
-post-order from member effective dates). During this phase, the webview is the only runtime that
-executes scheduling. The pure scheduling service remains importable by the host for future
-verification and other host-side consumers, but the host does not schedule or persist effective
-values in this phase. Prerequisite: graph-validation spec (which validates determinacy, cycles,
-anchors, and duplicate endpoints, rejecting group dependency endpoints before hydration).
+post-order from member effective dates). The host executes scheduling and broadcasts the transient
+result to the webview and sidebar. The pure scheduling service remains importable by future CLI and
+MCP consumers. Prerequisite: graph-validation spec (which validates determinacy, cycles, anchors,
+and duplicate endpoints, rejecting group dependency endpoints before hydration).
 
 ## 2. Goals / Non-goals
 
@@ -42,8 +41,8 @@ anchors, and duplicate endpoints, rejecting group dependency endpoints before hy
 - Pure service in `src/services/` (no `vscode`), importable by both host and webview, unit-testable.
 - Graphology as the graph substrate: immutable, browser-safe, enables future incremental scheduling
   optimization.
-- Webview-computed scheduling on task/milestone save: immediate effective-date feedback in forms
-  without host round-trip.
+- Host-computed scheduling after every accepted document change, so all consumers use one canonical
+  effective schedule.
 
 ### Non-goals
 
@@ -54,16 +53,15 @@ anchors, and duplicate endpoints, rejecting group dependency endpoints before hy
 - Resolution of under-constrained items. Validation marks them as errors before scheduling, so the
   scheduling service aborts if one is received.
 - Rendering beyond consuming effective values.
-- Host verification or re-scheduling on webview save. The pure service remains host-compatible for
-  future verification, CLI, or MCP use; those consumers are deferred to future phases.
+- Optimistic local scheduling in the webview. The webview receives the host-computed schedule after
+  an edit and does not call the scheduling service.
 
 ## 3. User Stories
 
 - As a planner, I want dependent tasks to shift automatically when a predecessor moves, so that the
   chart stays consistent.
 - As a planner, I want group bars to span their contents, so that rollups are accurate.
-- As a planner, I want immediate feedback when I save a task edit, including computed effective
-  dates, without waiting for a host round-trip.
+- As a planner, I want the timeline, forms, and sidebar to show the same computed effective dates.
 - As a planner, I want fractional durations to respect my working hours and days off, so that
   effective dates match the project calendar.
 
@@ -132,8 +130,8 @@ anchors, and duplicate endpoints, rejecting group dependency endpoints before hy
   group's effective start and end are undefined, the group is omitted from parent rollups, and the
   group is omitted from chart display.
 
-- Given a webview task/milestone edit form When the user saves the entity Then the webview computes
-  and displays updated effective dates immediately (no host round-trip).
+- Given a task or milestone edit When the host accepts the updated document Then the host computes
+  and broadcasts the updated effective schedule to the webview and sidebar.
 
 - Given multiple dependency candidates for the same endpoint When scheduling is requested Then the
   service selects the maximum UTC timestamp independently for each constrained endpoint.
@@ -167,17 +165,16 @@ graph TD
 
     F["Host Controller<br/>(parse, validate, broadcast)"]
     G["Webview Edit Form<br/>(task/milestone save)"]
-    H["Webview Hydrate & Schedule<br/>(local Graphology + service)"]
-    I["Webview Effective Dates<br/>(immediate feedback)"]
+    H["Host Hydrate & Schedule<br/>(Graphology + service)"]
+    I["Webview Effective Dates<br/>(host schedule)"]
 
     J["Webview Timeline<br/>(consume results)"]
     K["Sidebar Tree<br/>(consume results)"]
 
     A --> B --> F
 
-    G --> H
-    H --> I
-    I -->|POST updated doc| F
+    G -->|POST updated doc| F
+    F --> H --> I
 
     F -->|broadcast validated document| J
     F -->|broadcast validated document| K
@@ -196,9 +193,8 @@ graph TD
     propagation (tasks + milestones).
   - `rollupGroupSchedules(groups: Group[], scheduledModel: ScheduledModel): GroupWithEffective[]` —
     derives group effective dates post-order.
-  - Webview imports and calls this service on task/milestone save.
-  - The host can import and call this service in the future, but does not call it this phase
-    (deferred to future specification).
+  - The host imports and calls this service after parsing and validating the document.
+  - The webview consumes the serialized schedule and does not call this service.
 
 - **Working-time arithmetic**: The service uses UTC `Date` objects for effective values and epoch
   milliseconds for arithmetic and comparisons. It reads (absolute paths)
@@ -263,62 +259,59 @@ structure without requiring a new version bump.
 
 ### Type Definitions
 
-- **`GanttModel`**: The parsed, validated authoring document containing tasks, milestones, groups,
-  dependencies, and settings. Derived by the host from the `.ganttee` TextDocument.
+- **`GanttDocument`**: The plain JSON-compatible authoring document exchanged by host and webview.
+  Its transient `schedule` field contains `ScheduledTask`, `ScheduledMilestone`, and
+  `ScheduledGroup` records with ISO timestamps; the field is omitted from disk serialization.
+- **`GanttModel`**: The parsed, validated authoring model containing `Date` values. Derived by the
+  host from the `.ganttee` TextDocument.
 - **`ScheduledModel`**: The in-memory result of scheduling, with all tasks and milestones bearing
   `effectiveStart`, `effectiveEnd`, and `effectiveDuration` fields (in addition to persisted
-  inputs). Groups carry no effective values in this object; group effective dates are computed
-  separately by rollup.
+  inputs). Its group projections are `ScheduledGroupEntity` values with `Date` fields.
 - **`Schedulable` accessors**: Computed properties on tasks and milestones that return their
   effective start/end dates and duration, with type narrowing to exclude groups (which are not
   schedulable in the graph).
 - **Graph instantiation**: Refactored from custom `DependencyGraph` to Graphology factory in
   `dependencyGraphService.ts`. Excludes groups from node set (only tasks + milestones); validates
-  cycles, self-loops, and parallel edges on the filtered graph. Used by webview hydration for
+  cycles, self-loops, and parallel edges on the filtered graph. Used by host hydration for
   scheduling.
 
-- **Webview scheduling** (nominal case): On task/milestone form save, webview locally hydrates a
-  Graphology instance and calls `schedulingService`. Effective dates display immediately in the form
-  (no host round-trip). Webview then posts the updated authoring document to the host.
+- **Host scheduling** (nominal case): After parsing and validation, the host hydrates a
+  `GanttModel`, calls `schedulingService`, and adds the serialized schedule to the transient
+  `GanttDocument` sent to consumers.
 
-- **Host validation** : Host parses and validates the document (structure, determinacy, anchors).
-  Host does NOT re-schedule or persist effective values. It broadcasts the accepted authoring
-  document to all consumers (sidebar, tree, timeline). A host document update supersedes any local
-  webview schedule; the webview discards stale local state.
+- **Host validation and scheduling**: Host parses, validates, hydrates, and schedules the document.
+  It never persists effective values. It broadcasts the accepted authoring document and transient
+  schedule to all consumers. The host result replaces any webview state after every update.
 
 ## 6. Protocol Impact
 
 `src/common/protocol.ts`:
 
-- `init` message: includes initial document (no scheduling; document is source).
-- `documentChanged` message: includes the authoring document after host validation. Effective values
-  are derived model fields and are not serialized to disk.
-- Webview→Host POST (new): `{ type: "entityUpdated", updatedDocument: GanttDocument }` — triggered
-  by task/milestone form save; host re-parses and validates (does not re-schedule). The host rejects
-  or ignores a stale post, and its current document always wins a concurrent update.
-- Host→Webview broadcast: sends the validated authoring document to sidebar and tree for display.
-  The webview derives effective values locally from that document.
+- `init` and `documentChanged` messages include a `GanttDocument` with its transient serialized
+  schedule.
+- Webview→Host POST: `{ type: "entityUpdated", updatedDocument: GanttDocument }` contains authoring
+  data only; the webview does not send a schedule.
+- The host re-parses, validates, hydrates, and schedules accepted updates. The host rejects stale
+  posts, and its current document and schedule always win a concurrent update.
 - Host→Webview correction (deferred to future spec): if multi-source scheduling is introduced, host
   may verify and broadcast corrected state.
 
-**Serialization**: Effective date values are held as UTC `Date` objects in the in-memory scheduled
-model, but are not written to the `.ganttee` file. The persisted document contains only authoring
-data. The webview derives effective values after hydration and after local edits and scheduling.
+**Serialization**: Effective date values are held as UTC `Date` objects in `GanttModel` and
+`ScheduledModel`. Protocol `GanttDocument` schedule entries use ISO timestamps. The schedule is
+never written to the `.ganttee` file.
 
 ## 7. UX
 
 - **Timeline (ECharts)**: bars drawn from effective dates; group bars span descendants; milestones
   positioned at their `effectiveStart`.
 - **Sidebar tree**: shows effective dates on each item; groups show rollup dates.
-- **Edit form**: task/milestone form displays effective dates immediately after save
-  (webview-computed). No "waiting for host" delay.
+- **Edit form**: task/milestone form displays effective dates from the host schedule after save.
 - **Validation badges**: host-side validation results (under-constrained, over-constrained,
   duplicate endpoint) displayed on sidebar items. Badge labels are new user-facing strings and
   require localization via `vscode.l10n.t()`.
 
-Design rationale: Value Flow (computed schedule is immediate) · Principle (webview scheduling feels
-responsive; host authority ensures correctness) · Move (webview computes on save, host broadcasts
-canonical state to all views).
+Design rationale: Value Flow (one computed schedule) · Principle (host authority ensures
+consistency) · Move (host broadcasts the canonical schedule to all views).
 
 ## 8. Test Strategy
 
@@ -336,21 +329,18 @@ canonical state to all views).
 - **Integration**:
   - The pure service can be invoked from host-side code and produces expected effective values
     (compare to golden output), without requiring `vscode`.
-  - Webview local hydration produces the same scheduled result as the pure service invoked from
-    host-side code (no divergence). In this spec, the host never invokes the scheduling service.
+  - Host hydration and scheduling produce a serialized schedule that round-trips to Date-based
+    runtime values in the webview.
 
 - **Webview form interaction**:
-  - Task/milestone save → webview calls `schedulingService` → effective dates display immediately in
-    form.
-  - Webview POSTs updated document to host.
-  - Host validates (no re-scheduling) → broadcasts to sidebar and tree.
-  - A host document change supersedes a concurrent webview update and the webview drops the stale
-    local schedule.
+  - Task/milestone save → webview posts the authored document to the host.
+  - Host validates and schedules → broadcasts the document and transient schedule.
+  - A host document change supersedes a concurrent webview update and the webview replaces its
+    schedule with the canonical host schedule.
 
 - **E2E**:
-  - Edit task in webview form → form computes and shows effective dates → save → POST to host → host
-    validates → sidebar and timeline consume updated document (with webview-computed effective
-    dates).
+  - Edit task in webview form → save → POST to host → host validates and schedules → sidebar,
+    timeline, and form consume the updated document and schedule.
   - Dependency change shows immediate cascading effect in webview; sidebar updates on host
     broadcast.
 

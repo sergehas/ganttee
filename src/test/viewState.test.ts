@@ -5,7 +5,7 @@ import {
   updateGanttViewDocument,
 } from "../webview/viewState";
 
-suite("webviewScheduleState", () => {
+suite("viewState", () => {
   test("hydrates one complete schedule for a host revision", () => {
     const document = createEmptyDocument();
     document.groups = [{ id: "group", name: "Group" }];

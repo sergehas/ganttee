@@ -8,6 +8,8 @@ import {
   Group,
   Milestone,
   ParallelEdgeDependencyError,
+  ScheduledModel,
+  SchedulingError,
   SelfLoopDependencyError,
   Task,
 } from "../../common/models";
@@ -35,6 +37,8 @@ import {
   serializeDocument,
 } from "../../services/ganttDocumentService";
 import { hydrateDocument } from "../../services/ganttModelService";
+import { schedule } from "../../services/schedulingService";
+import { toScheduledDocument } from "../../services/scheduledDocumentService";
 import {
   buildGroupDeletionDocument,
   hasGroupContents,
@@ -54,6 +58,7 @@ import { summarizeBlockingDiagnostics } from "../scheduleDiagnosticPresenter";
 export class GanttEditorController {
   private _document: GanttDocument = createEmptyDocument();
   private _model: GanttModel = hydrateDocument(this._document);
+  private _scheduledModel: ScheduledModel | undefined;
   private _diagnostics: readonly ScheduleDiagnostic[] = [];
   private _isDisposed = false;
   private readonly _disposables: vscode.Disposable[] = [];
@@ -74,7 +79,7 @@ export class GanttEditorController {
           this.reparse();
           this.post({
             type: "documentChanged",
-            document: this._document,
+            document: this.transportDocument(),
             revision: this.document.version,
           });
         }
@@ -105,6 +110,11 @@ export class GanttEditorController {
     return this._model;
   }
 
+  /** Returns the current host-computed schedule, when the document is schedulable. */
+  get scheduledModel(): ScheduledModel | undefined {
+    return this._scheduledModel;
+  }
+
   /**
    * The semantic validation result for the current model.
    * Updated on every successful reparse.
@@ -117,7 +127,7 @@ export class GanttEditorController {
   sendInit(): void {
     this.post({
       type: "init",
-      document: this._document,
+      document: this.transportDocument(),
       revision: this.document.version,
     });
   }
@@ -244,7 +254,7 @@ export class GanttEditorController {
     await this.applyModel(next);
   }
 
-  /** Applies a webview-computed authoring document unless its base is stale. */
+  /** Applies an authoring document from the webview unless its base is stale. */
   private async updateDocument(
     updatedDocument: GanttDocument,
     baseRevision: number,
@@ -252,7 +262,7 @@ export class GanttEditorController {
     if (baseRevision !== this.document.version) {
       this.post({
         type: "documentChanged",
-        document: this._document,
+        document: this.transportDocument(),
         revision: this.document.version,
       });
       return;
@@ -359,9 +369,15 @@ export class GanttEditorController {
       }
       const document = sanitization.document;
       const hydratedModel = hydrateDocument(document);
+      const diagnostics = evaluateScheduleGraph(document);
+      const scheduledModel =
+        blockingDiagnostics(diagnostics).length === 0
+          ? schedule(hydratedModel, hydratedModel.graph)
+          : undefined;
       this._document = document;
       this._model = hydratedModel;
-      this._diagnostics = evaluateScheduleGraph(document);
+      this._scheduledModel = scheduledModel;
+      this._diagnostics = diagnostics;
       this._onDidChangeModel.fire();
     } catch (error) {
       if (error instanceof GanttParseError) {
@@ -381,6 +397,10 @@ export class GanttEditorController {
             error.message,
           ),
         );
+        return;
+      }
+      if (error instanceof SchedulingError) {
+        this._scheduledModel = undefined;
         return;
       }
       throw error;
@@ -478,6 +498,17 @@ export class GanttEditorController {
       return;
     }
     void this.webviewPanel.webview.postMessage(message);
+  }
+
+  /** Creates the protocol document with its transient serialized schedule. */
+  private transportDocument(): GanttDocument {
+    if (this._scheduledModel === undefined) {
+      return { ...this._document };
+    }
+    return {
+      ...this._document,
+      schedule: toScheduledDocument(this._scheduledModel),
+    };
   }
 
   /**

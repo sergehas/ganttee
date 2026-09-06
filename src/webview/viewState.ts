@@ -2,10 +2,10 @@ import { GanttDocument, ScheduledModel } from "../common/models";
 import { EditableEntityKind, EditableEntityMap } from "../common/protocol";
 import { replaceEntity } from "../services/documentEntityService";
 import { hydrateDocument } from "../services/ganttModelService";
-import { schedule } from "../services/schedulingService";
+import { fromScheduledDocument } from "../services/scheduledDocumentService";
 
-/** Webview state associating a host document revision with its computed schedule. */
-export interface WebviewScheduleState {
+/** Webview state associating a host document revision with its host-computed schedule. */
+export interface GanttViewState {
   /** Host-authoritative authoring document used to derive the schedule. */
   readonly document: GanttDocument;
   /** Host text-document revision used for stale-write rejection. */
@@ -15,38 +15,43 @@ export interface WebviewScheduleState {
 }
 
 /**
- * Creates webview scheduling state from one host document revision.
+ * Creates webview display state from one host document revision and schedule.
  *
  * @param document The authoring document received from the host.
  * @param revision The corresponding host text-document revision.
  */
-export function createWebviewScheduleState(
+export function createGanttViewState(
   document: GanttDocument,
   revision: number,
-): WebviewScheduleState {
+): GanttViewState {
   const model = hydrateDocument(document);
+  if (document.schedule === undefined) {
+    throw new Error("Host document does not contain a computed schedule.");
+  }
   return {
     document,
     revision,
-    scheduledModel: schedule(model, model.graph),
+    scheduledModel: fromScheduledDocument(model, document.schedule),
   };
 }
 
 /**
- * Replaces one authoring entity and recomputes the local schedule.
+ * Replaces one authoring entity without retaining a stale schedule.
  *
  * @param current The current host-based webview state.
  * @param kind The entity collection to update.
  * @param entity The replacement entity.
- * @returns Recomputed state, or undefined when the entity is stale.
+ * @returns The updated authored document, or undefined when the entity is stale.
  */
-export function updateWebviewScheduleEntity<K extends EditableEntityKind>(
-  current: WebviewScheduleState,
+export function updateGanttViewDocument<K extends EditableEntityKind>(
+  current: GanttViewState,
   kind: K,
   entity: EditableEntityMap[K],
-): WebviewScheduleState | undefined {
+): GanttDocument | undefined {
   const document = replaceEntity(current.document, kind, entity);
-  return document === undefined
-    ? undefined
-    : createWebviewScheduleState(document, current.revision);
+  if (document === undefined) {
+    return undefined;
+  }
+  const { schedule: _schedule, ...authoredDocument } = document;
+  return authoredDocument;
 }

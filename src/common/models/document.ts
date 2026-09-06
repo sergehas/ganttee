@@ -1,4 +1,5 @@
 import { Dependency } from "./dependency";
+import { GanttScheduleDocument } from "./scheduledDocument";
 import { Group, Milestone, Task } from "./task";
 
 /** Current on-disk schema version for `.ganttee` documents. */
@@ -47,6 +48,8 @@ export interface GanttDocument {
   groups: Group[];
   milestones: Milestone[];
   dependencies: Dependency[];
+  /** Transient schedule projection used only by host/webview messages. */
+  schedule?: GanttScheduleDocument;
   /**
    * Reserved project-level settings (working calendar and hours). Unpopulated
    * until the working-days configuration feature lands.

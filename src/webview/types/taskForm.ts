@@ -31,7 +31,7 @@ export interface TaskFormProps {
   editingEntity: TaskFormEditingEntity;
   /** Current parsed Gantt document. */
   document: GanttDocument;
-  /** Current locally computed schedule. */
+  /** Current host-computed schedule. */
   schedule: ScheduledModel;
   /** Saves an edited entity and its dependencies. */
   onSave: (

@@ -12,7 +12,7 @@ import {
   GroupEntity,
   MilestoneEntity,
   Schedulable,
-  ScheduledGroup,
+  ScheduledGroupEntity,
   ScheduledMilestoneEntity,
   ScheduledModel,
   ScheduledTaskEntity,
@@ -110,7 +110,7 @@ export function schedule(
   return new ScheduledModel(
     tasks,
     milestones,
-    rollupGroupSchedules(model.groups, schedulableModel),
+    rollupGroupSchedules(model.groups, schedulableModel, settings),
   );
 }
 
@@ -124,7 +124,8 @@ export function schedule(
 export function rollupGroupSchedules(
   groups: readonly GroupEntity[],
   scheduledModel: ScheduledModel,
-): readonly ScheduledGroup[] {
+  settings: WorkingTimeSettings = defaultWorkingTimeSettings(),
+): readonly ScheduledGroupEntity[] {
   const spans = new Map<string, DateSpan>();
   for (const entity of [
     ...scheduledModel.tasks,
@@ -139,7 +140,7 @@ export function rollupGroupSchedules(
   }
 
   const groupsByParent = groupChildren(groups);
-  const result: ScheduledGroup[] = [];
+  const result: ScheduledGroupEntity[] = [];
   const visited = new Set<string>();
   const visit = (group: GroupEntity): DateSpan | undefined => {
     if (visited.has(group.id)) {
@@ -160,6 +161,11 @@ export function rollupGroupSchedules(
         groupId: group.groupId,
         effectiveStart: new Date(span.start),
         effectiveEnd: new Date(span.end),
+        effectiveDuration: diffInWorkingDays(
+          new Date(span.start),
+          new Date(span.end),
+          settings,
+        ),
       });
     }
     return span;
@@ -169,6 +175,15 @@ export function rollupGroupSchedules(
     visit(group);
   }
   return result;
+}
+
+/** Returns the default working-time settings used by standalone rollup calls. */
+function defaultWorkingTimeSettings(): WorkingTimeSettings {
+  return {
+    daysOff: new Set<number>(),
+    workingDayHours: DEFAULT_WORKING_DAY_HOURS,
+    workingDayStart: DEFAULT_WORKING_DAY_START,
+  };
 }
 
 /** Resolves and validates project working-time settings. */
