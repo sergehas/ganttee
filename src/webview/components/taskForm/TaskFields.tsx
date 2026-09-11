@@ -8,7 +8,7 @@ import { DependencyFields } from "./DependencyFields";
 import { ValidationMessage } from "./ValidationMessage";
 
 /** Renders task-specific fields plus dependency editing controls. */
-export function TaskFields(props: TaskFieldsProps): JSX.Element {
+export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
   const { task, scheduledTask, onChange, ...depProps } = props;
   const { document } = depProps;
   const update = makeUpdater(task, onChange);

@@ -22,7 +22,7 @@ interface SaveEntityOptions {
 }
 
 /** Root editor UI: the ECharts timeline and the entity edit panel. */
-export function App(): JSX.Element {
+export function App(): React.JSX.Element {
   const [viewState, setViewState] = useState<GanttViewState | null>(null);
   const [selectedEntity, setSelectedEntity] =
     useState<EditableEntityRef | null>(null);

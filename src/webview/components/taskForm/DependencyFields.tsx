@@ -6,7 +6,9 @@ import {
 } from "../../utils/taskForm/entityPresentation";
 
 /** Renders the dependency list and add-dependency controls. */
-export function DependencyFields(props: DependencyFieldsProps): JSX.Element {
+export function DependencyFields(
+  props: DependencyFieldsProps,
+): React.JSX.Element {
   return (
     <fieldset className="ganttee-dependencies">
       <legend>Dependencies</legend>

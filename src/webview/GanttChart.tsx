@@ -48,7 +48,7 @@ interface GanttChartProps {
 }
 
 /** Renders the Gantt timeline with Apache ECharts using a custom series. */
-export function GanttChart(props: GanttChartProps): JSX.Element {
+export function GanttChart(props: GanttChartProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
   const propsRef = useRef(props);
