@@ -19,7 +19,9 @@ export function formatShortDate(date: Date, locale: string): string {
 /** Creates the standard UTC date formatter for a requested display language. */
 function createDateFormatter(locale?: string): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat(locale, {
-    dateStyle: "short",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
     timeZone: "UTC",
   });
 }
