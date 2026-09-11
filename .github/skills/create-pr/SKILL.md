@@ -1,9 +1,10 @@
 ---
 name: create-pr
-description: "Raise a pull request for a documentation or code repository using the gh CLI, with 
-applicable quality checks, code-review request, and PR description validation. Use when: opening a PR, 
-raising a PR, submitting a branch for review, creating a pull request to develop/main."
-argument-hint: "Optional: target base branch (defaults to gitflow convention)"
+description: >
+  Raise a pull request for a documentation or code repository using the gh CLI, with  applicable
+  quality checks, code-review request, and PR description validation. Use when: opening a
+  PR,  raising a PR, submitting a branch for review, creating a pull request to develop/main.
+  argument-hint: "Optional: target base branch (defaults to gitflow convention)"
 ---
 
 # Create PR
