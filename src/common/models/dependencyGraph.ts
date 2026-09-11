@@ -53,7 +53,7 @@ export class CyclicDependencyError extends Error {
    * order.
    */
   constructor(readonly cycle: readonly string[]) {
-    super(`Dependency cycle detected: ${cycle.join(" -> ")}.`);
+    super(`Dependency cycle detected: ${cycle.join(" → ")}.`);
   }
 }
 

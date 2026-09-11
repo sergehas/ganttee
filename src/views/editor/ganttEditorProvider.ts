@@ -76,13 +76,13 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
     ].join("; ");
 
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${vscode.env.language}">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="${csp}" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="${styleUri}" rel="stylesheet" />
-  <title>Gantt Chart</title>
+  <title>${vscode.l10n.t("Gantt Chart")}</title>
 </head>
 <body>
   <div id="root"></div>

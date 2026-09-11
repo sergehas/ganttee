@@ -1,3 +1,5 @@
+import { formatShortDate } from "../../common/datePresentation";
+import { parseIsoTimestamp } from "../../common/dates";
 import {
   DependencyType,
   effectiveEnd,
@@ -147,7 +149,12 @@ export function entityFromChartEvent(
 }
 
 /** Formats task and milestone data for the chart tooltip. */
-export function chartTooltipFormatter(params: unknown): string {
+export function chartTooltipFormatter(
+  params: unknown,
+  locale: string,
+  unavailable: string,
+  formatRange: (start: string, end: string) => string,
+): string {
   const data = (
     params as {
       data?: {
@@ -160,15 +167,38 @@ export function chartTooltipFormatter(params: unknown): string {
     }
   ).data;
   if (data?.task) {
-    const start = data.effectiveStart ?? effectiveStart(data.task) ?? "—";
-    const end = data.effectiveEnd ?? effectiveEnd(data.task) ?? "—";
-    return `<strong>${escapeChartHtml(data.task.name)}</strong><br/>${start} → ${end}`;
+    const start = displayTooltipDate(
+      data.effectiveStart ?? effectiveStart(data.task),
+      locale,
+      unavailable,
+    );
+    const end = displayTooltipDate(
+      data.effectiveEnd ?? effectiveEnd(data.task),
+      locale,
+      unavailable,
+    );
+    return `<strong>${escapeChartHtml(data.task.name)}</strong><br/>${formatRange(start, end)}`;
   }
   if (data?.milestone) {
-    const date = data.effectiveDate ?? data.milestone.date ?? "—";
+    const date = displayTooltipDate(
+      data.effectiveDate ?? data.milestone.date,
+      locale,
+      unavailable,
+    );
     return `<strong>${escapeChartHtml(data.milestone.name)}</strong><br/>${date}`;
   }
   return "";
+}
+
+/** Formats an optional ISO timestamp for a chart tooltip. */
+function displayTooltipDate(
+  iso: string | undefined,
+  locale: string,
+  unavailable: string,
+): string {
+  return iso === undefined
+    ? unavailable
+    : formatShortDate(parseIsoTimestamp(iso), locale);
 }
 
 /**

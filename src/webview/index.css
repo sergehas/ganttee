@@ -1,5 +1,6 @@
 :root {
   color-scheme: light dark;
+  accent-color: var(--vscode-button-background, var(--vscode-focusBorder));
 }
 
 body {
@@ -39,7 +40,7 @@ body {
 }
 
 .ganttee-panel {
-  flex: 0 0 350px;
+  flex: 0 0 400px;
   border-left: var(--vscode-strokeThickness, 1px) solid
     var(--vscode-panel-border);
   overflow: auto;
@@ -109,10 +110,105 @@ body {
 .ganttee-form input[type="range"] {
   padding: 0;
 }
+/* for some reason, the focus-visible is not set when using mouse, unlike other inputs*/
+input[type="range"]:focus {
+  outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
+}
 
 .ganttee-form input[type="checkbox"] {
   width: auto;
   margin: 0;
+}
+/*******************************************/
+.ganttee-form select,
+::picker(select) {
+  appearance: base-select;
+}
+
+.ganttee-form select::picker-icon {
+  content: "\eab4"; /*chevron down*/
+  font: normal normal normal 16px / 1 codicon;
+  display: inline-block;
+  text-decoration: none;
+  text-rendering: auto;
+  text-align: center;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.ganttee-form select {
+  border: var(--vscode-strokeThickness, 1px) solid
+    var(--vscode-input-border, transparent);
+  background: var(--vscode-input-background);
+  padding: var(--vscode-spacing-size60, 6px) var(--vscode-spacing-size80, 8px);
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ganttee-form select:hover {
+  background: var(
+    --vscode-inputOption-hoverBackground,
+    var(--vscode-input-background)
+  );
+  border-color: var(
+    --vscode-focusBorder,
+    var(--vscode-input-border, transparent)
+  );
+}
+
+.ganttee-form select:focus,
+.ganttee-form select:focus-visible {
+  background: var(--vscode-input-background);
+  border-color: var(--vscode-focusBorder);
+  outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
+  outline-offset: 0px;
+}
+
+::picker(select) {
+  border: var(--vscode-strokeThickness, 1px) solid
+    var(--vscode-input-border, transparent);
+  border-radius: var(--vscode-cornerRadius-small, 4px);
+  background: var(--vscode-input-background);
+}
+.ganttee-form option {
+  border-radius: var(--vscode-cornerRadius-small, 4px);
+  color: var(--vscode-input-foreground);
+}
+
+.ganttee-form option:hover,
+.ganttee-form option:focus {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-strongForeground);
+}
+.ganttee-form option:checked {
+  background-color: var(--vscode-inputOption-activeBackground);
+}
+
+/* .ganttee-form option:first-of-type {
+  border-radius: var(--vscode-cornerRadius-small, 4px)
+    var(--vscode-cornerRadius-small, 4px) 0 0;
+}
+
+.ganttee-form option:last-of-type {
+  border-radius: 0 0 var(--vscode-cornerRadius-small, 4px)
+    var(--vscode-cornerRadius-small, 4px);
+} */
+
+.ganttee-form option::checkmark {
+  display: none;
+}
+/*******************************************/
+
+.ganttee-form input:focus-visible,
+.ganttee-form textarea:focus-visible,
+.ganttee-form select:focus-visible,
+.ganttee-form button:focus-visible,
+.ganttee-icon-button:focus-visible {
+  outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
+  outline-offset: 0px;
 }
 
 .ganttee-field.ganttee-field--checkbox > span {
@@ -147,9 +243,14 @@ body {
 }
 
 .ganttee-icon-button {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0 !important;
+  place-items: center;
   background: transparent;
   color: var(--vscode-descriptionForeground);
-  font-size: var(--vscode-fontSize-label2, 11px);
 }
 
 .ganttee-form__actions {

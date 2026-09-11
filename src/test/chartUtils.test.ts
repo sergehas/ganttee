@@ -1,4 +1,5 @@
 import * as assert from "assert";
+import { formatShortDate } from "../common/datePresentation";
 import { GanttDocument } from "../common/models";
 import {
   buildChartRows,
@@ -13,6 +14,9 @@ import {
 } from "../webview/utils/chartUtils";
 
 suite("chartUtils", () => {
+  const locale = "en-US";
+  const unavailable = "—";
+  const formatRange = (start: string, end: string) => `${start} → ${end}`;
   test("builds rows and indexes tasks before milestones", () => {
     const document = createDocument();
 
@@ -133,37 +137,60 @@ suite("chartUtils", () => {
       "&lt;Task &amp; more&gt;",
     );
     assert.strictEqual(
-      chartTooltipFormatter({
-        data: {
-          task: {
-            id: "t1",
-            name: "<Task>",
-            start: "2026-01-01",
-            end: "2026-01-03",
+      chartTooltipFormatter(
+        {
+          data: {
+            task: {
+              id: "t1",
+              name: "<Task>",
+              start: "2026-01-01",
+              end: "2026-01-03",
+            },
           },
         },
-      }),
-      "<strong>&lt;Task&gt;</strong><br/>2026-01-01 → 2026-01-03",
+        locale,
+        unavailable,
+        formatRange,
+      ),
+      `<strong>&lt;Task&gt;</strong><br/>${formatShortDate(new Date("2026-01-01"), locale)} → ${formatShortDate(new Date("2026-01-03"), locale)}`,
     );
     assert.strictEqual(
-      chartTooltipFormatter({
-        data: { task: { id: "t2", name: "Undated" } },
-      }),
+      chartTooltipFormatter(
+        {
+          data: { task: { id: "t2", name: "Undated" } },
+        },
+        locale,
+        unavailable,
+        formatRange,
+      ),
       "<strong>Undated</strong><br/>— → —",
     );
     assert.strictEqual(
-      chartTooltipFormatter({
-        data: { milestone: { name: "Milestone", date: "2026-01-06" } },
-      }),
-      "<strong>Milestone</strong><br/>2026-01-06",
+      chartTooltipFormatter(
+        {
+          data: { milestone: { name: "Milestone", date: "2026-01-06" } },
+        },
+        locale,
+        unavailable,
+        formatRange,
+      ),
+      `<strong>Milestone</strong><br/>${formatShortDate(new Date("2026-01-06"), locale)}`,
     );
     assert.strictEqual(
-      chartTooltipFormatter({
-        data: { milestone: { id: "m2", name: "Undated" } },
-      }),
+      chartTooltipFormatter(
+        {
+          data: { milestone: { id: "m2", name: "Undated" } },
+        },
+        locale,
+        unavailable,
+        formatRange,
+      ),
       "<strong>Undated</strong><br/>—",
     );
-    assert.strictEqual(chartTooltipFormatter({}), "");
+    assert.strictEqual(
+      chartTooltipFormatter({}, locale, unavailable, formatRange),
+      "",
+    );
   });
 
   test("formats computed effective timestamps from scheduled chart data", () => {
@@ -171,14 +198,19 @@ suite("chartUtils", () => {
     const end = "2026-01-02T14:15:00.000Z";
 
     assert.strictEqual(
-      chartTooltipFormatter({
-        data: {
-          task: { id: "t1", name: "Task" },
-          effectiveStart: start,
-          effectiveEnd: end,
+      chartTooltipFormatter(
+        {
+          data: {
+            task: { id: "t1", name: "Task" },
+            effectiveStart: start,
+            effectiveEnd: end,
+          },
         },
-      }),
-      `<strong>Task</strong><br/>${start} → ${end}`,
+        locale,
+        unavailable,
+        formatRange,
+      ),
+      `<strong>Task</strong><br/>${formatShortDate(new Date(start), locale)} → ${formatShortDate(new Date(end), locale)}`,
     );
     assert.strictEqual(toChartMs(start), new Date(start).getTime());
   });

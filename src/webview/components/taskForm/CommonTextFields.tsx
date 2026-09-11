@@ -1,9 +1,11 @@
+import { useTranslate } from "../../l10n";
 import { CommonTextFieldsProps } from "../../types/taskForm";
 
 /** Renders name, description, and group assignment fields shared by all entity types. */
 export function CommonTextFields(
   props: CommonTextFieldsProps,
 ): React.JSX.Element {
+  const t = useTranslate();
   const groupOptions = props.groups.filter(
     (group) => group.id !== props.excludedGroupId,
   );
@@ -11,7 +13,7 @@ export function CommonTextFields(
   return (
     <>
       <label className="ganttee-field">
-        <span>Name</span>
+        <span>{t("Name")}</span>
         <input
           type="text"
           value={props.name}
@@ -21,7 +23,7 @@ export function CommonTextFields(
       </label>
 
       <label className="ganttee-field">
-        <span>Description</span>
+        <span>{t("Description")}</span>
         <textarea
           value={props.description ?? ""}
           onChange={(event) =>
@@ -32,12 +34,12 @@ export function CommonTextFields(
       </label>
 
       <label className="ganttee-field">
-        <span>Group</span>
+        <span>{t("Group")}</span>
         <select
           value={props.groupId ?? ""}
           onChange={(event) => props.onGroupId(event.target.value || undefined)}
         >
-          <option value="">(none)</option>
+          <option value="">{t("(none)")}</option>
           {groupOptions.map((group) => (
             <option key={group.id} value={group.id}>
               {group.name}

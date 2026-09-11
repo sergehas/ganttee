@@ -1,12 +1,12 @@
 ---
-Status: Reviewed
+Status: Implemented
 Owner: Copilot
 Last updated: 2026-09-11
 ---
 
 # Feature: l10n Bridge & Webview Codicons Adoption
 
-![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
+![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in
@@ -36,8 +36,9 @@ compact form actions, preserving text labels for the primary save and destructiv
   never re-request or resend the catalog when a form opens.
 - Define a webview-side cache, formatter, and accessor with explicit, non-throwing fallbacks for a
   missing key and missing interpolation value.
-- Establish a typed, centralized host registry. A feature adds its key and source string to that
-  registry and the l10n bundle; it never changes protocol or handshake plumbing.
+- Use the `l10n/bundle.l10n*.json` files as the single application-wide catalog. A feature uses its
+  English source message as the key at each host or webview call site and adds that key only to the
+  applicable bundle files; it never changes protocol or handshake plumbing.
 - Adopt `@vscode/codicons` in the webview, bundled into `dist/` (CSP-safe, no CDN), for the exact
   compact actions defined in the UX section.
 
@@ -50,6 +51,8 @@ compact form actions, preserving text labels for the primary save and destructiv
 - The full field-type component catalog (date-range, color picker, etc.) from UI-integration FR-2.
 - New translation/language infrastructure or additional `l10n` bundles beyond what `vscode.l10n`
   already provides.
+- Semantic or TypeScript-owned translation-key registries, generated catalogs, and source-to-key
+  mapping layers.
 - Translator-authored date format patterns. The extension uses the browser and runtime `Intl` locale
   data instead, so it correctly handles locale-specific ordering, digits, and punctuation.
 - Replacing the visible `Save` and `Delete` footer labels. They are primary and destructive commands
@@ -91,8 +94,8 @@ compact form actions, preserving text labels for the primary save and destructiv
   use `Intl.DateTimeFormat("de", { dateStyle: "short", timeZone: "UTC" })` semantics and do not
   render the persisted ISO value as user-facing text.
 
-- Given a new feature adds a webview string When it adds a dotted key and English source string to
-  the typed host registry and an entry keyed by that source string to
+- Given a new feature adds a webview string When it uses the English source message as the argument
+  to webview `t()` and adds the same message as an entry in
   [bundle.l10n.json](../../l10n/bundle.l10n.json) Then the localized string reaches the webview in
   the next session without changing either message union or the handshake sequence.
 
@@ -119,17 +122,16 @@ compact form actions, preserving text labels for the primary save and destructiv
 - Add the `HostToWebviewMessage` variant
   `{ type: "l10nCatalog", locale: string, strings: Readonly<Record<string, string>> }` to
   [protocol.ts](../../src/common/protocol.ts) alongside `init`.
-- Create one typed `WEBVIEW_L10N_SOURCE_STRINGS` registry in the editor-host layer. Its dotted,
-  English-free keys are semantic and stable: `form.title.task`, `form.field.name`,
-  `form.action.close`, `form.empty.dependencies`, `dependency.type.startAfter`, and
-  `validation.task.constraintCount` illustrate the required `area.kind.name` taxonomy. Do not use
-  English source text, component names, or CSS classes as keys.
-- Each registry value is the English source string passed through `vscode.l10n.t()`. Add every
-  source string to [bundle.l10n.json](../../l10n/bundle.l10n.json), whose keys remain those English
-  source strings as required by VS Code l10n bundles.
-- The webview receives only the resolved catalog. Its `t(key, ...values)` accessor formats
-  positional `{0}`, `{1}`, and later placeholders locally; it has no `vscode` or l10n-bundle
-  dependency.
+- [bundle.l10n.json](../../l10n/bundle.l10n.json) is the default and sole translation catalog; its
+  English source-message keys are the application-wide localization keys. Locale-specific
+  `bundle.l10n.<locale>.json` files use the same keys with translated values.
+- The host reads the default bundle only to enumerate its source-message keys, resolves each key
+  through `vscode.l10n.t(source, ...values)`, and sends the resolved source-to-string map. This is
+  transport plumbing, not a second catalog.
+- The webview receives only that resolved catalog. Its `t(source, ...values)` accessor follows the
+  host's functional behavior: it looks up the English source message, formats positional `{0}`,
+  `{1}`, and later placeholders locally, returns the source message for an absent catalog entry, and
+  leaves a missing substitution placeholder intact. It has no `vscode` or l10n-bundle dependency.
 - Resolve `locale` from `vscode.env.language` when the host creates the catalog message. Add a pure
   date-presentation helper in `src/common/` that accepts a `Date` and locale, and formats it with
   `Intl.DateTimeFormat(locale, { dateStyle: "short", timeZone: "UTC" })`. It is a presentation
@@ -150,7 +152,8 @@ compact form actions, preserving text labels for the primary save and destructiv
 - Edit form: every visible or assistive label resolves through the webview accessor rather than a
   literal string, per NFR-1. This includes field labels, option labels, empty states, and validation
   messages. Its scheduled-date outputs use the shared UTC short-date formatter with the catalog
-  locale. Native `<input type="date">` values remain ISO calendar dates.
+  locale. Native `<input type="date">` values remain ISO calendar dates. The accessor is called with
+  each label's English source message, for example `t("Save")` and `t("Close")`.
 - Timeline (ECharts): every user-visible chart string resolves through the same accessor. Tooltip
   dates use the shared UTC short-date formatter with the catalog locale.
 - Sidebar tree: all literal tree-facing strings use direct host `vscode.l10n.t()` calls, rather than
@@ -170,11 +173,12 @@ compact form actions, preserving text labels for the primary save and destructiv
 
 ## 8. Test Strategy
 
-- Unit (host): test the catalog builder with an injected localizer. Assert the complete
-  key-to-string map and one localization call per registry entry without requiring a live VS Code
-  locale.
-- Unit (webview): test missing-key fallback, positional formatting, missing interpolation values,
-  catalog caching, catalog locale handling, and render deferral until catalog plus `init` arrive.
+- Unit (host): test the catalog builder with an injected default-bundle reader and localizer. Assert
+  that every delivered key comes from the default bundle and produces one localization call without
+  requiring a live VS Code locale.
+- Unit (webview): test source-key lookup, missing-key fallback, positional formatting, missing
+  interpolation values, catalog caching, catalog locale handling, and render deferral until catalog
+  plus `init` arrive.
 - Unit (common): test the shared date formatter with an explicit locale and UTC instant. Assert that
   it does not change the calendar day at a local-time boundary.
 - Unit (sidebar): inject or provide a deterministic locale and assert group, task, and milestone
@@ -206,3 +210,6 @@ compact form actions, preserving text labels for the primary save and destructiv
 - 🟢 Low — locale coverage — some `vscode.env.language` values may be nonstandard or unavailable to
   `Intl.DateTimeFormat`. **Treatment**: pass the locale directly to `Intl` and fall back to its
   runtime default if it rejects the requested tag; cover this fallback in the shared formatter test.
+- 🟢 Low — catalog completeness — a webview source message omitted from the default bundle falls
+  back to English at runtime. **Treatment**: test that delivered catalog keys derive from the
+  default bundle and add a lint-style check that every webview `t()` source occurs in it.

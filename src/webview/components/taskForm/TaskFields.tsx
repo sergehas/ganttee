@@ -1,6 +1,8 @@
+import { formatShortDate } from "../../../common/datePresentation";
 import { TaskStatus } from "../../../common/models";
 import { validateTaskConstraints } from "../../../services/scheduleConstraintService";
 import { makeUpdater } from "../../hooks/useFieldUpdater";
+import { useTranslate, useWebviewL10n } from "../../l10n";
 import { TaskFieldsProps } from "../../types/taskForm";
 import { STATUS_OPTIONS } from "../../utils/taskForm/entityPresentation";
 import { CommonTextFields } from "./CommonTextFields";
@@ -11,6 +13,8 @@ import { ValidationMessage } from "./ValidationMessage";
 export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
   const { task, scheduledTask, onChange, ...depProps } = props;
   const { document } = depProps;
+  const { locale } = useWebviewL10n();
+  const t = useTranslate();
   const update = makeUpdater(task, onChange);
 
   const validation = validateTaskConstraints(task, document.dependencies);
@@ -26,10 +30,9 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
         onDescription={(description) => update("description", description)}
         onGroupId={(groupId) => update("groupId", groupId)}
       />
-
       <div className="ganttee-field-row">
         <label className="ganttee-field">
-          <span>Start</span>
+          <span>{t("Start")}</span>
           <input
             type="date"
             value={task.start ?? ""}
@@ -38,11 +41,13 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
             }
           />
           {scheduledTask && (
-            <output>{scheduledTask.effectiveStart().toISOString()}</output>
+            <output>
+              {formatShortDate(scheduledTask.effectiveStart(), locale)}
+            </output>
           )}
         </label>
         <label className="ganttee-field">
-          <span>End</span>
+          <span>{t("End")}</span>
           <input
             type="date"
             min={task.start}
@@ -50,14 +55,16 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
             onChange={(event) => update("end", event.target.value || undefined)}
           />
           {scheduledTask && (
-            <output>{scheduledTask.effectiveEnd().toISOString()}</output>
+            <output>
+              {formatShortDate(scheduledTask.effectiveEnd(), locale)}
+            </output>
           )}
         </label>
       </div>
 
       <div className="ganttee-field-row">
         <label className="ganttee-field">
-          <span>Duration</span>
+          <span>{t("Duration")}</span>
           <input
             type="number"
             min={0}
@@ -77,7 +84,7 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
           )}
         </label>
         <label className="ganttee-field">
-          <span>Progress</span>
+          <span>{t("Progress")}</span>
           <input
             type="range"
             min={0}
@@ -91,16 +98,16 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
       </div>
 
       <label className="ganttee-field">
-        <span>Status</span>
+        <span>{t("Status")}</span>
         <select
           value={task.status ?? "todo"}
           onChange={(event) =>
             update("status", event.target.value as TaskStatus)
           }
         >
-          {STATUS_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
+          {STATUS_OPTIONS.map((status) => (
+            <option key={status} value={status}>
+              {t(taskStatusLabel(status))}
             </option>
           ))}
         </select>
@@ -111,17 +118,23 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
           {validation.blocking && (
             <ValidationMessage severity="error">
               {validation.underConstrained
-                ? `Task has ${validation.count} constraint(s); exactly 2 are needed to schedule.`
-                : `Task has ${validation.count} constraints; exactly 2 are needed to schedule.`}
+                ? t(
+                    "Task has {0} constraint(s); exactly 2 are needed to schedule.",
+                    validation.count,
+                  )
+                : t(
+                    "Task has {0} constraint(s); exactly 2 are needed to schedule.",
+                    validation.count,
+                  )}
             </ValidationMessage>
           )}
           {(validation.duplicateStart || validation.duplicateEnd) && (
             <ValidationMessage severity="warning">
               {validation.duplicateStart && validation.duplicateEnd
-                ? "Task has duplicate start and end constraints."
+                ? t("Task has duplicate start and end constraints.")
                 : validation.duplicateStart
-                  ? "Task has duplicate start constraints."
-                  : "Task has duplicate end constraints."}
+                  ? t("Task has duplicate start constraints.")
+                  : t("Task has duplicate end constraints.")}
             </ValidationMessage>
           )}
         </>
@@ -130,4 +143,16 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
       <DependencyFields {...depProps} />
     </>
   );
+}
+
+/** Maps a task status to its English localization source message. */
+function taskStatusLabel(status: TaskStatus): string {
+  switch (status) {
+    case "todo":
+      return "To Do";
+    case "inProgress":
+      return "In Progress";
+    case "done":
+      return "Done";
+  }
 }

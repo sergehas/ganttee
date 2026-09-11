@@ -54,6 +54,8 @@ async function main() {
     target: "es2022",
     jsx: "automatic",
     outfile: "dist/webview.js",
+    assetNames: "[name]",
+    loader: { ".ttf": "file" },
     logLevel: "silent",
     plugins: [esbuildProblemMatcherPlugin],
   });

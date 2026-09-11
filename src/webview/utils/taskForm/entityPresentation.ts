@@ -6,29 +6,35 @@ import {
 } from "../../../common/models";
 import { EditableEntityKind } from "../../../common/protocol";
 
+/** Resolves English source messages for form presentation. */
+type WebviewTranslator = (source: string, ...values: unknown[]) => string;
+
 /** Selectable status values for the task status dropdown. */
-export const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
-  { value: "todo", label: "To Do" },
-  { value: "inProgress", label: "In Progress" },
-  { value: "done", label: "Done" },
+export const STATUS_OPTIONS: readonly TaskStatus[] = [
+  "todo",
+  "inProgress",
+  "done",
 ];
 
 /** Selectable dependency type values for the dependency type dropdown. */
-export const DEPENDENCY_OPTIONS: { value: DependencyType; label: string }[] = [
-  { value: "startAfter", label: "Start After" },
-  { value: "startWith", label: "Start With" },
-  { value: "endWith", label: "End With" },
+export const DEPENDENCY_OPTIONS: readonly DependencyType[] = [
+  "startAfter",
+  "startWith",
+  "endWith",
 ];
 
 /** Maps an entity kind to the corresponding form heading text. */
-export function titleOf(kind: EditableEntityKind): string {
+export function titleOf(
+  kind: EditableEntityKind,
+  t: WebviewTranslator,
+): string {
   switch (kind) {
     case "task":
-      return "Edit Task";
+      return t("Edit Task");
     case "milestone":
-      return "Edit Milestone";
+      return t("Edit Milestone");
     case "group":
-      return "Edit Group";
+      return t("Edit Group");
   }
 }
 
@@ -36,18 +42,38 @@ export function titleOf(kind: EditableEntityKind): string {
 export function describeDependency(
   dep: Dependency,
   document: GanttDocument,
+  t: WebviewTranslator,
 ): string {
-  const source = findEntityName(document, dep.sourceId);
-  const target = findEntityName(document, dep.targetId);
-  const label = DEPENDENCY_OPTIONS.find(
-    (option) => option.value === dep.type,
-  )?.label;
-  return `${source} -> ${label ?? dep.type} -> ${target}`;
+  const source = findEntityName(document, dep.sourceId, t);
+  const target = findEntityName(document, dep.targetId, t);
+  const label = dependencyTypeLabel(dep.type, t);
+  return t("{0} → {1} → {2}", source, label, target);
 }
 
 /** Resolves a task or milestone ID to its display name, returning "?" when not found. */
-export function findEntityName(document: GanttDocument, id: string): string {
-  return findEntityRefById(document, id)?.name ?? "?";
+export function findEntityName(
+  document: GanttDocument,
+  id: string,
+  t: WebviewTranslator,
+): string {
+  return findEntityRefById(document, id)?.name ?? t("?");
+}
+
+/** Resolves a dependency type to its localized display label. */
+function dependencyTypeLabel(
+  type: DependencyType,
+  t: WebviewTranslator,
+): string {
+  switch (type) {
+    case "startAfter":
+      return t("Start After");
+    case "startWith":
+      return t("Start With");
+    case "endWith":
+      return t("End With");
+    default:
+      return type;
+  }
 }
 
 /**

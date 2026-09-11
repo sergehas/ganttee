@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { formatShortDate } from "../../common/datePresentation";
 import { Group, Milestone, ScheduledModel, Task } from "../../common/models";
 import { EditableEntityRef } from "../../common/protocol";
 import { GanttStore } from "../../ganttStore";
@@ -103,11 +104,14 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       (candidate) => candidate.id === group.id,
     );
     if (scheduledGroup) {
-      item.description =
+      item.description = vscode.l10n.t(
+        "{0} ({1}d)",
         this.formatDateRange(
           scheduledGroup.effectiveStart,
           scheduledGroup.effectiveEnd,
-        ) + ` (${scheduledGroup.effectiveDuration}d)`;
+        ),
+        scheduledGroup.effectiveDuration,
+      );
     }
     return item;
   }
@@ -121,17 +125,21 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       (candidate) => candidate.id === task.id,
     );
     if (scheduledTask) {
-      item.description = `${this.formatDateRange(
-        scheduledTask.effectiveStart(),
-        scheduledTask.effectiveEnd(),
-      )} (${scheduledTask.effectiveDuration()}d)`;
+      item.description = vscode.l10n.t(
+        "{0} ({1}d)",
+        this.formatDateRange(
+          scheduledTask.effectiveStart(),
+          scheduledTask.effectiveEnd(),
+        ),
+        scheduledTask.effectiveDuration(),
+      );
     }
     item.contextValue = "ganttee.task";
     item.iconPath = new vscode.ThemeIcon("checklist");
     item.id = `task:${task.id}`;
     item.command = {
       command: "ganttee.revealEntity",
-      title: "Reveal Task",
+      title: vscode.l10n.t("Reveal Task"),
       arguments: [{ kind: "task", id: task.id }],
     };
 
@@ -149,8 +157,9 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       (candidate) => candidate.id === milestone.id,
     );
     if (scheduledMilestone) {
-      item.description = this.formatShortDate(
+      item.description = formatShortDate(
         scheduledMilestone.effectiveStart(),
+        vscode.env.language,
       );
     }
     item.contextValue = "ganttee.milestone";
@@ -158,7 +167,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
     item.id = `milestone:${milestone.id}`;
     item.command = {
       command: "ganttee.revealEntity",
-      title: "Reveal Milestone",
+      title: vscode.l10n.t("Reveal Milestone"),
       arguments: [{ kind: "milestone", id: milestone.id }],
     };
 
@@ -174,15 +183,11 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
 
   /** Formats a pair of effective dates for a tree item description. */
   private formatDateRange(start: Date, end: Date): string {
-    return `${this.formatShortDate(start)} → ${this.formatShortDate(end)}`;
-  }
-
-  /** Formats a UTC effective date using the user's locale and short date style. */
-  private formatShortDate(date: Date): string {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "short",
-      timeZone: "UTC",
-    }).format(date);
+    return vscode.l10n.t(
+      "{0} → {1}",
+      formatShortDate(start, vscode.env.language),
+      formatShortDate(end, vscode.env.language),
+    );
   }
 
   /** Applies the detailed tooltip and severity indicator for an entity. */
