@@ -4,7 +4,7 @@ import { GroupFieldsProps } from "../../types/taskForm";
 import { CommonTextFields } from "./CommonTextFields";
 
 /** Renders group-specific fields: schedule summary, collapsed toggle, and owned member list. */
-export function GroupFields(props: GroupFieldsProps): JSX.Element {
+export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
   const { group, document } = props;
   const update = makeUpdater(group, props.onChange);
   const { schedule, directMemberRows } = useGroupScheduleScope(

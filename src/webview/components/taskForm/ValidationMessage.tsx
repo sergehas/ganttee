@@ -10,7 +10,9 @@ export interface ValidationMessageProps {
 }
 
 /** Renders one warning or blocking-error message for an entity form. */
-export function ValidationMessage(props: ValidationMessageProps): JSX.Element {
+export function ValidationMessage(
+  props: ValidationMessageProps,
+): React.JSX.Element {
   const role = props.severity === "error" ? "alert" : "status";
   return (
     <div

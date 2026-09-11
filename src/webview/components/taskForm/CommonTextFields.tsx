@@ -1,7 +1,9 @@
 import { CommonTextFieldsProps } from "../../types/taskForm";
 
 /** Renders name, description, and group assignment fields shared by all entity types. */
-export function CommonTextFields(props: CommonTextFieldsProps): JSX.Element {
+export function CommonTextFields(
+  props: CommonTextFieldsProps,
+): React.JSX.Element {
   const groupOptions = props.groups.filter(
     (group) => group.id !== props.excludedGroupId,
   );

@@ -1,9 +1,10 @@
 ---
 name: create-pr
-description: "Raise a pull request for a documentation or code repository using the gh CLI, with 
-applicable quality checks, code-review request, and PR description validation. Use when: opening a PR, 
-raising a PR, submitting a branch for review, creating a pull request to develop/main."
-argument-hint: "Optional: target base branch (defaults to gitflow convention)"
+description: >
+  Raise a pull request for a documentation or code repository using the gh CLI, with  applicable
+  quality checks, code-review request, and PR description validation. Use when: opening a
+  PR,  raising a PR, submitting a branch for review, creating a pull request to develop/main.
+  argument-hint: "Optional: target base branch (defaults to gitflow convention)"
 ---
 
 # Create PR
@@ -58,12 +59,12 @@ Run the checks that apply to the repo's stack before drafting the PR. Do not inv
 `package.json` (TypeScript/Node) or `pom.xml` / `build.gradle` (Java) for the actual script/goal
 names first. Documentation checks use `npx` and do not require a `package.json` file.
 
-| Stack         | Lint / formatting                                                                                     | Type-check / compile                    | Tests                         | Build                             |
-| ------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------- | --------------------------------- |
-| Documentation | `npx --yes prettier --check "**/*.md"` and `npx --yes markdownlint-cli2 "**/*.md" "#node_modules/**"` | N/A                                     | N/A                           | N/A                               |
-| TypeScript    | `npm run lint`                                                                                        | `tsc --noEmit`                          | `npm test`                    | `npm run build`                   |
-| Java          | `mvn spotless:check` / `./gradlew check`                                                              | `mvn compile` / `./gradlew compileJava` | `mvn test` / `./gradlew test` | `mvn package` / `./gradlew build` |
-| other         | `npx --yes prettier --config ./prettierrc.json --check .`                                             | N/A                                     | N/A                           | N/A                               |
+| Stack         | Lint / formatting                                                                                                                 | Type-check / compile                    | Tests                         | Build                             |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------- | --------------------------------- |
+| Documentation | `npx --yes prettier --config ./.prettierrc.json --write "**/*.md"` and `npx --yes markdownlint-cli2 "**/*.md" "#node_modules/**"` | N/A                                     | N/A                           | N/A                               |
+| TypeScript    | `npm run lint` and `npm run format`                                                                                               | `npm run compile`                       | `npm test`                    | `npm run build`                   |
+| Java          | `mvn spotless:check` / `./gradlew check`                                                                                          | `mvn compile` / `./gradlew compileJava` | `mvn test` / `./gradlew test` | `mvn package` / `./gradlew build` |
+| other         | `npx --yes prettier --config ./prettierrc.json --write .`                                                                         | N/A                                     | N/A                           | N/A                               |
 
 Report any failures to the user before proceeding. Let the user decide whether to fix them first or
 raise the PR anyway (e.g. draft PR for early feedback).

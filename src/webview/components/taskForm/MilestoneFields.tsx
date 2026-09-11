@@ -6,7 +6,9 @@ import { DependencyFields } from "./DependencyFields";
 import { ValidationMessage } from "./ValidationMessage";
 
 /** Renders milestone-specific fields plus dependency editing controls. */
-export function MilestoneFields(props: MilestoneFieldsProps): JSX.Element {
+export function MilestoneFields(
+  props: MilestoneFieldsProps,
+): React.JSX.Element {
   const { milestone, scheduledMilestone, onChange, ...depProps } = props;
   const { document } = depProps;
   const update = makeUpdater(milestone, onChange);

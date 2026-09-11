@@ -10,7 +10,7 @@ import { titleOf } from "./utils/taskForm/entityPresentation";
 /**
  * Entity-aware edit form for tasks, milestones, and groups.
  */
-export function TaskForm(props: TaskFormProps): JSX.Element {
+export function TaskForm(props: TaskFormProps): React.JSX.Element {
   const { editingEntity, document } = props;
   const [taskDraft, setTaskDraft] = useState<Task | null>(null);
   const [milestoneDraft, setMilestoneDraft] = useState<Milestone | null>(null);

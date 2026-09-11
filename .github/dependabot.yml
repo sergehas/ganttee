@@ -4,6 +4,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      - dependency-name: "typescript"
+        versions:
+          - ">= 7.0.0"
+          # Ignore all versions of TypeScript greater than or equal to 7.0.0 (no eslint support)
     groups:
       npm-dependencies:
         patterns:

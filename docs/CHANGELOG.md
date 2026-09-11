@@ -30,6 +30,7 @@ file.
 
 ### Changed
 
+- Upgrade React and related dependencies to version 19.
 - **Breaking change:** The `endBefore` dependency type is no longer supported. Documents containing
   it cannot be opened until the dependency is removed or replaced.
 - Dependency names and direction semantics were updated to use `endWith` and the current endpoint
