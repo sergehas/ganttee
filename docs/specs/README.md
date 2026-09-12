@@ -7,13 +7,13 @@ status is defined in
 
 ## Lifecycle
 
-| Status        | Meaning                               | Owner / who acts             | Next                    |
-| ------------- | ------------------------------------- | ---------------------------- | ----------------------- |
-| To be defined | Idea on the roadmap; no spec file yet | General chat (brainstorming) | Draft                   |
-| Draft         | Initial spec authored                 | **Spec Writer** agent        | Reviewed / Implementing |
-| Reviewed      | Spec checked, ready to build          | **Spec Reviewer** agent      | Implementing            |
-| Implementing  | Coding has started                    | **Spec Implementer** agent   | Implemented             |
-| Implemented   | PR raised; changelog updated          | **Spec Implementer** agent   | —                       |
+| Status       | Meaning                               | Owner / who acts             | Next                    |
+| ------------ | ------------------------------------- | ---------------------------- | ----------------------- |
+| Intent       | Idea on the roadmap; no spec file yet | General chat (brainstorming) | Draft                   |
+| Draft        | Initial spec authored                 | **Spec Writer** agent        | Reviewed / Implementing |
+| Reviewed     | Spec checked, ready to build          | **Spec Reviewer** agent      | Implementing            |
+| Implementing | Coding has started                    | **Spec Implementer** agent   | Implemented             |
+| Implemented  | PR raised; changelog updated          | **Spec Implementer** agent   | —                       |
 
 **Blocked** and **On Hold** are reversible side-states that can be set from any status before
 **Implementing**, then returned to the prior status.
@@ -27,7 +27,7 @@ config:
 ---
 flowchart TB
     START(( )) --> TBD
-    TBD["To be defined"] -->|Spec Writer| DRAFT["Draft"]
+    TBD["Intent"] -->|Spec Writer| DRAFT["Draft"]
     DRAFT -->|Spec Reviewer| REVIEWED["Reviewed"]
     DRAFT -->|"skip review\n(not recommended)"| IMPL["Implementing"]
     REVIEWED -->|Spec Implementer| IMPL
@@ -58,9 +58,9 @@ flowchart TB
 
 ## Who does what
 
-- **To be defined → Draft.** No dedicated agent. Use general chat (the default agent) in
-  brainstorming mode to explore the problem, its users, and rough requirements, then hand the notes
-  to the **Spec Writer**.
+- **Intent → Draft.** No dedicated agent. Use general chat (the default agent) in brainstorming mode
+  to explore the problem, its users, and rough requirements, then hand the notes to the **Spec
+  Writer**.
 - **Draft.** The **_Spec Writer_** turns the idea into an implementation-ready spec and adds or
   updates its roadmap row.
 - **Reviewed** (optional, highly recommended). The **_Spec Reviewer_** checks the spec and, once you

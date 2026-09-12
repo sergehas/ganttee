@@ -1,14 +1,14 @@
 ---
-Status: Intend
+Status: Intent
 Owner: Copilot
 Last updated: 2026-08-15
 ---
 
 # Feature: Diagnostics and Problems View
 
-![Status: Intend](https://img.shields.io/badge/status-Intend-ADB5BD?style=for-the-badge)
+![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)
 
-<!-- AGENT NOTE: This high-level spec is intentionally captured at Intend per
+<!-- AGENT NOTE: This high-level spec is intentionally captured at Intent per
 the request, although the normal workflow creates spec files at Draft. -->
 
 ## 1. Summary

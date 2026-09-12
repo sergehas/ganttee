@@ -1,12 +1,12 @@
 ---
-Status: Intend
+Status: Intent
 Owner: Copilot
 Last updated: 2026-08-15
 ---
 
 # Feature: Treeview Enhancements
 
-![Status: Intend](https://img.shields.io/badge/status-Intend-ADB5BD?style=for-the-badge)
+![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in
