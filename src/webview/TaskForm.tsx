@@ -3,6 +3,7 @@ import { Group, Milestone, Task } from "../common/models";
 import { GroupFields } from "./components/taskForm/GroupFields";
 import { MilestoneFields } from "./components/taskForm/MilestoneFields";
 import { TaskFields } from "./components/taskForm/TaskFields";
+import { useTranslate } from "./l10n";
 import { TaskFormProps } from "./types/taskForm";
 import { useDependencyEditorState } from "./useEntityEditWorkflow";
 import { titleOf } from "./utils/taskForm/entityPresentation";
@@ -12,6 +13,7 @@ import { titleOf } from "./utils/taskForm/entityPresentation";
  */
 export function TaskForm(props: TaskFormProps): React.JSX.Element {
   const { editingEntity, document } = props;
+  const t = useTranslate();
   const [taskDraft, setTaskDraft] = useState<Task | null>(null);
   const [milestoneDraft, setMilestoneDraft] = useState<Milestone | null>(null);
   const [groupDraft, setGroupDraft] = useState<Group | null>(null);
@@ -65,13 +67,15 @@ export function TaskForm(props: TaskFormProps): React.JSX.Element {
   return (
     <form className="ganttee-form" onSubmit={submit}>
       <div className="ganttee-form__header">
-        <h2>{titleOf(editingEntity.kind)}</h2>
+        <h2>{titleOf(editingEntity.kind, t)}</h2>
         <button
           type="button"
           className="ganttee-icon-button"
           onClick={props.onClose}
+          aria-label={t("Close")}
+          title={t("Close")}
         >
-          Close
+          <span className="codicon codicon-close" aria-hidden="true" />
         </button>
       </div>
 
@@ -113,7 +117,7 @@ export function TaskForm(props: TaskFormProps): React.JSX.Element {
 
       <div className="ganttee-form__actions">
         <button type="submit" className="ganttee-primary">
-          Save
+          {t("Save")}
         </button>
         <button
           type="button"
@@ -125,7 +129,7 @@ export function TaskForm(props: TaskFormProps): React.JSX.Element {
             })
           }
         >
-          Delete
+          {t("Delete")}
         </button>
       </div>
     </form>

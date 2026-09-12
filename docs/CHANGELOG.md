@@ -9,6 +9,8 @@ file.
 
 ### Added
 
+- Localized editor webview strings through the extension l10n bundle, with locale-aware dates and
+  native codicon controls for compact form actions.
 - Agent workflow and productivity skills with supporting engineering guidance.
 - Structural DAG validation at hydration time for self-loop, parallel-edge, and directed-cycle
   rejection.

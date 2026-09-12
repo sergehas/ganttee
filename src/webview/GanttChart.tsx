@@ -15,6 +15,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
 import { GanttDocument, ScheduledModel } from "../common/models";
 import { EditableEntityRef } from "../common/protocol";
+import { translate, useWebviewL10n } from "./l10n";
 import {
   chartTooltipFormatter,
   dependencyLinkEndpoints,
@@ -49,6 +50,7 @@ interface GanttChartProps {
 
 /** Renders the Gantt timeline with Apache ECharts using a custom series. */
 export function GanttChart(props: GanttChartProps): React.JSX.Element {
+  const l10n = useWebviewL10n();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
   const propsRef = useRef(props);
@@ -95,7 +97,14 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
       return;
     }
     chart.setOption(
-      buildOption(props.document, props.schedule, props.selectedEntity),
+      buildOption(
+        props.document,
+        props.schedule,
+        props.selectedEntity,
+        l10n.locale,
+        translate(l10n, "—"),
+        (start, end) => translate(l10n, "{0} → {1}", start, end),
+      ),
       true,
     );
     if (containerRef.current) {
@@ -106,7 +115,7 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
       containerRef.current.style.height = `${Math.max(rows, 1) * ROW_HEIGHT + 80}px`;
       chart.resize();
     }
-  }, [props.document, props.schedule, props.selectedEntity]);
+  }, [l10n, props.document, props.schedule, props.selectedEntity]);
 
   return <div className="ganttee-chart" ref={containerRef} />;
 }
@@ -116,6 +125,9 @@ function buildOption(
   document: GanttDocument,
   scheduledModel: ScheduledModel,
   selectedEntity: EditableEntityRef | null,
+  locale: string,
+  unavailable: string,
+  formatRange: (start: string, end: string) => string,
 ): echarts.EChartsCoreOption {
   const { tasks, milestones, groups } = scheduledModel;
   const rows = [
@@ -219,7 +231,8 @@ function buildOption(
     animation: false,
     tooltip: {
       trigger: "item",
-      formatter: chartTooltipFormatter,
+      formatter: (params: unknown) =>
+        chartTooltipFormatter(params, locale, unavailable, formatRange),
     },
     grid: { left: 160, right: 24, top: 40, bottom: 40 },
     xAxis: {

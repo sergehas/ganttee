@@ -173,6 +173,7 @@
     "check-branch": "node scripts/check-branch-name.mjs"
   },
   "dependencies": {
+    "@vscode/codicons": "^0.0.46-24",
     "echarts": "^6.1.0",
     "graphology": "^0.26.0",
     "graphology-components": "^1.5.4",

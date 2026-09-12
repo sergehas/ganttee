@@ -8,9 +8,9 @@ import {
 
 suite("taskForm entityPresentation", () => {
   test("maps entity kinds to editor titles", () => {
-    assert.strictEqual(titleOf("task"), "Edit Task");
-    assert.strictEqual(titleOf("milestone"), "Edit Milestone");
-    assert.strictEqual(titleOf("group"), "Edit Group");
+    assert.strictEqual(titleOf("task", testTranslate), "Edit Task");
+    assert.strictEqual(titleOf("milestone", testTranslate), "Edit Milestone");
+    assert.strictEqual(titleOf("group", testTranslate), "Edit Group");
   });
 
   test("finds task and milestone refs by id", () => {
@@ -40,6 +40,7 @@ suite("taskForm entityPresentation", () => {
         type: "startAfter",
       },
       document,
+      testTranslate,
     );
     const unknownTarget = describeDependency(
       {
@@ -49,6 +50,7 @@ suite("taskForm entityPresentation", () => {
         type: "startWith",
       },
       document,
+      testTranslate,
     );
     const endWith = describeDependency(
       {
@@ -58,6 +60,7 @@ suite("taskForm entityPresentation", () => {
         type: "endWith",
       },
       document,
+      testTranslate,
     );
     const unknownDependency = describeDependency(
       {
@@ -67,12 +70,13 @@ suite("taskForm entityPresentation", () => {
         type: "legacy" as DependencyType,
       },
       document,
+      testTranslate,
     );
 
-    assert.strictEqual(known, "Task One -> Start After -> Milestone One");
-    assert.strictEqual(unknownTarget, "Task One -> Start With -> ?");
-    assert.strictEqual(endWith, "Milestone One -> End With -> Task One");
-    assert.strictEqual(unknownDependency, "? -> legacy -> Task One");
+    assert.strictEqual(known, "Task One → Start After → Milestone One");
+    assert.strictEqual(unknownTarget, "Task One → Start With → ?");
+    assert.strictEqual(endWith, "Milestone One → End With → Task One");
+    assert.strictEqual(unknownDependency, "? → legacy → Task One");
   });
 });
 
@@ -86,4 +90,22 @@ function createDocument(): GanttDocument {
     groups: [{ id: "g1", name: "Group One" }],
     dependencies: [],
   };
+}
+
+/** Resolves presentation keys using the source strings registered for this test. */
+function testTranslate(source: string, ...values: unknown[]): string {
+  const strings: Readonly<Record<string, string>> = {
+    "Edit Task": "Edit Task",
+    "Edit Milestone": "Edit Milestone",
+    "Edit Group": "Edit Group",
+    "Start After": "Start After",
+    "Start With": "Start With",
+    "End With": "End With",
+    "{0} → {1} → {2}": "{0} → {1} → {2}",
+    "?": "?",
+  };
+  const message = strings[source] ?? source;
+  return message.replace(/\{(\d+)\}/g, (_placeholder, indexText) =>
+    String(values[Number(indexText)]),
+  );
 }

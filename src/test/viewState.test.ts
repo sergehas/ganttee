@@ -57,6 +57,18 @@ suite("viewState", () => {
     );
   });
 
+  test("throws when the host document omits a computed schedule", () => {
+    const document = createEmptyDocument();
+    document.tasks = [
+      { id: "task", name: "Task", start: "2026-09-08", duration: 1 },
+    ];
+
+    assert.throws(
+      () => createGanttViewState(document, 4),
+      /Host document does not contain a computed schedule\./,
+    );
+  });
+
   test("replaces an entity without mutating the host document or schedule", () => {
     const document = createEmptyDocument();
     document.tasks = [

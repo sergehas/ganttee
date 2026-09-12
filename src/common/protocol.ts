@@ -11,6 +11,11 @@ import { Group, Milestone, Task } from "./models/task";
 
 /** Messages sent from the extension host to the webview. */
 export type HostToWebviewMessage =
+  | {
+      type: "l10nCatalog";
+      locale: string;
+      strings: Readonly<Record<string, string>>;
+    }
   | { type: "init"; document: GanttDocument; revision: number }
   | { type: "documentChanged"; document: GanttDocument; revision: number }
   | { type: "selectEntity"; entity: EditableEntityRef }

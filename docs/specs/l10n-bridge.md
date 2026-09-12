@@ -1,12 +1,12 @@
 ---
-Status: Intend
+Status: Implemented
 Owner: Copilot
-Last updated: 2026-08-15
+Last updated: 2026-09-11
 ---
 
 # Feature: l10n Bridge & Webview Codicons Adoption
 
-![Status: Intend](https://img.shields.io/badge/status-Intend-ADB5BD?style=for-the-badge)
+![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in
@@ -14,30 +14,33 @@ Canonical status-to-badge mapping is defined in
 
 ## 1. Summary
 
-The editor webview cannot call `vscode.l10n` directly, so form strings today are hardcoded English
-(US), for example the `Close`, `Save`, and `Delete` labels in
+The editor webview cannot call `vscode.l10n` directly, so its strings are hardcoded English (US),
+including the `Close`, `Save`, and `Delete` labels in
 [TaskForm.tsx](../../src/webview/TaskForm.tsx).
 [UI-integration.md](../requirements/UI-integration.md) (NFR-1, NFR-6) requires a host-resolved
 string catalog delivered to the webview once per session, with no hardcoded user-facing English left
-in the webview. This spec defines that l10n bridge mechanism plus adoption of the `@vscode/codicons`
-icon set in the webview so its iconography (add/edit/delete/ refresh) matches the same actions
-already expressed as `$(add)`, `$(edit)`, `$(trash)`, `$(refresh)` in
-[package.json](../../package.json) commands.
+in the webview. This spec defines that bridge and targeted adoption of `@vscode/codicons` for
+compact form actions, preserving text labels for the primary save and destructive delete commands.
 
 ## 2. Goals / Non-goals
 
 ### Goals
 
-- Resolve all webview-facing strings on the host via `vscode.l10n.t()` and deliver them to the
-  webview as a single catalog.
-- Send the catalog once per webview session, alongside the existing `init`/`ready` handshake, and
-  never re-request it on subsequent form opens.
-- Define a webview-side cache and accessor/hook with an explicit fallback behavior for a missing
-  key.
-- Establish a lightweight convention so a feature spec can introduce new string keys without
-  re-plumbing the bridge mechanism itself.
-- Adopt `@vscode/codicons` in the webview, bundled into `dist/` (CSP-safe, no CDN), so webview icon
-  actions match the native VS Code icon used for the same command where one exists.
+- Resolve every existing user-facing webview string on the host via `vscode.l10n.t()` and deliver
+  them as one catalog. This includes form chrome, field labels, select options, empty states,
+  validation messages, chart UI, and accessible action names.
+- Deliver the VS Code display language with the catalog and use it in one shared, UTC date-display
+  formatter. Date format patterns are locale data owned by `Intl.DateTimeFormat`, not translated
+  catalog strings.
+- Send the catalog, then `init`, once per webview session. Ignore duplicate `ready` messages and
+  never re-request or resend the catalog when a form opens.
+- Define a webview-side cache, formatter, and accessor with explicit, non-throwing fallbacks for a
+  missing key and missing interpolation value.
+- Use the `l10n/bundle.l10n*.json` files as the single application-wide catalog. A feature uses its
+  English source message as the key at each host or webview call site and adds that key only to the
+  applicable bundle files; it never changes protocol or handshake plumbing.
+- Adopt `@vscode/codicons` in the webview, bundled into `dist/` (CSP-safe, no CDN), for the exact
+  compact actions defined in the UX section.
 
 ### Non-goals
 
@@ -48,7 +51,14 @@ already expressed as `$(add)`, `$(edit)`, `$(trash)`, `$(refresh)` in
 - The full field-type component catalog (date-range, color picker, etc.) from UI-integration FR-2.
 - New translation/language infrastructure or additional `l10n` bundles beyond what `vscode.l10n`
   already provides.
-- An exhaustive, icon-by-icon mapping table for every current and future webview action.
+- Semantic or TypeScript-owned translation-key registries, generated catalogs, and source-to-key
+  mapping layers.
+- Translator-authored date format patterns. The extension uses the browser and runtime `Intl` locale
+  data instead, so it correctly handles locale-specific ordering, digits, and punctuation.
+- Replacing the visible `Save` and `Delete` footer labels. They are primary and destructive commands
+  and must retain explicit text.
+- Requiring every future action to be icon-only. New controls choose text, icon, or icon-plus-text
+  from their action role and accessibility needs.
 
 ## 3. User Stories
 
@@ -56,36 +66,50 @@ already expressed as `$(add)`, `$(edit)`, `$(trash)`, `$(refresh)` in
   language, so that the webview feels consistent with the rest of the editor.
 - As a Ganttee contributor adding a new form field, I want to introduce a new localized string
   without touching the message-protocol plumbing, so that localization stays low-friction.
-- As a VS Code user familiar with the Explorer tree's add/edit/delete/refresh icons, I want the same
-  icon shapes in the webview form, so that the same action looks the same everywhere in the product.
+- As a user whose VS Code display language differs from their operating-system locale, I want dates
+  in the editor and Explorer tree to use my VS Code display language, so that dates have one
+  predictable presentation throughout the extension.
+- As a VS Code user, I want compact secondary form actions to use familiar native icons, so that I
+  can scan and operate the form efficiently without weakening the clarity of save or delete.
 
 ## 4. Acceptance Criteria
 
-- Given a webview session that has just sent `ready` When the host responds Then it sends exactly
-  one string-catalog message in addition to `init`, and no further catalog message is sent for the
-  lifetime of that webview session.
+- Given a webview session sends its first `ready` message When the host responds Then it posts
+  exactly one `l10nCatalog` message before exactly one `init` message.
 
-- Given the webview has already received the string catalog When the user opens, closes, and reopens
-  an edit form multiple times in the same session Then no additional catalog request or catalog
-  message is exchanged; the cached catalog is reused.
+- Given a webview session completed the catalog and `init` exchange When it sends another `ready`
+  message or the user reopens an edit form Then the host posts no further catalog or `init` message
+  and the webview reuses its cached catalog.
 
 - Given the webview requests a string key that is absent from the delivered catalog When the
-  accessor/hook resolves that key Then it returns a defined, non-throwing fallback (the key itself)
-  and does not crash the render.
+  accessor resolves that key Then it returns the key itself, does not throw, and does not crash the
+  render.
 
-- Given a new feature spec introduces a new user-facing string When the host registers the new key
-  with its `vscode.l10n.t()` source string Then the string reaches the webview through the existing
-  catalog message on the next session without any change to `HostToWebviewMessage`/
-  `WebviewToHostMessage` shapes or the handshake sequence.
+- Given a catalog value contains positional placeholders such as `{0}` When the webview resolves it
+  with all required values Then the rendered string contains each supplied value in its placeholder
+  position; missing values leave their placeholder intact and do not throw.
 
-- Given the webview renders an add, edit, delete, or refresh action that has a native VS Code
-  command icon in [package.json](../../package.json) (`$(add)`, `$(edit)`, `$(trash)`, `$(refresh)`)
-  Then the webview renders the corresponding `@vscode/codicons` glyph instead of an ad hoc SVG or
-  emoji, so the action reads as the same icon in both places.
+- Given the VS Code display language is `de` and a scheduled calendar date is displayed in either
+  the editor webview or Explorer tree When the shared date formatter renders it Then both surfaces
+  use `Intl.DateTimeFormat("de", { dateStyle: "short", timeZone: "UTC" })` semantics and do not
+  render the persisted ISO value as user-facing text.
+
+- Given a new feature adds a webview string When it uses the English source message as the argument
+  to webview `t()` and adds the same message as an entry in
+  [bundle.l10n.json](../../l10n/bundle.l10n.json) Then the localized string reaches the webview in
+  the next session without changing either message union or the handshake sequence.
+
+- Given the form renders its close, add-dependency, remove-dependency, or ungroup-member action When
+  the action is available Then it uses the respective `close`, `add`, `trash`, or `remove`
+  `@vscode/codicons` glyph as its only visible content, with a localized accessible name and
+  tooltip.
+
+- Given the form renders its `Save` or `Delete` footer action When the form is usable Then the
+  action retains its localized visible text; neither control becomes icon-only.
 
 - Given the webview bundle is built for production When the codicon font/asset is resolved at
-  runtime Then it loads from `dist/` under the existing per-render CSP nonce, with no external/CDN
-  request.
+  runtime Then its CSS and font load from `dist/` under the existing per-render CSP nonce, with no
+  external/CDN request.
 
 ## 5. Domain & Data Model Impact
 
@@ -95,58 +119,97 @@ already expressed as `$(add)`, `$(edit)`, `$(trash)`, `$(refresh)` in
 
 ## 6. Protocol Impact
 
-- New `HostToWebviewMessage` variant carrying a resolved string catalog (candidate shape:
-  `{ type: "l10nCatalog", strings: Record<string, string> }`), added to
+- Add the `HostToWebviewMessage` variant
+  `{ type: "l10nCatalog", locale: string, strings: Readonly<Record<string, string>> }` to
   [protocol.ts](../../src/common/protocol.ts) alongside `init`.
-- Sent once by [GanttEditorController](../../src/views/editor/ganttEditorController.ts) in response
-  to the existing `ready` message (the same point `sendInit()` is currently invoked from
-  `handleMessage`), not on every `editEntity`/ `selectEntity` round-trip.
+- [bundle.l10n.json](../../l10n/bundle.l10n.json) is the default and sole translation catalog; its
+  English source-message keys are the application-wide localization keys. Locale-specific
+  `bundle.l10n.<locale>.json` files use the same keys with translated values.
+- The host reads the default bundle only to enumerate its source-message keys, resolves each key
+  through `vscode.l10n.t(source, ...values)`, and sends the resolved source-to-string map. This is
+  transport plumbing, not a second catalog.
+- The webview receives only that resolved catalog. Its `t(source, ...values)` accessor follows the
+  host's functional behavior: it looks up the English source message, formats positional `{0}`,
+  `{1}`, and later placeholders locally, returns the source message for an absent catalog entry, and
+  leaves a missing substitution placeholder intact. It has no `vscode` or l10n-bundle dependency.
+- Resolve `locale` from `vscode.env.language` when the host creates the catalog message. Add a pure
+  date-presentation helper in `src/common/` that accepts a `Date` and locale, and formats it with
+  `Intl.DateTimeFormat(locale, { dateStyle: "short", timeZone: "UTC" })`. It is a presentation
+  helper, distinct from the persisted ISO date arithmetic in [dates.ts](../../src/common/dates.ts);
+  it must not change stored `YYYY-MM-DD` values.
+- In response to the first `ready`,
+  [GanttEditorController](../../src/views/editor/ganttEditorController.ts) posts the catalog and
+  then calls `sendInit()`. A controller-owned session flag makes later `ready` messages no-ops. The
+  webview holds its normal UI render until it has received both the catalog and `init`, eliminating
+  a source-text or key flash.
 - No changes to `WebviewToHostMessage`; the webview does not request the catalog explicitly — it
   arrives unsolicited alongside `init`.
-- The exact key-naming convention (flat vs. namespaced keys) and the registry mechanism for feature
-  specs to add keys are implementation detail for the implementing PR, not fixed by this spec.
+- This bridge is independent of entity-message generalization. Any later protocol rebase preserves
+  this host-to-webview variant and the catalog-before-`init` ordering.
 
 ## 7. UX
 
-- Edit form: every visible label (`Close`, `Save`, `Delete`, field labels) resolves through the
-  webview's l10n accessor/hook instead of a literal string, per NFR-1.
-- Timeline (ECharts): no change; timeline chrome is not currently a source of hardcoded strings in
-  scope here.
-- Sidebar tree: no change; tree item titles already localize via `package.nls.json`/`vscode.l10n` on
-  the host and are unaffected.
-- Icon consistency (design terms): the **value** is a coherent, native-feeling product — the same
-  action should look the same whether it is triggered from the Explorer tree's inline command icon
-  or the webview form. The **principle** is icon parity with the platform vocabulary rather than
-  inventing a second visual language. The **move** is adopting `@vscode/codicons` glyphs (the same
-  glyph set backing `$(add)`, `$(edit)`, `$(trash)`, `$(refresh)`) inside the webview instead of ad
-  hoc SVGs or emoji, so add/edit/delete/refresh read identically across both surfaces.
-- CSP: codicon font/CSS assets are bundled into `dist/` at build time and referenced only from
-  there, preserving the existing per-render nonce policy (NFR-5) with no CDN dependency.
+- Edit form: every visible or assistive label resolves through the webview accessor rather than a
+  literal string, per NFR-1. This includes field labels, option labels, empty states, and validation
+  messages. Its scheduled-date outputs use the shared UTC short-date formatter with the catalog
+  locale. Native `<input type="date">` values remain ISO calendar dates. The accessor is called with
+  each label's English source message, for example `t("Save")` and `t("Close")`.
+- Timeline (ECharts): every user-visible chart string resolves through the same accessor. Tooltip
+  dates use the shared UTC short-date formatter with the catalog locale.
+- Sidebar tree: all literal tree-facing strings use direct host `vscode.l10n.t()` calls, rather than
+  the webview catalog. Its group, task, and milestone date descriptions use the same shared UTC
+  short-date formatter with `vscode.env.language`; replace its private `Intl.DateTimeFormat`
+  implementation. The tree must not depend on a webview session or receive `l10nCatalog` messages.
+- Icon policy (design terms): the **value** is a focused, native-feeling form. The **principle** is
+  that secondary, repeatable controls can be compact while consequential commands explain
+  themselves. The **move** is an icon-only `close` button in the header, icon-only `add` beside the
+  dependency selectors, icon-only `trash` for each dependency, and icon-only `remove` for each owned
+  entity's ungroup action. Each uses a localized `aria-label` and hover tooltip. `Save` and `Delete`
+  retain localized text in the footer.
+- Codicon build: add `@vscode/codicons` as a webview dependency; import its CSS from the webview
+  entry point; configure esbuild's `.ttf` file loader so the font is emitted to `dist/`; and include
+  the generated webview stylesheet with a nonce-bearing, `asWebviewUri`-resolved link. No CDN or
+  Node API reaches the browser bundle.
 
 ## 8. Test Strategy
 
-- Unit (host): a resolver test for the host-side catalog builder, asserting it returns the expected
-  key→localized-string map and that `vscode.l10n.t()` is invoked per registered key.
-- Unit (webview): tests for the string cache/hook covering (a) a missing key returns the defined
-  fallback without throwing, and (b) re-rendering or reopening a form does not trigger a second
-  catalog fetch/request once a catalog is cached.
-- Integration (editor/webview handshake): one test asserting the webview session receives exactly
-  one catalog message for the lifetime of the panel, regardless of how many times
-  `editEntity`/`selectEntity` messages follow.
-- Coverage: branch coverage stays ≥ 90%, including the missing-key fallback branch and the
-  no-recatalog-on-rerender branch.
+- Unit (host): test the catalog builder with an injected default-bundle reader and localizer. Assert
+  that every delivered key comes from the default bundle and produces one localization call without
+  requiring a live VS Code locale.
+- Unit (webview): test source-key lookup, missing-key fallback, positional formatting, missing
+  interpolation values, catalog caching, catalog locale handling, and render deferral until catalog
+  plus `init` arrive.
+- Unit (common): test the shared date formatter with an explicit locale and UTC instant. Assert that
+  it does not change the calendar day at a local-time boundary.
+- Unit (sidebar): inject or provide a deterministic locale and assert group, task, and milestone
+  descriptions use the shared formatter rather than an independent `Intl.DateTimeFormat` call.
+- Integration (editor/webview handshake): assert the first `ready` produces catalog then `init` and
+  that duplicate `ready`, `editEntity`, and `selectEntity` activity produces no second catalog or
+  `init` message.
+- Webview interaction: assert each named icon-only action has its expected codicon class, localized
+  accessible name, and tooltip; assert `Save` and `Delete` retain visible localized text.
+- Webview interaction: assert form outputs and chart tooltips use the catalog locale and shared
+  formatter, not `toISOString()`.
+- Build: assert the production bundle emits a codicon font under `dist/` and the generated
+  stylesheet refers to that local asset without an external URL.
+- Coverage: branch coverage stays at or above 90%, including missing keys, missing formatting
+  values, duplicate readiness, and render deferral.
 
 ## 9. Risks & Open Questions
 
-- 🔴 High — bridge scope — the concrete key-naming/registry convention (how a feature spec
-  "registers" a key without touching plumbing) is left at intent-level here and must be nailed down
-  before implementation starts, to avoid ad hoc conventions per PR.
-- 🟡 Medium — [UI-integration.md](../requirements/UI-integration.md) Section 9 — whether settings
-  forms share this webview/bridge or get a dedicated webview and catalog is an open question owned
-  by that document, not this spec.
-- 🟡 Medium — [editable-all-task-kinds.md](editable-all-task-kinds.md) — the generalized,
-  entity-generic protocol shape is owned there; this spec assumes the catalog message can be added
-  independently of that generalization.
-- 🟢 Low — codicon bundling — confirm the exact build step (esbuild loader or copy step) needed to
-  get the codicon font/CSS into `dist/` without adding a runtime dependency on Node APIs in the
-  webview bundle.
+- 🟡 Medium — future settings webview — [UI-integration.md](../requirements/UI-integration.md)
+  Section 9 must decide whether settings share this panel. **Treatment**: a dedicated settings
+  webview uses this same catalog protocol and registry; it does not alter this editor-session
+  contract.
+- 🟢 Low — protocol rebase — a future entity-protocol refactor may touch
+  [protocol.ts](../../src/common/protocol.ts). **Treatment**: retain the catalog variant and its
+  ordering test while resolving that refactor's merge conflict.
+- 🟢 Low — codicon package updates — an upstream package asset-path change can break emitted font
+  URLs. **Treatment**: keep the production asset-emission test and update the esbuild loader/import
+  as part of the dependency update.
+- 🟢 Low — locale coverage — some `vscode.env.language` values may be nonstandard or unavailable to
+  `Intl.DateTimeFormat`. **Treatment**: pass the locale directly to `Intl` and fall back to its
+  runtime default if it rejects the requested tag; cover this fallback in the shared formatter test.
+- 🟢 Low — catalog completeness — a webview source message omitted from the default bundle falls
+  back to English at runtime. **Treatment**: test that delivered catalog keys derive from the
+  default bundle and add a lint-style check that every webview `t()` source occurs in it.

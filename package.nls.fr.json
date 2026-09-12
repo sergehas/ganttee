@@ -1,0 +1,16 @@
+{
+  "extension.displayName": "Ganttee",
+  "extension.description": "Editeur de diagrammes de Gantt",
+  "customEditor.chartEditor.displayName": "Diagramme de Gantt",
+  "viewsContainer.ganttee.title": "Ganttee",
+  "view.explorer.name": "Tâches",
+  "command.newTask.title": "Nouvelle tâche",
+  "command.editTask.title": "Modifier la tâche",
+  "command.editMilestone.title": "Modifier le jalon",
+  "command.editGroup.title": "Modifier le groupe",
+  "command.deleteTask.title": "Supprimer la tâche",
+  "command.deleteMilestone.title": "Supprimer le jalon",
+  "command.deleteGroup.title": "Supprimer le groupe",
+  "command.revealEntity.title": "Révéler l'élément de travail",
+  "command.refreshExplorer.title": "Actualiser"
+}

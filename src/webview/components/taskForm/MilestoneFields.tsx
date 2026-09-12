@@ -1,5 +1,7 @@
+import { formatShortDate } from "../../../common/datePresentation";
 import { validateMilestoneConstraints } from "../../../services/scheduleConstraintService";
 import { makeUpdater } from "../../hooks/useFieldUpdater";
+import { useTranslate, useWebviewL10n } from "../../l10n";
 import { MilestoneFieldsProps } from "../../types/taskForm";
 import { CommonTextFields } from "./CommonTextFields";
 import { DependencyFields } from "./DependencyFields";
@@ -11,6 +13,8 @@ export function MilestoneFields(
 ): React.JSX.Element {
   const { milestone, scheduledMilestone, onChange, ...depProps } = props;
   const { document } = depProps;
+  const { locale } = useWebviewL10n();
+  const t = useTranslate();
   const update = makeUpdater(milestone, onChange);
   const validation = validateMilestoneConstraints(
     milestone,
@@ -30,14 +34,16 @@ export function MilestoneFields(
       />
 
       <label className="ganttee-field">
-        <span>Date</span>
+        <span>{t("Date")}</span>
         <input
           type="date"
           value={milestone.date ?? ""}
           onChange={(event) => update("date", event.target.value || undefined)}
         />
         {scheduledMilestone && (
-          <output>{scheduledMilestone.effectiveStart().toISOString()}</output>
+          <output>
+            {formatShortDate(scheduledMilestone.effectiveStart(), locale)}
+          </output>
         )}
       </label>
 
@@ -45,12 +51,12 @@ export function MilestoneFields(
         <>
           {validation.blocking && (
             <ValidationMessage severity="error">
-              Milestone needs a date or an outgoing dependency.
+              {t("Milestone needs a date or an outgoing dependency.")}
             </ValidationMessage>
           )}
           {validation.overConstrained && (
             <ValidationMessage severity="warning">
-              Milestone has a duplicate date constraint.
+              {t("Milestone has a duplicate date constraint.")}
             </ValidationMessage>
           )}
         </>

@@ -49,6 +49,7 @@ import {
 } from "../../services/scheduleGraphValidationService";
 import { schedule } from "../../services/schedulingService";
 import { summarizeBlockingDiagnostics } from "../scheduleDiagnosticPresenter";
+import { createWebviewL10nCatalog } from "./webviewL10n";
 
 /**
  * Bridges a single `.ganttee` {@link vscode.TextDocument} with its webview and
@@ -61,6 +62,7 @@ export class GanttEditorController {
   private _scheduledModel: ScheduledModel | undefined;
   private _diagnostics: readonly ScheduleDiagnostic[] = [];
   private _isDisposed = false;
+  private _hasInitializedWebview = false;
   private readonly _disposables: vscode.Disposable[] = [];
   private readonly _onDidChangeModel = new vscode.EventEmitter<void>();
 
@@ -212,7 +214,7 @@ export class GanttEditorController {
   private async handleMessage(message: WebviewToHostMessage): Promise<void> {
     switch (message.type) {
       case "ready":
-        this.sendInit();
+        this.sendL10nCatalogAndInit();
         break;
       case "updateEntity":
         await this.updateEntity(message.kind, message.entity);
@@ -511,6 +513,20 @@ export class GanttEditorController {
       return;
     }
     void this.webviewPanel.webview.postMessage(message);
+  }
+
+  /** Sends the localized catalog and initial model once for this webview session. */
+  private sendL10nCatalogAndInit(): void {
+    if (this._hasInitializedWebview) {
+      return;
+    }
+    this._hasInitializedWebview = true;
+    this.post({
+      type: "l10nCatalog",
+      locale: vscode.env.language,
+      strings: createWebviewL10nCatalog((source) => vscode.l10n.t(source)),
+    });
+    this.sendInit();
   }
 
   /** Creates the protocol document with its transient serialized schedule. */

@@ -21,8 +21,8 @@ description: >
 Do not create the PR until:
 
 1. **Target base branch is confirmed.** Infer it from gitflow conventions (`feature/*` → `develop`,
-   `fix/*` → `develop`, `hotfix/*` → `main`, `release/*` → `develop` and `main`), but ask if the
-   branch prefix is non-standard or the user hasn't stated a target.
+   `fix/*` → `develop`, `hotfix/*` → `main`, `release/*` → `main`), but ask if the branch prefix is
+   non-standard or the user hasn't stated a target.
 2. **The changelog is updated, committed, and pushed.** `docs/CHANGELOG.md` must contain the PR's
    user-visible changes under `Unreleased` in a commit that is present on the remote branch.
 3. **Quality checks have been run** (see below) and either pass, or the user explicitly accepts
@@ -35,10 +35,13 @@ Do not create the PR until:
 
 ### 1. Inspect the branch
 
+- Run `gh pr view --json number,state,url` first. If an open PR already exists for the head branch,
+  report its URL and ask whether to update it with `gh pr edit` instead of creating a new one.
 - `git status --short --branch` — confirm current branch, upstream, and whether there are
   uncommitted changes. When uncommitted changes exist, show them to the user and wait for explicit
   confirmation before continuing to the next step. Do not commit or stash them without being asked.
-- `git log <base>..HEAD --oneline` — list commits that will be in the PR.
+- `git log <base>..HEAD --oneline` — list commits that will be in the PR. If it returns no commits,
+  stop and tell the user there is nothing to raise a PR for.
 - `git diff --stat <base>...HEAD` — summarize the file-level diff to inform the Summary/Changes
   sections.
 - Confirm the branch is pushed to the remote (`git push -u origin <branch>` if not), since
@@ -55,16 +58,23 @@ Do not create the PR until:
 
 ### 3. Run quality checks
 
-Run the checks that apply to the repo's stack before drafting the PR. Do not invent scripts — check
-`package.json` (TypeScript/Node) or `pom.xml` / `build.gradle` (Java) for the actual script/goal
-names first. Documentation checks use `npx` and do not require a `package.json` file.
+Before drafting the PR, inspect the repository-root build and configuration files to identify its
+build system and the scripts, tasks, goals, or targets it defines. Do not invent commands.
 
-| Stack         | Lint / formatting                                                                                                                 | Type-check / compile                    | Tests                         | Build                             |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------- | --------------------------------- |
-| Documentation | `npx --yes prettier --config ./.prettierrc.json --write "**/*.md"` and `npx --yes markdownlint-cli2 "**/*.md" "#node_modules/**"` | N/A                                     | N/A                           | N/A                               |
-| TypeScript    | `npm run lint` and `npm run format`                                                                                               | `npm run compile`                       | `npm test`                    | `npm run build`                   |
-| Java          | `mvn spotless:check` / `./gradlew check`                                                                                          | `mvn compile` / `./gradlew compileJava` | `mvn test` / `./gradlew test` | `mvn package` / `./gradlew build` |
-| other         | `npx --yes prettier --config ./prettierrc.json --write .`                                                                         | N/A                                     | N/A                           | N/A                               |
+Determine which configured commands cover each of these checks:
+
+- Lint / formatting
+- Type-check / compile
+- Tests
+- Build
+
+Prefer a configured aggregate command when it explicitly covers multiple checks. Run the smallest
+set of commands that covers every applicable check, and do not run a narrower command after an
+aggregate command has already covered it. Run a separate configured command only for an applicable
+check that remains uncovered.
+
+If no recognized build-system configuration provides quality-check commands, use the `other`
+fallback for lint / formatting: `npx --yes prettier --config ./prettierrc.json --write .`
 
 Report any failures to the user before proceeding. Let the user decide whether to fix them first or
 raise the PR anyway (e.g. draft PR for early feedback).
@@ -76,11 +86,13 @@ raise the PR anyway (e.g. draft PR for early feedback).
   counts.
 - Never load the complete tracked-file list into the conversation context.
 - If the Markdown count is greater than the code count, load
-  [PR_DOC_TEMPLATE.md](../create-pr/PR_DOC_TEMPLATE.md). Otherwise, including ties or an
-  inconclusive count, load [PR_CODE_TEMPLATE.md](../create-pr/PR_CODE_TEMPLATE.md).- Fill in every
-  `{{placeholder}}` using only evidence from the commit log, diff, and quality-check results
-  gathered above. Do not invent testing steps, issue references, or reviewer notes that weren't
-  actually done.
+  [PR_DOC_TEMPLATE.md](../create-pr/PR_DOC_TEMPLATE.md). Otherwise, including ties or if the
+  counting command exits non-zero or returns no numeric output, tell the user the classification
+  failed and use [PR_CODE_TEMPLATE.md](../create-pr/PR_CODE_TEMPLATE.md)
+
+- Fill in every `{{placeholder}}` using only evidence from the commit log, diff, and quality-check
+  results gathered above. Do not invent testing steps, issue references, or reviewer notes that
+  weren't actually done.
 - Draft a Conventional Commits-style title summarizing the change, consistent with the repo's commit
   message convention if one exists.
 

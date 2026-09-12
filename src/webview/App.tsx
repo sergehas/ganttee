@@ -7,6 +7,7 @@ import {
 } from "../common/protocol";
 import { buildShiftByDaysPatch } from "../services/entitySchedulePatchService";
 import { GanttChart } from "./GanttChart";
+import { translate, WebviewL10n, WebviewL10nContext } from "./l10n";
 import { TaskForm } from "./TaskForm";
 import { useEntityEditWorkflow } from "./useEntityEditWorkflow";
 import {
@@ -24,6 +25,7 @@ interface SaveEntityOptions {
 /** Root editor UI: the ECharts timeline and the entity edit panel. */
 export function App(): React.JSX.Element {
   const [viewState, setViewState] = useState<GanttViewState | null>(null);
+  const [l10n, setL10n] = useState<WebviewL10n | null>(null);
   const [selectedEntity, setSelectedEntity] =
     useState<EditableEntityRef | null>(null);
   const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(
@@ -33,6 +35,9 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     const unsubscribe = onHostMessage((message) => {
       switch (message.type) {
+        case "l10nCatalog":
+          setL10n({ locale: message.locale, strings: message.strings });
+          break;
         case "init":
         case "documentChanged":
           try {
@@ -108,8 +113,16 @@ export function App(): React.JSX.Element {
     onRemoveDependency: removeDependency,
   });
 
+  if (!l10n) {
+    return <div className="ganttee-empty" aria-busy="true" />;
+  }
+
   if (!viewState) {
-    return <div className="ganttee-empty">Loading Gantt chart…</div>;
+    return (
+      <div className="ganttee-empty" aria-busy="true">
+        {translate(l10n, "Loading Gantt chart...")}
+      </div>
+    );
   }
 
   const editingTarget = resolveEntity(viewState.document, editingEntity);
@@ -124,43 +137,48 @@ export function App(): React.JSX.Element {
   };
 
   return (
-    <div className="ganttee-layout">
-      <div className="ganttee-timeline">
-        {viewState.document.tasks.length === 0 &&
-        viewState.document.milestones.length === 0 ? (
-          <div className="ganttee-empty">
-            No tasks yet. Use the Ganttee sidebar to add one.
-          </div>
-        ) : (
-          <GanttChart
-            document={viewState.document}
-            schedule={viewState.scheduledModel}
-            selectedEntity={selectedEntity}
-            onSelectEntity={setSelectedEntity}
-            onEditEntity={setEditingEntity}
-            onNudgeEntityByDays={nudgeEntityByDays}
-          />
+    <WebviewL10nContext.Provider value={l10n}>
+      <div className="ganttee-layout">
+        <div className="ganttee-timeline">
+          {viewState.document.tasks.length === 0 &&
+          viewState.document.milestones.length === 0 ? (
+            <div className="ganttee-empty">
+              {translate(
+                l10n,
+                "No tasks yet. Use the Ganttee sidebar to add one.",
+              )}
+            </div>
+          ) : (
+            <GanttChart
+              document={viewState.document}
+              schedule={viewState.scheduledModel}
+              selectedEntity={selectedEntity}
+              onSelectEntity={setSelectedEntity}
+              onEditEntity={setEditingEntity}
+              onNudgeEntityByDays={nudgeEntityByDays}
+            />
+          )}
+        </div>
+        {editingTarget && (
+          <aside className="ganttee-panel">
+            <TaskForm
+              editingEntity={editingTarget}
+              document={viewState.document}
+              schedule={viewState.scheduledModel}
+              onSave={workflow.saveEntity}
+              onDelete={workflow.deleteEntity}
+              onClose={() => setEditingEntity(null)}
+              onAddDependency={workflow.addDependency}
+              onRemoveDependency={workflow.removeDependency}
+              onUngroupEntity={(entity, options) =>
+                workflow.ungroupEntity(viewState.document, entity, options)
+              }
+              onRequestEditEntity={requestEditEntity}
+            />
+          </aside>
         )}
       </div>
-      {editingTarget && (
-        <aside className="ganttee-panel">
-          <TaskForm
-            editingEntity={editingTarget}
-            document={viewState.document}
-            schedule={viewState.scheduledModel}
-            onSave={workflow.saveEntity}
-            onDelete={workflow.deleteEntity}
-            onClose={() => setEditingEntity(null)}
-            onAddDependency={workflow.addDependency}
-            onRemoveDependency={workflow.removeDependency}
-            onUngroupEntity={(entity, options) =>
-              workflow.ungroupEntity(viewState.document, entity, options)
-            }
-            onRequestEditEntity={requestEditEntity}
-          />
-        </aside>
-      )}
-    </div>
+    </WebviewL10nContext.Provider>
   );
 }
 
