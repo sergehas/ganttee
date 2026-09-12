@@ -22,23 +22,28 @@ into a concrete, high-coverage test plan.
 ## Approach
 
 1. Read the change/spec and `writing-tests.instructions.md`.
-2. Delegate repository discovery scans to Codebase Scout and request a shortlist of files and branch
+2. If the request is a TDD hand-off from Spec Implementer, derive one test group per **user story**
+   from its nested acceptance criteria — one Given/When/Then maps to one test case. Flag any
+   criterion that cannot be automated (e.g. requires manual visual judgment) instead of forcing a
+   test for it.
+3. Delegate repository discovery scans to Codebase Scout and request a shortlist of files and branch
    hotspots.
-3. Enumerate branches: conditionals, ternaries, `switch` cases, early returns, and error paths —
+4. Enumerate branches: conditionals, ternaries, `switch` cases, early returns, and error paths —
    especially in `src/services/**` (parsing, validation, dependency graph/cycles) where pure logic
    makes branch coverage cheap.
-4. Group tests into layers:
+5. Group tests into layers:
    - **Unit** — `common/models` + `services` (parse/serialize round-trips, cycle detection,
      topological order, migrations).
    - **Integration** — commands, custom editor controller edits (WorkspaceEdit → re-parse →
      rebroadcast), tree provider hierarchy/refresh.
    - **Webview interaction** — double-click opens the form, save posts the correct protocol message.
-5. Call out fixtures (sample `.ganttee` docs, invalid docs) and any injectable seams needed to avoid
+6. Call out fixtures (sample `.ganttee` docs, invalid docs) and any injectable seams needed to avoid
    stubbing globals.
 
 ## Output Format
 
-A table of test cases: **Layer | Case | Branch/behavior covered | Fixture**. Then a short list of
-branches still at risk and how to cover them to hold ≥ 90%, each ranked with the shared severity
-scale in [reporting-standard.instructions.md](../instructions/reporting-standard.instructions.md)
-(🟣 critical → 🔵 nice to have, in that order).
+A table of test cases: **Story | Layer | Case | Branch/behavior covered | Fixture**. Then a list of
+acceptance criteria that cannot be automated, and a short list of branches still at risk and how to
+cover them to hold ≥ 90%, each ranked with the shared severity scale in
+[reporting-standard.instructions.md](../instructions/reporting-standard.instructions.md) (🟣
+critical → 🔵 nice to have, in that order).

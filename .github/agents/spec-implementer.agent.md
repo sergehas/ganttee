@@ -20,9 +20,17 @@ spec, the roadmap, and the changelog in sync. Specs live in `docs/specs/` by def
 
 - DO NOT write any implementation code before the user validates your plan.
 - DO NOT expand scope beyond the spec — implement what it specifies, nothing more.
-- SPEC BODY IS READ-ONLY — never rewrite a spec or append a Validation Outcome. You may edit ONLY
-  the spec's status metadata (front matter `Status`, the badge, and `Last updated`) plus the
-  matching row in `docs/specs/ROADMAP.md`.
+- SPEC BODY IS READ-ONLY, with one narrow exception: when a structuring decision made during
+  implementation meets the `domain-modeling` skill's
+  [ADR-FORMAT.md](../skills/engineering/domain-modeling/ADR-FORMAT.md) bar (hard to reverse,
+  surprising without context, a real trade-off), you may create a new `docs/adr/NNNN-slug.md` file
+  there (next sequential number, its minimal template) and flip the Open Question(s) it resolves to
+  its `**Resolved**` form, linking the ADR, and list it under the spec's front matter
+  `Related ADRs`. You may otherwise edit ONLY the spec's status metadata (front matter `Status`, the
+  badge, and `Last updated`) plus the matching row in `docs/specs/ROADMAP.md`. Never rewrite
+  stories, acceptance criteria, business rules, or domain/protocol impact.
+- The `Implementing` status flip on plan approval authorizes code edits — nothing else does; do not
+  treat any later status change as a second permission gate.
 - DO NOT set `Implemented` until the implementation is complete and `check-types`, `lint`, and
   `test` all pass.
 - Update `docs/CHANGELOG.md` only when setting the spec to `Implemented`, and include the
@@ -58,24 +66,29 @@ spec, the roadmap, and the changelog in sync. Specs live in `docs/specs/` by def
      with implementation only after the user decides.
 5. Present a concrete implementation plan: the files to add/change per layer (`common/models`,
    `services`, `views/editor`, `views/sidebar`, `webview`, `common/protocol`), any `.ganttee` schema
-   `version` bump + migration, the tests to add, and the acceptance criteria each change satisfies.
-   The plan must also:
+   `version` bump + migration, and the acceptance criteria each change satisfies. The plan must
+   also:
 
 - identify canonical state, derived state, and ownership boundaries;
 - identify external library responsibilities and representations that must not be duplicated;
 - list abstractions introduced and removed.
 
 6. **Wait for explicit user validation of the plan before editing any code.**
-7. On approval, set the status to `Implementing` (spec front matter + badge and the roadmap row),
-   then implement the change following the plan and the coding guidelines. Add or update tests to
-   keep branch coverage healthy.
-8. After the implementation tests first pass, perform an architecture simplification checkpoint:
-   check for duplicate models, parallel caches, unnecessary wrappers, custom implementations of
-   established library functionality, and redundant traversals. Refactor within the approved spec
-   scope before final validation.
-9. Validate: run `npm test`. Its `pretest` lifecycle compiles tests, type-checks, lints, builds both
-   bundles, and runs the unit and integration tests. Fix any failures until it passes.
-10. After implementation and validation pass, set the status to `Implemented` (spec front matter +
+7. On approval, set the status to `Implementing` (spec front matter + badge and the roadmap row).
+8. **TDD first:** delegate to the **Test Planner** agent for a test plan derived from each user
+   story's nested acceptance criteria. Write or update the tests from that plan before writing
+   production code. Report any acceptance criterion the Test Planner flags as not automatable.
+9. Implement the change following the plan and the coding guidelines until the new tests pass. Add
+   further tests as needed to keep branch coverage healthy.
+10. After the implementation tests first pass, perform an architecture simplification checkpoint:
+    check for duplicate models, parallel caches, unnecessary wrappers, custom implementations of
+    established library functionality, and redundant traversals. Refactor within the approved spec
+    scope before final validation.
+11. Validate: run `npm test`. Its `pretest` lifecycle compiles tests, type-checks, lints, builds
+    both bundles, and runs the unit and integration tests. Fix any failures until it passes.
+12. If a structuring decision was made along the way (naming, an approach not obvious from the
+    spec), check it against the ADR bar and record it per the constraint above when it qualifies.
+13. After implementation and validation pass, set the status to `Implemented` (spec front matter +
     badge and the roadmap row) and add the corresponding `CHANGELOG.md` entry under
     `## [Unreleased]`. This changelog update is part of the `Implemented` transition only.
 
