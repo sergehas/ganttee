@@ -1,6 +1,14 @@
 import * as assert from "assert";
+import * as React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { createWebviewL10nCatalog } from "../views/editor/webviewL10n";
-import { translate, WebviewL10n } from "../webview/l10n";
+import {
+  translate,
+  useTranslate,
+  useWebviewL10n,
+  WebviewL10n,
+  WebviewL10nContext,
+} from "../webview/l10n";
 
 /** Default translation bundle containing the source-message catalog. */
 const defaultL10nBundle = require("../../l10n/bundle.l10n.json") as Readonly<
@@ -39,6 +47,63 @@ suite("webview l10n", () => {
 
   test("uses the key as a missing-catalog fallback", () => {
     assert.strictEqual(translate(createL10n({}), "missing.key"), "missing.key");
+  });
+
+  test("reads the active webview l10n context", () => {
+    const l10n = createL10n({ greeting: "Hello {0}." });
+    let captured: WebviewL10n | undefined;
+
+    const HookProbe = (): React.ReactElement => {
+      captured = useWebviewL10n();
+      return React.createElement("div");
+    };
+
+    renderToStaticMarkup(
+      React.createElement(
+        WebviewL10nContext.Provider,
+        { value: l10n },
+        React.createElement(HookProbe),
+      ),
+    );
+
+    assert.deepStrictEqual(captured, l10n);
+  });
+
+  test("throws when the webview l10n context is missing", () => {
+    const HookProbe = (): React.ReactElement => {
+      useWebviewL10n();
+      return React.createElement("div");
+    };
+
+    assert.throws(
+      () => renderToStaticMarkup(React.createElement(HookProbe)),
+      /Webview localization is not initialized\./,
+    );
+  });
+
+  test("binds a translator to the active webview l10n context", () => {
+    const l10n = createL10n({ greeting: "Hello {0}, item {1}." });
+    let translator:
+      ((source: string, ...values: unknown[]) => string) | undefined;
+
+    const HookProbe = (): React.ReactElement => {
+      translator = useTranslate();
+      return React.createElement("div");
+    };
+
+    renderToStaticMarkup(
+      React.createElement(
+        WebviewL10nContext.Provider,
+        { value: l10n },
+        React.createElement(HookProbe),
+      ),
+    );
+
+    assert.strictEqual(
+      translator?.("greeting", "Ada", 7),
+      "Hello Ada, item 7.",
+    );
+    assert.strictEqual(translator?.("missing.key", "Ada"), "missing.key");
   });
 });
 
