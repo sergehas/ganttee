@@ -185,7 +185,7 @@
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
     "@types/mocha": "^10.0.10",
-    "@types/node": "24.x",
+    "@types/node": "26.x",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@types/vscode": "^1.136.0",
