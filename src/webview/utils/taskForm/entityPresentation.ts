@@ -38,7 +38,7 @@ export function titleOf(
   }
 }
 
-/** Returns a human-readable dependency label in the form "Source -> Type -> Target". */
+/** Returns a human-readable dependency label in the form "Source → Type → Target". */
 export function describeDependency(
   dep: Dependency,
   document: GanttDocument,

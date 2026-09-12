@@ -73,10 +73,10 @@ suite("taskForm entityPresentation", () => {
       testTranslate,
     );
 
-    assert.strictEqual(known, "Task One -> Start After -> Milestone One");
-    assert.strictEqual(unknownTarget, "Task One -> Start With -> ?");
-    assert.strictEqual(endWith, "Milestone One -> End With -> Task One");
-    assert.strictEqual(unknownDependency, "? -> legacy -> Task One");
+    assert.strictEqual(known, "Task One → Start After → Milestone One");
+    assert.strictEqual(unknownTarget, "Task One → Start With → ?");
+    assert.strictEqual(endWith, "Milestone One → End With → Task One");
+    assert.strictEqual(unknownDependency, "? → legacy → Task One");
   });
 });
 
