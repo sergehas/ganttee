@@ -2,6 +2,9 @@
 Status: Implemented
 Owner: Tech Lead
 Last updated: 2026-08-07
+Related ADRs:
+  - docs/adr/0001-host-owned-hydration-and-scheduling.md
+  - docs/adr/0002-graphology-as-dependency-graph-substrate.md
 ---
 
 # Feature: DAG backbone
@@ -154,10 +157,28 @@ in scope here, while normalized-precedence semantic cycle checks are owned by
 [Graph validation](./graph-validation.md). Treatment: document this ownership boundary and test both
 specs against shared fixtures.
 
-🟢 Low — Transitional duplication risk in graph utilities — overlapping logic can appear while
-services migrate to `DependencyGraph`. Treatment: route cycle and ordering checks through
-`DependencyGraph` while preserving existing service API behavior.
+🟢 Low — Transitional duplication risk in graph utilities — the project-facing `DependencyGraph`
+abstraction is the stable caller boundary, while Graphology-backed traversal is the current
+implementation. Treatment: route cycle, ordering, and component queries through `DependencyGraph`
+and preserve its API. Resolved by
+[ADR-0002](../adr/0002-graphology-as-dependency-graph-substrate.md).
 
-🟢 Low — Library adoption timing — deferring Graphology until scheduling keeps this phase
-dependency-light but may postpone optimization opportunities. Treatment: keep `DependencyGraph` API
-stable so internals can be swapped later without caller changes.
+🟢 Low — Library adoption timing — Graphology is now the dependency-graph substrate used by
+structural validation and scheduling. Treatment: keep Graphology behind `DependencyGraph` so its
+implementation can be replaced without changing callers. Resolved by
+[ADR-0002](../adr/0002-graphology-as-dependency-graph-substrate.md).
+
+🟢 Low — Host and webview authority boundary — derived scheduling state could diverge if both sides
+compute authoritative results. Treatment: keep parsing, hydration, validation, and canonical
+scheduling on the host; send plain projections to the webview and retain the last valid model after
+failed reparses. Resolved by [ADR-0001](../adr/0001-host-owned-hydration-and-scheduling.md).
+
+## 10. Review Outcome
+
+Review completed: 2026-09-12.
+
+- Recorded the host-owned hydration and scheduling boundary in ADR-0001.
+- Recorded Graphology as the dependency-graph substrate behind `DependencyGraph` in ADR-0002.
+- Resolved the stale Graphology deferral and graph-utility duplication risks.
+- Preserved the structural-versus-semantic acyclicity boundary as an active treatment.
+- ECharts remains an implementation detail of the webview renderer and does not require an ADR.
