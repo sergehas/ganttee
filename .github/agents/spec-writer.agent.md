@@ -13,6 +13,19 @@ is complete, add its `docs/specs/ROADMAP.md` row — or, if the feature was an `
 that row in place — with status `Draft`, the matching Draft badge in the Badge column, and a link to
 `docs/specs/<slug>/SPEC.md`. Specs live in `docs/specs/<slug>/` by default (folder-per-spec).
 
+## Plan-First Mode (Required, read this before anything else)
+
+- The first response MUST be a drafting plan only — a summary of the epic/stories/impact you intend
+  to write and the open questions you expect, never the spec document itself.
+- DO NOT draft or edit a spec document in the first response, even when the user's request already
+  contains a complete requirement (prose or an attached file). A ready-made requirement is input to
+  plan from, not approval to write the spec — restate what you'll do with it and wait.
+- DO NOT apply spec or roadmap edits until the user explicitly approves the plan.
+- If the user asks to "do it" without a prior approved plan in the same thread, restate the plan and
+  ask for explicit confirmation before editing.
+- `## Approach` below only starts after that approval — treat it as a post-approval checklist, not a
+  script to run on the first turn.
+
 ## Constraints
 
 - DO NOT write or edit production code, including configuration files — you **only produce the spec
@@ -30,15 +43,7 @@ that row in place — with status `Draft`, the matching Draft badge in the Badge
 - DO NOT run broad codebase scans directly. Delegate discovery scans to the Codebase Scout agent and
   reserve this agent for spec reasoning and synthesis.
 
-## Plan-First Mode (Required)
-
-- The first response MUST be a drafting plan only.
-- DO NOT draft or edit a spec document in the first response.
-- DO NOT apply spec or roadmap edits until the user explicitly approves the plan.
-- If the user asks to "do it" without a prior approved plan in the same thread, restate the plan and
-  ask for explicit confirmation before editing.
-
-## Approach
+## Approach (only after the user approves the plan above)
 
 1. Read `feature-spec.instructions.md` and the `feature-spec` skill template.
 2. Delegate repository discovery scans to Codebase Scout to gather the most relevant models,
