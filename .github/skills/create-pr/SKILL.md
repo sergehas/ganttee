@@ -35,8 +35,17 @@ Do not create the PR until:
 
 ### 1. Inspect the branch
 
-- Run `gh pr view --json number,state,url` first. If an open PR already exists for the head branch,
-  report its URL and ask whether to update it with `gh pr edit` instead of creating a new one.
+- Resolve the target repository from the `origin` remote **only**: `git remote get-url origin`, then
+  parse `<owner>/<repo>` from that URL (supports both `https://<host>/<owner>/<repo>.git` and
+  `git@<host>:<owner>/<repo>.git` forms). This owner/repo — not a value typed by the user, not
+  `upstream`, and not `gh`'s own repo-detection heuristics — is the only repository the PR may be
+  raised against. If `origin` is missing, or its URL does not resolve to a single unambiguous
+  `<owner>/<repo>`, stop and ask the user instead of guessing.
+- If a second remote (e.g. `upstream`) exists, note it but never use it as the PR target unless the
+  user explicitly asks to raise the PR there instead of `origin`.
+- Run `gh pr view --repo <owner>/<repo> --json number,state,url` first. If an open PR already exists
+  for the head branch, report its URL and ask whether to update it with `gh pr edit` instead of
+  creating a new one.
 - `git status --short --branch` — confirm current branch, upstream, and whether there are
   uncommitted changes. When uncommitted changes exist, show them to the user and wait for explicit
   confirmation before continuing to the next step. Do not commit or stash them without being asked.
@@ -44,8 +53,8 @@ Do not create the PR until:
   stop and tell the user there is nothing to raise a PR for.
 - `git diff --stat <base>...HEAD` — summarize the file-level diff to inform the Summary/Changes
   sections.
-- Confirm the branch is pushed to the remote (`git push -u origin <branch>` if not), since
-  `gh pr create` requires a remote head branch.
+- Confirm the branch is pushed to `origin` (`git push -u origin <branch>` if not), since
+  `gh pr create` requires the head branch to exist on the resolved `origin` remote.
 
 ### 2. Update, commit, and push the changelog
 
@@ -109,15 +118,23 @@ gh pr create --repo <owner>/<repo> --base <base-branch> --head <head-branch> \
   --title "<confirmed title>" --body "<confirmed description>"
 ```
 
+Always pass `--repo <owner>/<repo>` explicitly, using the value resolved from `origin` in step 1 —
+never omit it and never substitute a value the user typed, an `upstream` remote, or `gh`'s default
+repo-detection. This prevents the PR from being accidentally opened against a fork's parent or an
+unrelated repository.
+
 - If a reviewer or team is known (CODEOWNERS, prior convention, or user instruction), request review
-  in the same step or as a follow-up: `gh pr edit <number> --add-reviewer <handle-or-team>`.
+  in the same step or as a follow-up:
+  `gh pr edit <number> --repo <owner>/<repo> --add-reviewer <handle-or-team>`.
 - Add labels if the repo uses them and the user specifies which, e.g.
-  `gh pr edit <number> --add-label "needs-review"`.
+  `gh pr edit <number> --repo <owner>/<repo> --add-label "needs-review"`.
 - If the user asked for a draft PR, pass `--draft`.
 
 ### 7. Verify
 
-- `gh pr view <number> --json number,title,state,isDraft,baseRefName,headRefName,url`
+- `gh pr view <number> --repo <owner>/<repo> --json number,title,state,isDraft,baseRefName,headRefName,url`
+- Confirm the returned `url` host/owner/repo matches the `origin` remote resolved in step 1 before
+  reporting success. If it doesn't match, treat this as a failure and tell the user immediately.
 - Report the PR URL and key metadata back to the user.
 
 ## Enterprise GitHub Host Note
@@ -128,7 +145,9 @@ remote is not `github.com`, the default `gh` invocation may still target `github
 
 ```powershell
 $env:GH_HOST = '<enterprise-host>'
-gh pr create ...
+gh pr create --repo <owner>/<repo> ...
 ```
 
-Verify the intended host matches `git remote -v` before creating the PR.
+The `<owner>/<repo>` value must still be the one resolved from `origin` in step 1 — `GH_HOST` only
+changes which host `gh` talks to, never which repository the PR targets. Verify the host matches
+`git remote get-url origin` before creating the PR.
