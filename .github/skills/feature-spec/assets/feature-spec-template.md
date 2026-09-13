@@ -2,6 +2,7 @@
 Status: Draft
 Owner: <you>
 Last updated: <date>
+Related ADRs: <none yet>
 ---
 
 # Feature: <name>
@@ -26,26 +27,35 @@ Canonical status-to-badge mapping is defined in
 
 - <explicitly out of scope>
 
-## 3. User Stories
+## 3. Epic
+
+<One paragraph: the capability this spec delivers, in outcome terms. One spec is usually one epic.>
+
+## 4. User Stories & Acceptance Criteria
+
+For each story, nest its own Given/When/Then directly beneath it. Include edge and error paths.
 
 - As a <role>, I want <capability>, so that <benefit>.
+  - Given <context> When <action> Then <observable outcome>
+  - Given <edge/error context> When <action> Then <rejection/validation outcome>
 
-## 4. Acceptance Criteria
+## 5. Business Rules
 
-Given/When/Then, one testable scenario per bullet. Include edge and error paths.
+Declarative, unambiguous statements the system enforces, independent of any single story. Lean
+prose: every sentence carries load-bearing content.
 
-- Given <context> When <action> Then <observable outcome>
+- <rule>
 
-## 5. Domain & Data Model Impact
+## 6. Domain & Data Model Impact
 
 - New/changed types in `src/common/models/`:
 - `.ganttee` schema change? (bump `CURRENT_DOCUMENT_VERSION` + migration):
 
-## 6. Protocol Impact
+## 7. Protocol Impact
 
 - New/changed `HostToWebview` / `WebviewToHost` messages in `src/common/protocol.ts`:
 
-## 7. UX
+## 8. UX
 
 - Timeline (ECharts): <behavior>
 - Sidebar tree: <behavior>
@@ -53,13 +63,21 @@ Given/When/Then, one testable scenario per bullet. Include edge and error paths.
 
 Reason in design terms (values → principles → moves), not pixels.
 
-## 8. Test Strategy
+## 9. Test Strategy
 
 - Unit (models/services):
 - Integration (commands/editor/tree):
 - Webview interaction:
 - Coverage: branch coverage stays ≥ 90%.
 
-## 9. Risks & Open Questions
+## 10. Risks
 
-- <risk / question>
+Severity-tagged only (no "nice to have" — a risk is real or it is not tracked here).
+
+- 🟡 Medium — <risk> — <mitigation or acceptance>
+
+## 11. Open Questions
+
+ID each item per the [open-question ID convention](./open-question-ids.md), grouped by severity.
+
+- **H-01** — <question> Status: Open

@@ -12,6 +12,17 @@ This is a standalone extension — **not** the VS Code core repository. There is
 Electron, and no internal service DI container. Prefer the public `vscode` extension API.
 User-facing strings are localized (see below).
 
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live as local markdown files. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context repository layout with `CONTEXT.md` at the root when present and ADRs under
+`docs/adr/`. See `docs/agents/domain.md`.
+
 ## Tech Stack
 
 - **TypeScript** (strict), bundled with **esbuild** ([esbuild.js](../esbuild.js)).
