@@ -1,5 +1,5 @@
 ---
-Status: Draft
+Status: Reviewed
 Owner: Copilot
 Last updated: 2026-09-13
 Related ADRs: none
@@ -7,7 +7,7 @@ Related ADRs: none
 
 # Feature: Chart View Functional Organization
 
-![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)
+![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
 
 ## 1. Summary
 
@@ -27,8 +27,8 @@ leaving the editor.
   critical-path overlay in the `.ganttee` document.
 - Render the chart as the required ordered functional layers, including a separate task-list column
   and a two-level timeline header.
-- Compute one critical path from the already-scheduled dependency graph using browser- and host-safe
-  pure scheduling logic.
+- Compute one critical path from the already-scheduled dependency graph using pure scheduling logic
+  that has no `vscode`, DOM, or Node dependencies.
 - Localize all added visible, tooltip, accessible-name, error, and unavailable-state strings.
 
 ### Non-goals
@@ -72,12 +72,10 @@ the authoritative source for every persisted view preference.
     visibility or emphasis.
   - Given I change a layer toggle When the document update completes and I reopen the same
     `.ganttee` file Then the saved toggle state is restored.
-  - Given the document lacks persisted view settings When it is opened Then the chart uses the
-    documented default visible dependency layer and default hidden optional layers without reporting
-    a validation error.
-  - Given a document has no `view` section When it is opened Then the chart uses week zoom, shows
-    dependencies, hides off-days, hides holidays, and hides the critical-path overlay without
-    writing a `view` section to the document.
+  - Given a document lacks persisted view settings or has no `view` section When it is opened Then
+    the chart uses week zoom, shows dependencies, hides off-days, hides holidays, and hides the
+    critical-path overlay without reporting a validation error and without materializing a `view`
+    section.
   - Given a document has a partial `view` section When it is opened Then each omitted view property
     resolves to its documented default.
   - Given `WorkingCalendar.daysOff` is absent When the off-days toggle is enabled Then the chart
@@ -150,7 +148,7 @@ the authoritative source for every persisted view preference.
   actions.
 - View-element buttons are pressed when their layer is visible or active and unpressed otherwise;
   zoom and export controls are momentary controls.
-- The chart editor root is two structurally distinct regions — an fixed height, always-visible
+- The chart editor root is two structurally distinct regions — a fixed-height, always-visible
   menu-bar region and a chart region hosting the single ECharts canvas. The task-list column,
   timeline headers, bars, dependencies, off-days, holidays, critical-path emphasis, and selection
   are all rendered inside that canvas. The menu bar remains outside the canvas and does not scroll
