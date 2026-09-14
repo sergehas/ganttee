@@ -347,36 +347,42 @@ consistency) · Move (host broadcasts the canonical schedule to all views).
 - **Coverage**: branch coverage ≥ 90% per dependency type, rollup path, and Graphology instantiation
   path.
 
-## 9. Risks & Open Questions
+## 9. Risks
 
-- 🟡 Medium — Risk: Graphology API mismatch with scheduling algorithm patterns (topological sort,
-  cycle detection). **Mitigation**: prototype topological + cycle detection on Graphology before
-  full implementation; API is mature and well-tested.
+- 🟡 **M-01** — Risk: Graphology API mismatch with scheduling algorithm patterns (topological sort,
+  cycle detection).
+  - Status: **Resolved** — Mitigation: prototype topological + cycle detection on Graphology before
+    full implementation; API is mature and well-tested.
 
-- 🟡 Medium — Risk: webview bundle size (Graphology + `schedulingService`). **Mitigation**:
-  tree-shake unused Graphology standard-library functions; measure delta; acceptable for a
-  specialized graph editor (estimated +50–100 KB).
+- 🟡 **M-02** — Risk: webview bundle size (Graphology + `schedulingService`).
+  - Status: **Resolved** — Mitigation: tree-shake unused Graphology standard-library functions;
+    measure delta; acceptable for a specialized graph editor (estimated +50–100 KB).
 
-- 🟡 Medium — Risk: invalid input reaches the scheduling service despite validation. **Treatment**:
-  constraint-endpoint-rules.md rejects negative derived duration; the service raises a scheduling
-  error and aborts rather than clamping.
+- 🟡 **M-03** — Risk: invalid input reaches the scheduling service despite validation.
+  - Status: **Resolved** — Treatment: constraint-endpoint-rules.md rejects negative derived
+    duration; the service raises a scheduling error and aborts rather than clamping.
 
-- 🟢 Low — Clarification: fractional working-day arithmetic is defined inline in §5. Effective
+- 🟢 **L-01** — Risk: webview scheduling correctness (single implementation).
+  - Status: **Resolved** — Mitigation: shared pure service; unit tests; the service is available to
+    the host for future verification without making the host authoritative in this phase.
+
+## 10. Open Questions
+
+- 🟢 **L-02** — Clarification: fractional working-day arithmetic is defined inline in §5. Effective
   values use UTC `Date` objects, working intervals use configured `daysOff`, `workingDayHours`
   defaults to `8`, and `workingDayStart` defaults to `9`. Static inputs remain unchanged; effective
   values are normalized for scheduling. No configurable timezone is stored.
+  - Status: **Resolved** — The fractional working-day arithmetic and UTC behavior are defined in §5.
 
-- 🟢 Low — Risk: webview scheduling correctness (single implementation). **Mitigation**: shared pure
-  service; unit tests; the service is available to the host for future verification without making
-  the host authoritative in this phase.
+- 🟢 **L-03** — Open question: recompute granularity — full recompute per edit (simple, recommended
+  for this phase) or incremental dirty-subtree optimization (Graphology node attributes enable
+  this).
+  - Status: **Resolved** — Treatment: incremental dirty-subtree optimization deferred to future
+    spec.
 
-- 🟢 Low — Open question: recompute granularity — full recompute per edit (simple, recommended for
-  this phase) or incremental dirty-subtree optimization (Graphology node attributes enable this).
-  **Treatment**: incremental dirty-subtree optimization deferred to future spec
-
-- 🟢 Low — Clarification: this phase webview-only scheduling (no host re-compute). **Treatment**:
-  Host verification will be introduced only when CLI/MCP scheduling exists. This keeps the phase
-  simple and avoids redundant computation.
+- 🟢 **L-04** — Clarification: this phase webview-only scheduling (no host re-compute).
+  - Status: **Resolved** — Treatment: Host verification will be introduced only when CLI/MCP
+    scheduling exists. This keeps the phase simple and avoids redundant computation.
 
 ## 10. Review Outcome
 

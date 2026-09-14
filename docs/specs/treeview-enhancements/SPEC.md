@@ -157,9 +157,20 @@ mechanism.
   cancel-confirmation branch, and both rejection branches (self-drop, descendant-drop) of
   drag-and-drop.
 
-## 9. Risks & Open Questions
+## 9. Risks
 
-- Low — Exact UI for choosing the entity kind on "add" (picker vs. split button) is left open, to be
-  decided during implementation planning.
-- 🔵 Nice to have — Sibling reordering and a tree filter were considered but kept out of this spec's
+_No risks identified._
+
+## 10. Open Questions
+
+### 🟢 Low
+
+- 🟢 **L-01** — Exact UI for choosing the entity kind on "add" (picker vs. split button) is left
+  open, to be decided during implementation planning.
+  - Status: **Open**
+
+### 🔵 Nice to have
+
+- 🔵 **N-01** — Sibling reordering and a tree filter were considered but kept out of this spec's
   scope; they can be proposed as separate follow-up specs if needed.
+  - Status: **Open**

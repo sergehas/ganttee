@@ -352,30 +352,45 @@ All externalized via `vscode.l10n.t()` with `{0}` placeholders and added to `l10
   unresolvable.
 - Coverage: branch coverage ≥ 90% across every report path.
 
-## 10. Risks & Open Questions
+## 10. Risks
 
-- 🔴 High — Risk: breaking change — removal of `endBefore` dependency type invalidates existing
-  documents containing it. **Treatment**: existing `.ganttee` files with `endBefore` dependencies
-  will fail hydration with a localized error message; users must either remove the `endBefore`
-  dependencies or upgrade their workflow. No forward migration path is provided. Scheduling-engine
-  spec (spec #7) should document handling of unschedulable documents.
-- 🔴 High — Risk: endpoint-aware duplicate detection can disagree with a static-only constraint
-  count and allow an invalid edit to be persisted. **Treatment**: the same endpoint-aware rules must
-  be used by validation and the edit-form save gate; the functional matrices are the shared oracle.
-- 🟡 Medium — Risk: optional milestone dates can make deletion cleanup unable to materialize an
-  endpoint. **Treatment**: block the deletion and preserve the document when the required effective
-  endpoint is unavailable.
-- 🟡 Medium — Risk: sanitizing invalid dependencies and components can make the in-memory model
-  differ from the source document. **Treatment**: retain the source unchanged, raise a warning on
-  open, identify every omitted structure, and block edits that would create or preserve the same
-  invalid structure.
-- 🟡 Medium — Risk: relaxing milestone date presence without a version bump could expose assumptions
-  in existing consumers. **Treatment**: retain the canonical date semantics, add explicit
-  absent-date validation cases, and verify both legacy dated documents and dependency-dated
-  milestones.
-- 🟡 Medium — Risk: the anchor check depends on `connectedComponents()`, which includes group nodes.
-  **Treatment**: filter components to those containing a task or milestone before evaluating
-  anchors, covered by a dedicated test.
-- 🟡 Medium — Boundary: scheduling behavior for validated violations is outside this feature.
-  **Treatment**: the scheduling-engine spec separately defines how invalid items are computed; this
-  spec defines only detection and persistence gates.
+- 🔴 **H-01** — Risk: breaking change — removal of `endBefore` dependency type invalidates existing
+  documents containing it.
+  - Status: **Resolved** — Treatment: existing `.ganttee` files with `endBefore` dependencies will
+    fail hydration with a localized error message; users must either remove the `endBefore`
+    dependencies or upgrade their workflow. No forward migration path is provided. Scheduling-engine
+    spec (spec #7) should document handling of unschedulable documents.
+
+- 🔴 **H-02** — Risk: endpoint-aware duplicate detection can disagree with a static-only constraint
+  count and allow an invalid edit to be persisted.
+  - Status: **Resolved** — Treatment: the same endpoint-aware rules must be used by validation and
+    the edit-form save gate; the functional matrices are the shared oracle.
+
+- 🟡 **M-01** — Risk: optional milestone dates can make deletion cleanup unable to materialize an
+  endpoint.
+  - Status: **Resolved** — Treatment: block the deletion and preserve the document when the required
+    effective endpoint is unavailable.
+
+- 🟡 **M-02** — Risk: sanitizing invalid dependencies and components can make the in-memory model
+  differ from the source document.
+  - Status: **Resolved** — Treatment: retain the source unchanged, raise a warning on open, identify
+    every omitted structure, and block edits that would create or preserve the same invalid
+    structure.
+
+- 🟡 **M-03** — Risk: relaxing milestone date presence without a version bump could expose
+  assumptions in existing consumers.
+  - Status: **Resolved** — Treatment: retain the canonical date semantics, add explicit absent-date
+    validation cases, and verify both legacy dated documents and dependency-dated milestones.
+
+- 🟡 **M-04** — Risk: the anchor check depends on `connectedComponents()`, which includes group
+  nodes.
+  - Status: **Resolved** — Treatment: filter components to those containing a task or milestone
+    before evaluating anchors, covered by a dedicated test.
+
+- 🟡 **M-05** — Boundary: scheduling behavior for validated violations is outside this feature.
+  - Status: **Resolved** — Treatment: the scheduling-engine spec separately defines how invalid
+    items are computed; this spec defines only detection and persistence gates.
+
+## 11. Open Questions
+
+_No open questions identified._

@@ -108,22 +108,26 @@ rejection message for setting a non-zero duration on a milestone. Both externali
 - Webview interaction: form enforces exactly-2 selection; derived field read-only.
 - Coverage: branch coverage ≥ 90% across constraint combinations.
 
-## 9. Risks & Open Questions
+## 9. Risks
 
-- 🟡 Medium — Risk: optional start/end ripples into existing timeline code that assumes both are
-  set. Treatment: timeline code reads through the always-populated `effective*` accessors rather
-  than the raw optional user inputs; the derived and under-constrained branches are covered by tests
-  before the model change lands.
-- 🟢 Low — Open question: fractional working-day arithmetic convention. Resolution: deferred to the
-  scheduling-engine spec (a computation concern), referenced here only as a pointer.
+- 🟡 **M-01** — Risk: optional start/end ripples into existing timeline code that assumes both are
+  set.
+  - Status: **Resolved** — Treatment: timeline code reads through the always-populated `effective*`
+    accessors rather than the raw optional user inputs; the derived and under-constrained branches
+    are covered by tests before the model change lands.
 
-### Open Question Resolution
+## 10. Open Questions
 
-- 🟢 Low — Question: does a user-set static date (task `start`/`end`, milestone `date`) that falls
-  on a non-working day stay as-is or snap forward to the next working day? Resolution: it is stored
-  as-is (no snap). The stored value is the user's source of truth; the scheduling engine applies
-  working-day interpretation on read via the `effective*` accessors. Rationale: keeps persisted
-  input lossless and unambiguous, and confines calendar semantics to the engine.
+- 🟢 **L-01** — Open question: fractional working-day arithmetic convention.
+  - Status: **Resolved** — Resolution: deferred to the scheduling-engine spec (a computation
+    concern), referenced here only as a pointer.
+
+- 🟢 **L-02** — Question: does a user-set static date (task `start`/`end`, milestone `date`) that
+  falls on a non-working day stay as-is or snap forward to the next working day?
+  - Status: **Resolved** — Resolution: it is stored as-is (no snap). The stored value is the user's
+    source of truth; the scheduling engine applies working-day interpretation on read via the
+    `effective*` accessors. Rationale: keeps persisted input lossless and unambiguous, and confines
+    calendar semantics to the engine.
 
 ## 10. Review Outcome
 
