@@ -6,6 +6,7 @@
  * `documentRelationValidationService`.
  */
 
+import { DateRange, parseIsoDate } from "../common/dates";
 import {
   CURRENT_DOCUMENT_VERSION,
   Dependency,
@@ -15,6 +16,8 @@ import {
   Group,
   Milestone,
   ProjectSettings,
+  ProjectView,
+  resolveProjectView,
   Task,
   TASK_STATUSES,
   TaskStatus,
@@ -53,6 +56,10 @@ export function validateDocumentShape(raw: unknown): GanttDocument {
   if (settings !== undefined) {
     document.settings = settings;
   }
+  const view = validateView(raw.view);
+  if (view !== undefined) {
+    document.view = view;
+  }
   return document;
 }
 
@@ -88,7 +95,81 @@ function validateSettings(raw: unknown): ProjectSettings | undefined {
       false,
     );
   }
+  if (raw.holidays !== undefined) {
+    if (!Array.isArray(raw.holidays)) {
+      throw new GanttParseError("settings.holidays must be an array.");
+    }
+    settings.holidays = raw.holidays.map((holiday, index) =>
+      validateDateRange(holiday, `settings.holidays[${index}]`),
+    );
+  }
   return Object.keys(settings).length > 0 ? settings : undefined;
+}
+
+/** Validates an optional view section and resolves omitted view properties. */
+function validateView(raw: unknown): ProjectView | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (!isRecord(raw)) {
+    throw new GanttParseError("view must be an object.");
+  }
+  const allowed = new Set([
+    "zoomLevel",
+    "showDependencies",
+    "showOffDays",
+    "showHolidays",
+    "showCriticalPath",
+  ]);
+  for (const key of Object.keys(raw)) {
+    if (!allowed.has(key)) {
+      throw new GanttParseError(`view.${key} is not supported.`);
+    }
+  }
+  const view: Partial<ProjectView> = {};
+  if (raw.zoomLevel !== undefined) {
+    if (
+      raw.zoomLevel !== "day" &&
+      raw.zoomLevel !== "week" &&
+      raw.zoomLevel !== "month" &&
+      raw.zoomLevel !== "quarter" &&
+      raw.zoomLevel !== "year"
+    ) {
+      throw new GanttParseError("view.zoomLevel is invalid.");
+    }
+    view.zoomLevel = raw.zoomLevel;
+  }
+  for (const field of [
+    "showDependencies",
+    "showOffDays",
+    "showHolidays",
+    "showCriticalPath",
+  ] as const) {
+    if (raw[field] !== undefined) {
+      if (typeof raw[field] !== "boolean") {
+        throw new GanttParseError(`view.${field} must be a boolean.`);
+      }
+      view[field] = raw[field];
+    }
+  }
+  return resolveProjectView(view);
+}
+
+/** Validates an inclusive date-only range. */
+function validateDateRange(raw: unknown, field: string): DateRange {
+  if (!isRecord(raw)) {
+    throw new GanttParseError(`${field} must be an object.`);
+  }
+  const keys = Object.keys(raw);
+  if (keys.some((key) => key !== "start" && key !== "end")) {
+    throw new GanttParseError(`${field} contains an unsupported property.`);
+  }
+  const start = requireDate(raw.start, `${field}.start`);
+  const end = requireDate(raw.end, `${field}.end`);
+  if (parseIsoDate(end).getTime() < parseIsoDate(start).getTime()) {
+    throw new GanttParseError(`${field}.end must not precede ${field}.start.`);
+  }
+  return { start, end };
 }
 
 /**
@@ -249,7 +330,7 @@ function requireString(value: unknown, field: string): string {
  */
 function requireDate(value: unknown, field: string): string {
   const date = requireString(value, field);
-  if (!ISO_DATE.test(date)) {
+  if (!ISO_DATE.test(date) || Number.isNaN(parseIsoDate(date).getTime())) {
     throw new GanttParseError(`${field} must be an ISO date (YYYY-MM-DD).`);
   }
   return date;

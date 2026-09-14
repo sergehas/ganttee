@@ -25,6 +25,14 @@ export interface WorkingTimeSettings {
   readonly workingDayStart: number;
 }
 
+/** Inclusive ISO date-only range used by project-level settings. */
+export interface DateRange {
+  /** Inclusive range start in `YYYY-MM-DD` form. */
+  readonly start: string;
+  /** Inclusive range end in `YYYY-MM-DD` form. */
+  readonly end: string;
+}
+
 /** A UTC working interval represented as epoch milliseconds. */
 interface WorkingInterval {
   /** Inclusive interval start. */

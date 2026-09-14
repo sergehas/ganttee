@@ -1,5 +1,5 @@
 ---
-Status: Reviewed
+Status: Implementing
 Owner: Copilot
 Last updated: 2026-09-13
 Related ADRs: none
@@ -7,7 +7,7 @@ Related ADRs: none
 
 # Feature: Chart View Functional Organization
 
-![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
+![Status: Implementing](https://img.shields.io/badge/status-Implementing-F59F00?style=for-the-badge)
 
 ## 1. Summary
 
@@ -230,8 +230,6 @@ the authoritative source for every persisted view preference.
   host-to-webview view-state message is required.
 - Export does not add host-to-webview or webview-to-host protocol messages. The webview generates
   SVG and PNG payloads, starts downloads, and performs clipboard writes locally.
-- Add all new user-facing menu, header, export, unavailable, download, and failure strings to the
-  existing localization catalog. The webview resolves them through its delivered l10n catalog.
 
 ## 8. UX
 
@@ -258,6 +256,8 @@ the authoritative source for every persisted view preference.
   actions. Downloads and clipboard writes occur in the webview. A failed export, unavailable
   clipboard, or failed download initiation presents localized feedback without obscuring the chart
   or changing selection, schedule, or saved data.
+- Add all new user-facing menu, header, export, unavailable, download, and failure strings to the
+  existing localization catalog. The webview resolves them through its delivered l10n catalog.
 
 ## 9. Test Strategy
 

@@ -200,6 +200,25 @@ suite("ganttModelService", () => {
       workingDayHours: 8,
     });
   });
+
+  test("preserves project view and holidays through hydration", () => {
+    const withView: GanttDocument = {
+      ...SAMPLE_DOCUMENT,
+      settings: { holidays: [{ start: "2026-12-24", end: "2026-12-26" }] },
+      view: {
+        zoomLevel: "quarter",
+        showDependencies: false,
+        showOffDays: true,
+        showHolidays: true,
+        showCriticalPath: true,
+      },
+    };
+
+    const roundTripped = toDocument(hydrateDocument(withView));
+
+    assert.deepStrictEqual(roundTripped.settings, withView.settings);
+    assert.deepStrictEqual(roundTripped.view, withView.view);
+  });
 });
 
 suite("ganttModelService DAG invariants", () => {

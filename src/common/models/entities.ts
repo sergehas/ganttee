@@ -17,6 +17,7 @@ import { addDays, diffInDays } from "../dates";
 import { Dependency } from "./dependency";
 import { DependencyGraph } from "./dependencyGraph";
 import { ProjectSettings } from "./document";
+import { ProjectView } from "./projectView";
 import { BaseTask, MILESTONE_DURATION, TaskStatus } from "./task";
 
 /**
@@ -349,6 +350,7 @@ export class GanttModel {
    * @param version The document schema version.
    * @param graph The normalized structural DAG over tasks and milestones.
    * @param settings Reserved project-level settings (calendar and hours).
+   * @param view Optional persisted chart view preferences.
    */
   constructor(
     readonly tasks: readonly TaskEntity[],
@@ -358,5 +360,6 @@ export class GanttModel {
     readonly version: number,
     readonly graph: DependencyGraph,
     readonly settings?: ProjectSettings,
+    readonly view?: ProjectView,
   ) {}
 }

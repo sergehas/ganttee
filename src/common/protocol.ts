@@ -1,5 +1,6 @@
 import { Dependency } from "./models/dependency";
 import { GanttDocument } from "./models/document";
+import { ProjectView } from "./models/projectView";
 import { Group, Milestone, Task } from "./models/task";
 
 /**
@@ -62,6 +63,7 @@ export type WebviewToHostMessage =
       updatedDocument: GanttDocument;
       baseRevision: number;
     }
+  | { type: "updateView"; view: ProjectView; baseRevision: number }
   | { type: "addDependency"; dependency: Dependency }
   | { type: "removeDependency"; dependencyId: string }
   | {

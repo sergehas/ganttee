@@ -1,4 +1,6 @@
+import { DateRange } from "../dates";
 import { Dependency } from "./dependency";
+import { ProjectView } from "./projectView";
 import { GanttScheduleDocument } from "./scheduledDocument";
 import { Group, Milestone, Task } from "./task";
 
@@ -39,6 +41,8 @@ export interface ProjectSettings {
   workingDayHours?: number;
   /** UTC decimal hour at which each working interval starts. */
   workingDayStart?: number;
+  /** Inclusive project holiday ranges rendered by the chart. */
+  holidays?: DateRange[];
 }
 
 /** The serialized shape of a `.ganttee` file. */
@@ -55,6 +59,8 @@ export interface GanttDocument {
    * until the working-days configuration feature lands.
    */
   settings?: ProjectSettings;
+  /** Optional persisted chart view preferences. */
+  view?: ProjectView;
 }
 
 /** Creates an empty document at the current schema version. */

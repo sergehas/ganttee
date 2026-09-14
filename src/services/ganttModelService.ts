@@ -52,6 +52,7 @@ export function hydrateDocument(document: GanttDocument): GanttModel {
     document.version,
     assertAcyclicGraph(document),
     document.settings,
+    document.view,
   );
 }
 
@@ -73,6 +74,9 @@ export function toDocument(model: GanttModel): GanttDocument {
   };
   if (model.settings !== undefined) {
     document.settings = model.settings;
+  }
+  if (model.view !== undefined) {
+    document.view = model.view;
   }
   return document;
 }

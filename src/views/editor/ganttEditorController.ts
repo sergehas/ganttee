@@ -8,6 +8,7 @@ import {
   Group,
   Milestone,
   ParallelEdgeDependencyError,
+  ProjectView,
   ScheduledModel,
   SchedulingError,
   SelfLoopDependencyError,
@@ -225,6 +226,9 @@ export class GanttEditorController {
           message.baseRevision,
         );
         break;
+      case "updateView":
+        await this.updateView(message.view, message.baseRevision);
+        break;
       case "addDependency":
         await this.addDependency(message.dependency);
         break;
@@ -270,6 +274,22 @@ export class GanttEditorController {
       return;
     }
     await this.applyModel(updatedDocument);
+  }
+
+  /** Applies a persisted view proposal through the same revision-safe edit path. */
+  private async updateView(
+    view: ProjectView,
+    baseRevision: number,
+  ): Promise<void> {
+    if (baseRevision !== this.document.version) {
+      this.post({
+        type: "documentChanged",
+        document: this.transportDocument(),
+        revision: this.document.version,
+      });
+      return;
+    }
+    await this.applyModel({ ...this._document, view });
   }
 
   /**

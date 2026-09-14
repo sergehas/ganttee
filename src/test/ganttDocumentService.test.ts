@@ -272,6 +272,78 @@ suite("ganttDocumentService", () => {
     );
   });
 
+  test("uses view defaults without materializing a missing view", () => {
+    const document = parseDocument(JSON.stringify({ version: 2 }));
+
+    assert.strictEqual(document.view, undefined);
+    assert.strictEqual(
+      parseDocument(serializeDocument(document)).view,
+      undefined,
+    );
+  });
+
+  test("fills omitted view values while preserving an explicit view section", () => {
+    const document = parseDocument(
+      JSON.stringify({
+        version: 2,
+        view: { zoomLevel: "month", showHolidays: true },
+      }),
+    );
+
+    assert.deepStrictEqual(document.view, {
+      zoomLevel: "month",
+      showDependencies: true,
+      showOffDays: false,
+      showHolidays: true,
+      showCriticalPath: false,
+    });
+    assert.deepStrictEqual(
+      parseDocument(serializeDocument(document)).view,
+      document.view,
+    );
+  });
+
+  test("preserves holiday ranges and rejects malformed view or holiday values", () => {
+    const document = parseDocument(
+      JSON.stringify({
+        version: 2,
+        settings: {
+          holidays: [{ start: "2026-12-24", end: "2026-12-26" }],
+        },
+        view: {
+          zoomLevel: "week",
+          showDependencies: false,
+          showOffDays: true,
+          showHolidays: true,
+          showCriticalPath: true,
+        },
+      }),
+    );
+
+    assert.deepStrictEqual(document.settings?.holidays, [
+      { start: "2026-12-24", end: "2026-12-26" },
+    ]);
+    assert.throws(
+      () => parseDocument(JSON.stringify({ view: { zoomLevel: "decade" } })),
+      GanttParseError,
+    );
+    assert.throws(
+      () => parseDocument(JSON.stringify({ view: { showHolidays: "yes" } })),
+      GanttParseError,
+    );
+    assert.throws(
+      () =>
+        parseDocument(
+          JSON.stringify({
+            settings: {
+              holidays: [{ start: "2026-12-26", end: "2026-12-24" }],
+            },
+          }),
+        ),
+      GanttParseError,
+    );
+  });
+
   test("nests legacy top-level working config under settings on parse", () => {
     const text = JSON.stringify({
       version: CURRENT_DOCUMENT_VERSION,
