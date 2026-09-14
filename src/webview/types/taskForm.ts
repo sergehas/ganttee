@@ -5,18 +5,18 @@ import {
   Milestone,
   ProjectDocument,
   Task,
-} from "../../common/documents";
+} from "@common/documents";
 import {
   ProjectSchedule,
   ScheduledMilestone,
   ScheduledTask,
-} from "../../common/models";
+} from "@common/models";
 import {
   EditableEntityKind,
   EditableEntityMap,
   EditableEntityRef,
-} from "../../common/protocol";
-import { SaveEntityOptions } from "../../services/entitySaveGuardService";
+} from "@common/protocol";
+import { SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
 import { DependencyEditorProps } from "../useEntityEditWorkflow";
 
 /** Routed editing target consumed by the TaskForm orchestrator. */

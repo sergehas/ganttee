@@ -1,2 +1,2 @@
+export * from "./dependency-graph";
 export * from "./project";
-export * from "./project-dependency-graph";

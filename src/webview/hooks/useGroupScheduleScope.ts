@@ -1,10 +1,10 @@
-import { useMemo } from "react";
-import { ProjectDocument } from "../../common/documents";
-import { selectGroupScheduleScope } from "../../services/groupHierarchyService";
+import { ProjectDocument } from "@common/documents";
+import { selectGroupScheduleScope } from "@services/groups/groupHierarchyService";
 import {
   deriveGroupSchedule,
   GroupSchedule,
-} from "../../services/groupScheduleProjectionService";
+} from "@services/schedule/groupScheduleProjectionService";
+import { useMemo } from "react";
 import {
   buildDirectGroupMemberRows,
   DirectGroupMemberRow,

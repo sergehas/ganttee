@@ -6,8 +6,8 @@
  * import them; anything user-facing is resolved here on the host.
  */
 
+import { ScheduleDiagnostic } from "@services/schedule/scheduleGraphValidationService";
 import * as vscode from "vscode";
-import { ScheduleDiagnostic } from "../services/scheduleGraphValidationService";
 
 /**
  * Describes one diagnostic as it applies to a single entity.

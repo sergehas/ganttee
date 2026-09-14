@@ -1,15 +1,15 @@
-import { formatShortDate } from "../../common/datePresentation";
-import { parseIsoTimestamp } from "../../common/dates";
+import { formatShortDate } from "@common/datePresentation";
+import { parseIsoTimestamp } from "@common/dates";
 import {
   DependencyType,
   effectiveEnd,
   effectiveStart,
-  ProjectDocument,
   Group,
   Milestone,
+  ProjectDocument,
   Task,
-} from "../../common/documents";
-import { EditableEntityRef } from "../../common/protocol";
+} from "@common/documents";
+import { EditableEntityRef } from "@common/protocol";
 
 /** A task or milestone row displayed on the chart axis. */
 export interface ChartRow {

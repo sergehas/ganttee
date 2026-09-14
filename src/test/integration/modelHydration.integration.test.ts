@@ -1,13 +1,16 @@
-import * as assert from "assert";
-import * as fs from "fs";
-import * as path from "path";
-import { CURRENT_DOCUMENT_VERSION } from "../../common/documents";
-import { CyclicDependencyError } from "../../common/models";
+import { CURRENT_DOCUMENT_VERSION } from "@common/documents";
+import { CyclicDependencyError } from "@common/models";
 import {
   parseDocument,
   serializeDocument,
-} from "../../services/ganttDocumentService";
-import { hydrateDocument, toDocument } from "../../services/ganttModelService";
+} from "@services/document/documentService";
+import {
+  hydrateDocument,
+  toDocument,
+} from "@services/model/projectModelService";
+import * as assert from "assert";
+import * as fs from "fs";
+import * as path from "path";
 import { FIXTURES_DIR } from "../testFixtures";
 
 function loadFixture(name: string) {

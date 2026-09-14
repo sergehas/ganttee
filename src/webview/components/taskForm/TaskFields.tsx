@@ -1,6 +1,6 @@
 import { formatShortDate } from "../../../common/datePresentation";
 import { TaskStatus } from "../../../common/documents";
-import { validateTaskConstraints } from "../../../services/scheduleConstraintService";
+import { validateTaskConstraints } from "../../../services/schedule/scheduleConstraintService";
 import { makeUpdater } from "../../hooks/useFieldUpdater";
 import { useTranslate, useWebviewL10n } from "../../l10n";
 import { TaskFieldsProps } from "../../types/taskForm";

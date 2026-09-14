@@ -1,27 +1,23 @@
-import { useCallback, useMemo, useState } from "react";
-import {
-  Dependency,
-  DependencyType,
-  ProjectDocument,
-} from "../common/documents";
+import { Dependency, DependencyType, ProjectDocument } from "@common/documents";
 import {
   EditableEntityKind,
   EditableEntityMap,
   EditableEntityRef,
-} from "../common/protocol";
+} from "@common/protocol";
 import {
   buildDependency,
   createDependencyId,
-} from "../services/dependencyFactoryService";
-import { buildUngroupUpdate } from "../services/entityRemovalService";
+} from "@services/editing/dependencyFactoryService";
+import { buildUngroupUpdate } from "@services/editing/projectItemRemovalService";
 import {
   buildSaveUpdate,
   SaveEntityOptions,
-} from "../services/entitySaveGuardService";
+} from "@services/editing/projectItemSaveGuardService";
 import {
   buildDatePatchUpdate,
   EntityDatePatch,
-} from "../services/entitySchedulePatchService";
+} from "@services/editing/projectItemSchedulePatchService";
+import { useCallback, useMemo, useState } from "react";
 
 /** Host actions consumed by the shared webview edit workflow. */
 interface HostEditActions {

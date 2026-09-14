@@ -1,4 +1,4 @@
-import { HostToWebviewMessage, WebviewToHostMessage } from "../common/protocol";
+import { HostToWebviewMessage, WebviewToHostMessage } from "@common/protocol";
 
 interface VsCodeApi {
   /** Sends a message to the extension host. */

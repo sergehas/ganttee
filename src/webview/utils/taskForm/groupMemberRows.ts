@@ -1,8 +1,5 @@
-import { ProjectDocument } from "../../../common/documents";
-import {
-  EditableEntityKind,
-  EditableEntityRef,
-} from "../../../common/protocol";
+import { ProjectDocument } from "@common/documents";
+import { EditableEntityKind, EditableEntityRef } from "@common/protocol";
 
 /** A direct member row shown in the group-owned-entities list. */
 export interface DirectGroupMemberRow {

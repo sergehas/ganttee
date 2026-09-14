@@ -1,11 +1,11 @@
-import * as assert from "assert";
-import * as fs from "fs";
-import * as path from "path";
-import { CURRENT_DOCUMENT_VERSION } from "../../common/documents";
+import { CURRENT_DOCUMENT_VERSION } from "@common/documents";
 import {
   parseDocument,
   serializeDocument,
-} from "../../services/ganttDocumentService";
+} from "@services/document/documentService";
+import * as assert from "assert";
+import * as fs from "fs";
+import * as path from "path";
 import { FIXTURES_DIR } from "../testFixtures";
 
 function readFixture(name: string): string {

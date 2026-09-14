@@ -1,4 +1,3 @@
-import * as vscode from "vscode";
 import {
   createEmptyDocument,
   Dependency,
@@ -7,7 +6,7 @@ import {
   ProjectDocument,
   ProjectView,
   Task,
-} from "../../common/documents";
+} from "@common/documents";
 import {
   CyclicDependencyError,
   ParallelEdgeDependencyError,
@@ -15,42 +14,43 @@ import {
   ProjectSchedule,
   SchedulingError,
   SelfLoopDependencyError,
-} from "../../common/models";
+} from "@common/models";
 import {
   EditableEntityKind,
   EditableEntityRef,
   GroupDeleteStrategy,
   HostToWebviewMessage,
   WebviewToHostMessage,
-} from "../../common/protocol";
-import { wouldCreateCycle } from "../../services/dependencyGraphService";
-import {
-  findEntity,
-  replaceEntity,
-  upsertEntity,
-} from "../../services/documentEntityService";
-import {
-  sanitizeScheduleGraph,
-  ScheduleGraphSanitization,
-} from "../../services/documentSanitizationService";
-import { buildTaskOrMilestoneDeletionDocument } from "../../services/entityRemovalService";
+} from "@common/protocol";
+import { wouldCreateCycle } from "@services/dependency-graph/dependencyGraphService";
 import {
   GanttParseError,
   parseDocument,
   serializeDocument,
-} from "../../services/ganttDocumentService";
-import { hydrateDocument } from "../../services/ganttModelService";
+} from "@services/document/documentService";
+import {
+  findEntity,
+  replaceEntity,
+  upsertEntity,
+} from "@services/document/projectItemService";
+import { buildTaskOrMilestoneDeletionDocument } from "@services/editing/projectItemRemovalService";
 import {
   buildGroupDeletionDocument,
   hasGroupContents,
-} from "../../services/groupDeletionService";
-import { toScheduledDocument } from "../../services/scheduledDocumentService";
+} from "@services/groups/groupDeletionService";
+import { hydrateDocument } from "@services/model/projectModelService";
+import { toScheduledDocument } from "@services/schedule/scheduledDocumentService";
+import {
+  sanitizeScheduleGraph,
+  ScheduleGraphSanitization,
+} from "@services/schedule/scheduleGraphSanitizationService";
 import {
   blockingDiagnostics,
   evaluateScheduleGraph,
   ScheduleDiagnostic,
-} from "../../services/scheduleGraphValidationService";
-import { schedule } from "../../services/schedulingService";
+} from "@services/schedule/scheduleGraphValidationService";
+import { schedule } from "@services/schedule/schedulingService";
+import * as vscode from "vscode";
 import { summarizeBlockingDiagnostics } from "../scheduleDiagnosticPresenter";
 import { createWebviewL10nCatalog } from "./webviewL10n";
 

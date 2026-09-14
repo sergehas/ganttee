@@ -1,9 +1,9 @@
-import { ProjectDocument } from "../common/documents";
-import { ProjectSchedule } from "../common/models";
-import { EditableEntityKind, EditableEntityMap } from "../common/protocol";
-import { replaceEntity } from "../services/documentEntityService";
-import { hydrateDocument } from "../services/ganttModelService";
-import { fromScheduledDocument } from "../services/scheduledDocumentService";
+import { ProjectDocument } from "@common/documents";
+import { ProjectSchedule } from "@common/models";
+import { EditableEntityKind, EditableEntityMap } from "@common/protocol";
+import { replaceEntity } from "@services/document/projectItemService";
+import { hydrateDocument } from "@services/model/projectModelService";
+import { fromScheduledDocument } from "@services/schedule/scheduledDocumentService";
 
 /** Webview state associating a host document revision with its host-computed schedule. */
 export interface GanttViewState {

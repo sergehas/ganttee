@@ -1,7 +1,7 @@
 import { Dependency } from "../../documents/project/dependency";
 import { ProjectSettings } from "../../documents/project/projectSettings";
 import { ProjectView } from "../../documents/project/projectView";
-import { ProjectDependencyGraph } from "../project-dependency-graph/projectDependencyGraph";
+import { ProjectDependencyGraph } from "../dependency-graph/projectDependencyGraph";
 import { Group } from "./group";
 import { Milestone } from "./milestone";
 import { Task } from "./task";

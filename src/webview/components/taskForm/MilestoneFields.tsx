@@ -1,5 +1,5 @@
 import { formatShortDate } from "../../../common/datePresentation";
-import { validateMilestoneConstraints } from "../../../services/scheduleConstraintService";
+import { validateMilestoneConstraints } from "../../../services/schedule/scheduleConstraintService";
 import { makeUpdater } from "../../hooks/useFieldUpdater";
 import { useTranslate, useWebviewL10n } from "../../l10n";
 import { MilestoneFieldsProps } from "../../types/taskForm";

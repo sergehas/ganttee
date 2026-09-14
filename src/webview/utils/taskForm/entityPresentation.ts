@@ -3,8 +3,8 @@ import {
   DependencyType,
   ProjectDocument,
   TaskStatus,
-} from "../../../common/documents";
-import { EditableEntityKind } from "../../../common/protocol";
+} from "@common/documents";
+import { EditableEntityKind } from "@common/protocol";
 
 /** Resolves English source messages for form presentation. */
 type WebviewTranslator = (source: string, ...values: unknown[]) => string;

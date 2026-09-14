@@ -1,13 +1,13 @@
-import * as vscode from "vscode";
-import { createEmptyDocument, Task } from "./common/documents";
-import { EditableEntityRef } from "./common/protocol";
-import { GanttStore } from "./ganttStore";
-import { serializeDocument } from "./services/ganttDocumentService";
-import { GanttEditorProvider } from "./views/editor/ganttEditorProvider";
+import { createEmptyDocument, Task } from "@common/documents";
+import { EditableEntityRef } from "@common/protocol";
+import { serializeDocument } from "@services/document/documentService";
+import { GanttEditorProvider } from "@views/editor/ganttEditorProvider";
 import {
   entityRefOf,
   GanttExplorerProvider,
-} from "./views/sidebar/ganttExplorerProvider";
+} from "@views/sidebar/ganttExplorerProvider";
+import * as vscode from "vscode";
+import { GanttStore } from "./ganttStore";
 
 export function activate(context: vscode.ExtensionContext) {
   const store = new GanttStore();

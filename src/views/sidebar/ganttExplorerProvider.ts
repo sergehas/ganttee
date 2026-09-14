@@ -1,13 +1,13 @@
-import * as vscode from "vscode";
-import { formatShortDate } from "../../common/datePresentation";
-import { Group, Milestone, Task } from "../../common/documents";
-import { ProjectSchedule } from "../../common/models";
-import { EditableEntityRef } from "../../common/protocol";
-import { GanttStore } from "../../ganttStore";
+import { formatShortDate } from "@common/datePresentation";
+import { Group, Milestone, Task } from "@common/documents";
+import { ProjectSchedule } from "@common/models";
+import { EditableEntityRef } from "@common/protocol";
 import {
   diagnosticsFor,
   ScheduleDiagnostic,
-} from "../../services/scheduleGraphValidationService";
+} from "@services/schedule/scheduleGraphValidationService";
+import * as vscode from "vscode";
+import { GanttStore } from "../../ganttStore";
 import { describeDiagnostic } from "../scheduleDiagnosticPresenter";
 
 type GanttNode =

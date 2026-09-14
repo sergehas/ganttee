@@ -198,15 +198,16 @@ the authoritative source for every persisted view preference.
 
 ## 6. Domain & Data Model Impact
 
-- Add a pure `ProjectView` model under `src/common/models/`, re-exported by
-  `src/common/models/index.ts`. It contains `zoomLevel` and Boolean preferences named
-  `showDependencies`, `showOffDays`, `showHolidays`, and `showCriticalPath`.
-- Add an optional `holidays` property to `ProjectSettings` in `src/common/models/document.ts`. It is
-  an array of shared date-range values defined in `src/common/dates.ts`; each range has an inclusive
-  ISO date-only `start` and `end`. The existing `GanttModel.settings` path already exposes
-  `ProjectSettings` to the chart model.
-- Add an optional `view` property to `GanttDocument` in `src/common/models/document.ts`. It is a
-  sibling of `settings`; the document text, not React state, is canonical for these preferences.
+- Add the pure `ProjectView` document contract under `src/common/documents/project/projectView.ts`.
+  It contains `zoomLevel` and Boolean preferences named `showDependencies`, `showOffDays`,
+  `showHolidays`, and `showCriticalPath`.
+- Add an optional `holidays` property to `ProjectSettings` in
+  `src/common/documents/project/projectSettings.ts`. It is an array of shared date-range values
+  defined in `src/common/dates.ts`; each range has an inclusive ISO date-only `start` and `end`. The
+  existing `ProjectModel.settings` path already exposes `ProjectSettings` to the chart model.
+- Add an optional `view` property to `ProjectDocument` in
+  `src/common/documents/project/projectDocument.ts`. It is a sibling of `settings`; the document
+  text, not React state, is canonical for these preferences.
 - Add a pure critical-path projection in `src/services/`, consuming the existing valid scheduled
   dependency graph and returning one ordered path of node and edge identifiers to emphasize. It does
   not create a second graph and has no `vscode`, DOM, Node, or persistence dependency.

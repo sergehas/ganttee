@@ -10,8 +10,14 @@
     "rootDir": "src",
     "strict": true,
     "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@common/*": ["./src/common/*"],
+      "@services/*": ["./src/services/*"],
+      "@webview/*": ["./src/webview/*"]
+    }
   },
+
   "include": [
     "src/webview",
     "src/common",

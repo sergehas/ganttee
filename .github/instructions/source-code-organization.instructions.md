@@ -23,21 +23,22 @@ model is rebroadcast to the webview and the sidebar tree.
 
 ## Folder Layout
 
-| Folder                   | Responsibility                                                                   | Target  | May import                                       |
-| ------------------------ | -------------------------------------------------------------------------------- | ------- | ------------------------------------------------ |
-| `src/common/models/`     | Pure domain types (`Task`, `Group`, `Milestone`, `Dependency`, `GanttDocument`). | Shared  | Nothing external                                 |
-| `src/common/protocol.ts` | Typed host↔webview message contract.                                             | Shared  | `./models`                                       |
-| `src/services/`          | Pure logic: document parse/validate/serialize, dependency graph.                 | Shared  | `../common/**`                                   |
-| `src/ganttStore.ts`      | Tracks the active Gantt editor for the sidebar and commands.                     | Host    | `vscode`, `./views/**` (type-only)               |
-| `src/views/editor/`      | `CustomTextEditorProvider` + per-document controller (webview host).             | Host    | `vscode`, `../../common/**`, `../../services/**` |
-| `src/views/sidebar/`     | `TreeDataProvider` for tasks/groups/milestones.                                  | Host    | `vscode`, `../../common/**`                      |
-| `src/webview/`           | React + Apache ECharts UI.                                                       | Browser | React, ECharts, `../common/**`                   |
-| `src/test/`              | Mocha unit/integration tests.                                                    | Test    | anything under `src/**`                          |
+| Folder                   | Responsibility                                                  | Target  | May import                                       |
+| ------------------------ | --------------------------------------------------------------- | ------- | ------------------------------------------------ |
+| `src/common/documents/`  | JSON-compatible persisted and transport contracts.              | Shared  | Other `common/**` modules only                   |
+| `src/common/models/`     | In-memory computational models and derived graph structures.    | Shared  | `common/documents/**`, other `common/**` modules |
+| `src/common/protocol.ts` | Typed host↔webview message contract.                            | Shared  | `./documents`, `./models`                        |
+| `src/services/`          | Pure workflows and rules, grouped by functional area.           | Shared  | `../common/**`, other `services/**`              |
+| `src/ganttStore.ts`      | Tracks the focused Gantt editor for host features.              | Host    | `vscode`, `./views/**` (type-only)               |
+| `src/views/`             | VS Code editor, sidebar, controller, and presentation adapters. | Host    | `vscode`, `../common/**`, `../services/**`       |
+| `src/webview/`           | Browser UI, interaction state, and chart rendering.             | Browser | React, ECharts, `../common/**`, `../services/**` |
+| `src/test/`              | Unit, integration, and smoke tests.                             | Test    | Anything under `src/**`                          |
+| `l10n/`                  | Localization bundles for user-facing strings.                   | Shared  | None                                             |
 
 ## Dependency Boundaries (must hold)
 
-- `src/common/**` and `src/services/**` MUST NOT import `vscode`, Node, or DOM globals. This keeps
-  them unit-testable and importable by the browser webview.
+- `src/common/documents/**`, `src/common/models/**`, and `src/services/**` MUST NOT import `vscode`,
+  Node, or DOM globals. This keeps them unit-testable and importable by the browser webview.
 - `src/webview/**` MUST NOT import `vscode` or Node modules. It talks to the host only through
   `postMessage` via [vscodeApi.ts](../../src/webview/vscodeApi.ts) and the shared protocol.
 - Multi-surface edit rules (form, chart, or future editors) MUST be centralized in a shared workflow
@@ -49,10 +50,13 @@ model is rebroadcast to the webview and the sidebar tree.
 
 ## Adding Code
 
-- New domain concept → a type in `src/common/models/`, re-exported from `models/index.ts`.
-- New host↔webview message → extend the unions in `src/common/protocol.ts` and handle both
-  directions.
-- New pure rule (scheduling, validation) → a function in `src/services/`, with a unit test in
-  `src/test/`.
-- New command → declare it in `package.json` (`contributes.commands` + `menus`) and register it in
-  `src/extension.ts`.
+- New JSON-compatible contract → `src/common/documents/`.
+- New in-memory computational representation → `src/common/models/`.
+- New host↔webview message → extend `src/common/protocol.ts` and handle both directions.
+- New pure workflow, validation rule, or transformation → the matching functional folder in
+  `src/services/`.
+- New VS Code integration or controller behavior → `src/views/`.
+- New browser UI behavior → `src/webview/`.
+- New command → declare it in `package.json` and register it in `src/extension.ts`.
+- New behavior → add or update a focused test in `src/test/`.
+- Any new user-facing string must use the localization framework.
