@@ -8,7 +8,7 @@
  * start and end are the same instant.
  */
 
-import { Dependency, Milestone, Task } from "../common/models";
+import { Dependency, Milestone, Task } from "../common/documents";
 
 /** Where a constraint on a schedulable endpoint comes from. */
 export type ConstraintSource = "static" | "dependency";

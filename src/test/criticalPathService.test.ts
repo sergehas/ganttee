@@ -1,11 +1,11 @@
 import * as assert from "assert";
-import { createEmptyDocument, GanttDocument } from "../common/models";
+import { createEmptyDocument, ProjectDocument } from "../common/documents";
 import { projectCriticalPath } from "../services/criticalPathService";
 import { hydrateDocument } from "../services/ganttModelService";
 import { schedule } from "../services/schedulingService";
 
 /** Builds a scheduled graph for a critical-path projection test. */
-function project(document: GanttDocument) {
+function project(document: ProjectDocument) {
   const model = hydrateDocument(document);
   const scheduled = schedule(model, model.graph);
   return projectCriticalPath(model.graph, scheduled);

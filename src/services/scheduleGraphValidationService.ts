@@ -6,7 +6,8 @@
  * host's responsibility, which keeps this module usable from the webview.
  */
 
-import { Dependency, DependencyGraph, GanttDocument } from "../common/models";
+import { Dependency, ProjectDocument } from "../common/documents";
+import { ProjectDependencyGraph } from "../common/models";
 import {
   anchoredEntityIds,
   schedulableEntityIds,
@@ -65,7 +66,7 @@ export type ScheduleDiagnostic =
  * @returns Every diagnostic found, in entity then dependency then component order.
  */
 export function evaluateScheduleGraph(
-  document: GanttDocument,
+  document: ProjectDocument,
 ): readonly ScheduleDiagnostic[] {
   const entityIds = new Set([
     ...document.tasks.map((task) => task.id),
@@ -98,7 +99,10 @@ export function evaluateScheduleGraph(
         diagnostic !== undefined,
     );
 
-  const graph = new DependencyGraph([...entityIds], document.dependencies);
+  const graph = new ProjectDependencyGraph(
+    [...entityIds],
+    document.dependencies,
+  );
   const schedulable = schedulableEntityIds(document);
   const anchoring: ScheduleDiagnostic[] = unanchoredComponents(
     graph.connectedComponents(),

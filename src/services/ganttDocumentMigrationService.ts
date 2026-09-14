@@ -1,4 +1,4 @@
-import { CURRENT_DOCUMENT_VERSION, DependencyType } from "../common/models";
+import { CURRENT_DOCUMENT_VERSION, DependencyType } from "../common/documents";
 
 const LEGACY_DOCUMENT_VERSION = 1;
 

@@ -7,7 +7,7 @@
  */
 
 import { diffIsoDates } from "../common/dates";
-import { effectiveEnd, effectiveStart } from "../common/models";
+import { effectiveEnd, effectiveStart } from "../common/documents";
 import { GroupScheduleScope } from "./groupHierarchyService";
 
 /** The span a group covers, derived from its members. */

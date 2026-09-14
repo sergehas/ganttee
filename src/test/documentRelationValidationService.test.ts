@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { createEmptyDocument, GanttDocument } from "../common/models";
+import { createEmptyDocument, ProjectDocument } from "../common/documents";
 import { assertDocumentRelations } from "../services/documentRelationValidationService";
 import { GanttParseError } from "../services/documentShapeValidationService";
 
@@ -126,6 +126,8 @@ suite("documentRelationValidationService", () => {
 });
 
 /** Builds an empty document with the supplied group hierarchy. */
-function documentWithGroups(groups: GanttDocument["groups"]): GanttDocument {
+function documentWithGroups(
+  groups: ProjectDocument["groups"],
+): ProjectDocument {
   return { ...createEmptyDocument(), groups };
 }

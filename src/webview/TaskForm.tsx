@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Group, Milestone, Task } from "../common/models";
+import { Group, Milestone, Task } from "../common/documents";
 import { GroupFields } from "./components/taskForm/GroupFields";
 import { MilestoneFields } from "./components/taskForm/MilestoneFields";
 import { TaskFields } from "./components/taskForm/TaskFields";

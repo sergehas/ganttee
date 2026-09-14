@@ -18,7 +18,7 @@ import {
   topologicalSort as graphologyTopologicalSort,
   willCreateCycle as graphologyWillCreateCycle,
 } from "graphology-dag";
-import { Dependency } from "./dependency";
+import { Dependency } from "../../documents/project/dependency";
 
 /** Thrown when a dependency links an entity to itself. */
 export class SelfLoopDependencyError extends Error {
@@ -80,7 +80,7 @@ export class DanglingDependencyError extends Error {
  * (for validation of an unvalidated edge set) may contain cycles, which the
  * inspection methods report.
  */
-export class DependencyGraph extends DirectedGraph<
+export class ProjectDependencyGraph extends DirectedGraph<
   Record<string, never>,
   { dependency: Dependency }
 > {
@@ -110,7 +110,7 @@ export class DependencyGraph extends DirectedGraph<
 
   /**
    * Returns `true` if the dependency set contains a directed cycle. Always
-   * `false` on a successfully hydrated `GanttModel.graph`.
+   * `false` on a successfully hydrated `ProjectModel.graph`.
    */
   hasCycle(): boolean {
     return graphologyHasCycle(this);
@@ -119,7 +119,7 @@ export class DependencyGraph extends DirectedGraph<
   /**
    * Returns the node ids that participate in a directed cycle, or an empty
    * array when the graph is acyclic. Always `[]` on a successfully hydrated
-   * `GanttModel.graph`.
+   * `ProjectModel.graph`.
    */
   findCycle(): readonly string[] {
     return findCycleIn(this);
@@ -212,7 +212,7 @@ export class DependencyGraph extends DirectedGraph<
  * @param adjacency The forward adjacency map to traverse.
  * @returns The ids forming the first cycle found, or `[]` when acyclic.
  */
-function findCycleIn(graph: DependencyGraph): readonly string[] {
+function findCycleIn(graph: ProjectDependencyGraph): readonly string[] {
   const visited = new Set<string>();
   const stack = new Set<string>();
   const path: string[] = [];

@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { createEmptyDocument } from "../common/models";
+import { createEmptyDocument } from "../common/documents";
 import {
   createGanttViewState,
   updateGanttViewDocument,

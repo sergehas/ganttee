@@ -7,14 +7,16 @@ import {
 } from "../common/dates";
 import {
   createEmptyDocument,
-  CyclicDependencyError,
-  GanttDocument,
-  GroupEntity,
   MILESTONE_DURATION,
-  MilestoneEntity,
+  ProjectDocument,
+} from "../common/documents";
+import {
+  CyclicDependencyError,
+  Group,
+  Milestone,
   ParallelEdgeDependencyError,
   SelfLoopDependencyError,
-  TaskEntity,
+  Task,
   UnresolvableScheduleError,
 } from "../common/models";
 import {
@@ -24,7 +26,7 @@ import {
 import { hydrateDocument, toDocument } from "../services/ganttModelService";
 
 /** A well-formed document exercising every entity kind and constraint combo. */
-const SAMPLE_DOCUMENT: GanttDocument = {
+const SAMPLE_DOCUMENT: ProjectDocument = {
   ...createEmptyDocument(),
   version: 2,
   tasks: [
@@ -79,9 +81,9 @@ suite("date helpers", () => {
   });
 });
 
-suite("TaskEntity", () => {
+suite("Task", () => {
   test("returns start and end as Date instances for a start+end task", () => {
-    const task = new TaskEntity({
+    const task = new Task({
       id: "t",
       name: "T",
       start: parseIsoDate("2026-01-01"),
@@ -95,7 +97,7 @@ suite("TaskEntity", () => {
   });
 
   test("derives end and prefers user duration for a start+duration task", () => {
-    const task = new TaskEntity({
+    const task = new Task({
       id: "t",
       name: "T",
       start: parseIsoDate("2026-01-01"),
@@ -106,7 +108,7 @@ suite("TaskEntity", () => {
   });
 
   test("derives start for an end+duration task", () => {
-    const task = new TaskEntity({
+    const task = new Task({
       id: "t",
       name: "T",
       end: parseIsoDate("2026-01-05"),
@@ -116,7 +118,7 @@ suite("TaskEntity", () => {
   });
 
   test("throws when an under-constrained task cannot derive its end", () => {
-    const task = new TaskEntity({
+    const task = new Task({
       id: "t",
       name: "T",
       start: parseIsoDate("2026-01-01"),
@@ -126,7 +128,7 @@ suite("TaskEntity", () => {
   });
 
   test("throws when an under-constrained task cannot derive its start", () => {
-    const task = new TaskEntity({
+    const task = new Task({
       id: "t",
       name: "T",
       end: parseIsoDate("2026-01-05"),
@@ -135,9 +137,9 @@ suite("TaskEntity", () => {
   });
 });
 
-suite("MilestoneEntity", () => {
+suite("Milestone", () => {
   test("aliases start and end to its date with zero duration", () => {
-    const milestone = new MilestoneEntity({
+    const milestone = new Milestone({
       id: "m",
       name: "M",
       date: parseIsoDate("2026-01-10"),
@@ -148,9 +150,9 @@ suite("MilestoneEntity", () => {
   });
 });
 
-suite("GroupEntity", () => {
+suite("Group", () => {
   test("contains authoring fields without a placeholder schedule", () => {
-    const group = new GroupEntity({ id: "g", name: "G" });
+    const group = new Group({ id: "g", name: "G" });
     assert.deepStrictEqual(
       { id: group.id, name: group.name, groupId: group.groupId },
       { id: "g", name: "G", groupId: undefined },
@@ -161,7 +163,7 @@ suite("GroupEntity", () => {
 suite("ganttModelService", () => {
   test("hydrates entities with Date-typed schedule fields", () => {
     const model = hydrateDocument(SAMPLE_DOCUMENT);
-    assert.ok(model.tasks[0] instanceof TaskEntity);
+    assert.ok(model.tasks[0] instanceof Task);
     assert.ok(model.tasks[0].start instanceof Date);
     assert.ok(model.tasks[0].end instanceof Date);
     assert.ok(model.milestones[0].date instanceof Date);
@@ -192,7 +194,7 @@ suite("ganttModelService", () => {
   });
 
   test("carries reserved working-calendar configuration when present", () => {
-    const withCalendar: GanttDocument = {
+    const withCalendar: ProjectDocument = {
       ...SAMPLE_DOCUMENT,
       settings: {
         ...SAMPLE_DOCUMENT.settings,
@@ -210,7 +212,7 @@ suite("ganttModelService", () => {
   });
 
   test("preserves project view and holidays through hydration", () => {
-    const withView: GanttDocument = {
+    const withView: ProjectDocument = {
       ...SAMPLE_DOCUMENT,
       settings: {
         ...SAMPLE_DOCUMENT.settings,
@@ -248,7 +250,7 @@ suite("ganttModelService DAG invariants", () => {
   });
 
   test("hydrates a document whose entities form disconnected components", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...SAMPLE_DOCUMENT,
       dependencies: [],
     };
@@ -257,7 +259,7 @@ suite("ganttModelService DAG invariants", () => {
   });
 
   test("rejects a self-referencing dependency", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...SAMPLE_DOCUMENT,
       dependencies: [
         { id: "d1", sourceId: "t1", targetId: "t1", type: "startAfter" },
@@ -267,7 +269,7 @@ suite("ganttModelService DAG invariants", () => {
   });
 
   test("rejects two dependencies sharing the same source and target", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...SAMPLE_DOCUMENT,
       dependencies: [
         { id: "d1", sourceId: "t2", targetId: "t1", type: "startAfter" },
@@ -278,7 +280,7 @@ suite("ganttModelService DAG invariants", () => {
   });
 
   test("rejects a dependency set that closes a cycle", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...SAMPLE_DOCUMENT,
       dependencies: [
         { id: "d1", sourceId: "t1", targetId: "t2", type: "startAfter" },

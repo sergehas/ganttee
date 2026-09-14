@@ -1,10 +1,10 @@
 import * as assert from "assert";
 import {
   createEmptyDocument,
-  GanttDocument,
+  ProjectDocument,
   Milestone,
   Task,
-} from "../common/models";
+} from "../common/documents";
 import {
   buildDatePatchUpdate,
   buildShiftByDaysPatch,
@@ -132,7 +132,7 @@ suite("entitySchedulePatchService", () => {
   });
 
   test("returns undefined from buildShiftByDaysPatch when task has no dates", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...createDocument(),
       tasks: [{ id: "t-bare", name: "Bare" }],
     };
@@ -144,7 +144,7 @@ suite("entitySchedulePatchService", () => {
   });
 
   test("shifts task with only start defined", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...createDocument(),
       tasks: [{ id: "t-start", name: "Start only", start: "2026-03-01" }],
     };
@@ -159,7 +159,7 @@ suite("entitySchedulePatchService", () => {
   });
 });
 
-function createDocument(): GanttDocument {
+function createDocument(): ProjectDocument {
   return {
     ...createEmptyDocument(),
     version: 1,

@@ -1,16 +1,15 @@
 import * as assert from "assert";
 import {
   createEmptyDocument,
-  GanttDocument,
+  ProjectDocument,
   ProjectSettings,
-  ScheduledTaskEntity,
-  SchedulingError,
-} from "../common/models";
+} from "../common/documents";
+import { ScheduledTask, SchedulingError } from "../common/models";
 import { hydrateDocument } from "../services/ganttModelService";
 import { rollupGroupSchedules, schedule } from "../services/schedulingService";
 
 /** Creates a document configured for an eight-hour UTC working day. */
-function schedulingDocument(): GanttDocument {
+function schedulingDocument(): ProjectDocument {
   const document = createEmptyDocument();
   document.settings = {
     workingCalendar: { daysOff: [] },
@@ -22,7 +21,7 @@ function schedulingDocument(): GanttDocument {
 }
 
 /** Schedules a document through the public hydration and scheduling boundary. */
-function scheduleDocument(document: GanttDocument) {
+function scheduleDocument(document: ProjectDocument) {
   const model = hydrateDocument(document);
   return schedule(model, model.graph);
 }
@@ -31,14 +30,14 @@ function scheduleDocument(document: GanttDocument) {
 function taskById(
   scheduled: ReturnType<typeof schedule>,
   id: string,
-): ScheduledTaskEntity {
+): ScheduledTask {
   const task = scheduled.tasks.find((candidate) => candidate.id === id);
   assert.ok(task, `Expected scheduled task "${id}".`);
   return task;
 }
 
 /** Returns the effective task values in a snapshot-friendly shape. */
-function taskSchedule(task: ScheduledTaskEntity) {
+function taskSchedule(task: ScheduledTask) {
   return {
     start: task.effectiveStart().toISOString(),
     end: task.effectiveEnd().toISOString(),
@@ -175,7 +174,7 @@ suite("schedulingService", () => {
   });
 
   test("uses the latest startAfter candidate independent of edge order", () => {
-    const buildDocument = (reverse: boolean): GanttDocument => {
+    const buildDocument = (reverse: boolean): ProjectDocument => {
       const document = schedulingDocument();
       document.tasks = [
         { id: "early", name: "Early", start: "2026-09-08", duration: 1 },

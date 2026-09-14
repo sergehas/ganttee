@@ -6,7 +6,7 @@
  * three-way branch. This module provides that branch once, without casts.
  */
 
-import { GanttDocument } from "../common/models";
+import { ProjectDocument } from "../common/documents";
 import { EditableEntityKind, EditableEntityMap } from "../common/protocol";
 
 /**
@@ -16,7 +16,7 @@ import { EditableEntityKind, EditableEntityMap } from "../common/protocol";
  * @param kind The entity kind to select.
  */
 export function entitiesOf<K extends EditableEntityKind>(
-  document: GanttDocument,
+  document: ProjectDocument,
   kind: K,
 ): readonly EditableEntityMap[K][] {
   switch (kind) {
@@ -38,7 +38,7 @@ export function entitiesOf<K extends EditableEntityKind>(
  * @returns The entity, or `undefined` when no entity has that id.
  */
 export function findEntity<K extends EditableEntityKind>(
-  document: GanttDocument,
+  document: ProjectDocument,
   kind: K,
   entityId: string,
 ): EditableEntityMap[K] | undefined {
@@ -54,10 +54,10 @@ export function findEntity<K extends EditableEntityKind>(
  * @returns The updated document, or `undefined` when no entity has that id.
  */
 export function replaceEntity<K extends EditableEntityKind>(
-  document: GanttDocument,
+  document: ProjectDocument,
   kind: K,
   entity: EditableEntityMap[K],
-): GanttDocument | undefined {
+): ProjectDocument | undefined {
   const entities = entitiesOf(document, kind);
   if (!entities.some((candidate) => candidate.id === entity.id)) {
     return undefined;
@@ -80,10 +80,10 @@ export function replaceEntity<K extends EditableEntityKind>(
  * @returns The updated document.
  */
 export function upsertEntity<K extends EditableEntityKind>(
-  document: GanttDocument,
+  document: ProjectDocument,
   kind: K,
   entity: EditableEntityMap[K],
-): GanttDocument {
+): ProjectDocument {
   return (
     replaceEntity(document, kind, entity) ??
     appendEntity(document, kind, entity)
@@ -92,28 +92,28 @@ export function upsertEntity<K extends EditableEntityKind>(
 
 /** Returns a document with one kind's collection replaced wholesale. */
 function withEntities<K extends EditableEntityKind>(
-  document: GanttDocument,
+  document: ProjectDocument,
   kind: K,
   entities: readonly EditableEntityMap[K][],
-): GanttDocument {
+): ProjectDocument {
   switch (kind) {
     case "task":
-      return { ...document, tasks: entities as GanttDocument["tasks"] };
+      return { ...document, tasks: entities as ProjectDocument["tasks"] };
     case "milestone":
       return {
         ...document,
-        milestones: entities as GanttDocument["milestones"],
+        milestones: entities as ProjectDocument["milestones"],
       };
     default:
-      return { ...document, groups: entities as GanttDocument["groups"] };
+      return { ...document, groups: entities as ProjectDocument["groups"] };
   }
 }
 
 /** Returns a document with one entity added to the end of its collection. */
 function appendEntity<K extends EditableEntityKind>(
-  document: GanttDocument,
+  document: ProjectDocument,
   kind: K,
   entity: EditableEntityMap[K],
-): GanttDocument {
+): ProjectDocument {
   return withEntities(document, kind, [...entitiesOf(document, kind), entity]);
 }

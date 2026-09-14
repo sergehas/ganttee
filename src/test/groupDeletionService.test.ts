@@ -1,12 +1,12 @@
 import * as assert from "assert";
-import { createEmptyDocument, GanttDocument } from "../common/models";
+import { createEmptyDocument, ProjectDocument } from "../common/documents";
 import {
   buildGroupDeletionDocument,
   hasGroupContents,
 } from "../services/groupDeletionService";
 
 /** Root group `g1` owns task `t1` and nested group `g2`, which owns `t2`. */
-function createDocument(): GanttDocument {
+function createDocument(): ProjectDocument {
   const document = createEmptyDocument();
   document.groups = [
     { id: "g1", name: "Root" },

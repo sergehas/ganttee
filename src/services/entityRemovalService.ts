@@ -8,11 +8,8 @@
  */
 
 import { formatIsoDate } from "../common/dates";
-import {
-  GanttDocument,
-  Task,
-  UnresolvableScheduleError,
-} from "../common/models";
+import { ProjectDocument, Task } from "../common/documents";
+import { UnresolvableScheduleError } from "../common/models";
 import { EditableEntityRef } from "../common/protocol";
 import { findEntity } from "./documentEntityService";
 import {
@@ -30,7 +27,7 @@ import { hydrateDocument } from "./ganttModelService";
  * @returns The update payload, or `undefined` when the entity is absent.
  */
 export function buildUngroupUpdate(
-  document: GanttDocument,
+  document: ProjectDocument,
   ref: EditableEntityRef,
   options?: SaveEntityOptions,
 ): EditableEntityUpdate | undefined {
@@ -55,10 +52,10 @@ export function buildUngroupUpdate(
  * absent or a survivor's schedule cannot be resolved.
  */
 export function buildTaskOrMilestoneDeletionDocument(
-  document: GanttDocument,
+  document: ProjectDocument,
   kind: "task" | "milestone",
   entityId: string,
-): GanttDocument | undefined {
+): ProjectDocument | undefined {
   if (!findEntity(document, kind, entityId)) {
     return undefined;
   }
@@ -105,7 +102,7 @@ type SurvivorDates = ReadonlyMap<string, Partial<Pick<Task, "start" | "end">>>;
  * Returns `undefined` when the deleted entity's own schedule is unresolvable.
  */
 function materializeSurvivorDates(
-  document: GanttDocument,
+  document: ProjectDocument,
   model: ReturnType<typeof hydrateDocument>,
   deleted: { effectiveStart: () => Date; effectiveEnd: () => Date },
   entityId: string,

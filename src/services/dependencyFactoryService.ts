@@ -2,7 +2,7 @@
  * Creation of dependency records for drafts made in the webview.
  */
 
-import { Dependency, DependencyType } from "../common/models";
+import { Dependency, DependencyType } from "../common/documents";
 
 /**
  * Builds a dependency owned by `ownerId`.

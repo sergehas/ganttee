@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { createEmptyDocument, GanttDocument } from "../common/models";
+import { createEmptyDocument, ProjectDocument } from "../common/documents";
 import {
   entitiesOf,
   findEntity,
@@ -7,7 +7,7 @@ import {
   upsertEntity,
 } from "../services/documentEntityService";
 
-function createDocument(): GanttDocument {
+function createDocument(): ProjectDocument {
   const document = createEmptyDocument();
   document.tasks = [
     { id: "t1", name: "Task 1" },

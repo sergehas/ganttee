@@ -1,18 +1,20 @@
 import * as vscode from "vscode";
 import {
   createEmptyDocument,
-  CyclicDependencyError,
   Dependency,
-  GanttDocument,
-  GanttModel,
   Group,
   Milestone,
-  ParallelEdgeDependencyError,
+  ProjectDocument,
   ProjectView,
-  ScheduledModel,
+  Task,
+} from "../../common/documents";
+import {
+  CyclicDependencyError,
+  ParallelEdgeDependencyError,
+  ProjectModel,
+  ProjectSchedule,
   SchedulingError,
   SelfLoopDependencyError,
-  Task,
 } from "../../common/models";
 import {
   EditableEntityKind,
@@ -58,9 +60,9 @@ import { createWebviewL10nCatalog } from "./webviewL10n";
  * applied via {@link vscode.WorkspaceEdit} and re-parsed on change.
  */
 export class GanttEditorController {
-  private _document: GanttDocument = createEmptyDocument();
-  private _model: GanttModel = hydrateDocument(this._document);
-  private _scheduledModel: ScheduledModel | undefined;
+  private _document: ProjectDocument = createEmptyDocument();
+  private _model: ProjectModel = hydrateDocument(this._document);
+  private _scheduledModel: ProjectSchedule | undefined;
   private _diagnostics: readonly ScheduleDiagnostic[] = [];
   private _isDisposed = false;
   private _hasInitializedWebview = false;
@@ -101,7 +103,7 @@ export class GanttEditorController {
   }
 
   /** Returns the current plain document for host consumers and webview messages. */
-  getGanttDocument(): GanttDocument {
+  getProjectDocument(): ProjectDocument {
     return this._document;
   }
 
@@ -109,12 +111,12 @@ export class GanttEditorController {
    * The hydrated, `Date`-typed in-memory model derived from {@link model} on
    * every reparse. Host-only; never sent over the webview protocol.
    */
-  get hydratedModel(): GanttModel {
+  get hydratedModel(): ProjectModel {
     return this._model;
   }
 
   /** Returns the current host-computed schedule, when the document is schedulable. */
-  get scheduledModel(): ScheduledModel | undefined {
+  get scheduledModel(): ProjectSchedule | undefined {
     return this._scheduledModel;
   }
 
@@ -262,7 +264,7 @@ export class GanttEditorController {
 
   /** Applies an authoring document from the webview unless its base is stale. */
   private async updateDocument(
-    updatedDocument: GanttDocument,
+    updatedDocument: ProjectDocument,
     baseRevision: number,
   ): Promise<void> {
     if (baseRevision !== this.document.version) {
@@ -392,7 +394,7 @@ export class GanttEditorController {
       const document = sanitization.document;
       const hydratedModel = hydrateDocument(document);
       const diagnostics = evaluateScheduleGraph(document);
-      let scheduledModel: ScheduledModel | undefined;
+      let scheduledModel: ProjectSchedule | undefined;
       let schedulingError: SchedulingError | undefined;
       if (blockingDiagnostics(diagnostics).length === 0) {
         try {
@@ -469,7 +471,7 @@ export class GanttEditorController {
   }
 
   /** Applies a document replacement without running semantic save validation. */
-  private async applyDocumentText(next: GanttDocument): Promise<void> {
+  private async applyDocumentText(next: ProjectDocument): Promise<void> {
     if (this._isDisposed) {
       return;
     }
@@ -490,7 +492,7 @@ export class GanttEditorController {
   /**
    * Validates and applies a full-document replacement through WorkspaceEdit.
    */
-  private async applyModel(next: GanttDocument): Promise<void> {
+  private async applyModel(next: ProjectDocument): Promise<void> {
     if (this._isDisposed) {
       return;
     }
@@ -550,7 +552,7 @@ export class GanttEditorController {
   }
 
   /** Creates the protocol document with its transient serialized schedule. */
-  private transportDocument(): GanttDocument {
+  private transportDocument(): ProjectDocument {
     if (this._scheduledModel === undefined) {
       return { ...this._document };
     }

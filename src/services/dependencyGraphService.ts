@@ -1,18 +1,17 @@
 /**
- * Structural rules over a plain {@link GanttDocument}'s dependency edges.
+ * Structural rules over a plain {@link ProjectDocument}'s dependency edges.
  *
  * The three assertions form an escalating ladder: integrity checks the edges
  * themselves, acyclic adds ordering, and resolvable additionally requires every
  * endpoint to exist. Semantic rules live in `scheduleGraphValidationService`.
  */
 
+import { Dependency, ProjectDocument } from "../common/documents";
 import {
   CyclicDependencyError,
   DanglingDependencyError,
-  Dependency,
-  DependencyGraph,
-  GanttDocument,
   ParallelEdgeDependencyError,
+  ProjectDependencyGraph,
   SelfLoopDependencyError,
 } from "../common/models";
 
@@ -25,7 +24,9 @@ import {
  * @throws {SelfLoopDependencyError} When a dependency links an entity to itself.
  * @throws {ParallelEdgeDependencyError} When an ordered pair has two edges.
  */
-export function assertGraphIntegrity(document: GanttDocument): DependencyGraph {
+export function assertGraphIntegrity(
+  document: ProjectDocument,
+): ProjectDependencyGraph {
   const seenPairs = new Set<string>();
   for (const dependency of document.dependencies) {
     if (dependency.sourceId === dependency.targetId) {
@@ -51,7 +52,9 @@ export function assertGraphIntegrity(document: GanttDocument): DependencyGraph {
  * @returns The dependency graph built from the document.
  * @throws {CyclicDependencyError} When the dependency set contains a cycle.
  */
-export function assertAcyclicGraph(document: GanttDocument): DependencyGraph {
+export function assertAcyclicGraph(
+  document: ProjectDocument,
+): ProjectDependencyGraph {
   const graph = assertGraphIntegrity(document);
   const cycle = graph.findCycle();
   if (cycle.length > 0) {
@@ -69,8 +72,8 @@ export function assertAcyclicGraph(document: GanttDocument): DependencyGraph {
  * @throws {DanglingDependencyError} When an endpoint is not an entity id.
  */
 export function assertResolvableGraph(
-  document: GanttDocument,
-): DependencyGraph {
+  document: ProjectDocument,
+): ProjectDependencyGraph {
   const nodeIds = nodeIdsOf(document);
   for (const dependency of document.dependencies) {
     for (const endpointId of [dependency.sourceId, dependency.targetId]) {
@@ -90,7 +93,7 @@ export function assertResolvableGraph(
  * @param candidate The dependency being considered.
  */
 export function wouldCreateCycle(
-  document: GanttDocument,
+  document: ProjectDocument,
   candidate: Dependency,
 ): boolean {
   return createSchedulableGraph(document).wouldCreateCycle(candidate);
@@ -105,12 +108,12 @@ export function wouldCreateCycle(
  * @throws {CyclicDependencyError} When the graph contains a cycle.
  * @throws {DanglingDependencyError} When an endpoint is not an entity id.
  */
-export function topologicalOrder(document: GanttDocument): string[] {
+export function topologicalOrder(document: ProjectDocument): string[] {
   return [...assertResolvableGraph(document).topologicalSort()];
 }
 
 /** Returns the id of every entity that can take part in the dependency graph. */
-function nodeIdsOf(document: GanttDocument): ReadonlySet<string> {
+function nodeIdsOf(document: ProjectDocument): ReadonlySet<string> {
   return new Set([
     ...document.tasks.map((task) => task.id),
     ...document.milestones.map((milestone) => milestone.id),
@@ -119,13 +122,15 @@ function nodeIdsOf(document: GanttDocument): ReadonlySet<string> {
 }
 
 /** Builds the normalized Graphology graph over tasks and milestones only. */
-function createSchedulableGraph(document: GanttDocument): DependencyGraph {
+function createSchedulableGraph(
+  document: ProjectDocument,
+): ProjectDependencyGraph {
   const nodeIds = [
     ...document.tasks.map((task) => task.id),
     ...document.milestones.map((milestone) => milestone.id),
   ];
   const schedulableIds = new Set(nodeIds);
-  return new DependencyGraph(
+  return new ProjectDependencyGraph(
     nodeIds,
     document.dependencies.filter(
       (dependency) =>

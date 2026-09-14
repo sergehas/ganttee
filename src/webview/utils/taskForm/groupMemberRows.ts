@@ -1,4 +1,4 @@
-import { GanttDocument } from "../../../common/models";
+import { ProjectDocument } from "../../../common/documents";
 import {
   EditableEntityKind,
   EditableEntityRef,
@@ -21,7 +21,7 @@ export interface DirectGroupMemberRow {
  * Includes only entities with `groupId === ownerGroupId` (no transitive descendants).
  */
 export function buildDirectGroupMemberRows(
-  document: GanttDocument,
+  document: ProjectDocument,
   ownerGroupId: string,
 ): DirectGroupMemberRow[] {
   const groupRows: DirectGroupMemberRow[] = document.groups

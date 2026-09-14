@@ -5,7 +5,7 @@
  * `documentShapeValidationService` has produced the typed shape.
  */
 
-import { GanttDocument, Group, Task } from "../common/models";
+import { Group, ProjectDocument, Task } from "../common/documents";
 import { assertGraphIntegrity } from "./dependencyGraphService";
 import { GanttParseError } from "./documentShapeValidationService";
 
@@ -16,7 +16,7 @@ import { GanttParseError } from "./documentShapeValidationService";
  * @param document The document to check.
  * @throws {GanttParseError} When a rule is broken.
  */
-export function assertDocumentRelations(document: GanttDocument): void {
+export function assertDocumentRelations(document: ProjectDocument): void {
   assertUniqueEntityIds(document);
   assertUniqueDependencyIds(document.dependencies);
   assertTaskDateOrder(document.tasks);
@@ -34,7 +34,7 @@ export function assertDocumentRelations(document: GanttDocument): void {
 
 /** Asserts that every dependency id is unique within the document. */
 function assertUniqueDependencyIds(
-  dependencies: GanttDocument["dependencies"],
+  dependencies: ProjectDocument["dependencies"],
 ): void {
   const seen = new Set<string>();
   for (const dependency of dependencies) {
@@ -48,7 +48,7 @@ function assertUniqueDependencyIds(
 }
 
 /** Asserts that every entity id is unique across all entity kinds. */
-function assertUniqueEntityIds(document: GanttDocument): void {
+function assertUniqueEntityIds(document: ProjectDocument): void {
   const seen = new Set<string>();
   const entities = [
     ...document.tasks,
@@ -113,7 +113,7 @@ function assertGroupHierarchy(groups: Group[]): void {
 }
 
 /** Asserts that every group reference points to an existing group id. */
-function assertGroupReferences(document: GanttDocument): void {
+function assertGroupReferences(document: ProjectDocument): void {
   const groupIds = new Set(document.groups.map((group) => group.id));
   document.tasks.forEach((task, index) => {
     if (task.groupId !== undefined && !groupIds.has(task.groupId)) {

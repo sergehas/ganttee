@@ -6,7 +6,7 @@
  * once, over the plain document shape.
  */
 
-import { GanttDocument } from "../common/models";
+import { ProjectDocument } from "../common/documents";
 
 /**
  * Returns the ids of entities that carry an absolute date of their own.
@@ -15,7 +15,7 @@ import { GanttDocument } from "../common/models";
  * @returns Ids of tasks with a static start or end, and milestones with a date.
  */
 export function anchoredEntityIds(
-  document: GanttDocument,
+  document: ProjectDocument,
 ): ReadonlySet<string> {
   return new Set([
     ...document.tasks
@@ -35,7 +35,7 @@ export function anchoredEntityIds(
  * @returns Ids of every task and milestone.
  */
 export function schedulableEntityIds(
-  document: GanttDocument,
+  document: ProjectDocument,
 ): ReadonlySet<string> {
   return new Set([
     ...document.tasks.map((task) => task.id),

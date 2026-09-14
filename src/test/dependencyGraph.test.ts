@@ -1,9 +1,9 @@
 import * as assert from "assert";
 import { DirectedGraph } from "graphology";
+import { Dependency } from "../common/documents";
 import {
   CyclicDependencyError,
-  Dependency,
-  DependencyGraph,
+  ProjectDependencyGraph,
 } from "../common/models";
 
 /** Builds a dependency edge from `sourceId` to `targetId`. */
@@ -16,19 +16,22 @@ function dep(sourceId: string, targetId: string): Dependency {
   };
 }
 
-suite("DependencyGraph", () => {
+suite("ProjectDependencyGraph", () => {
   test("is a first-class Graphology directed graph", () => {
-    const graph = new DependencyGraph(["a"], []);
+    const graph = new ProjectDependencyGraph(["a"], []);
     assert.ok(graph instanceof DirectedGraph);
   });
 
   test("exposes the union of declared nodes and edge endpoints", () => {
-    const graph = new DependencyGraph(["a", "b", "isolated"], [dep("a", "b")]);
+    const graph = new ProjectDependencyGraph(
+      ["a", "b", "isolated"],
+      [dep("a", "b")],
+    );
     assert.deepStrictEqual(graph.nodes().sort(), ["a", "b", "isolated"]);
   });
 
   test("reports no cycle for an acyclic edge set", () => {
-    const graph = new DependencyGraph(
+    const graph = new ProjectDependencyGraph(
       ["a", "b", "c"],
       [dep("a", "b"), dep("b", "c")],
     );
@@ -37,7 +40,7 @@ suite("DependencyGraph", () => {
   });
 
   test("reports the participating ids for a cyclic edge set", () => {
-    const graph = new DependencyGraph(
+    const graph = new ProjectDependencyGraph(
       ["a", "b", "c"],
       [dep("a", "b"), dep("b", "c"), dep("c", "a")],
     );
@@ -48,13 +51,13 @@ suite("DependencyGraph", () => {
   });
 
   test("treats a self-loop as a cycle", () => {
-    const graph = new DependencyGraph(["a"], [dep("a", "a")]);
+    const graph = new ProjectDependencyGraph(["a"], [dep("a", "a")]);
     assert.strictEqual(graph.hasCycle(), true);
     assert.deepStrictEqual([...graph.findCycle()], ["a", "a"]);
   });
 
   test("detects a closing candidate without mutating the graph", () => {
-    const graph = new DependencyGraph(
+    const graph = new ProjectDependencyGraph(
       ["a", "b", "c"],
       [dep("a", "b"), dep("b", "c")],
     );
@@ -65,14 +68,14 @@ suite("DependencyGraph", () => {
   });
 
   test("treats self-loops as cycles and unknown candidates as non-closing", () => {
-    const graph = new DependencyGraph(["a"], []);
+    const graph = new ProjectDependencyGraph(["a"], []);
 
     assert.strictEqual(graph.wouldCreateCycle(dep("a", "a")), true);
     assert.strictEqual(graph.wouldCreateCycle(dep("missing", "a")), false);
   });
 
   test("sorts predecessors before successors and includes isolated nodes", () => {
-    const graph = new DependencyGraph(
+    const graph = new ProjectDependencyGraph(
       ["a", "b", "c", "lonely"],
       [dep("a", "b"), dep("b", "c")],
     );
@@ -84,7 +87,7 @@ suite("DependencyGraph", () => {
   });
 
   test("throws a cycle error when a topological order does not exist", () => {
-    const graph = new DependencyGraph(
+    const graph = new ProjectDependencyGraph(
       ["a", "b"],
       [dep("a", "b"), dep("b", "a")],
     );
@@ -92,7 +95,7 @@ suite("DependencyGraph", () => {
   });
 
   test("returns adjacent ids in both directions", () => {
-    const graph = new DependencyGraph(
+    const graph = new ProjectDependencyGraph(
       ["a", "b", "c"],
       [dep("a", "c"), dep("b", "c")],
     );
@@ -104,7 +107,7 @@ suite("DependencyGraph", () => {
 
   test("reads source-owned dependencies from Graphology edge attributes", () => {
     const dependency = dep("a", "b");
-    const graph = new DependencyGraph(["a", "b"], [dependency]);
+    const graph = new ProjectDependencyGraph(["a", "b"], [dependency]);
 
     assert.deepStrictEqual(graph.dependenciesOf("a"), [dependency]);
     assert.deepStrictEqual(graph.dependenciesOf("missing"), []);
@@ -114,7 +117,7 @@ suite("DependencyGraph", () => {
   });
 
   test("groups nodes into weakly-connected components", () => {
-    const graph = new DependencyGraph(
+    const graph = new ProjectDependencyGraph(
       ["a", "b", "c", "d", "lonely"],
       [dep("a", "b"), dep("c", "b"), dep("d", "d")],
     );
@@ -126,7 +129,7 @@ suite("DependencyGraph", () => {
   });
 
   test("returns one single-element component per node when there are no edges", () => {
-    const graph = new DependencyGraph(["a", "b"], []);
+    const graph = new ProjectDependencyGraph(["a", "b"], []);
     const components = graph.connectedComponents();
     assert.strictEqual(components.length, 2);
     assert.ok(components.every((component) => component.length === 1));

@@ -1,4 +1,4 @@
-import { DependencyType } from "../../../common/models";
+import { DependencyType } from "../../../common/documents";
 import { useTranslate } from "../../l10n";
 import { DependencyFieldsProps } from "../../types/taskForm";
 import {

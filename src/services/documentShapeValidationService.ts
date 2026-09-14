@@ -12,9 +12,9 @@ import {
   Dependency,
   DEPENDENCY_TYPES,
   DependencyType,
-  GanttDocument,
   Group,
   Milestone,
+  ProjectDocument,
   ProjectSettings,
   ProjectView,
   resolveProjectSettings,
@@ -23,7 +23,7 @@ import {
   TASK_STATUSES,
   TaskStatus,
   WorkingCalendar,
-} from "../common/models";
+} from "../common/documents";
 
 /** Raised when a `.ganttee` document cannot be parsed or is structurally invalid. */
 export class GanttParseError extends Error {}
@@ -38,12 +38,12 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
  * @returns The typed document.
  * @throws {GanttParseError} When a field has the wrong shape.
  */
-export function validateDocumentShape(raw: unknown): GanttDocument {
+export function validateDocumentShape(raw: unknown): ProjectDocument {
   if (!isRecord(raw)) {
     throw new GanttParseError("Document root must be an object.");
   }
 
-  const document: GanttDocument = {
+  const document: ProjectDocument = {
     version:
       typeof raw.version === "number" ? raw.version : CURRENT_DOCUMENT_VERSION,
     tasks: asArray(raw.tasks, "tasks").map(validateTask),

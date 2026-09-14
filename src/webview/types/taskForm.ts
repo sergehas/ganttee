@@ -1,13 +1,15 @@
 import {
   Dependency,
   DependencyType,
-  GanttDocument,
   Group,
   Milestone,
-  ScheduledMilestoneEntity,
-  ScheduledModel,
-  ScheduledTaskEntity,
+  ProjectDocument,
   Task,
+} from "../../common/documents";
+import {
+  ProjectSchedule,
+  ScheduledMilestone,
+  ScheduledTask,
 } from "../../common/models";
 import {
   EditableEntityKind,
@@ -30,9 +32,9 @@ export interface TaskFormProps {
   /** Entity selected for editing. */
   editingEntity: TaskFormEditingEntity;
   /** Current parsed Gantt document. */
-  document: GanttDocument;
+  document: ProjectDocument;
   /** Current host-computed schedule. */
-  schedule: ScheduledModel;
+  schedule: ProjectSchedule;
   /** Saves an edited entity and its dependencies. */
   onSave: (
     kind: EditableEntityKind,
@@ -88,7 +90,7 @@ export interface TaskFieldsProps extends DependencyEditorProps {
   /** Replaces the task draft. */
   onChange: (task: Task) => void;
   /** Current computed schedule for the task. */
-  scheduledTask?: ScheduledTaskEntity;
+  scheduledTask?: ScheduledTask;
 }
 
 /** Props for the milestone-specific fields section. */
@@ -98,7 +100,7 @@ export interface MilestoneFieldsProps extends DependencyEditorProps {
   /** Replaces the milestone draft. */
   onChange: (milestone: Milestone) => void;
   /** Current computed schedule for the milestone. */
-  scheduledMilestone?: ScheduledMilestoneEntity;
+  scheduledMilestone?: ScheduledMilestone;
 }
 
 /** Props for the group-specific fields section. */
@@ -106,7 +108,7 @@ export interface GroupFieldsProps {
   /** Group draft displayed by the fields. */
   group: Group;
   /** Current parsed Gantt document. */
-  document: GanttDocument;
+  document: ProjectDocument;
   /** Replaces the group draft. */
   onChange: (group: Group) => void;
   /** Opens a member entity in the edit form. */

@@ -13,7 +13,8 @@ import {
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
-import { GanttDocument, ScheduledModel } from "../common/models";
+import { ProjectDocument } from "../common/documents";
+import { ProjectSchedule } from "../common/models";
 import { EditableEntityRef } from "../common/protocol";
 import { translate, useWebviewL10n } from "./l10n";
 import {
@@ -35,9 +36,9 @@ const BAR_RATIO = 0.6;
 
 interface GanttChartProps {
   /** Current authoring document. */
-  document: GanttDocument;
+  document: ProjectDocument;
   /** Current host-computed schedule. */
-  schedule: ScheduledModel;
+  schedule: ProjectSchedule;
   /** Entity currently selected in the editor. */
   selectedEntity: EditableEntityRef | null;
   /** Handles selection of an entity from the chart. */
@@ -122,8 +123,8 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
 
 /** Builds the ECharts option from the current document and selection. */
 function buildOption(
-  document: GanttDocument,
-  scheduledModel: ScheduledModel,
+  document: ProjectDocument,
+  scheduledModel: ProjectSchedule,
   selectedEntity: EditableEntityRef | null,
   locale: string,
   unavailable: string,

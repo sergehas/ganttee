@@ -1,28 +1,30 @@
 /**
  * Hydration and serialization between the plain, ISO-string document shape and
- * the `Date`-typed, object-oriented {@link GanttModel}.
+ * the `Date`-typed, object-oriented {@link ProjectModel}.
  *
- * The plain {@link GanttDocument} remains the persisted/wire representation; the
+ * The plain {@link ProjectDocument} remains the persisted/wire representation; the
  * hydrated model is a host-in-memory computed view. This service is
  * framework-agnostic and must not import from "vscode".
  */
 
 import { formatIsoDate, parseIsoDate } from "../common/dates";
 import {
+  Group as GroupDocument,
+  Milestone as MilestoneDocument,
+  ProjectDocument,
+  Task as TaskDocument,
+} from "../common/documents";
+import {
   CyclicDependencyError,
-  GanttDocument,
-  GanttModel,
   Group,
-  GroupEntity,
   Milestone,
-  MilestoneEntity,
+  ProjectModel,
   Task,
-  TaskEntity,
 } from "../common/models";
 import { assertAcyclicGraph } from "./dependencyGraphService";
 
 /**
- * Converts a validated plain document into a {@link GanttModel}, parsing each
+ * Converts a validated plain document into a {@link ProjectModel}, parsing each
  * ISO date string into a `Date` and asserting that the dependency set forms a
  * directed acyclic graph.
  *
@@ -33,10 +35,10 @@ import { assertAcyclicGraph } from "./dependencyGraphService";
  * source/target pair.
  * @throws {CyclicDependencyError} When the dependencies close a directed cycle.
  */
-export function hydrateDocument(document: GanttDocument): GanttModel {
-  const tasks = document.tasks.map(toTaskEntity);
-  const milestones = document.milestones.map(toMilestoneEntity);
-  const groups = document.groups.map(toGroupEntity);
+export function hydrateDocument(document: ProjectDocument): ProjectModel {
+  const tasks = document.tasks.map(toTask);
+  const milestones = document.milestones.map(toMilestone);
+  const groups = document.groups.map(toGroup);
   const dependencies = document.dependencies.map((dependency) => ({
     ...dependency,
   }));
@@ -44,7 +46,7 @@ export function hydrateDocument(document: GanttDocument): GanttModel {
     (entity) => entity.id,
   );
 
-  return new GanttModel(
+  return new ProjectModel(
     tasks,
     milestones,
     groups,
@@ -57,19 +59,19 @@ export function hydrateDocument(document: GanttDocument): GanttModel {
 }
 
 /**
- * Converts a {@link GanttModel} back into a plain document, formatting each
+ * Converts a {@link ProjectModel} back into a plain document, formatting each
  * `Date` as a date-only ISO string. Field order mirrors the parser so a
  * parse → hydrate → serialize round-trip is byte-stable.
  *
  * @param model The in-memory model to project.
  * @returns The plain, serializable document.
  */
-export function toDocument(model: GanttModel): GanttDocument {
-  const document: GanttDocument = {
+export function toDocument(model: ProjectModel): ProjectDocument {
+  const document: ProjectDocument = {
     version: model.version,
-    tasks: model.tasks.map(fromTaskEntity),
-    groups: model.groups.map(fromGroupEntity),
-    milestones: model.milestones.map(fromMilestoneEntity),
+    tasks: model.tasks.map(fromTask),
+    groups: model.groups.map(fromGroup),
+    milestones: model.milestones.map(fromMilestone),
     dependencies: model.dependencies.map((dependency) => ({ ...dependency })),
     settings: model.settings,
     view: model.view,
@@ -77,9 +79,9 @@ export function toDocument(model: GanttModel): GanttDocument {
   return document;
 }
 
-/** Maps a plain task record to a {@link TaskEntity}. */
-function toTaskEntity(task: Task): TaskEntity {
-  return new TaskEntity({
+/** Maps a plain task record to a {@link Task}. */
+function toTask(task: TaskDocument): Task {
+  return new Task({
     id: task.id,
     name: task.name,
     description: task.description,
@@ -92,9 +94,9 @@ function toTaskEntity(task: Task): TaskEntity {
   });
 }
 
-/** Maps a plain milestone record to a {@link MilestoneEntity}. */
-function toMilestoneEntity(milestone: Milestone): MilestoneEntity {
-  return new MilestoneEntity({
+/** Maps a plain milestone record to a {@link Milestone}. */
+function toMilestone(milestone: MilestoneDocument): Milestone {
+  return new Milestone({
     id: milestone.id,
     name: milestone.name,
     description: milestone.description,
@@ -104,9 +106,9 @@ function toMilestoneEntity(milestone: Milestone): MilestoneEntity {
   });
 }
 
-/** Maps a plain group record to a {@link GroupEntity}. */
-function toGroupEntity(group: Group): GroupEntity {
-  return new GroupEntity({
+/** Maps a plain group record to a {@link Group}. */
+function toGroup(group: GroupDocument): Group {
+  return new Group({
     id: group.id,
     name: group.name,
     description: group.description,
@@ -115,9 +117,9 @@ function toGroupEntity(group: Group): GroupEntity {
   });
 }
 
-/** Projects a {@link TaskEntity} back to a plain task record. */
-function fromTaskEntity(task: TaskEntity): Task {
-  const plain: Task = { id: task.id, name: task.name };
+/** Projects a {@link Task} back to a plain task record. */
+function fromTask(task: Task): TaskDocument {
+  const plain: TaskDocument = { id: task.id, name: task.name };
   if (task.start !== undefined) {
     plain.start = formatIsoDate(task.start);
   }
@@ -142,9 +144,9 @@ function fromTaskEntity(task: TaskEntity): Task {
   return plain;
 }
 
-/** Projects a {@link GroupEntity} back to a plain group record. */
-function fromGroupEntity(group: GroupEntity): Group {
-  const plain: Group = { id: group.id, name: group.name };
+/** Projects a {@link Group} back to a plain group record. */
+function fromGroup(group: Group): GroupDocument {
+  const plain: GroupDocument = { id: group.id, name: group.name };
   if (group.groupId !== undefined) {
     plain.groupId = group.groupId;
   }
@@ -154,9 +156,9 @@ function fromGroupEntity(group: GroupEntity): Group {
   return plain;
 }
 
-/** Projects a {@link MilestoneEntity} back to a plain milestone record. */
-function fromMilestoneEntity(milestone: MilestoneEntity): Milestone {
-  const plain: Milestone = {
+/** Projects a {@link Milestone} back to a plain milestone record. */
+function fromMilestone(milestone: Milestone): MilestoneDocument {
+  const plain: MilestoneDocument = {
     id: milestone.id,
     name: milestone.name,
   };

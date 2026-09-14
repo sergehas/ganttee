@@ -6,7 +6,7 @@
  * decide which one the user asked for.
  */
 
-import { GanttDocument } from "../common/models";
+import { ProjectDocument } from "../common/documents";
 import { GroupDeleteStrategy } from "../common/protocol";
 import { selectGroupScheduleScope } from "./groupHierarchyService";
 
@@ -19,10 +19,10 @@ import { selectGroupScheduleScope } from "./groupHierarchyService";
  * @returns The transformed document, or `undefined` when no group has that id.
  */
 export function buildGroupDeletionDocument(
-  document: GanttDocument,
+  document: ProjectDocument,
   groupId: string,
   strategy: GroupDeleteStrategy,
-): GanttDocument | undefined {
+): ProjectDocument | undefined {
   const group = document.groups.find((candidate) => candidate.id === groupId);
   if (!group) {
     return undefined;
@@ -39,7 +39,7 @@ export function buildGroupDeletionDocument(
  * @param groupId The group to check.
  */
 export function hasGroupContents(
-  document: GanttDocument,
+  document: ProjectDocument,
   groupId: string,
 ): boolean {
   return [...document.tasks, ...document.milestones, ...document.groups].some(
@@ -49,9 +49,9 @@ export function hasGroupContents(
 
 /** Removes the group, everything nested inside it, and their dependencies. */
 function deleteGroupSubtree(
-  document: GanttDocument,
+  document: ProjectDocument,
   groupId: string,
-): GanttDocument {
+): ProjectDocument {
   const scope = selectGroupScheduleScope(document, groupId);
   const deletedIds = new Set([
     ...scope.tasks.map((task) => task.id),
@@ -75,10 +75,10 @@ function deleteGroupSubtree(
 
 /** Removes the group and reassigns its direct members to the group's parent. */
 function promoteGroupContents(
-  document: GanttDocument,
+  document: ProjectDocument,
   groupId: string,
   parentGroupId: string | undefined,
-): GanttDocument {
+): ProjectDocument {
   const reparent = <T extends { groupId?: string }>(entity: T): T =>
     entity.groupId === groupId ? { ...entity, groupId: parentGroupId } : entity;
 

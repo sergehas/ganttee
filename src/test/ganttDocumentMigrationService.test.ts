@@ -1,5 +1,8 @@
 import * as assert from "assert";
-import { CURRENT_DOCUMENT_VERSION, effectiveDuration } from "../common/models";
+import {
+  CURRENT_DOCUMENT_VERSION,
+  effectiveDuration,
+} from "../common/documents";
 import { migrateDocument } from "../services/ganttDocumentMigrationService";
 import {
   GanttParseError,

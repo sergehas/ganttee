@@ -1,5 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
-import { Dependency, DependencyType, GanttDocument } from "../common/models";
+import {
+  Dependency,
+  DependencyType,
+  ProjectDocument,
+} from "../common/documents";
 import {
   EditableEntityKind,
   EditableEntityMap,
@@ -48,7 +52,7 @@ export interface EntityEditWorkflow {
   deleteEntity: (entity: EditableEntityRef) => void;
   /** Removes an entity from its group and saves the result. */
   ungroupEntity: (
-    document: GanttDocument,
+    document: ProjectDocument,
     entity: EditableEntityRef,
     options?: SaveEntityOptions,
   ) => void;
@@ -62,7 +66,7 @@ export interface EntityEditWorkflow {
   removeDependency: (dependencyId: string) => void;
   /** Applies a chart date patch and saves the result. */
   patchEntityDatesFromChart: (
-    document: GanttDocument,
+    document: ProjectDocument,
     entity: EditableEntityRef,
     patch: EntityDatePatch,
     options?: SaveEntityOptions,
@@ -72,7 +76,7 @@ export interface EntityEditWorkflow {
 /** Shared dependency-editor state and callbacks for task and milestone forms. */
 export interface DependencyEditorProps {
   /** Current parsed Gantt document. */
-  document: GanttDocument;
+  document: ProjectDocument;
   /** Dependencies involving the current owner. */
   dependencies: Dependency[];
   /** Selected dependency type. */
@@ -129,7 +133,7 @@ export function useEntityEditWorkflow(
 
   const ungroupEntity = useCallback(
     (
-      document: GanttDocument,
+      document: ProjectDocument,
       entity: EditableEntityRef,
       options?: SaveEntityOptions,
     ) => {
@@ -165,7 +169,7 @@ export function useEntityEditWorkflow(
 
   const patchEntityDatesFromChart = useCallback(
     (
-      document: GanttDocument,
+      document: ProjectDocument,
       entity: EditableEntityRef,
       patch: EntityDatePatch,
       options?: SaveEntityOptions,
@@ -193,7 +197,7 @@ export function useEntityEditWorkflow(
  */
 export function useDependencyEditorState(
   ownerId: string | undefined,
-  document: GanttDocument,
+  document: ProjectDocument,
   workflow: Pick<EntityEditWorkflow, "addDependency" | "removeDependency">,
 ): DependencyEditorProps {
   const [dependencyTarget, setDependencyTarget] = useState("");

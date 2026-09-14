@@ -8,7 +8,7 @@ import {
   milestoneEnd,
   milestoneStart,
   Task,
-} from "../common/models";
+} from "../common/documents";
 import {
   describeMilestoneEndpointConstraints,
   describeTaskEndpointConstraints,

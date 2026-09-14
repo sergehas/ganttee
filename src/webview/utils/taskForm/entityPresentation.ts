@@ -1,9 +1,9 @@
 import {
   Dependency,
   DependencyType,
-  GanttDocument,
+  ProjectDocument,
   TaskStatus,
-} from "../../../common/models";
+} from "../../../common/documents";
 import { EditableEntityKind } from "../../../common/protocol";
 
 /** Resolves English source messages for form presentation. */
@@ -41,7 +41,7 @@ export function titleOf(
 /** Returns a human-readable dependency label in the form "Source → Type → Target". */
 export function describeDependency(
   dep: Dependency,
-  document: GanttDocument,
+  document: ProjectDocument,
   t: WebviewTranslator,
 ): string {
   const source = findEntityName(document, dep.sourceId, t);
@@ -52,7 +52,7 @@ export function describeDependency(
 
 /** Resolves a task or milestone ID to its display name, returning "?" when not found. */
 export function findEntityName(
-  document: GanttDocument,
+  document: ProjectDocument,
   id: string,
   t: WebviewTranslator,
 ): string {
@@ -82,7 +82,7 @@ function dependencyTypeLabel(
  * @returns `undefined` when no matching entity exists.
  */
 export function findEntityRefById(
-  document: GanttDocument,
+  document: ProjectDocument,
   id: string,
 ): { id: string; kind: "task" | "milestone"; name: string } | undefined {
   const task = document.tasks.find((item) => item.id === id);

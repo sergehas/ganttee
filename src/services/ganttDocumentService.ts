@@ -6,7 +6,7 @@
  * one only orders them.
  */
 
-import { createEmptyDocument, GanttDocument } from "../common/models";
+import { createEmptyDocument, ProjectDocument } from "../common/documents";
 import { assertDocumentRelations } from "./documentRelationValidationService";
 import {
   GanttParseError,
@@ -24,7 +24,7 @@ export { GanttParseError } from "./documentShapeValidationService";
  * @returns The parsed document.
  * @throws {GanttParseError} When the text is not a valid document.
  */
-export function parseDocument(text: string): GanttDocument {
+export function parseDocument(text: string): ProjectDocument {
   const trimmed = text.trim();
   if (trimmed.length === 0) {
     return createEmptyDocument();
@@ -49,7 +49,7 @@ export function parseDocument(text: string): GanttDocument {
  *
  * @param document The document to write.
  */
-export function serializeDocument(document: GanttDocument): string {
+export function serializeDocument(document: ProjectDocument): string {
   const { schedule: _schedule, ...persistedDocument } = document;
   return `${JSON.stringify(persistedDocument, undefined, 2)}\n`;
 }

@@ -1,4 +1,8 @@
-import { DependencyGraph, Schedulable, ScheduledModel } from "../common/models";
+import {
+  ProjectDependencyGraph,
+  ProjectSchedule,
+  Schedulable,
+} from "../common/models";
 
 /** Identifies the single derived path emphasized by the chart. */
 export interface CriticalPathProjection {
@@ -10,8 +14,8 @@ export interface CriticalPathProjection {
 
 /** Projects one deterministic longest chain from an acyclic scheduled graph. */
 export function projectCriticalPath(
-  graph: DependencyGraph,
-  scheduled: ScheduledModel,
+  graph: ProjectDependencyGraph,
+  scheduled: ProjectSchedule,
 ): CriticalPathProjection {
   const entities = new Map<string, Schedulable>([
     ...scheduled.tasks.map(

@@ -6,7 +6,8 @@
  * mutates the input.
  */
 
-import { Dependency, DependencyGraph, GanttDocument } from "../common/models";
+import { Dependency, ProjectDocument } from "../common/documents";
+import { ProjectDependencyGraph } from "../common/models";
 import {
   anchoredEntityIds,
   schedulableEntityIds,
@@ -16,7 +17,7 @@ import {
 /** A sanitized document together with everything sanitization destroyed. */
 export interface ScheduleGraphSanitization {
   /** The document with invalid structures removed. */
-  document: GanttDocument;
+  document: ProjectDocument;
   /** Ids of dependencies that were removed, in document order. */
   removedDependencyIds: string[];
   /** Ids of entities that were removed, in document order. */
@@ -31,7 +32,7 @@ export interface ScheduleGraphSanitization {
  * @returns The sanitized document and the ids of everything removed.
  */
 export function sanitizeScheduleGraph(
-  document: GanttDocument,
+  document: ProjectDocument,
 ): ScheduleGraphSanitization {
   const entityIds = new Set([
     ...document.tasks.map((task) => task.id),
@@ -78,11 +79,11 @@ export function sanitizeScheduleGraph(
 
 /** Returns the ids of every entity in a component that has no date anchor. */
 function collectUnanchoredEntityIds(
-  document: GanttDocument,
+  document: ProjectDocument,
   entityIds: ReadonlySet<string>,
   dependencies: readonly Dependency[],
 ): ReadonlySet<string> {
-  const graph = new DependencyGraph([...entityIds], dependencies);
+  const graph = new ProjectDependencyGraph([...entityIds], dependencies);
   return new Set(
     unanchoredComponents(
       graph.connectedComponents(),

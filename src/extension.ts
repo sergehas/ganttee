@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { createEmptyDocument, Task } from "./common/models";
+import { createEmptyDocument, Task } from "./common/documents";
 import { EditableEntityRef } from "./common/protocol";
 import { GanttStore } from "./ganttStore";
 import { serializeDocument } from "./services/ganttDocumentService";

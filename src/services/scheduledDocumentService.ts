@@ -1,20 +1,20 @@
 /** Converts Date-based schedules to and from the protocol document shape. */
 
 import { formatIsoTimestamp, parseIsoTimestamp } from "../common/dates";
+import { ProjectScheduleDocument } from "../common/documents";
 import {
-  GanttModel,
-  GanttScheduleDocument,
-  ScheduledGroupEntity,
-  ScheduledMilestoneEntity,
-  ScheduledModel,
-  ScheduledTaskEntity,
+  ProjectModel,
+  ProjectSchedule,
+  ScheduledGroup,
+  ScheduledMilestone,
+  ScheduledTask,
   SchedulingError,
 } from "../common/models";
 
 /** Converts a runtime schedule into its JSON-compatible document projection. */
 export function toScheduledDocument(
-  scheduledModel: ScheduledModel,
-): GanttScheduleDocument {
+  scheduledModel: ProjectSchedule,
+): ProjectScheduleDocument {
   return {
     tasks: scheduledModel.tasks.map((task) => ({
       id: task.id,
@@ -39,9 +39,9 @@ export function toScheduledDocument(
 
 /** Rehydrates a serialized schedule against an already hydrated document model. */
 export function fromScheduledDocument(
-  model: GanttModel,
-  document: GanttScheduleDocument,
-): ScheduledModel {
+  model: ProjectModel,
+  document: ProjectScheduleDocument,
+): ProjectSchedule {
   // Index model entities once to avoid a linear scan for every schedule entry.
   const tasksById = new Map(model.tasks.map((task) => [task.id, task]));
   const milestonesById = new Map(
@@ -55,7 +55,7 @@ export function fromScheduledDocument(
         `Unknown scheduled task "${scheduledTask.id}".`,
       );
     }
-    return new ScheduledTaskEntity(
+    return new ScheduledTask(
       task,
       parseIsoTimestamp(scheduledTask.effectiveStart),
       parseIsoTimestamp(scheduledTask.effectiveEnd),
@@ -69,28 +69,26 @@ export function fromScheduledDocument(
         `Unknown scheduled milestone "${scheduledMilestone.id}".`,
       );
     }
-    return new ScheduledMilestoneEntity(
+    return new ScheduledMilestone(
       milestone,
       parseIsoTimestamp(scheduledMilestone.effectiveStart),
     );
   });
-  const groups: ScheduledGroupEntity[] = document.groups.map(
-    (scheduledGroup) => {
-      const group = groupsById.get(scheduledGroup.id);
-      if (group === undefined) {
-        throw new SchedulingError(
-          `Unknown scheduled group "${scheduledGroup.id}".`,
-        );
-      }
-      return {
-        id: group.id,
-        name: group.name,
-        groupId: group.groupId,
-        effectiveStart: parseIsoTimestamp(scheduledGroup.effectiveStart),
-        effectiveEnd: parseIsoTimestamp(scheduledGroup.effectiveEnd),
-        effectiveDuration: scheduledGroup.effectiveDuration,
-      };
-    },
-  );
-  return new ScheduledModel(tasks, milestones, groups);
+  const groups: ScheduledGroup[] = document.groups.map((scheduledGroup) => {
+    const group = groupsById.get(scheduledGroup.id);
+    if (group === undefined) {
+      throw new SchedulingError(
+        `Unknown scheduled group "${scheduledGroup.id}".`,
+      );
+    }
+    return {
+      id: group.id,
+      name: group.name,
+      groupId: group.groupId,
+      effectiveStart: parseIsoTimestamp(scheduledGroup.effectiveStart),
+      effectiveEnd: parseIsoTimestamp(scheduledGroup.effectiveEnd),
+      effectiveDuration: scheduledGroup.effectiveDuration,
+    };
+  });
+  return new ProjectSchedule(tasks, milestones, groups);
 }

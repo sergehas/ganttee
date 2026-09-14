@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
-import { CURRENT_DOCUMENT_VERSION } from "../../common/models";
+import { CURRENT_DOCUMENT_VERSION } from "../../common/documents";
 import {
   parseDocument,
   serializeDocument,

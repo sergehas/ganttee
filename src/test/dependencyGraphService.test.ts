@@ -2,8 +2,8 @@ import * as assert from "assert";
 import {
   createEmptyDocument,
   Dependency,
-  GanttDocument,
-} from "../common/models";
+  ProjectDocument,
+} from "../common/documents";
 import {
   assertAcyclicGraph,
   assertGraphIntegrity,
@@ -15,7 +15,7 @@ import {
 function documentWith(
   taskIds: string[],
   dependencies: Dependency[],
-): GanttDocument {
+): ProjectDocument {
   const document = createEmptyDocument();
   document.tasks = taskIds.map((id) => ({
     id,

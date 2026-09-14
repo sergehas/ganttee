@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { createEmptyDocument, GanttDocument } from "../common/models";
+import { createEmptyDocument, ProjectDocument } from "../common/documents";
 import {
   buildTaskOrMilestoneDeletionDocument,
   buildUngroupUpdate,
@@ -49,7 +49,7 @@ suite("entityRemovalService", () => {
   });
 
   test("deletes a task and every connected dependency", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...createDocument(),
       tasks: [...createDocument().tasks, { id: "source", name: "Source" }],
       dependencies: [
@@ -70,7 +70,7 @@ suite("entityRemovalService", () => {
   });
 
   test("materializes a source task start before removing its start-with anchor", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...createDocument(),
       tasks: [
         { id: "source", name: "Source", end: "2026-01-05", duration: 4 },
@@ -110,7 +110,7 @@ suite("entityRemovalService", () => {
   });
 
   test("materializes a source task end before removing its end-with anchor", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...createDocument(),
       tasks: [
         { id: "source", name: "Source", start: "2026-01-01", duration: 4 },
@@ -150,7 +150,7 @@ suite("entityRemovalService", () => {
   });
 
   test("materializes a task start before deleting a milestone start-with anchor", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...createDocument(),
       tasks: [{ id: "source", name: "Source", duration: 4 }],
       milestones: [{ id: "anchor", name: "Anchor", date: "2026-01-03" }],
@@ -178,7 +178,7 @@ suite("entityRemovalService", () => {
   });
 
   test("materializes a task end before deleting a milestone end-with anchor", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...createDocument(),
       tasks: [{ id: "source", name: "Source", start: "2026-01-01" }],
       milestones: [{ id: "anchor", name: "Anchor", date: "2026-01-03" }],
@@ -204,7 +204,7 @@ suite("entityRemovalService", () => {
   });
 
   test("ignores dependencies from non-task sources and unrelated targets", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...createDocument(),
       groups: [{ id: "source", name: "Source" }],
       dependencies: [
@@ -230,7 +230,7 @@ suite("entityRemovalService", () => {
   });
 
   test("blocks deletion when a milestone anchor has no resolvable date", () => {
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...createDocument(),
       milestones: [{ id: "anchor", name: "Undated" }],
       dependencies: [
@@ -251,7 +251,7 @@ suite("entityRemovalService", () => {
 
   test("blocks deletion when a task anchor has no resolvable date", () => {
     const baseDocument = createDocument();
-    const document: GanttDocument = {
+    const document: ProjectDocument = {
       ...baseDocument,
       tasks: [...baseDocument.tasks, { id: "anchor", name: "Undated" }],
       dependencies: [
@@ -271,7 +271,7 @@ suite("entityRemovalService", () => {
   });
 });
 
-function createDocument(): GanttDocument {
+function createDocument(): ProjectDocument {
   return {
     ...createEmptyDocument(),
     version: 1,

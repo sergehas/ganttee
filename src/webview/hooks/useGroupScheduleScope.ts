@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { GanttDocument } from "../../common/models";
+import { ProjectDocument } from "../../common/documents";
 import { selectGroupScheduleScope } from "../../services/groupHierarchyService";
 import {
   deriveGroupSchedule,
@@ -20,7 +20,7 @@ export interface GroupScheduleScopeView {
 
 /** Computes memoized schedule and direct member rows for a group edit form. */
 export function useGroupScheduleScope(
-  document: GanttDocument,
+  document: ProjectDocument,
   groupId: string,
 ): GroupScheduleScopeView {
   const schedule = useMemo(

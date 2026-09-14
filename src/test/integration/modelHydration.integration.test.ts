@@ -1,10 +1,8 @@
 import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
-import {
-  CURRENT_DOCUMENT_VERSION,
-  CyclicDependencyError,
-} from "../../common/models";
+import { CURRENT_DOCUMENT_VERSION } from "../../common/documents";
+import { CyclicDependencyError } from "../../common/models";
 import {
   parseDocument,
   serializeDocument,

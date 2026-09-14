@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { formatShortDate } from "../common/datePresentation";
-import { createEmptyDocument, GanttDocument } from "../common/models";
+import { createEmptyDocument, ProjectDocument } from "../common/documents";
 import {
   buildChartRows,
   chartDateRange,
@@ -239,7 +239,7 @@ suite("chartUtils", () => {
   });
 });
 
-function createDocument(): GanttDocument {
+function createDocument(): ProjectDocument {
   return {
     ...createEmptyDocument(),
     version: 2,

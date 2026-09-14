@@ -1,4 +1,5 @@
-import { GanttDocument, ScheduledModel } from "../common/models";
+import { ProjectDocument } from "../common/documents";
+import { ProjectSchedule } from "../common/models";
 import { EditableEntityKind, EditableEntityMap } from "../common/protocol";
 import { replaceEntity } from "../services/documentEntityService";
 import { hydrateDocument } from "../services/ganttModelService";
@@ -7,11 +8,11 @@ import { fromScheduledDocument } from "../services/scheduledDocumentService";
 /** Webview state associating a host document revision with its host-computed schedule. */
 export interface GanttViewState {
   /** Host-authoritative authoring document used to derive the schedule. */
-  readonly document: GanttDocument;
+  readonly document: ProjectDocument;
   /** Host text-document revision used for stale-write rejection. */
   readonly revision: number;
   /** Complete task, milestone, and group scheduling result. */
-  readonly scheduledModel: ScheduledModel;
+  readonly scheduledModel: ProjectSchedule;
 }
 
 /**
@@ -21,7 +22,7 @@ export interface GanttViewState {
  * @param revision The corresponding host text-document revision.
  */
 export function createGanttViewState(
-  document: GanttDocument,
+  document: ProjectDocument,
   revision: number,
 ): GanttViewState {
   const model = hydrateDocument(document);
@@ -47,7 +48,7 @@ export function updateGanttViewDocument<K extends EditableEntityKind>(
   current: GanttViewState,
   kind: K,
   entity: EditableEntityMap[K],
-): GanttDocument | undefined {
+): ProjectDocument | undefined {
   const document = replaceEntity(current.document, kind, entity);
   if (document === undefined) {
     return undefined;

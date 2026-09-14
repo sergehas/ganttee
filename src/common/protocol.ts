@@ -1,7 +1,11 @@
-import { Dependency } from "./models/dependency";
-import { GanttDocument } from "./models/document";
-import { ProjectView } from "./models/projectView";
-import { Group, Milestone, Task } from "./models/task";
+import {
+  Dependency,
+  Group,
+  Milestone,
+  ProjectDocument,
+  ProjectView,
+  Task,
+} from "./documents";
 
 /**
  * Message protocol between the extension host and the editor webview.
@@ -17,8 +21,8 @@ export type HostToWebviewMessage =
       locale: string;
       strings: Readonly<Record<string, string>>;
     }
-  | { type: "init"; document: GanttDocument; revision: number }
-  | { type: "documentChanged"; document: GanttDocument; revision: number }
+  | { type: "init"; document: ProjectDocument; revision: number }
+  | { type: "documentChanged"; document: ProjectDocument; revision: number }
   | { type: "selectEntity"; entity: EditableEntityRef }
   | { type: "editEntity"; entity: EditableEntityRef };
 
@@ -60,7 +64,7 @@ export type WebviewToHostMessage =
   | UpdateEntityMessage
   | {
       type: "entityUpdated";
-      updatedDocument: GanttDocument;
+      updatedDocument: ProjectDocument;
       baseRevision: number;
     }
   | { type: "updateView"; view: ProjectView; baseRevision: number }

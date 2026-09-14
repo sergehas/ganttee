@@ -5,19 +5,19 @@ import {
   subtractWorkingDays,
   WorkingTimeSettings,
 } from "../common/dates";
+import { Dependency } from "../common/documents";
 import {
-  Dependency,
-  DependencyGraph,
-  GanttModel,
-  GroupEntity,
-  MilestoneEntity,
+  Group,
+  Milestone,
+  ProjectDependencyGraph,
+  ProjectModel,
+  ProjectSchedule,
   Schedulable,
-  ScheduledGroupEntity,
-  ScheduledMilestoneEntity,
-  ScheduledModel,
-  ScheduledTaskEntity,
+  ScheduledGroup,
+  ScheduledMilestone,
+  ScheduledTask,
   SchedulingError,
-  TaskEntity,
+  Task,
 } from "../common/models";
 
 /** Effective endpoint candidates collected from dependencies. */
@@ -55,17 +55,17 @@ interface DateSpan {
  * @throws {SchedulingError} When any entity or calendar setting is invalid.
  */
 export function schedule(
-  model: GanttModel,
-  graph: DependencyGraph,
-): ScheduledModel {
+  model: ProjectModel,
+  graph: ProjectDependencyGraph,
+): ProjectSchedule {
   const settings = workingTimeSettings(model);
-  const entities = new Map<string, TaskEntity | MilestoneEntity>([
+  const entities = new Map<string, Task | Milestone>([
     ...model.tasks.map((task) => [task.id, task] as const),
     ...model.milestones.map((milestone) => [milestone.id, milestone] as const),
   ]);
   const scheduled = new Map<string, Schedulable>();
-  const tasks: ScheduledTaskEntity[] = [];
-  const milestones: ScheduledMilestoneEntity[] = [];
+  const tasks: ScheduledTask[] = [];
+  const milestones: ScheduledMilestone[] = [];
 
   for (const entityId of graph.topologicalSort()) {
     const entity = entities.get(entityId);
@@ -77,9 +77,9 @@ export function schedule(
       scheduled,
       settings,
     );
-    if (entity instanceof TaskEntity) {
+    if (entity instanceof Task) {
       const values = resolveTask(entity, candidates, settings);
-      const result = new ScheduledTaskEntity(
+      const result = new ScheduledTask(
         entity,
         values.start,
         values.end,
@@ -89,7 +89,7 @@ export function schedule(
       scheduled.set(entityId, result);
     } else {
       const date = resolveMilestone(entity, candidates, settings);
-      const result = new ScheduledMilestoneEntity(entity, date);
+      const result = new ScheduledMilestone(entity, date);
       milestones.push(result);
       scheduled.set(entityId, result);
     }
@@ -100,7 +100,7 @@ export function schedule(
       "The dependency graph omitted a schedulable entity.",
     );
   }
-  return new ScheduledModel(
+  return new ProjectSchedule(
     tasks,
     milestones,
     rollupGroupSchedules(model.groups, tasks, milestones, settings),
@@ -116,11 +116,11 @@ export function schedule(
  * @param settings The resolved working-time settings.
  */
 export function rollupGroupSchedules(
-  groups: readonly GroupEntity[],
-  tasks: readonly ScheduledTaskEntity[],
-  milestones: readonly ScheduledMilestoneEntity[],
+  groups: readonly Group[],
+  tasks: readonly ScheduledTask[],
+  milestones: readonly ScheduledMilestone[],
   settings: WorkingTimeSettings,
-): readonly ScheduledGroupEntity[] {
+): readonly ScheduledGroup[] {
   const spans = new Map<string, DateSpan>();
   for (const entity of [...tasks, ...milestones]) {
     if (entity.groupId !== undefined) {
@@ -132,9 +132,9 @@ export function rollupGroupSchedules(
   }
 
   const groupsByParent = groupChildren(groups);
-  const result: ScheduledGroupEntity[] = [];
+  const result: ScheduledGroup[] = [];
   const visited = new Set<string>();
-  const visit = (group: GroupEntity): DateSpan | undefined => {
+  const visit = (group: Group): DateSpan | undefined => {
     if (visited.has(group.id)) {
       return spans.get(group.id);
     }
@@ -170,7 +170,7 @@ export function rollupGroupSchedules(
 }
 
 /** Resolves and validates project working-time settings. */
-function workingTimeSettings(model: GanttModel): WorkingTimeSettings {
+function workingTimeSettings(model: ProjectModel): WorkingTimeSettings {
   const { workingDayHours, workingDayStart } = model.settings;
   const daysOff = new Set(model.settings.workingCalendar.daysOff);
   if (
@@ -216,7 +216,7 @@ function dependencyCandidates(
 
 /** Resolves one task from static values and dependency candidates. */
 function resolveTask(
-  task: TaskEntity,
+  task: Task,
   candidates: EndpointCandidates,
   settings: WorkingTimeSettings,
 ): ResolvedTaskSchedule {
@@ -263,7 +263,7 @@ function resolveTask(
 
 /** Resolves one milestone date from dependency and static candidates. */
 function resolveMilestone(
-  milestone: MilestoneEntity,
+  milestone: Milestone,
   candidates: EndpointCandidates,
   settings: WorkingTimeSettings,
 ): Date {
@@ -299,9 +299,9 @@ function maximumDate(dates: readonly Date[]): Date | undefined {
 
 /** Indexes direct child groups by parent id. */
 function groupChildren(
-  groups: readonly GroupEntity[],
-): ReadonlyMap<string, readonly GroupEntity[]> {
-  const children = new Map<string, GroupEntity[]>();
+  groups: readonly Group[],
+): ReadonlyMap<string, readonly Group[]> {
+  const children = new Map<string, Group[]>();
   for (const group of groups) {
     if (group.groupId !== undefined) {
       const siblings = children.get(group.groupId) ?? [];

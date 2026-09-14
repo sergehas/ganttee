@@ -2,8 +2,8 @@ import * as assert from "assert";
 import {
   createEmptyDocument,
   Dependency,
-  GanttDocument,
-} from "../common/models";
+  ProjectDocument,
+} from "../common/documents";
 import {
   blockingDiagnostics,
   diagnosticsFor,
@@ -46,7 +46,7 @@ function countFor(
     : undefined;
 }
 
-function anchoredTaskDocument(): GanttDocument {
+function anchoredTaskDocument(): ProjectDocument {
   const document = createEmptyDocument();
   document.tasks = [
     { id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" },

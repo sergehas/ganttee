@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dependency, GanttDocument } from "../common/models";
+import { Dependency, ProjectDocument } from "../common/documents";
 import {
   EditableEntityKind,
   EditableEntityMap,
@@ -191,7 +191,7 @@ interface ResolvedEditingEntity {
 
 /** Resolves an editable entity reference against the current document. */
 function resolveEntity(
-  document: GanttDocument,
+  document: ProjectDocument,
   ref: EditableEntityRef | null,
 ): ResolvedEditingEntity | null {
   if (!ref) {

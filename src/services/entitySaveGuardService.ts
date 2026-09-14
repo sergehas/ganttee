@@ -5,7 +5,7 @@
  * chart gesture, so both paths reject the same drafts.
  */
 
-import { Dependency, Group, Milestone, Task } from "../common/models";
+import { Dependency, Group, Milestone, Task } from "../common/documents";
 import { EditableEntityKind, EditableEntityMap } from "../common/protocol";
 import {
   validateMilestoneConstraints,

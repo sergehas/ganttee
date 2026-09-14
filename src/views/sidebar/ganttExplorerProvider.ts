@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { formatShortDate } from "../../common/datePresentation";
-import { Group, Milestone, ScheduledModel, Task } from "../../common/models";
+import { Group, Milestone, Task } from "../../common/documents";
+import { ProjectSchedule } from "../../common/models";
 import { EditableEntityRef } from "../../common/protocol";
 import { GanttStore } from "../../ganttStore";
 import {
@@ -48,7 +49,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   }
 
   getChildren(element?: GanttNode): GanttNode[] {
-    const model = this.store.active?.getGanttDocument();
+    const model = this.store.active?.getProjectDocument();
     if (!model) {
       return [];
     }
@@ -177,7 +178,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   }
 
   /** Returns the current host-computed schedule. */
-  private get scheduledModel(): ScheduledModel | undefined {
+  private get scheduledModel(): ProjectSchedule | undefined {
     return this.store.active?.scheduledModel;
   }
 

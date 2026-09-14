@@ -1,5 +1,5 @@
 import { formatShortDate } from "../../../common/datePresentation";
-import { TaskStatus } from "../../../common/models";
+import { TaskStatus } from "../../../common/documents";
 import { validateTaskConstraints } from "../../../services/scheduleConstraintService";
 import { makeUpdater } from "../../hooks/useFieldUpdater";
 import { useTranslate, useWebviewL10n } from "../../l10n";

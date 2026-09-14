@@ -4,11 +4,11 @@ import {
   DependencyType,
   effectiveEnd,
   effectiveStart,
-  GanttDocument,
+  ProjectDocument,
   Group,
   Milestone,
   Task,
-} from "../../common/models";
+} from "../../common/documents";
 import { EditableEntityRef } from "../../common/protocol";
 
 /** A task or milestone row displayed on the chart axis. */
@@ -35,12 +35,12 @@ export interface SchedulableRef {
 export const DAY = 24 * 60 * 60 * 1000;
 
 /** Counts task and milestone rows needed by the chart. */
-export function countChartRows(document: GanttDocument): number {
+export function countChartRows(document: ProjectDocument): number {
   return document.tasks.length + document.milestones.length;
 }
 
 /** Builds chart rows and their entity-to-row index lookup. */
-export function buildChartRows(document: GanttDocument): {
+export function buildChartRows(document: ProjectDocument): {
   rows: ChartRow[];
   indexById: Map<string, number>;
 } {
@@ -62,7 +62,7 @@ export function buildChartRows(document: GanttDocument): {
 }
 
 /** Computes the visible time range around all scheduled entities. */
-export function chartDateRange(document: GanttDocument): {
+export function chartDateRange(document: ProjectDocument): {
   min: number;
   max: number;
 } {
@@ -110,7 +110,7 @@ export function dependencyLinkEndpoints(
 
 /** Resolves a task or milestone into dependency scheduling coordinates. */
 export function schedulableById(
-  document: GanttDocument,
+  document: ProjectDocument,
   id: string,
 ): SchedulableRef | undefined {
   const task = document.tasks.find((current) => current.id === id);

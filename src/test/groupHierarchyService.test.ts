@@ -1,12 +1,12 @@
 import * as assert from "assert";
-import { createEmptyDocument, GanttDocument } from "../common/models";
+import { createEmptyDocument, ProjectDocument } from "../common/documents";
 import {
   collectDescendantGroupIds,
   selectGroupScheduleScope,
 } from "../services/groupHierarchyService";
 import { deriveGroupSchedule } from "../services/groupScheduleProjectionService";
 
-function createDocument(): GanttDocument {
+function createDocument(): ProjectDocument {
   return {
     ...createEmptyDocument(),
     version: 2,

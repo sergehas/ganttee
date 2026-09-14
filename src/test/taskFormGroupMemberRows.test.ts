@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { createEmptyDocument, GanttDocument } from "../common/models";
+import { createEmptyDocument, ProjectDocument } from "../common/documents";
 import { buildDirectGroupMemberRows } from "../webview/utils/taskForm/groupMemberRows";
 
 suite("taskForm groupMemberRows", () => {
@@ -29,7 +29,7 @@ suite("taskForm groupMemberRows", () => {
   });
 });
 
-function createDocument(): GanttDocument {
+function createDocument(): ProjectDocument {
   return {
     ...createEmptyDocument(),
     version: 2,

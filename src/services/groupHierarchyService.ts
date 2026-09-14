@@ -6,7 +6,7 @@
  * edit form) need that answer, so it is stated once here.
  */
 
-import { GanttDocument, Group, Milestone, Task } from "../common/models";
+import { Group, Milestone, ProjectDocument, Task } from "../common/documents";
 
 /** Everything owned by a group hierarchy, directly or transitively. */
 export interface GroupScheduleScope {
@@ -52,7 +52,7 @@ export function collectDescendantGroupIds(
  * @returns The groups, tasks, and milestones in the hierarchy.
  */
 export function selectGroupScheduleScope(
-  document: GanttDocument,
+  document: ProjectDocument,
   rootGroupId: string,
 ): GroupScheduleScope {
   const groupIds = collectDescendantGroupIds(document.groups, rootGroupId);
