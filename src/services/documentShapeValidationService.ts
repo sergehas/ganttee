@@ -17,6 +17,7 @@ import {
   Milestone,
   ProjectSettings,
   ProjectView,
+  resolveProjectSettings,
   resolveProjectView,
   Task,
   TASK_STATUSES,
@@ -51,27 +52,20 @@ export function validateDocumentShape(raw: unknown): GanttDocument {
     dependencies: asArray(raw.dependencies, "dependencies").map(
       validateDependency,
     ),
+    settings: validateSettings(raw.settings),
+    view: validateView(raw.view),
   };
-  const settings = validateSettings(raw.settings);
-  if (settings !== undefined) {
-    document.settings = settings;
-  }
-  const view = validateView(raw.view);
-  if (view !== undefined) {
-    document.view = view;
-  }
   return document;
 }
 
 /**
- * Validates and normalizes the reserved project settings, dropping unknown
- * keys. Returns `undefined` when no recognized setting is present.
+ * Validates and resolves project settings while dropping unknown keys.
  */
-function validateSettings(raw: unknown): ProjectSettings | undefined {
+function validateSettings(raw: unknown): ProjectSettings {
   if (!isRecord(raw)) {
-    return undefined;
+    return resolveProjectSettings();
   }
-  const settings: ProjectSettings = {};
+  const settings: Partial<ProjectSettings> = {};
   if (isRecord(raw.workingCalendar)) {
     settings.workingCalendar = validateWorkingCalendar(raw.workingCalendar);
   }
@@ -103,13 +97,13 @@ function validateSettings(raw: unknown): ProjectSettings | undefined {
       validateDateRange(holiday, `settings.holidays[${index}]`),
     );
   }
-  return Object.keys(settings).length > 0 ? settings : undefined;
+  return resolveProjectSettings(settings);
 }
 
 /** Validates an optional view section and resolves omitted view properties. */
-function validateView(raw: unknown): ProjectView | undefined {
+function validateView(raw: unknown): ProjectView {
   if (raw === undefined) {
-    return undefined;
+    return resolveProjectView();
   }
   if (!isRecord(raw)) {
     throw new GanttParseError("view must be an object.");
@@ -178,7 +172,7 @@ function validateDateRange(raw: unknown, field: string): DateRange {
 function validateWorkingCalendar(
   raw: Record<string, unknown>,
 ): WorkingCalendar {
-  const calendar: WorkingCalendar = {};
+  const calendar = resolveProjectSettings().workingCalendar;
   if (Array.isArray(raw.daysOff)) {
     calendar.daysOff = raw.daysOff.map((day, index) =>
       requireIsoWeekday(day, `settings.workingCalendar.daysOff[${index}]`),

@@ -265,6 +265,7 @@ suite("ganttDocumentService", () => {
       workingCalendar: { daysOff: [6, 7] },
       workingDayHours: 8,
       workingDayStart: 8.5,
+      holidays: [],
     });
     assert.deepStrictEqual(
       parseDocument(serializeDocument(document)),
@@ -272,14 +273,37 @@ suite("ganttDocumentService", () => {
     );
   });
 
-  test("uses view defaults without materializing a missing view", () => {
+  test("materializes defaults for missing settings and view", () => {
     const document = parseDocument(JSON.stringify({ version: 2 }));
 
-    assert.strictEqual(document.view, undefined);
-    assert.strictEqual(
-      parseDocument(serializeDocument(document)).view,
-      undefined,
+    assert.deepStrictEqual(document.settings, {
+      workingCalendar: { daysOff: [6, 7] },
+      workingDayHours: 8,
+      workingDayStart: 9,
+      holidays: [],
+    });
+    assert.deepStrictEqual(document.view, {
+      zoomLevel: "week",
+      showDependencies: true,
+      showOffDays: false,
+      showHolidays: false,
+      showCriticalPath: false,
+    });
+    assert.deepStrictEqual(
+      parseDocument(serializeDocument(document)),
+      document,
     );
+  });
+
+  test("creates independent mutable project defaults", () => {
+    const first = parseDocument(JSON.stringify({ version: 2 }));
+    const second = parseDocument(JSON.stringify({ version: 2 }));
+
+    first.settings.workingCalendar.daysOff.push(1);
+    first.settings.holidays.push({ start: "2026-01-01", end: "2026-01-01" });
+
+    assert.deepStrictEqual(second.settings.workingCalendar.daysOff, [6, 7]);
+    assert.deepStrictEqual(second.settings.holidays, []);
   });
 
   test("fills omitted view values while preserving an explicit view section", () => {
@@ -320,7 +344,7 @@ suite("ganttDocumentService", () => {
       }),
     );
 
-    assert.deepStrictEqual(document.settings?.holidays, [
+    assert.deepStrictEqual(document.settings.holidays, [
       { start: "2026-12-24", end: "2026-12-26" },
     ]);
     assert.throws(
@@ -351,7 +375,10 @@ suite("ganttDocumentService", () => {
     });
 
     assert.deepStrictEqual(parseDocument(text).settings, {
+      workingCalendar: { daysOff: [6, 7] },
       workingDayHours: 8,
+      workingDayStart: 9,
+      holidays: [],
     });
   });
 
@@ -383,21 +410,29 @@ suite("ganttDocumentService", () => {
     }
   });
 
-  test("drops unknown settings keys and empty settings", () => {
+  test("drops unknown settings keys and resolves defaults", () => {
     const text = JSON.stringify({
       version: CURRENT_DOCUMENT_VERSION,
       settings: { unknown: true },
     });
-    assert.strictEqual(parseDocument(text).settings, undefined);
+    assert.deepStrictEqual(parseDocument(text).settings, {
+      workingCalendar: { daysOff: [6, 7] },
+      workingDayHours: 8,
+      workingDayStart: 9,
+      holidays: [],
+    });
   });
 
-  test("normalizes a working calendar without days off to an empty calendar", () => {
+  test("resolves a working calendar without days off to the default calendar", () => {
     const text = JSON.stringify({
       version: CURRENT_DOCUMENT_VERSION,
       settings: { workingCalendar: {} },
     });
     assert.deepStrictEqual(parseDocument(text).settings, {
-      workingCalendar: {},
+      workingCalendar: { daysOff: [6, 7] },
+      workingDayHours: 8,
+      workingDayStart: 9,
+      holidays: [],
     });
   });
 });

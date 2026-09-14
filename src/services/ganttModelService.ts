@@ -71,13 +71,9 @@ export function toDocument(model: GanttModel): GanttDocument {
     groups: model.groups.map(fromGroupEntity),
     milestones: model.milestones.map(fromMilestoneEntity),
     dependencies: model.dependencies.map((dependency) => ({ ...dependency })),
+    settings: model.settings,
+    view: model.view,
   };
-  if (model.settings !== undefined) {
-    document.settings = model.settings;
-  }
-  if (model.view !== undefined) {
-    document.view = model.view;
-  }
   return document;
 }
 

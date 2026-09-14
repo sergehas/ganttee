@@ -20,12 +20,6 @@ import {
   TaskEntity,
 } from "../common/models";
 
-/** Default number of working hours in one duration day. */
-const DEFAULT_WORKING_DAY_HOURS = 8;
-
-/** Default UTC decimal hour at which work begins. */
-const DEFAULT_WORKING_DAY_START = 9;
-
 /** Effective endpoint candidates collected from dependencies. */
 interface EndpointCandidates {
   /** Candidate effective starts. */
@@ -119,12 +113,13 @@ export function schedule(
  *
  * @param groups The authoring group hierarchy.
  * @param scheduledModel The completed task and milestone schedule.
+ * @param settings The resolved working-time settings.
  */
 export function rollupGroupSchedules(
   groups: readonly GroupEntity[],
   tasks: readonly ScheduledTaskEntity[],
   milestones: readonly ScheduledMilestoneEntity[],
-  settings: WorkingTimeSettings = defaultWorkingTimeSettings(),
+  settings: WorkingTimeSettings,
 ): readonly ScheduledGroupEntity[] {
   const spans = new Map<string, DateSpan>();
   for (const entity of [...tasks, ...milestones]) {
@@ -174,22 +169,10 @@ export function rollupGroupSchedules(
   return result;
 }
 
-/** Returns the default working-time settings used by standalone rollup calls. */
-function defaultWorkingTimeSettings(): WorkingTimeSettings {
-  return {
-    daysOff: new Set<number>(),
-    workingDayHours: DEFAULT_WORKING_DAY_HOURS,
-    workingDayStart: DEFAULT_WORKING_DAY_START,
-  };
-}
-
 /** Resolves and validates project working-time settings. */
 function workingTimeSettings(model: GanttModel): WorkingTimeSettings {
-  const workingDayHours =
-    model.settings?.workingDayHours ?? DEFAULT_WORKING_DAY_HOURS;
-  const workingDayStart =
-    model.settings?.workingDayStart ?? DEFAULT_WORKING_DAY_START;
-  const daysOff = new Set(model.settings?.workingCalendar?.daysOff ?? []);
+  const { workingDayHours, workingDayStart } = model.settings;
+  const daysOff = new Set(model.settings.workingCalendar.daysOff);
   if (
     !Number.isFinite(workingDayHours) ||
     workingDayHours <= 0 ||

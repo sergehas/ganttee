@@ -1,5 +1,10 @@
 import * as assert from "assert";
-import { GanttDocument, Milestone, Task } from "../common/models";
+import {
+  createEmptyDocument,
+  GanttDocument,
+  Milestone,
+  Task,
+} from "../common/models";
 import {
   buildDatePatchUpdate,
   buildShiftByDaysPatch,
@@ -156,6 +161,7 @@ suite("entitySchedulePatchService", () => {
 
 function createDocument(): GanttDocument {
   return {
+    ...createEmptyDocument(),
     version: 1,
     tasks: [
       {

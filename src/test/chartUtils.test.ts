@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { formatShortDate } from "../common/datePresentation";
-import { GanttDocument } from "../common/models";
+import { createEmptyDocument, GanttDocument } from "../common/models";
 import {
   buildChartRows,
   chartDateRange,
@@ -47,9 +47,10 @@ suite("chartUtils", () => {
   test("uses a fallback range when no entities have dates", () => {
     const before = Date.now();
     const range = chartDateRange({
+      ...createEmptyDocument(),
       version: 2,
       tasks: [],
-      milestones: [{ id: "m1", name: "Undated", date: undefined }],
+      milestones: [{ id: "m1", name: "Undated" }],
       groups: [],
       dependencies: [],
     });
@@ -240,6 +241,7 @@ suite("chartUtils", () => {
 
 function createDocument(): GanttDocument {
   return {
+    ...createEmptyDocument(),
     version: 2,
     tasks: [
       { id: "t1", name: "Task One", start: "2026-01-01", end: "2026-01-03" },

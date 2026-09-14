@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { GanttDocument } from "../common/models";
+import { createEmptyDocument, GanttDocument } from "../common/models";
 import {
   GroupScheduleScopeView,
   useGroupScheduleScope,
@@ -33,6 +33,7 @@ suite("useGroupScheduleScope", () => {
 
 function createDocument(): GanttDocument {
   return {
+    ...createEmptyDocument(),
     version: 2,
     groups: [
       { id: "g1", name: "Root" },

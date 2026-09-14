@@ -6,6 +6,7 @@ import {
   parseIsoDate,
 } from "../common/dates";
 import {
+  createEmptyDocument,
   CyclicDependencyError,
   GanttDocument,
   GroupEntity,
@@ -24,6 +25,7 @@ import { hydrateDocument, toDocument } from "../services/ganttModelService";
 
 /** A well-formed document exercising every entity kind and constraint combo. */
 const SAMPLE_DOCUMENT: GanttDocument = {
+  ...createEmptyDocument(),
   version: 2,
   tasks: [
     {
@@ -192,19 +194,28 @@ suite("ganttModelService", () => {
   test("carries reserved working-calendar configuration when present", () => {
     const withCalendar: GanttDocument = {
       ...SAMPLE_DOCUMENT,
-      settings: { workingCalendar: { daysOff: [6, 7] }, workingDayHours: 8 },
+      settings: {
+        ...SAMPLE_DOCUMENT.settings,
+        workingCalendar: { daysOff: [6, 7] },
+        workingDayHours: 8,
+      },
     };
     const roundTripped = toDocument(hydrateDocument(withCalendar));
     assert.deepStrictEqual(roundTripped.settings, {
       workingCalendar: { daysOff: [6, 7] },
       workingDayHours: 8,
+      workingDayStart: 9,
+      holidays: [],
     });
   });
 
   test("preserves project view and holidays through hydration", () => {
     const withView: GanttDocument = {
       ...SAMPLE_DOCUMENT,
-      settings: { holidays: [{ start: "2026-12-24", end: "2026-12-26" }] },
+      settings: {
+        ...SAMPLE_DOCUMENT.settings,
+        holidays: [{ start: "2026-12-24", end: "2026-12-26" }],
+      },
       view: {
         zoomLevel: "quarter",
         showDependencies: false,

@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { GanttDocument } from "../common/models";
+import { createEmptyDocument, GanttDocument } from "../common/models";
 import { projectCriticalPath } from "../services/criticalPathService";
 import { hydrateDocument } from "../services/ganttModelService";
 import { schedule } from "../services/schedulingService";
@@ -14,6 +14,7 @@ function project(document: GanttDocument) {
 suite("criticalPathService", () => {
   test("projects the longest scheduled dependency chain", () => {
     const projection = project({
+      ...createEmptyDocument(),
       version: 2,
       tasks: [
         { id: "a", name: "A", start: "2026-09-07", duration: 1 },
@@ -38,6 +39,7 @@ suite("criticalPathService", () => {
 
   test("selects the first equal maximum predecessor", () => {
     const projection = project({
+      ...createEmptyDocument(),
       version: 2,
       tasks: [
         { id: "a", name: "A", start: "2026-09-07", duration: 1 },

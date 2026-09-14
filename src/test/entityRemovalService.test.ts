@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { GanttDocument } from "../common/models";
+import { createEmptyDocument, GanttDocument } from "../common/models";
 import {
   buildTaskOrMilestoneDeletionDocument,
   buildUngroupUpdate,
@@ -273,6 +273,7 @@ suite("entityRemovalService", () => {
 
 function createDocument(): GanttDocument {
   return {
+    ...createEmptyDocument(),
     version: 1,
     tasks: [
       {

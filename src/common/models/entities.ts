@@ -350,7 +350,7 @@ export class GanttModel {
    * @param version The document schema version.
    * @param graph The normalized structural DAG over tasks and milestones.
    * @param settings Reserved project-level settings (calendar and hours).
-   * @param view Optional persisted chart view preferences.
+   * @param view Resolved chart view preferences.
    */
   constructor(
     readonly tasks: readonly TaskEntity[],
@@ -359,7 +359,7 @@ export class GanttModel {
     readonly dependencies: readonly Dependency[],
     readonly version: number,
     readonly graph: DependencyGraph,
-    readonly settings?: ProjectSettings,
-    readonly view?: ProjectView,
+    readonly settings: ProjectSettings,
+    readonly view: ProjectView,
   ) {}
 }

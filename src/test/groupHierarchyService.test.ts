@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { GanttDocument } from "../common/models";
+import { createEmptyDocument, GanttDocument } from "../common/models";
 import {
   collectDescendantGroupIds,
   selectGroupScheduleScope,
@@ -8,6 +8,7 @@ import { deriveGroupSchedule } from "../services/groupScheduleProjectionService"
 
 function createDocument(): GanttDocument {
   return {
+    ...createEmptyDocument(),
     version: 2,
     groups: [
       { id: "g1", name: "Root" },

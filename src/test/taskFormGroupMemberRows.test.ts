@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { GanttDocument } from "../common/models";
+import { createEmptyDocument, GanttDocument } from "../common/models";
 import { buildDirectGroupMemberRows } from "../webview/utils/taskForm/groupMemberRows";
 
 suite("taskForm groupMemberRows", () => {
@@ -31,6 +31,7 @@ suite("taskForm groupMemberRows", () => {
 
 function createDocument(): GanttDocument {
   return {
+    ...createEmptyDocument(),
     version: 2,
     groups: [
       { id: "g1", name: "Root" },

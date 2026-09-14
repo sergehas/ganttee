@@ -1,5 +1,9 @@
 import * as assert from "assert";
-import { DependencyType, GanttDocument } from "../common/models";
+import {
+  createEmptyDocument,
+  DependencyType,
+  GanttDocument,
+} from "../common/models";
 import {
   describeDependency,
   findEntityRefById,
@@ -82,6 +86,7 @@ suite("taskForm entityPresentation", () => {
 
 function createDocument(): GanttDocument {
   return {
+    ...createEmptyDocument(),
     version: 2,
     tasks: [
       { id: "t1", name: "Task One", start: "2026-01-01", end: "2026-01-03" },

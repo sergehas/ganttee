@@ -1,6 +1,6 @@
 import { DateRange } from "../dates";
 import { Dependency } from "./dependency";
-import { ProjectView } from "./projectView";
+import { ProjectView, resolveProjectView } from "./projectView";
 import { GanttScheduleDocument } from "./scheduledDocument";
 import { Group, Milestone, Task } from "./task";
 
@@ -16,9 +16,8 @@ export const CURRENT_DOCUMENT_VERSION = 2;
 export interface WorkingCalendar {
   /**
    * ISO weekday numbers (1 = Monday … 7 = Sunday) that are non-working.
-   * Reserved; not yet populated or read by scheduling.
    */
-  daysOff?: number[];
+  daysOff: number[];
 }
 
 /**
@@ -29,20 +28,46 @@ export interface WorkingCalendar {
  * calendar in the meantime.
  */
 export interface ProjectSettings {
-  /**
-   * Reserved project-level working calendar. Unpopulated until the working-days
-   * configuration feature lands.
-   */
-  workingCalendar?: WorkingCalendar;
-  /**
-   * Reserved project-level working hours per day. Unpopulated and ignored by
-   * scheduling until the configuration feature lands.
-   */
-  workingDayHours?: number;
+  /** Project-level working calendar. */
+  workingCalendar: WorkingCalendar;
+  /** Project-level working hours per day. */
+  workingDayHours: number;
   /** UTC decimal hour at which each working interval starts. */
-  workingDayStart?: number;
+  workingDayStart: number;
   /** Inclusive project holiday ranges rendered by the chart. */
-  holidays?: DateRange[];
+  holidays: DateRange[];
+}
+
+/** Default project calendar used when persisted settings omit one. */
+export const DEFAULT_PROJECT_CALENDAR: WorkingCalendar = {
+  daysOff: [6, 7],
+};
+
+/** Default project settings used to resolve absent or partial persisted settings. */
+export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
+  workingCalendar: DEFAULT_PROJECT_CALENDAR,
+  workingDayHours: 8,
+  workingDayStart: 9,
+  holidays: [],
+};
+
+/** Resolves partial project settings into an independent complete object. */
+export function resolveProjectSettings(
+  settings: Partial<ProjectSettings> = {},
+): ProjectSettings {
+  return {
+    ...DEFAULT_PROJECT_SETTINGS,
+    ...settings,
+    workingCalendar: {
+      ...DEFAULT_PROJECT_CALENDAR,
+      ...settings.workingCalendar,
+      daysOff: [
+        ...(settings.workingCalendar?.daysOff ??
+          DEFAULT_PROJECT_CALENDAR.daysOff),
+      ],
+    },
+    holidays: [...(settings.holidays ?? DEFAULT_PROJECT_SETTINGS.holidays)],
+  };
 }
 
 /** The serialized shape of a `.ganttee` file. */
@@ -58,9 +83,9 @@ export interface GanttDocument {
    * Reserved project-level settings (working calendar and hours). Unpopulated
    * until the working-days configuration feature lands.
    */
-  settings?: ProjectSettings;
-  /** Optional persisted chart view preferences. */
-  view?: ProjectView;
+  settings: ProjectSettings;
+  /** Resolved chart view preferences. */
+  view: ProjectView;
 }
 
 /** Creates an empty document at the current schema version. */
@@ -71,5 +96,7 @@ export function createEmptyDocument(): GanttDocument {
     groups: [],
     milestones: [],
     dependencies: [],
+    settings: resolveProjectSettings(),
+    view: resolveProjectView(),
   };
 }

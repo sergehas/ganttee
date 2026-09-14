@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { GanttDocument, Milestone, Task } from "../common/models";
+import { createEmptyDocument, GanttDocument } from "../common/models";
 import {
   buildDependency,
   createDependencyId,
@@ -44,6 +44,7 @@ suite("dependencyFactoryService", () => {
 
 function createDocument(): GanttDocument {
   return {
+    ...createEmptyDocument(),
     version: 1,
     tasks: [
       {

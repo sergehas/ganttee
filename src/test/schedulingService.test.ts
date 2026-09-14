@@ -2,6 +2,7 @@ import * as assert from "assert";
 import {
   createEmptyDocument,
   GanttDocument,
+  ProjectSettings,
   ScheduledTaskEntity,
   SchedulingError,
 } from "../common/models";
@@ -15,6 +16,7 @@ function schedulingDocument(): GanttDocument {
     workingCalendar: { daysOff: [] },
     workingDayHours: 8,
     workingDayStart: 9,
+    holidays: [],
   };
   return document;
 }
@@ -51,6 +53,7 @@ suite("schedulingService", () => {
       workingCalendar: { daysOff: [] },
       workingDayHours: 8,
       workingDayStart: 8.5,
+      holidays: [],
     };
     document.tasks = [
       { id: "task", name: "Task", start: "2026-09-08", duration: 2 },
@@ -380,15 +383,19 @@ suite("schedulingService", () => {
   });
 
   test("rejects invalid settings supplied directly to the scheduler", () => {
-    const invalidSettings = [
-      { workingDayHours: Number.NaN },
-      { workingDayHours: 0 },
-      { workingDayHours: 25 },
-      { workingDayStart: Number.NaN },
-      { workingDayStart: -1 },
-      { workingDayStart: 24 },
-      { workingCalendar: { daysOff: [0] } },
-      { workingCalendar: { daysOff: [1, 2, 3, 4, 5, 6, 7] } },
+    const defaults = createEmptyDocument().settings;
+    const invalidSettings: ProjectSettings[] = [
+      { ...defaults, workingDayHours: Number.NaN },
+      { ...defaults, workingDayHours: 0 },
+      { ...defaults, workingDayHours: 25 },
+      { ...defaults, workingDayStart: Number.NaN },
+      { ...defaults, workingDayStart: -1 },
+      { ...defaults, workingDayStart: 24 },
+      { ...defaults, workingCalendar: { daysOff: [0] } },
+      {
+        ...defaults,
+        workingCalendar: { daysOff: [1, 2, 3, 4, 5, 6, 7] },
+      },
     ];
 
     for (const settings of invalidSettings) {
@@ -458,7 +465,15 @@ suite("schedulingService", () => {
       { id: "empty", name: "Empty" },
     ];
     const model = hydrateDocument(document);
+    const settings = {
+      daysOff: new Set(model.settings.workingCalendar.daysOff),
+      workingDayHours: model.settings.workingDayHours,
+      workingDayStart: model.settings.workingDayStart,
+    };
 
-    assert.deepStrictEqual(rollupGroupSchedules(model.groups, [], []), []);
+    assert.deepStrictEqual(
+      rollupGroupSchedules(model.groups, [], [], settings),
+      [],
+    );
   });
 });
