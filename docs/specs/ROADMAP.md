@@ -21,3 +21,4 @@ mirrors each spec's status badge.
 | 14  | Rendering off days in graphical view — option to hide off days                            | Intent       | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)             |
 | 15  | Rendering holidays in graphical view — option to hide holidays                            | Intent       | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)             |
 | 16  | [Diagnostics and problems view](./diagnostics-problems-view/SPEC.md)                      | Intent       | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)             |
+| 17  | [Vitest test backbone for pure tests](./vitest-test-backbone/findings.md)                 | Intent       | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)             |
