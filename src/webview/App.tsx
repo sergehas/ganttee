@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Dependency, ProjectDocument } from "../common/documents";
+import { Dependency, ProjectDocument, ProjectView } from "../common/documents";
 import {
   EditableEntityKind,
   EditableEntityMap,
   EditableEntityRef,
 } from "../common/protocol";
 import { buildShiftByDaysPatch } from "../services/editing/projectItemSchedulePatchService";
+import { ChartMenuBar } from "./components/ChartMenuBar";
 import { GanttChart } from "./GanttChart";
 import { translate, WebviewL10n, WebviewL10nContext } from "./l10n";
 import { TaskForm } from "./TaskForm";
@@ -31,6 +32,8 @@ export function App(): React.JSX.Element {
   const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(
     null,
   );
+  const [pendingView, setPendingView] = useState<ProjectView | null>(null);
+  const [fitVersion, setFitVersion] = useState(0);
 
   useEffect(() => {
     const unsubscribe = onHostMessage((message) => {
@@ -41,6 +44,7 @@ export function App(): React.JSX.Element {
         case "init":
         case "documentChanged":
           try {
+            setPendingView(null);
             setViewState(
               createGanttViewState(message.document, message.revision),
             );
@@ -126,6 +130,22 @@ export function App(): React.JSX.Element {
   }
 
   const editingTarget = resolveEntity(viewState.document, editingEntity);
+  const chartView = pendingView ?? viewState.document.view;
+
+  /** Sends a complete chart view proposal through the revision-safe host path. */
+  const updateView = (view: ProjectView) => {
+    setPendingView(view);
+    postToHost({
+      type: "updateView",
+      view,
+      baseRevision: viewState.revision,
+    });
+  };
+
+  /** Requests a temporary chart viewport fit without changing persisted view data. */
+  const fitToWindow = () => {
+    setFitVersion((version) => version + 1);
+  };
 
   /** Applies a chart date shift to an entity through the shared workflow. */
   const nudgeEntityByDays = (entity: EditableEntityRef, days: number) => {
@@ -140,6 +160,11 @@ export function App(): React.JSX.Element {
     <WebviewL10nContext.Provider value={l10n}>
       <div className="ganttee-layout">
         <div className="ganttee-timeline">
+          <ChartMenuBar
+            view={chartView}
+            onViewChange={updateView}
+            onFitToWindow={fitToWindow}
+          />
           {viewState.document.tasks.length === 0 &&
           viewState.document.milestones.length === 0 ? (
             <div className="ganttee-empty">
@@ -152,6 +177,9 @@ export function App(): React.JSX.Element {
             <GanttChart
               document={viewState.document}
               schedule={viewState.scheduledModel}
+              criticalPath={viewState.criticalPath}
+              view={chartView}
+              fitVersion={fitVersion}
               selectedEntity={selectedEntity}
               onSelectEntity={setSelectedEntity}
               onEditEntity={setEditingEntity}

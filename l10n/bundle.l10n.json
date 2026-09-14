@@ -81,5 +81,21 @@
   "{0} → {1}": "{0} → {1}",
   "Reveal Task": "Reveal Task",
   "Reveal Milestone": "Reveal Milestone",
-  "Gantt Chart": "Gantt Chart"
+  "Gantt Chart": "Gantt Chart",
+  "Chart view controls": "Chart view controls",
+  "Chart layers": "Chart layers",
+  "Show dependencies": "Show dependencies",
+  "Show off-days": "Show off-days",
+  "Show holidays": "Show holidays",
+  "Show critical path": "Show critical path",
+  "Zoom controls": "Zoom controls",
+  "Zoom in": "Zoom in",
+  "Zoom out": "Zoom out",
+  "Zoom level": "Zoom level",
+  "Day": "Day",
+  "Week": "Week",
+  "Month": "Month",
+  "Quarter": "Quarter",
+  "Year": "Year",
+  "Fit to window": "Fit to window"
 }

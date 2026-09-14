@@ -48,11 +48,13 @@ suite("viewState", () => {
           .toISOString(),
         groupStart:
           result.scheduledModel.groups[0].effectiveStart.toISOString(),
+        criticalPath: result.criticalPath,
       },
       {
         revision: 4,
         taskStart: "2026-09-08T09:00:00.000Z",
         groupStart: "2026-09-08T09:00:00.000Z",
+        criticalPath: { nodeIds: ["task"], dependencyIds: [] },
       },
     );
   });

@@ -1,6 +1,10 @@
 import { ProjectDocument } from "@common/documents";
 import { ProjectSchedule } from "@common/models";
 import { EditableEntityKind, EditableEntityMap } from "@common/protocol";
+import {
+  CriticalPathProjection,
+  projectCriticalPath,
+} from "@services/dependency-graph/criticalPathService";
 import { replaceEntity } from "@services/document/projectItemService";
 import { hydrateDocument } from "@services/model/projectModelService";
 import { fromScheduledDocument } from "@services/schedule/scheduledDocumentService";
@@ -13,6 +17,8 @@ export interface GanttViewState {
   readonly revision: number;
   /** Complete task, milestone, and group scheduling result. */
   readonly scheduledModel: ProjectSchedule;
+  /** Derived critical path for the current valid schedule. */
+  readonly criticalPath: CriticalPathProjection;
 }
 
 /**
@@ -29,10 +35,12 @@ export function createGanttViewState(
   if (document.schedule === undefined) {
     throw new Error("Host document does not contain a computed schedule.");
   }
+  const scheduledModel = fromScheduledDocument(model, document.schedule);
   return {
     document,
     revision,
-    scheduledModel: fromScheduledDocument(model, document.schedule),
+    scheduledModel,
+    criticalPath: projectCriticalPath(model.graph, scheduledModel),
   };
 }
 

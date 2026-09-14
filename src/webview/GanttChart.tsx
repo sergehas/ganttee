@@ -8,24 +8,43 @@ import { CustomChart } from "echarts/charts";
 import {
   DataZoomComponent,
   GridComponent,
+  MarkAreaComponent,
   TooltipComponent,
 } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
-import { ProjectDocument } from "../common/documents";
+import { ProjectDocument, ProjectView } from "../common/documents";
 import { ProjectSchedule } from "../common/models";
 import { EditableEntityRef } from "../common/protocol";
+import { CriticalPathProjection } from "../services/dependency-graph/criticalPathService";
 import { translate, useWebviewL10n } from "./l10n";
 import {
+  alignTimelineStart,
+  buildTimelineTicks,
+  createTimelineAxisModel,
+} from "./timelineAxis";
+import {
+  clipTimelineRectangle,
+  isPointInTimeline,
+  TimelineRectangle,
+} from "./timelineGeometry";
+import {
+  AXIS_LABEL_COLOR,
+  createTimelineTickRenderer,
+} from "./timelineHeaderRenderer";
+import {
   chartTooltipFormatter,
+  DAY,
   dependencyLinkEndpoints,
   entityFromChartEvent,
+  toChartMs,
 } from "./utils/chartUtils";
 
 echarts.use([
   CustomChart,
   GridComponent,
+  MarkAreaComponent,
   TooltipComponent,
   DataZoomComponent,
   CanvasRenderer,
@@ -33,12 +52,37 @@ echarts.use([
 
 const ROW_HEIGHT = 28;
 const BAR_RATIO = 0.6;
+const criticalItemStyle = {
+  color: "#d19a24",
+  borderColor: "#f0c36a",
+  borderWidth: 2,
+};
+
+interface CalendarAreaBoundary {
+  /** Timeline coordinate for this area boundary. */
+  readonly xAxis: number;
+  /** Optional fill applied to the complete area. */
+  readonly itemStyle?: { readonly color: string };
+}
+
+type CalendarArea = [CalendarAreaBoundary, CalendarAreaBoundary];
+
+interface TimelineTickData {
+  /** Timestamp and placeholder row coordinate used by the custom series. */
+  readonly value: readonly [number, number];
+}
 
 interface GanttChartProps {
   /** Current authoring document. */
   document: ProjectDocument;
   /** Current host-computed schedule. */
   schedule: ProjectSchedule;
+  /** Derived critical path for the current schedule. */
+  criticalPath: CriticalPathProjection;
+  /** Persisted chart view preferences. */
+  view: ProjectView;
+  /** Changes whenever the chart should fit its current entities. */
+  fitVersion: number;
   /** Entity currently selected in the editor. */
   selectedEntity: EditableEntityRef | null;
   /** Handles selection of an entity from the chart. */
@@ -93,6 +137,10 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
   }, []);
 
   useEffect(() => {
+    chartRef.current?.dispatchAction({ type: "dataZoom", start: 0, end: 100 });
+  }, [props.fitVersion]);
+
+  useEffect(() => {
     const chart = chartRef.current;
     if (!chart) {
       return;
@@ -101,6 +149,8 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
       buildOption(
         props.document,
         props.schedule,
+        props.criticalPath,
+        props.view,
         props.selectedEntity,
         l10n.locale,
         translate(l10n, "—"),
@@ -116,7 +166,14 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
       containerRef.current.style.height = `${Math.max(rows, 1) * ROW_HEIGHT + 80}px`;
       chart.resize();
     }
-  }, [l10n, props.document, props.schedule, props.selectedEntity]);
+  }, [
+    l10n,
+    props.document,
+    props.schedule,
+    props.criticalPath,
+    props.view,
+    props.selectedEntity,
+  ]);
 
   return <div className="ganttee-chart" ref={containerRef} />;
 }
@@ -125,12 +182,16 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
 function buildOption(
   document: ProjectDocument,
   scheduledModel: ProjectSchedule,
+  criticalPath: CriticalPathProjection,
+  view: ProjectView,
   selectedEntity: EditableEntityRef | null,
   locale: string,
   unavailable: string,
   formatRange: (start: string, end: string) => string,
 ): echarts.EChartsCoreOption {
   const { tasks, milestones, groups } = scheduledModel;
+  const criticalNodeIds = new Set(criticalPath.nodeIds);
+  const criticalDependencyIds = new Set(criticalPath.dependencyIds);
   const rows = [
     ...tasks.map((task) => ({ id: task.id, label: task.name })),
     ...milestones.map((milestone) => ({
@@ -172,6 +233,10 @@ function buildOption(
         effectiveEnd: task.effectiveEnd().toISOString(),
         selected:
           selectedEntity?.kind === "task" && selectedEntity.id === task.id,
+        itemStyle:
+          view.showCriticalPath && criticalNodeIds.has(task.id)
+            ? criticalItemStyle
+            : undefined,
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
@@ -188,6 +253,10 @@ function buildOption(
     selected:
       selectedEntity?.kind === "milestone" &&
       selectedEntity.id === milestone.id,
+    itemStyle:
+      view.showCriticalPath && criticalNodeIds.has(milestone.id)
+        ? criticalItemStyle
+        : undefined,
   }));
 
   const groupData = groups.map((group) => ({
@@ -224,9 +293,27 @@ function buildOption(
         return undefined;
       }
       const [fromMs, toMsValue] = endpoints;
-      return { value: [targetRow, fromMs, sourceRow, toMsValue] };
+      return {
+        id: dep.id,
+        value: [targetRow, fromMs, sourceRow, toMsValue],
+      };
     })
-    .filter((item): item is { value: number[] } => item !== undefined);
+    .filter(
+      (item): item is { id: string; value: number[] } => item !== undefined,
+    );
+  const calendarAreas = buildCalendarAreas(document, range, view);
+  const timelineAxis = createTimelineAxisModel(view.zoomLevel, locale);
+  const axisRange = {
+    min: alignTimelineStart(view.zoomLevel, range.min),
+    max: range.max,
+  };
+  const timelineTicks = buildTimelineTicks(view.zoomLevel, locale, axisRange);
+  const hasParentAxis = timelineAxis.formatParent !== undefined;
+  const fullDuration = Math.max(axisRange.max - axisRange.min, 1);
+  const zoomEnd = Math.min(
+    100,
+    (timelineAxis.visibleDuration / fullDuration) * 100,
+  );
 
   return {
     animation: false,
@@ -235,28 +322,64 @@ function buildOption(
       formatter: (params: unknown) =>
         chartTooltipFormatter(params, locale, unavailable, formatRange),
     },
-    grid: { left: 160, right: 24, top: 40, bottom: 40 },
-    xAxis: {
-      type: "time",
-      min: range.min,
-      max: range.max,
-      position: "top",
-      splitLine: { show: true },
-    },
+    grid: { left: 160, right: 24, top: hasParentAxis ? 68 : 44, bottom: 40 },
+    dataZoom: [
+      {
+        type: "inside",
+        xAxisIndex: 0,
+        filterMode: "none",
+        start: 0,
+        end: zoomEnd,
+      },
+    ],
+    xAxis: createTimeAxis(axisRange),
     yAxis: {
       type: "category",
       inverse: true,
       data: rows.map((row) => row.label),
       axisTick: { show: false },
+      axisLabel: { color: AXIS_LABEL_COLOR },
     },
     series: [
+      {
+        type: "custom",
+        name: "timeline-header",
+        renderItem: createTimelineTickRenderer(
+          timelineAxis.formatSelected,
+          timelineAxis.formatParent,
+        ),
+        encode: { x: 0 },
+        data: timelineTicks.map((tick): TimelineTickData => ({
+          value: [tick.value, 0],
+        })),
+        clip: false,
+        z: 8,
+        silent: true,
+      },
       {
         type: "custom",
         name: "dependencies",
         renderItem: renderLink,
         encode: { x: [1, 3], y: [0, 2] },
-        data: linkData,
+        data: view.showDependencies ? linkData : [],
+        clip: true,
         z: 1,
+        silent: true,
+        markArea: {
+          silent: true,
+          data: calendarAreas,
+        },
+      },
+      {
+        type: "custom",
+        name: "critical-dependencies",
+        renderItem: renderCriticalLink,
+        encode: { x: [1, 3], y: [0, 2] },
+        data: view.showCriticalPath
+          ? linkData.filter((link) => criticalDependencyIds.has(link.id))
+          : [],
+        clip: true,
+        z: 4,
         silent: true,
       },
       {
@@ -265,7 +388,8 @@ function buildOption(
         renderItem: renderTaskBar,
         encode: { x: [1, 2], y: 0 },
         data: groupData,
-        z: 2,
+        clip: true,
+        z: 3,
       },
       {
         type: "custom",
@@ -273,7 +397,8 @@ function buildOption(
         renderItem: renderTaskBar,
         encode: { x: [1, 2], y: 0 },
         data: taskData,
-        z: 2,
+        clip: true,
+        z: 3,
       },
       {
         type: "custom",
@@ -281,15 +406,80 @@ function buildOption(
         renderItem: renderMilestone,
         encode: { x: 1, y: 0 },
         data: milestoneData,
-        z: 3,
+        clip: true,
+        z: 5,
       },
     ],
   };
 }
 
+/** Builds off-day and holiday shading ranges for the visible chart interval. */
+function buildCalendarAreas(
+  document: ProjectDocument,
+  range: { min: number; max: number },
+  view: ProjectView,
+): CalendarArea[] {
+  const areas: CalendarArea[] = [];
+  if (view.showOffDays) {
+    const daysOff = document.settings.workingCalendar.daysOff;
+    for (let start = startOfDay(range.min); start < range.max; start += DAY) {
+      const weekday = new Date(start).getDay() || 7;
+      if (daysOff.includes(weekday)) {
+        areas.push([
+          {
+            xAxis: start,
+            itemStyle: { color: "rgba(127, 127, 127, 0.18)" },
+          },
+          { xAxis: start + DAY },
+        ]);
+      }
+    }
+  }
+  if (view.showHolidays) {
+    for (const holiday of document.settings.holidays) {
+      const start = startOfDay(toChartMs(holiday.start));
+      const end = startOfDay(toChartMs(holiday.end)) + DAY;
+      if (end >= range.min && start <= range.max) {
+        areas.push([
+          {
+            xAxis: start,
+            itemStyle: { color: "rgba(240, 163, 10, 0.24)" },
+          },
+          { xAxis: end },
+        ]);
+      }
+    }
+  }
+  return areas;
+}
+
+/** Creates the hidden continuous scale used by custom calendar ticks. */
+function createTimeAxis(range: {
+  min: number;
+  max: number;
+}): Record<string, unknown> {
+  return {
+    type: "time",
+    min: range.min,
+    max: range.max,
+    position: "top",
+    axisLabel: { show: false },
+    axisTick: { show: false },
+    axisLine: { show: true },
+    splitLine: { show: false },
+  };
+}
+
+/** Returns local midnight for a chart timestamp. */
+function startOfDay(timestamp: number): number {
+  const date = new Date(timestamp);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
 /** Renders a task as a horizontal timeline bar. */
 const renderTaskBar: CustomSeriesRenderItem = (
-  _params: CustomSeriesRenderItemParams,
+  params: CustomSeriesRenderItemParams,
   api: CustomSeriesRenderItemAPI,
 ): CustomSeriesRenderItemReturn => {
   const rowIndex = api.value(0) as number;
@@ -297,14 +487,23 @@ const renderTaskBar: CustomSeriesRenderItem = (
   const end = api.coord([api.value(2), rowIndex]);
   const height = (api.size?.([0, 1]) as number[])[1] * BAR_RATIO;
   const width = Math.max(end[0] - start[0], 2);
-
-  return {
-    type: "rect",
-    shape: {
+  const shape = clipTimelineRectangle(
+    {
       x: start[0],
       y: start[1] - height / 2,
       width,
       height,
+    },
+    timelineGrid(params),
+  );
+  if (shape === undefined) {
+    return undefined;
+  }
+
+  return {
+    type: "rect",
+    shape: {
+      ...shape,
       r: 3,
     },
     style: api.style(),
@@ -313,12 +512,15 @@ const renderTaskBar: CustomSeriesRenderItem = (
 
 /** Renders a milestone as a diamond marker. */
 const renderMilestone: CustomSeriesRenderItem = (
-  _params: CustomSeriesRenderItemParams,
+  params: CustomSeriesRenderItemParams,
   api: CustomSeriesRenderItemAPI,
 ): CustomSeriesRenderItemReturn => {
   const rowIndex = api.value(0) as number;
   const point = api.coord([api.value(1), rowIndex]);
   const size = ((api.size?.([0, 1]) as number[])[1] * BAR_RATIO) / 2;
+  if (!isPointInTimeline([point[0], point[1]], timelineGrid(params))) {
+    return undefined;
+  }
 
   return {
     type: "polygon",
@@ -336,6 +538,11 @@ const renderMilestone: CustomSeriesRenderItem = (
     }),
   };
 };
+
+/** Resolves the active Cartesian grid from custom-series render parameters. */
+function timelineGrid(params: CustomSeriesRenderItemParams): TimelineRectangle {
+  return params.coordSys as unknown as TimelineRectangle;
+}
 
 /** Renders a dependency as an orthogonal link between entities. */
 const renderLink: CustomSeriesRenderItem = (
@@ -359,6 +566,32 @@ const renderLink: CustomSeriesRenderItem = (
     style: {
       stroke: "var(--vscode-descriptionForeground)",
       lineWidth: 1,
+      fill: "none",
+    },
+  };
+};
+
+/** Renders a critical dependency above ordinary dependency lines and bars. */
+const renderCriticalLink: CustomSeriesRenderItem = (
+  _params: CustomSeriesRenderItemParams,
+  api: CustomSeriesRenderItemAPI,
+): CustomSeriesRenderItemReturn => {
+  const from = api.coord([api.value(1), api.value(0)]);
+  const to = api.coord([api.value(3), api.value(2)]);
+  const midX = (from[0] + to[0]) / 2;
+  return {
+    type: "polyline",
+    shape: {
+      points: [
+        [from[0], from[1]],
+        [midX, from[1]],
+        [midX, to[1]],
+        [to[0], to[1]],
+      ],
+    },
+    style: {
+      stroke: "#d19a24",
+      lineWidth: 3,
       fill: "none",
     },
   };
