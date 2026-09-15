@@ -6,11 +6,11 @@ import {
   EditableEntityRef,
 } from "../common/protocol";
 import { buildShiftByDaysPatch } from "../services/editing/projectItemSchedulePatchService";
-import { ChartMenuBar } from "./components/ChartMenuBar";
-import { GanttChart } from "./GanttChart";
+import { ChartMenuBar } from "./features/chart/components/ChartMenuBar";
+import { GanttChart } from "./features/chart/components/GanttChart";
 import { translate, WebviewL10n, WebviewL10nContext } from "./l10n";
-import { TaskForm } from "./TaskForm";
-import { useEntityEditWorkflow } from "./useEntityEditWorkflow";
+import { EntityEditor } from "./features/entity-editor/components/EntityEditor";
+import { useEntityEditWorkflow } from "./features/entity-editor/hooks/useEntityEditWorkflow";
 import {
   createGanttViewState,
   GanttViewState,
@@ -189,7 +189,7 @@ export function App(): React.JSX.Element {
         </div>
         {editingTarget && (
           <aside className="ganttee-panel">
-            <TaskForm
+            <EntityEditor
               editingEntity={editingTarget}
               document={viewState.document}
               schedule={viewState.scheduledModel}

@@ -60,3 +60,16 @@ model is rebroadcast to the webview and the sidebar tree.
 - New command → declare it in `package.json` and register it in `src/extension.ts`.
 - New behavior → add or update a focused test in `src/test/`.
 - Any new user-facing string must use the localization framework.
+
+## Webview Internal Organization
+
+- Keep app infrastructure at `src/webview/`: bootstrap, localization, host bridge, and hydrated
+  state.
+- Put feature-only code in `src/webview/features/<name>/`.
+- Keep JSX, direct event bindings, and small UI state in `.tsx` components.
+- Put React state, subscriptions, and lifecycle work in `useXxx.ts` hooks.
+- Put pure external-object construction in `XxxBuilder.ts`.
+- Put UI-ready data, label keys, option lists, and descriptors in `XxxPresentation.ts`.
+- Put shared feature-only types in `Xxx.types.ts` and cohesive constants in `Xxx.constants.ts`.
+- Keep feature CSS beside its feature. Do not use `.styles.ts` without a CSS-in-JS pipeline.
+- Do not add routes, API clients, or global stores without a product need.
