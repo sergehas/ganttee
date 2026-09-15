@@ -30,9 +30,7 @@ export function createTimelineTickRenderer(
         type: "line",
         shape: { x1: x, y1: grid.y, x2: x, y2: grid.y + grid.height },
         style: {
-          stroke: parentLabel
-            ? "rgba(127, 127, 127, 0.48)"
-            : "rgba(127, 127, 127, 0.24)",
+          stroke: parentLabel ? "rgba(127, 127, 127, 0.48)" : "rgba(127, 127, 127, 0.24)",
           lineWidth: 1,
         },
       },

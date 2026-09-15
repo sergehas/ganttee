@@ -54,10 +54,7 @@ interface DateSpan {
  * @returns A complete immutable schedule.
  * @throws {SchedulingError} When any entity or calendar setting is invalid.
  */
-export function schedule(
-  model: ProjectModel,
-  graph: ProjectDependencyGraph,
-): ProjectSchedule {
+export function schedule(model: ProjectModel, graph: ProjectDependencyGraph): ProjectSchedule {
   const settings = workingTimeSettings(model);
   const entities = new Map<string, Task | Milestone>([
     ...model.tasks.map((task) => [task.id, task] as const),
@@ -72,19 +69,10 @@ export function schedule(
     if (entity === undefined) {
       throw new SchedulingError(`Unknown schedulable entity "${entityId}".`);
     }
-    const candidates = dependencyCandidates(
-      graph.dependenciesOf(entityId),
-      scheduled,
-      settings,
-    );
+    const candidates = dependencyCandidates(graph.dependenciesOf(entityId), scheduled, settings);
     if (entity instanceof Task) {
       const values = resolveTask(entity, candidates, settings);
-      const result = new ScheduledTask(
-        entity,
-        values.start,
-        values.end,
-        values.duration,
-      );
+      const result = new ScheduledTask(entity, values.start, values.end, values.duration);
       tasks.push(result);
       scheduled.set(entityId, result);
     } else {
@@ -96,9 +84,7 @@ export function schedule(
   }
 
   if (scheduled.size !== entities.size) {
-    throw new SchedulingError(
-      "The dependency graph omitted a schedulable entity.",
-    );
+    throw new SchedulingError("The dependency graph omitted a schedulable entity.");
   }
   return new ProjectSchedule(
     tasks,
@@ -153,11 +139,7 @@ export function rollupGroupSchedules(
         groupId: group.groupId,
         effectiveStart: new Date(span.start),
         effectiveEnd: new Date(span.end),
-        effectiveDuration: diffInWorkingDays(
-          new Date(span.start),
-          new Date(span.end),
-          settings,
-        ),
+        effectiveDuration: diffInWorkingDays(new Date(span.start), new Date(span.end), settings),
       });
     }
     return span;
@@ -199,9 +181,7 @@ function dependencyCandidates(
   for (const dependency of dependencies) {
     const target = scheduled.get(dependency.targetId);
     if (target === undefined) {
-      throw new SchedulingError(
-        `Dependency "${dependency.id}" target is not scheduled.`,
-      );
+      throw new SchedulingError(`Dependency "${dependency.id}" target is not scheduled.`);
     }
     if (dependency.type === "startAfter") {
       starts.push(normalizeToWorkingTime(target.effectiveEnd(), settings));
@@ -223,9 +203,7 @@ function resolveTask(
   const dependencyStart = maximumDate(candidates.starts);
   const dependencyEnd = maximumDate(candidates.ends);
   const staticStart =
-    task.start === undefined
-      ? undefined
-      : normalizeToWorkingTime(task.start, settings);
+    task.start === undefined ? undefined : normalizeToWorkingTime(task.start, settings);
   const staticEnd = task.end;
   const start = dependencyStart ?? staticStart;
   const end = dependencyEnd ?? staticEnd;
@@ -267,19 +245,14 @@ function resolveMilestone(
   candidates: EndpointCandidates,
   settings: WorkingTimeSettings,
 ): Date {
-  const dependencyDate = maximumDate([
-    ...candidates.starts,
-    ...candidates.ends,
-  ]);
+  const dependencyDate = maximumDate([...candidates.starts, ...candidates.ends]);
   if (dependencyDate !== undefined) {
     return dependencyDate;
   }
   if (milestone.date !== undefined) {
     return normalizeToWorkingTime(milestone.date, settings);
   }
-  throw new SchedulingError(
-    `Milestone "${milestone.id}" is under-constrained.`,
-  );
+  throw new SchedulingError(`Milestone "${milestone.id}" is under-constrained.`);
 }
 
 /** Rejects invalid static task durations. */
@@ -298,9 +271,7 @@ function maximumDate(dates: readonly Date[]): Date | undefined {
 }
 
 /** Indexes direct child groups by parent id. */
-function groupChildren(
-  groups: readonly Group[],
-): ReadonlyMap<string, readonly Group[]> {
+function groupChildren(groups: readonly Group[]): ReadonlyMap<string, readonly Group[]> {
   const children = new Map<string, Group[]>();
   for (const group of groups) {
     if (group.groupId !== undefined) {
@@ -313,11 +284,7 @@ function groupChildren(
 }
 
 /** Merges a date span into the span stored for a group id. */
-function mergeSpan(
-  spans: Map<string, DateSpan>,
-  groupId: string,
-  candidate: DateSpan,
-): void {
+function mergeSpan(spans: Map<string, DateSpan>, groupId: string, candidate: DateSpan): void {
   const current = spans.get(groupId);
   if (current === undefined) {
     spans.set(groupId, { ...candidate });

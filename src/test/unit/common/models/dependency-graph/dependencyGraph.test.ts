@@ -20,18 +20,12 @@ suite("ProjectDependencyGraph", () => {
   });
 
   test("exposes the union of declared nodes and edge endpoints", () => {
-    const graph = new ProjectDependencyGraph(
-      ["a", "b", "isolated"],
-      [dep("a", "b")],
-    );
+    const graph = new ProjectDependencyGraph(["a", "b", "isolated"], [dep("a", "b")]);
     assert.deepStrictEqual(graph.nodes().sort(), ["a", "b", "isolated"]);
   });
 
   test("reports no cycle for an acyclic edge set", () => {
-    const graph = new ProjectDependencyGraph(
-      ["a", "b", "c"],
-      [dep("a", "b"), dep("b", "c")],
-    );
+    const graph = new ProjectDependencyGraph(["a", "b", "c"], [dep("a", "b"), dep("b", "c")]);
     assert.strictEqual(graph.hasCycle(), false);
     assert.deepStrictEqual([...graph.findCycle()], []);
   });
@@ -54,10 +48,7 @@ suite("ProjectDependencyGraph", () => {
   });
 
   test("detects a closing candidate without mutating the graph", () => {
-    const graph = new ProjectDependencyGraph(
-      ["a", "b", "c"],
-      [dep("a", "b"), dep("b", "c")],
-    );
+    const graph = new ProjectDependencyGraph(["a", "b", "c"], [dep("a", "b"), dep("b", "c")]);
     assert.strictEqual(graph.wouldCreateCycle(dep("c", "a")), true);
     assert.strictEqual(graph.wouldCreateCycle(dep("a", "c")), false);
     assert.strictEqual(graph.hasCycle(), false);
@@ -84,18 +75,12 @@ suite("ProjectDependencyGraph", () => {
   });
 
   test("throws a cycle error when a topological order does not exist", () => {
-    const graph = new ProjectDependencyGraph(
-      ["a", "b"],
-      [dep("a", "b"), dep("b", "a")],
-    );
+    const graph = new ProjectDependencyGraph(["a", "b"], [dep("a", "b"), dep("b", "a")]);
     assert.throws(() => graph.topologicalSort(), CyclicDependencyError);
   });
 
   test("returns adjacent ids in both directions", () => {
-    const graph = new ProjectDependencyGraph(
-      ["a", "b", "c"],
-      [dep("a", "c"), dep("b", "c")],
-    );
+    const graph = new ProjectDependencyGraph(["a", "b", "c"], [dep("a", "c"), dep("b", "c")]);
     assert.deepStrictEqual([...graph.successors("c")].sort(), ["a", "b"]);
     assert.deepStrictEqual([...graph.predecessors("a")], ["c"]);
     assert.deepStrictEqual([...graph.predecessors("c")], []);

@@ -1,8 +1,4 @@
-import {
-  createEmptyDocument,
-  DependencyType,
-  ProjectDocument,
-} from "@common/documents";
+import { createEmptyDocument, DependencyType, ProjectDocument } from "@common/documents";
 import {
   describeDependency,
   findEntityRefById,
@@ -88,9 +84,7 @@ function createDocument(): ProjectDocument {
   return {
     ...createEmptyDocument(),
     version: 2,
-    tasks: [
-      { id: "t1", name: "Task One", start: "2026-01-01", end: "2026-01-03" },
-    ],
+    tasks: [{ id: "t1", name: "Task One", start: "2026-01-01", end: "2026-01-03" }],
     milestones: [{ id: "m1", name: "Milestone One", date: "2026-01-02" }],
     groups: [{ id: "g1", name: "Group One" }],
     dependencies: [],

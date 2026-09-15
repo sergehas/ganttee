@@ -14,9 +14,7 @@ import { ProjectDocument } from "@common/documents";
  * @param document The document to inspect.
  * @returns Ids of tasks with a static start or end, and milestones with a date.
  */
-export function anchoredEntityIds(
-  document: ProjectDocument,
-): ReadonlySet<string> {
+export function anchoredEntityIds(document: ProjectDocument): ReadonlySet<string> {
   return new Set([
     ...document.tasks
       .filter((task) => task.start !== undefined || task.end !== undefined)
@@ -34,9 +32,7 @@ export function anchoredEntityIds(
  * @param document The document to inspect.
  * @returns Ids of every task and milestone.
  */
-export function schedulableEntityIds(
-  document: ProjectDocument,
-): ReadonlySet<string> {
+export function schedulableEntityIds(document: ProjectDocument): ReadonlySet<string> {
   return new Set([
     ...document.tasks.map((task) => task.id),
     ...document.milestones.map((milestone) => milestone.id),
@@ -59,7 +55,6 @@ export function unanchoredComponents(
 ): readonly (readonly string[])[] {
   return components.filter(
     (component) =>
-      component.some((id) => schedulable.has(id)) &&
-      !component.some((id) => anchored.has(id)),
+      component.some((id) => schedulable.has(id)) && !component.some((id) => anchored.has(id)),
   );
 }

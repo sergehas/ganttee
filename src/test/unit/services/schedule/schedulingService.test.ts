@@ -1,14 +1,7 @@
-import {
-  createEmptyDocument,
-  ProjectDocument,
-  ProjectSettings,
-} from "@common/documents";
+import { createEmptyDocument, ProjectDocument, ProjectSettings } from "@common/documents";
 import { ScheduledTask, SchedulingError } from "@common/models";
 import { hydrateDocument } from "@services/model/projectModelService";
-import {
-  rollupGroupSchedules,
-  schedule,
-} from "@services/schedule/schedulingService";
+import { rollupGroupSchedules, schedule } from "@services/schedule/schedulingService";
 import * as assert from "assert";
 
 /** Creates a document configured for an eight-hour UTC working day. */
@@ -30,10 +23,7 @@ function scheduleDocument(document: ProjectDocument) {
 }
 
 /** Finds a scheduled task or fails the current test. */
-function taskById(
-  scheduled: ReturnType<typeof schedule>,
-  id: string,
-): ScheduledTask {
+function taskById(scheduled: ReturnType<typeof schedule>, id: string): ScheduledTask {
   const task = scheduled.tasks.find((candidate) => candidate.id === id);
   assert.ok(task, `Expected scheduled task "${id}".`);
   return task;
@@ -57,9 +47,7 @@ suite("schedulingService", () => {
       workingDayStart: 8.5,
       holidays: [],
     };
-    document.tasks = [
-      { id: "task", name: "Task", start: "2026-09-08", duration: 2 },
-    ];
+    document.tasks = [{ id: "task", name: "Task", start: "2026-09-08", duration: 2 }];
 
     const task = taskById(scheduleDocument(document), "task");
 
@@ -72,9 +60,7 @@ suite("schedulingService", () => {
 
   test("uses the default working calendar settings", () => {
     const document = createEmptyDocument();
-    document.tasks = [
-      { id: "task", name: "Task", start: "2026-09-08", duration: 1 },
-    ];
+    document.tasks = [{ id: "task", name: "Task", start: "2026-09-08", duration: 1 }];
 
     const task = taskById(scheduleDocument(document), "task");
 
@@ -89,9 +75,7 @@ suite("schedulingService", () => {
     const document = schedulingDocument();
     document.settings!.workingDayStart = 20;
     document.settings!.workingDayHours = 24;
-    document.tasks = [
-      { id: "task", name: "Task", start: "2026-09-08", duration: 1 },
-    ];
+    document.tasks = [{ id: "task", name: "Task", start: "2026-09-08", duration: 1 }];
 
     const task = taskById(scheduleDocument(document), "task");
 
@@ -117,25 +101,17 @@ suite("schedulingService", () => {
 
     const task = taskById(scheduleDocument(document), "task");
 
-    assert.strictEqual(
-      task.effectiveEnd().toISOString(),
-      "2026-09-11T10:30:00.000Z",
-    );
+    assert.strictEqual(task.effectiveEnd().toISOString(), "2026-09-11T10:30:00.000Z");
   });
 
   test("schedules an end-anchored task backward across days off", () => {
     const document = schedulingDocument();
     document.settings!.workingCalendar = { daysOff: [6, 7] };
-    document.tasks = [
-      { id: "task", name: "Task", end: "2026-09-14T17:00:00Z", duration: 2 },
-    ];
+    document.tasks = [{ id: "task", name: "Task", end: "2026-09-14T17:00:00Z", duration: 2 }];
 
     const task = taskById(scheduleDocument(document), "task");
 
-    assert.strictEqual(
-      task.effectiveStart().toISOString(),
-      "2026-09-11T09:00:00.000Z",
-    );
+    assert.strictEqual(task.effectiveStart().toISOString(), "2026-09-11T09:00:00.000Z");
   });
 
   test("normalizes timestamps outside working intervals", () => {
@@ -168,11 +144,7 @@ suite("schedulingService", () => {
       ["before", "after", "day-off"].map((id) =>
         taskById(scheduled, id).effectiveStart().toISOString(),
       ),
-      [
-        "2026-09-08T09:00:00.000Z",
-        "2026-09-14T09:00:00.000Z",
-        "2026-09-14T09:00:00.000Z",
-      ],
+      ["2026-09-08T09:00:00.000Z", "2026-09-14T09:00:00.000Z", "2026-09-14T09:00:00.000Z"],
     );
   });
 
@@ -208,10 +180,7 @@ suite("schedulingService", () => {
         .toISOString(),
     );
 
-    assert.deepStrictEqual(starts, [
-      "2026-09-11T09:00:00.000Z",
-      "2026-09-11T09:00:00.000Z",
-    ]);
+    assert.deepStrictEqual(starts, ["2026-09-11T09:00:00.000Z", "2026-09-11T09:00:00.000Z"]);
   });
 
   test("preserves startWith and endWith target timestamps", () => {
@@ -251,9 +220,7 @@ suite("schedulingService", () => {
 
     assert.deepStrictEqual(
       {
-        start: taskById(scheduled, "start-source")
-          .effectiveStart()
-          .toISOString(),
+        start: taskById(scheduled, "start-source").effectiveStart().toISOString(),
         end: taskById(scheduled, "end-source").effectiveEnd().toISOString(),
       },
       {
@@ -320,9 +287,7 @@ suite("schedulingService", () => {
     const startAnchored = schedulingDocument();
     startAnchored.tasks = [{ id: "task", name: "Task", start: "2026-09-08" }];
     const endAnchored = schedulingDocument();
-    endAnchored.tasks = [
-      { id: "task", name: "Task", end: "2026-09-08T17:00:00Z" },
-    ];
+    endAnchored.tasks = [{ id: "task", name: "Task", end: "2026-09-08T17:00:00Z" }];
 
     assert.deepStrictEqual(
       [startAnchored, endAnchored].map((document) =>
@@ -345,16 +310,11 @@ suite("schedulingService", () => {
 
   test("normalizes a static milestone date", () => {
     const document = schedulingDocument();
-    document.milestones = [
-      { id: "milestone", name: "Milestone", date: "2026-09-08" },
-    ];
+    document.milestones = [{ id: "milestone", name: "Milestone", date: "2026-09-08" }];
 
     const milestone = scheduleDocument(document).milestones[0];
 
-    assert.strictEqual(
-      milestone.effectiveStart().toISOString(),
-      "2026-09-08T09:00:00.000Z",
-    );
+    assert.strictEqual(milestone.effectiveStart().toISOString(), "2026-09-08T09:00:00.000Z");
   });
 
   test("rejects zero-duration tasks without returning a partial schedule", () => {
@@ -403,9 +363,7 @@ suite("schedulingService", () => {
     for (const settings of invalidSettings) {
       const document = schedulingDocument();
       document.settings = settings;
-      document.tasks = [
-        { id: "task", name: "Task", start: "2026-09-08", duration: 1 },
-      ];
+      document.tasks = [{ id: "task", name: "Task", start: "2026-09-08", duration: 1 }];
       assert.throws(() => scheduleDocument(document), SchedulingError);
     }
   });
@@ -473,9 +431,6 @@ suite("schedulingService", () => {
       workingDayStart: model.settings.workingDayStart,
     };
 
-    assert.deepStrictEqual(
-      rollupGroupSchedules(model.groups, [], [], settings),
-      [],
-    );
+    assert.deepStrictEqual(rollupGroupSchedules(model.groups, [], [], settings), []);
   });
 });

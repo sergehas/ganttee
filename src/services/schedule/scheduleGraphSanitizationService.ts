@@ -31,9 +31,7 @@ export interface ScheduleGraphSanitization {
  * @param document The document to sanitize.
  * @returns The sanitized document and the ids of everything removed.
  */
-export function sanitizeScheduleGraph(
-  document: ProjectDocument,
-): ScheduleGraphSanitization {
+export function sanitizeScheduleGraph(document: ProjectDocument): ScheduleGraphSanitization {
   const entityIds = new Set([
     ...document.tasks.map((task) => task.id),
     ...document.milestones.map((milestone) => milestone.id),
@@ -44,11 +42,7 @@ export function sanitizeScheduleGraph(
   const supportedDependencies = document.dependencies.filter(
     (dependency) => !hasUnusableEndpoint(dependency, entityIds, groupIds),
   );
-  const removedEntityIds = collectUnanchoredEntityIds(
-    document,
-    entityIds,
-    supportedDependencies,
-  );
+  const removedEntityIds = collectUnanchoredEntityIds(document, entityIds, supportedDependencies);
 
   const removedDependencyIds = document.dependencies
     .filter(
@@ -62,12 +56,8 @@ export function sanitizeScheduleGraph(
     document: {
       ...document,
       tasks: document.tasks.filter((task) => !removedEntityIds.has(task.id)),
-      milestones: document.milestones.filter(
-        (milestone) => !removedEntityIds.has(milestone.id),
-      ),
-      groups: document.groups.filter(
-        (group) => !removedEntityIds.has(group.id),
-      ),
+      milestones: document.milestones.filter((milestone) => !removedEntityIds.has(milestone.id)),
+      groups: document.groups.filter((group) => !removedEntityIds.has(group.id)),
       dependencies: supportedDependencies.filter(
         (dependency) => !touchesAny(dependency, removedEntityIds),
       ),
@@ -105,11 +95,6 @@ function hasUnusableEndpoint(
 }
 
 /** Returns whether either endpoint of a dependency is in the given set. */
-function touchesAny(
-  dependency: Dependency,
-  entityIds: ReadonlySet<string>,
-): boolean {
-  return (
-    entityIds.has(dependency.sourceId) || entityIds.has(dependency.targetId)
-  );
+function touchesAny(dependency: Dependency, entityIds: ReadonlySet<string>): boolean {
+  return entityIds.has(dependency.sourceId) || entityIds.has(dependency.targetId);
 }

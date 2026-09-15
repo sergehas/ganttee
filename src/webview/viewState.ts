@@ -27,10 +27,7 @@ export interface GanttViewState {
  * @param document The authoring document received from the host.
  * @param revision The corresponding host text-document revision.
  */
-export function createGanttViewState(
-  document: ProjectDocument,
-  revision: number,
-): GanttViewState {
+export function createGanttViewState(document: ProjectDocument, revision: number): GanttViewState {
   const model = hydrateDocument(document);
   if (document.schedule === undefined) {
     throw new Error("Host document does not contain a computed schedule.");

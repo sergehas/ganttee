@@ -40,9 +40,7 @@ const DIAGNOSTICS: readonly ScheduleDiagnostic[] = [
 
 suite("scheduleDiagnosticPresenter", () => {
   test("describes every diagnostic kind against the given entity", () => {
-    const messages = DIAGNOSTICS.map((diagnostic) =>
-      describeDiagnostic(diagnostic, "subject"),
-    );
+    const messages = DIAGNOSTICS.map((diagnostic) => describeDiagnostic(diagnostic, "subject"));
 
     assert.strictEqual(messages.length, DIAGNOSTICS.length);
     for (const message of messages) {
@@ -52,13 +50,9 @@ suite("scheduleDiagnosticPresenter", () => {
   });
 
   test("names the entity for determinacy and anchoring messages", () => {
-    assert.ok(
-      describeDiagnostic(DIAGNOSTICS[0], "subject").includes("subject"),
-    );
+    assert.ok(describeDiagnostic(DIAGNOSTICS[0], "subject").includes("subject"));
     assert.ok(describeDiagnostic(DIAGNOSTICS[0], "subject").includes("1"));
-    assert.ok(
-      describeDiagnostic(DIAGNOSTICS[4], "subject").includes("subject"),
-    );
+    assert.ok(describeDiagnostic(DIAGNOSTICS[4], "subject").includes("subject"));
   });
 
   test("names the dependency for endpoint messages", () => {

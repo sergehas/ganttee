@@ -40,14 +40,10 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
           <input
             type="date"
             value={task.start ?? ""}
-            onChange={(event) =>
-              update("start", event.target.value || undefined)
-            }
+            onChange={(event) => update("start", event.target.value || undefined)}
           />
           {scheduledTask && (
-            <output>
-              {formatShortDate(scheduledTask.effectiveStart(), locale)}
-            </output>
+            <output>{formatShortDate(scheduledTask.effectiveStart(), locale)}</output>
           )}
         </label>
         <label className="ganttee-field">
@@ -59,9 +55,7 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
             onChange={(event) => update("end", event.target.value || undefined)}
           />
           {scheduledTask && (
-            <output>
-              {formatShortDate(scheduledTask.effectiveEnd(), locale)}
-            </output>
+            <output>{formatShortDate(scheduledTask.effectiveEnd(), locale)}</output>
           )}
         </label>
       </div>
@@ -75,17 +69,10 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
             step="any"
             value={task.duration ?? ""}
             onChange={(event) =>
-              update(
-                "duration",
-                event.target.value === ""
-                  ? undefined
-                  : Number(event.target.value),
-              )
+              update("duration", event.target.value === "" ? undefined : Number(event.target.value))
             }
           />
-          {scheduledTask && (
-            <output>{scheduledTask.effectiveDuration()}</output>
-          )}
+          {scheduledTask && <output>{scheduledTask.effectiveDuration()}</output>}
         </label>
         <label className="ganttee-field">
           <span>{t("Progress")}</span>
@@ -94,9 +81,7 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
             min={0}
             max={100}
             value={Math.round((task.progress ?? 0) * 100)}
-            onChange={(event) =>
-              update("progress", Number(event.target.value) / 100)
-            }
+            onChange={(event) => update("progress", Number(event.target.value) / 100)}
           />
         </label>
       </div>
@@ -105,9 +90,7 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
         <span>{t("Status")}</span>
         <select
           value={task.status ?? "todo"}
-          onChange={(event) =>
-            update("status", event.target.value as TaskStatus)
-          }
+          onChange={(event) => update("status", event.target.value as TaskStatus)}
         >
           {STATUS_OPTIONS.map((status) => (
             <option key={status} value={status}>

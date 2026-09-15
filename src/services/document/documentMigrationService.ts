@@ -24,24 +24,16 @@ export function migrateDocument(raw: unknown): unknown {
  * legacy and new keys are present the new value wins and the legacy key is
  * dropped, so documents self-heal on the next save without a version bump.
  */
-function renameLegacyFields(
-  raw: Record<string, unknown>,
-): Record<string, unknown> {
+function renameLegacyFields(raw: Record<string, unknown>): Record<string, unknown> {
   const result = { ...raw };
   if (Array.isArray(result.tasks)) {
-    result.tasks = result.tasks.map((entry) =>
-      renameKey(entry, "title", "name"),
-    );
+    result.tasks = result.tasks.map((entry) => renameKey(entry, "title", "name"));
   }
   if (Array.isArray(result.milestones)) {
-    result.milestones = result.milestones.map((entry) =>
-      renameKey(entry, "title", "name"),
-    );
+    result.milestones = result.milestones.map((entry) => renameKey(entry, "title", "name"));
   }
   if (Array.isArray(result.groups)) {
-    result.groups = result.groups.map((entry) =>
-      renameKey(entry, "parentId", "groupId"),
-    );
+    result.groups = result.groups.map((entry) => renameKey(entry, "parentId", "groupId"));
   }
   return result;
 }
@@ -62,11 +54,7 @@ function hoistSettings(raw: Record<string, unknown>): Record<string, unknown> {
     return raw;
   }
 
-  const {
-    workingCalendar: legacyCalendar,
-    workingDayHours: legacyHours,
-    ...rest
-  } = raw;
+  const { workingCalendar: legacyCalendar, workingDayHours: legacyHours, ...rest } = raw;
   const existing = isRecord(rest.settings) ? rest.settings : {};
   const settings: Record<string, unknown> = { ...existing };
   if (hasLegacyCalendar && !("workingCalendar" in settings)) {

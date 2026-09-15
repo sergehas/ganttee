@@ -40,9 +40,7 @@ suite("migrationFlow integration", () => {
         { id: "t1", title: "A", start: "2026-01-01", end: "2026-01-02" },
         { id: "t2", title: "B", start: "2026-01-03", end: "2026-01-04" },
       ],
-      dependencies: [
-        { id: "d1", sourceId: "t1", targetId: "t2", type: "finishAfter" },
-      ],
+      dependencies: [{ id: "d1", sourceId: "t1", targetId: "t2", type: "finishAfter" }],
     };
     const migrated = migrateDocument(raw) as Record<string, unknown>;
     const deps = migrated["dependencies"] as Array<Record<string, unknown>>;
@@ -74,10 +72,7 @@ suite("migrationFlow integration", () => {
   /** `parseDocument` must never expose `migrateDocument` as
    * a required caller concern. */
   test("parseDocument applies migration transparently for v1 fixtures", () => {
-    const raw = fs.readFileSync(
-      path.join(FIXTURES_DIR, "v1-minimal.ganttee"),
-      "utf-8",
-    );
+    const raw = fs.readFileSync(path.join(FIXTURES_DIR, "v1-minimal.ganttee"), "utf-8");
     // parseDocument must not throw even for v1 input
     const doc = parseDocument(raw);
     assert.strictEqual(doc.version, CURRENT_DOCUMENT_VERSION);

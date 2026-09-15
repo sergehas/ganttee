@@ -6,16 +6,11 @@ import { GanttEditorController } from "./ganttEditorController";
 export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
   static readonly viewType = "ganttee.chartEditor";
 
-  static register(
-    context: vscode.ExtensionContext,
-    store: GanttStore,
-  ): vscode.Disposable {
+  static register(context: vscode.ExtensionContext, store: GanttStore): vscode.Disposable {
     const provider = new GanttEditorProvider(context, store);
-    return vscode.window.registerCustomEditorProvider(
-      GanttEditorProvider.viewType,
-      provider,
-      { webviewOptions: { retainContextWhenHidden: true } },
-    );
+    return vscode.window.registerCustomEditorProvider(GanttEditorProvider.viewType, provider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    });
   }
 
   private constructor(
@@ -23,10 +18,7 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
     private readonly store: GanttStore,
   ) {}
 
-  resolveCustomTextEditor(
-    document: vscode.TextDocument,
-    webviewPanel: vscode.WebviewPanel,
-  ): void {
+  resolveCustomTextEditor(document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel): void {
     webviewPanel.webview.options = {
       enableScripts: true,
       localResourceRoots: [
@@ -93,8 +85,7 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
 }
 
 function createNonce(): string {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let text = "";
   for (let i = 0; i < 32; i++) {
     text += chars.charAt(Math.floor(Math.random() * chars.length));

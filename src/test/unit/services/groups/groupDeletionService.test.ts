@@ -74,10 +74,7 @@ suite("groupDeletionService", () => {
       next?.groups.map((group) => group.id),
       ["g1", "g3"],
     );
-    assert.strictEqual(
-      next?.tasks.find((task) => task.id === "t2")?.groupId,
-      "g1",
-    );
+    assert.strictEqual(next?.tasks.find((task) => task.id === "t2")?.groupId, "g1");
     assert.strictEqual(next?.milestones[0].groupId, "g1");
     assert.deepStrictEqual(next?.dependencies.length, 2);
   });
@@ -85,14 +82,8 @@ suite("groupDeletionService", () => {
   test("reparent from a root group leaves members ungrouped", () => {
     const next = buildGroupDeletionDocument(createDocument(), "g1", "reparent");
 
-    assert.strictEqual(
-      next?.groups.find((group) => group.id === "g2")?.groupId,
-      undefined,
-    );
-    assert.strictEqual(
-      next?.tasks.find((task) => task.id === "t1")?.groupId,
-      undefined,
-    );
+    assert.strictEqual(next?.groups.find((group) => group.id === "g2")?.groupId, undefined);
+    assert.strictEqual(next?.tasks.find((task) => task.id === "t1")?.groupId, undefined);
   });
 
   test("returns undefined for an unknown group id", () => {

@@ -6,16 +6,8 @@ import {
   ProjectDocument,
   Task,
 } from "@common/documents";
-import {
-  ProjectSchedule,
-  ScheduledMilestone,
-  ScheduledTask,
-} from "@common/models";
-import {
-  EditableEntityKind,
-  EditableEntityMap,
-  EditableEntityRef,
-} from "@common/protocol";
+import { ProjectSchedule, ScheduledMilestone, ScheduledTask } from "@common/models";
+import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
 import { SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
 
 /** Routed editing target consumed by the TaskForm orchestrator. */
@@ -46,18 +38,11 @@ export interface TaskFormProps {
   /** Closes the edit form. */
   onClose: () => void;
   /** Adds a dependency for the current entity. */
-  onAddDependency: (
-    ownerId: string | undefined,
-    targetId: string,
-    type: DependencyType,
-  ) => void;
+  onAddDependency: (ownerId: string | undefined, targetId: string, type: DependencyType) => void;
   /** Removes a dependency by identifier. */
   onRemoveDependency: (dependencyId: string) => void;
   /** Removes an entity from its group. */
-  onUngroupEntity: (
-    entity: EditableEntityRef,
-    options?: SaveEntityOptions,
-  ) => void;
+  onUngroupEntity: (entity: EditableEntityRef, options?: SaveEntityOptions) => void;
   /** Opens another entity in the edit form. */
   onRequestEditEntity: (entity: EditableEntityRef) => void;
 }

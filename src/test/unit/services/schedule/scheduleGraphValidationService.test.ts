@@ -1,8 +1,4 @@
-import {
-  createEmptyDocument,
-  Dependency,
-  ProjectDocument,
-} from "@common/documents";
+import { createEmptyDocument, Dependency, ProjectDocument } from "@common/documents";
 import {
   blockingDiagnostics,
   diagnosticsFor,
@@ -24,8 +20,7 @@ function dep(sourceId: string, targetId: string): Dependency {
 /** Summarizes diagnostics as `kind:id` pairs for concise assertions. */
 function summarize(diagnostics: readonly ScheduleDiagnostic[]): string[] {
   return diagnostics.map((diagnostic) =>
-    diagnostic.kind === "danglingDependency" ||
-    diagnostic.kind === "groupDependency"
+    diagnostic.kind === "danglingDependency" || diagnostic.kind === "groupDependency"
       ? `${diagnostic.kind}:${diagnostic.dependencyId}`
       : `${diagnostic.kind}:${diagnostic.entityIds.join("+")}`,
   );
@@ -37,9 +32,7 @@ function countFor(
   entityId: string,
 ): number | undefined {
   const found = diagnosticsFor(diagnostics, entityId).find(
-    (diagnostic) =>
-      diagnostic.kind === "underConstrained" ||
-      diagnostic.kind === "overConstrained",
+    (diagnostic) => diagnostic.kind === "underConstrained" || diagnostic.kind === "overConstrained",
   );
   return found?.kind === "underConstrained" || found?.kind === "overConstrained"
     ? found.count
@@ -48,9 +41,7 @@ function countFor(
 
 function anchoredTaskDocument(): ProjectDocument {
   const document = createEmptyDocument();
-  document.tasks = [
-    { id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" },
-  ];
+  document.tasks = [{ id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" }];
   return document;
 }
 
@@ -81,9 +72,7 @@ suite("scheduleGraphValidationService", () => {
 
   test("reports milestone determinacy and duplicate endpoints", () => {
     const document = createEmptyDocument();
-    document.tasks = [
-      { id: "anchor", name: "Anchor", start: "2026-01-01", end: "2026-01-02" },
-    ];
+    document.tasks = [{ id: "anchor", name: "Anchor", start: "2026-01-01", end: "2026-01-02" }];
     document.milestones = [
       { id: "under", name: "Under" },
       { id: "inferred", name: "Inferred" },
@@ -157,9 +146,7 @@ suite("scheduleGraphValidationService", () => {
 
     const diagnostics = evaluateScheduleGraph(document);
 
-    assert.deepStrictEqual(summarize(diagnostics), [
-      "danglingDependency:missing-task",
-    ]);
+    assert.deepStrictEqual(summarize(diagnostics), ["danglingDependency:missing-task"]);
     assert.strictEqual(diagnosticsFor(diagnostics, "task").length, 1);
     assert.strictEqual(diagnosticsFor(diagnostics, "missing").length, 1);
   });
@@ -171,9 +158,7 @@ suite("scheduleGraphValidationService", () => {
 
     const diagnostics = evaluateScheduleGraph(document);
 
-    assert.deepStrictEqual(summarize(diagnostics), [
-      "groupDependency:group-task",
-    ]);
+    assert.deepStrictEqual(summarize(diagnostics), ["groupDependency:group-task"]);
   });
 
   test("accepts a determinate anchored task", () => {
@@ -213,9 +198,7 @@ suite("scheduleGraphValidationService", () => {
 
   test("uses a milestone date as an absolute component anchor", () => {
     const document = createEmptyDocument();
-    document.milestones = [
-      { id: "milestone", name: "Milestone", date: "2026-01-01" },
-    ];
+    document.milestones = [{ id: "milestone", name: "Milestone", date: "2026-01-01" }];
 
     const diagnostics = evaluateScheduleGraph(document);
 
@@ -224,9 +207,7 @@ suite("scheduleGraphValidationService", () => {
 
   test("allows milestones to own end-with dependencies", () => {
     const document = anchoredTaskDocument();
-    document.milestones = [
-      { id: "milestone", name: "Milestone", date: "2026-01-02" },
-    ];
+    document.milestones = [{ id: "milestone", name: "Milestone", date: "2026-01-02" }];
     document.dependencies = [
       {
         id: "end-with",
@@ -239,9 +220,7 @@ suite("scheduleGraphValidationService", () => {
     const diagnostics = evaluateScheduleGraph(document);
 
     assert.strictEqual(hasBlockingScheduleDiagnostic(diagnostics), false);
-    assert.deepStrictEqual(summarize(diagnostics), [
-      "overConstrained:milestone",
-    ]);
+    assert.deepStrictEqual(summarize(diagnostics), ["overConstrained:milestone"]);
   });
 
   test("counts a dependency-supplied endpoint toward determinacy", () => {

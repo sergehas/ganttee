@@ -10,16 +10,13 @@ export function useDependencyEditorState(
   workflow: Pick<EntityEditWorkflow, "addDependency" | "removeDependency">,
 ): DependencyEditorProps {
   const [dependencyTarget, setDependencyTarget] = useState("");
-  const [dependencyType, setDependencyType] =
-    useState<DependencyType>("startAfter");
+  const [dependencyType, setDependencyType] = useState<DependencyType>("startAfter");
 
   const dependencies = useMemo(
     () =>
       ownerId
         ? document.dependencies.filter(
-            (dependency) =>
-              dependency.sourceId === ownerId ||
-              dependency.targetId === ownerId,
+            (dependency) => dependency.sourceId === ownerId || dependency.targetId === ownerId,
           )
         : [],
     [ownerId, document.dependencies],

@@ -13,10 +13,7 @@ import { UnresolvableScheduleError } from "@common/models";
 import { EditableEntityRef } from "@common/protocol";
 import { findEntity } from "../document/projectItemService";
 import { hydrateDocument } from "../model/projectModelService";
-import {
-  EditableEntityUpdate,
-  SaveEntityOptions,
-} from "./projectItemSaveGuardService";
+import { EditableEntityUpdate, SaveEntityOptions } from "./projectItemSaveGuardService";
 
 /**
  * Detaches an entity from its group.
@@ -69,12 +66,7 @@ export function buildTaskOrMilestoneDeletionDocument(
     return undefined;
   }
 
-  const survivorDates = materializeSurvivorDates(
-    document,
-    model,
-    deleted,
-    entityId,
-  );
+  const survivorDates = materializeSurvivorDates(document, model, deleted, entityId);
   if (!survivorDates) {
     return undefined;
   }
@@ -88,8 +80,7 @@ export function buildTaskOrMilestoneDeletionDocument(
       (milestone) => kind !== "milestone" || milestone.id !== entityId,
     ),
     dependencies: document.dependencies.filter(
-      (dependency) =>
-        dependency.sourceId !== entityId && dependency.targetId !== entityId,
+      (dependency) => dependency.sourceId !== entityId && dependency.targetId !== entityId,
     ),
   };
 }

@@ -50,32 +50,17 @@ suite("documentRelationValidationService", () => {
 
   test("rejects a task whose start is after its end", () => {
     const document = createEmptyDocument();
-    document.tasks = [
-      { id: "task", name: "Task", start: "2026-01-03", end: "2026-01-02" },
-    ];
+    document.tasks = [{ id: "task", name: "Task", start: "2026-01-03", end: "2026-01-02" }];
 
-    assert.throws(
-      () => assertDocumentRelations(document),
-      /invalid date range/,
-    );
+    assert.throws(() => assertDocumentRelations(document), /invalid date range/);
   });
 
   test("rejects invalid group hierarchy relations", () => {
-    const selfParent = documentWithGroups([
-      { id: "group", name: "Group", groupId: "group" },
-    ]);
-    assert.throws(
-      () => assertDocumentRelations(selfParent),
-      /cannot reference itself/,
-    );
+    const selfParent = documentWithGroups([{ id: "group", name: "Group", groupId: "group" }]);
+    assert.throws(() => assertDocumentRelations(selfParent), /cannot reference itself/);
 
-    const missingParent = documentWithGroups([
-      { id: "group", name: "Group", groupId: "missing" },
-    ]);
-    assert.throws(
-      () => assertDocumentRelations(missingParent),
-      /unknown group id/,
-    );
+    const missingParent = documentWithGroups([{ id: "group", name: "Group", groupId: "missing" }]);
+    assert.throws(() => assertDocumentRelations(missingParent), /unknown group id/);
 
     const cycle = documentWithGroups([
       { id: "a", name: "A", groupId: "b" },
@@ -90,13 +75,8 @@ suite("documentRelationValidationService", () => {
     assert.throws(() => assertDocumentRelations(taskReference), /tasks\[0\]/);
 
     const milestoneReference = createEmptyDocument();
-    milestoneReference.milestones = [
-      { id: "milestone", name: "Milestone", groupId: "missing" },
-    ];
-    assert.throws(
-      () => assertDocumentRelations(milestoneReference),
-      /milestones\[0\]/,
-    );
+    milestoneReference.milestones = [{ id: "milestone", name: "Milestone", groupId: "missing" }];
+    assert.throws(() => assertDocumentRelations(milestoneReference), /milestones\[0\]/);
   });
 
   test("converts graph integrity errors to parse errors", () => {
@@ -126,8 +106,6 @@ suite("documentRelationValidationService", () => {
 });
 
 /** Builds an empty document with the supplied group hierarchy. */
-function documentWithGroups(
-  groups: ProjectDocument["groups"],
-): ProjectDocument {
+function documentWithGroups(groups: ProjectDocument["groups"]): ProjectDocument {
   return { ...createEmptyDocument(), groups };
 }

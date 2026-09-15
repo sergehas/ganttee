@@ -10,9 +10,7 @@ import * as assert from "assert";
 suite("scheduledDocumentService", () => {
   test("serializes Date-based schedules as ISO timestamp documents", () => {
     const document = createEmptyDocument();
-    document.tasks = [
-      { id: "task", name: "Task", start: "2026-09-08", duration: 1 },
-    ];
+    document.tasks = [{ id: "task", name: "Task", start: "2026-09-08", duration: 1 }];
     const model = hydrateDocument(document);
     const scheduledModel = schedule(model, model.graph);
 
@@ -33,9 +31,7 @@ suite("scheduledDocumentService", () => {
   test("serializes milestone and group schedule projections", () => {
     const document = createEmptyDocument();
     document.groups = [{ id: "group", name: "Group" }];
-    document.milestones = [
-      { id: "milestone", name: "Milestone", date: "2026-09-08" },
-    ];
+    document.milestones = [{ id: "milestone", name: "Milestone", date: "2026-09-08" }];
     document.tasks = [
       {
         id: "task",
@@ -79,9 +75,7 @@ suite("scheduledDocumentService", () => {
   test("rehydrates serialized schedule values as Dates", () => {
     const document = createEmptyDocument();
     document.groups = [{ id: "group", name: "Group" }];
-    document.milestones = [
-      { id: "milestone", name: "Milestone", date: "2026-09-08" },
-    ];
+    document.milestones = [{ id: "milestone", name: "Milestone", date: "2026-09-08" }];
     document.tasks = [
       {
         id: "task",

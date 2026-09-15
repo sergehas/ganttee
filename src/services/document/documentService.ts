@@ -9,10 +9,7 @@
 import { createEmptyDocument, ProjectDocument } from "@common/documents";
 import { migrateDocument } from "./documentMigrationService";
 import { assertDocumentRelations } from "./documentRelationValidationService";
-import {
-  GanttParseError,
-  validateDocumentShape,
-} from "./documentShapeValidationService";
+import { GanttParseError, validateDocumentShape } from "./documentShapeValidationService";
 
 export { GanttParseError } from "./documentShapeValidationService";
 
@@ -34,9 +31,7 @@ export function parseDocument(text: string): ProjectDocument {
   try {
     raw = JSON.parse(trimmed);
   } catch (error) {
-    throw new GanttParseError(
-      `Invalid JSON in .ganttee file: ${(error as Error).message}`,
-    );
+    throw new GanttParseError(`Invalid JSON in .ganttee file: ${(error as Error).message}`);
   }
 
   const document = validateDocumentShape(migrateDocument(raw));

@@ -8,16 +8,12 @@ import {
 } from "../entityEditorPresentation";
 
 /** Renders the dependency list and add-dependency controls. */
-export function DependencyFields(
-  props: DependencyFieldsProps,
-): React.JSX.Element {
+export function DependencyFields(props: DependencyFieldsProps): React.JSX.Element {
   const t = useTranslate();
   return (
     <fieldset className="ganttee-dependencies">
       <legend>{t("Dependencies")}</legend>
-      {props.dependencies.length === 0 && (
-        <p className="ganttee-muted">{t("No dependencies.")}</p>
-      )}
+      {props.dependencies.length === 0 && <p className="ganttee-muted">{t("No dependencies.")}</p>}
       <ul>
         {props.dependencies.map((dep) => (
           <li key={dep.id}>
@@ -38,9 +34,7 @@ export function DependencyFields(
         <select
           value={props.dependencyType}
           aria-label={t("Dependency type")}
-          onChange={(event) =>
-            props.onDependencyTypeChange(event.target.value as DependencyType)
-          }
+          onChange={(event) => props.onDependencyTypeChange(event.target.value as DependencyType)}
         >
           {DEPENDENCY_OPTIONS.map((type) => (
             <option key={type} value={type}>
@@ -51,9 +45,7 @@ export function DependencyFields(
         <select
           value={props.dependencyTarget}
           aria-label={t("Dependency target")}
-          onChange={(event) =>
-            props.onDependencyTargetChange(event.target.value)
-          }
+          onChange={(event) => props.onDependencyTargetChange(event.target.value)}
         >
           <option value="">{t("Select work item...")}</option>
           {props.dependencyCandidates.map((other) => (

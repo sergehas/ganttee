@@ -24,9 +24,7 @@ import {
  * @throws {SelfLoopDependencyError} When a dependency links an entity to itself.
  * @throws {ParallelEdgeDependencyError} When an ordered pair has two edges.
  */
-export function assertGraphIntegrity(
-  document: ProjectDocument,
-): ProjectDependencyGraph {
+export function assertGraphIntegrity(document: ProjectDocument): ProjectDependencyGraph {
   const seenPairs = new Set<string>();
   for (const dependency of document.dependencies) {
     if (dependency.sourceId === dependency.targetId) {
@@ -34,10 +32,7 @@ export function assertGraphIntegrity(
     }
     const pair = `${dependency.sourceId}\u0000${dependency.targetId}`;
     if (seenPairs.has(pair)) {
-      throw new ParallelEdgeDependencyError(
-        dependency.sourceId,
-        dependency.targetId,
-      );
+      throw new ParallelEdgeDependencyError(dependency.sourceId, dependency.targetId);
     }
     seenPairs.add(pair);
   }
@@ -52,9 +47,7 @@ export function assertGraphIntegrity(
  * @returns The dependency graph built from the document.
  * @throws {CyclicDependencyError} When the dependency set contains a cycle.
  */
-export function assertAcyclicGraph(
-  document: ProjectDocument,
-): ProjectDependencyGraph {
+export function assertAcyclicGraph(document: ProjectDocument): ProjectDependencyGraph {
   const graph = assertGraphIntegrity(document);
   const cycle = graph.findCycle();
   if (cycle.length > 0) {
@@ -71,9 +64,7 @@ export function assertAcyclicGraph(
  * @returns The dependency graph built from the document.
  * @throws {DanglingDependencyError} When an endpoint is not an entity id.
  */
-export function assertResolvableGraph(
-  document: ProjectDocument,
-): ProjectDependencyGraph {
+export function assertResolvableGraph(document: ProjectDocument): ProjectDependencyGraph {
   const nodeIds = nodeIdsOf(document);
   for (const dependency of document.dependencies) {
     for (const endpointId of [dependency.sourceId, dependency.targetId]) {
@@ -92,10 +83,7 @@ export function assertResolvableGraph(
  * @param document The document the dependency would be added to.
  * @param candidate The dependency being considered.
  */
-export function wouldCreateCycle(
-  document: ProjectDocument,
-  candidate: Dependency,
-): boolean {
+export function wouldCreateCycle(document: ProjectDocument, candidate: Dependency): boolean {
   return createSchedulableGraph(document).wouldCreateCycle(candidate);
 }
 
@@ -122,9 +110,7 @@ function nodeIdsOf(document: ProjectDocument): ReadonlySet<string> {
 }
 
 /** Builds the normalized Graphology graph over tasks and milestones only. */
-function createSchedulableGraph(
-  document: ProjectDocument,
-): ProjectDependencyGraph {
+function createSchedulableGraph(document: ProjectDocument): ProjectDependencyGraph {
   const nodeIds = [
     ...document.tasks.map((task) => task.id),
     ...document.milestones.map((milestone) => milestone.id),
@@ -134,8 +120,7 @@ function createSchedulableGraph(
     nodeIds,
     document.dependencies.filter(
       (dependency) =>
-        schedulableIds.has(dependency.sourceId) &&
-        schedulableIds.has(dependency.targetId),
+        schedulableIds.has(dependency.sourceId) && schedulableIds.has(dependency.targetId),
     ),
   );
 }

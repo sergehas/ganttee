@@ -9,18 +9,13 @@ import { ValidationMessage } from "./ValidationMessage";
 import { milestoneValidationMessages } from "../entityEditorPresentation";
 
 /** Renders milestone-specific fields plus dependency editing controls. */
-export function MilestoneFields(
-  props: MilestoneFieldsProps,
-): React.JSX.Element {
+export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element {
   const { milestone, scheduledMilestone, onChange, ...depProps } = props;
   const { document } = depProps;
   const { locale } = useWebviewL10n();
   const t = useTranslate();
   const update = makeUpdater(milestone, onChange);
-  const validation = validateMilestoneConstraints(
-    milestone,
-    document.dependencies,
-  );
+  const validation = validateMilestoneConstraints(milestone, document.dependencies);
 
   return (
     <>
@@ -42,9 +37,7 @@ export function MilestoneFields(
           onChange={(event) => update("date", event.target.value || undefined)}
         />
         {scheduledMilestone && (
-          <output>
-            {formatShortDate(scheduledMilestone.effectiveStart(), locale)}
-          </output>
+          <output>{formatShortDate(scheduledMilestone.effectiveStart(), locale)}</output>
         )}
       </label>
 

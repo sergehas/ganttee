@@ -1,8 +1,5 @@
 import { createEmptyDocument } from "@common/documents";
-import {
-  createGanttViewState,
-  updateGanttViewDocument,
-} from "@webview/viewState";
+import { createGanttViewState, updateGanttViewDocument } from "@webview/viewState";
 import * as assert from "assert";
 
 suite("viewState", () => {
@@ -43,11 +40,8 @@ suite("viewState", () => {
     assert.deepStrictEqual(
       {
         revision: result.revision,
-        taskStart: result.scheduledModel.tasks[0]
-          .effectiveStart()
-          .toISOString(),
-        groupStart:
-          result.scheduledModel.groups[0].effectiveStart.toISOString(),
+        taskStart: result.scheduledModel.tasks[0].effectiveStart().toISOString(),
+        groupStart: result.scheduledModel.groups[0].effectiveStart.toISOString(),
         criticalPath: result.criticalPath,
       },
       {
@@ -61,9 +55,7 @@ suite("viewState", () => {
 
   test("throws when the host document omits a computed schedule", () => {
     const document = createEmptyDocument();
-    document.tasks = [
-      { id: "task", name: "Task", start: "2026-09-08", duration: 1 },
-    ];
+    document.tasks = [{ id: "task", name: "Task", start: "2026-09-08", duration: 1 }];
 
     assert.throws(
       () => createGanttViewState(document, 4),
@@ -73,9 +65,7 @@ suite("viewState", () => {
 
   test("replaces an entity without mutating the host document or schedule", () => {
     const document = createEmptyDocument();
-    document.tasks = [
-      { id: "task", name: "Task", start: "2026-09-08", duration: 1 },
-    ];
+    document.tasks = [{ id: "task", name: "Task", start: "2026-09-08", duration: 1 }];
     document.schedule = {
       tasks: [
         {

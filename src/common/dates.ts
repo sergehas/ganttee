@@ -124,10 +124,7 @@ export function diffIsoDates(start: string, end: string): number {
  * @param date The timestamp to normalize.
  * @param settings The active working-time settings.
  */
-export function normalizeToWorkingTime(
-  date: Date,
-  settings: WorkingTimeSettings,
-): Date {
+export function normalizeToWorkingTime(date: Date, settings: WorkingTimeSettings): Date {
   let day = utcDayStart(date.getTime());
   while (true) {
     const interval = intervalOn(day, settings);
@@ -150,11 +147,7 @@ export function normalizeToWorkingTime(
  * @param duration The positive duration in working days.
  * @param settings The active working-time settings.
  */
-export function addWorkingDays(
-  date: Date,
-  duration: number,
-  settings: WorkingTimeSettings,
-): Date {
+export function addWorkingDays(date: Date, duration: number, settings: WorkingTimeSettings): Date {
   let cursor = normalizeToWorkingTime(date, settings).getTime();
   let remaining = duration * settings.workingDayHours * MS_PER_HOUR;
   while (remaining > 0) {
@@ -204,11 +197,7 @@ export function subtractWorkingDays(
  * @param to The end timestamp.
  * @param settings The active working-time settings.
  */
-export function diffInWorkingDays(
-  from: Date,
-  to: Date,
-  settings: WorkingTimeSettings,
-): number {
+export function diffInWorkingDays(from: Date, to: Date, settings: WorkingTimeSettings): number {
   let cursor = from.getTime();
   const end = to.getTime();
   let elapsed = 0;
@@ -236,10 +225,7 @@ function isoWeekday(day: number): number {
 }
 
 /** Returns the working interval on a UTC day, or undefined for a day off. */
-function intervalOn(
-  day: number,
-  settings: WorkingTimeSettings,
-): WorkingInterval | undefined {
+function intervalOn(day: number, settings: WorkingTimeSettings): WorkingInterval | undefined {
   if (settings.daysOff.has(isoWeekday(day))) {
     return undefined;
   }
@@ -281,10 +267,7 @@ function containingOrPreviousInterval(
 }
 
 /** Normalizes an end timestamp for reverse traversal. */
-function normalizeEndToWorkingTime(
-  date: Date,
-  settings: WorkingTimeSettings,
-): number {
+function normalizeEndToWorkingTime(date: Date, settings: WorkingTimeSettings): number {
   const epochMilliseconds = date.getTime();
   const interval = containingOrPreviousInterval(epochMilliseconds, settings);
   return Math.min(epochMilliseconds, interval.end);

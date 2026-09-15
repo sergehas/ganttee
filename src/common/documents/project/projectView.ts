@@ -25,8 +25,6 @@ export const DEFAULT_PROJECT_VIEW: ProjectView = {
 };
 
 /** Resolves a partial view section without mutating its input. */
-export function resolveProjectView(
-  view: Partial<ProjectView> = {},
-): ProjectView {
+export function resolveProjectView(view: Partial<ProjectView> = {}): ProjectView {
   return { ...DEFAULT_PROJECT_VIEW, ...view };
 }

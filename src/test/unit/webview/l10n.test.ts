@@ -11,10 +11,9 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 /** Default translation bundle containing the source-message catalog. */
-const defaultL10nBundle =
-  require("../../../../l10n/bundle.l10n.json") as Readonly<
-    Record<string, string>
-  >;
+const defaultL10nBundle = require("../../../../l10n/bundle.l10n.json") as Readonly<
+  Record<string, string>
+>;
 
 suite("webview l10n", () => {
   test("resolves every default-bundle key through the supplied localizer", () => {
@@ -24,10 +23,7 @@ suite("webview l10n", () => {
       return `localized: ${source}`;
     });
 
-    assert.deepStrictEqual(
-      localizedSources.sort(),
-      Object.keys(defaultL10nBundle).sort(),
-    );
+    assert.deepStrictEqual(localizedSources.sort(), Object.keys(defaultL10nBundle).sort());
     assert.strictEqual(catalog.Save, "localized: Save");
   });
 
@@ -36,14 +32,8 @@ suite("webview l10n", () => {
       greeting: "Hello {0}, item {1}.",
     });
 
-    assert.strictEqual(
-      translate(l10n, "greeting", "Ada", 3),
-      "Hello Ada, item 3.",
-    );
-    assert.strictEqual(
-      translate(l10n, "greeting", "Ada"),
-      "Hello Ada, item {1}.",
-    );
+    assert.strictEqual(translate(l10n, "greeting", "Ada", 3), "Hello Ada, item 3.");
+    assert.strictEqual(translate(l10n, "greeting", "Ada"), "Hello Ada, item {1}.");
   });
 
   test("uses the key as a missing-catalog fallback", () => {
@@ -84,8 +74,7 @@ suite("webview l10n", () => {
 
   test("binds a translator to the active webview l10n context", () => {
     const l10n = createL10n({ greeting: "Hello {0}, item {1}." });
-    let translator:
-      ((source: string, ...values: unknown[]) => string) | undefined;
+    let translator: ((source: string, ...values: unknown[]) => string) | undefined;
 
     const HookProbe = (): React.ReactElement => {
       translator = useTranslate();
@@ -100,10 +89,7 @@ suite("webview l10n", () => {
       ),
     );
 
-    assert.strictEqual(
-      translator?.("greeting", "Ada", 7),
-      "Hello Ada, item 7.",
-    );
+    assert.strictEqual(translator?.("greeting", "Ada", 7), "Hello Ada, item 7.");
     assert.strictEqual(translator?.("missing.key", "Ada"), "missing.key");
   });
 });

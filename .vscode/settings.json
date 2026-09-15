@@ -9,22 +9,21 @@
   },
   // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
   "js/ts.tsc.autoDetect": "off",
-  // Generate commit messages that follow the Conventional Commits format
-  // documented in the git-workflow instructions.
+  "editor.rulers": [100],
   "[markdown]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.formatOnSave": true,
-    "editor.rulers": [100]
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[instructions]": {
-    "editor.rulers": [100]
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[skill]": {
-    "editor.rulers": [100]
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[chatagent]": {
-    "editor.rulers": [100]
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  // Generate commit messages that follow the Conventional Commits format
+  // documented in the git-workflow instructions.
   "github.copilot.chat.commitMessageGeneration.instructions": [
     {
       "file": ".github/instructions/git-workflow.instructions.md"
@@ -32,5 +31,7 @@
   ],
   "git.inputValidation": true,
   "git.inputValidationSubjectLength": null,
-  "git.inputValidationLength": 72
+  "git.inputValidationLength": 72,
+  "prettier.configPath": "",
+  "editor.formatOnSave": true
 }

@@ -1,8 +1,5 @@
 import { createEmptyDocument } from "@common/documents";
-import {
-  createGanttViewState,
-  updateGanttViewDocument,
-} from "@webview/viewState";
+import { createGanttViewState, updateGanttViewDocument } from "@webview/viewState";
 import * as assert from "assert";
 
 suite("webviewScheduleState", () => {
@@ -43,11 +40,8 @@ suite("webviewScheduleState", () => {
     assert.deepStrictEqual(
       {
         revision: result.revision,
-        taskStart: result.scheduledModel.tasks[0]
-          .effectiveStart()
-          .toISOString(),
-        groupStart:
-          result.scheduledModel.groups[0].effectiveStart.toISOString(),
+        taskStart: result.scheduledModel.tasks[0].effectiveStart().toISOString(),
+        groupStart: result.scheduledModel.groups[0].effectiveStart.toISOString(),
       },
       {
         revision: 4,
@@ -59,9 +53,7 @@ suite("webviewScheduleState", () => {
 
   test("replaces an entity without mutating the host document or schedule", () => {
     const document = createEmptyDocument();
-    document.tasks = [
-      { id: "task", name: "Task", start: "2026-09-08", duration: 1 },
-    ];
+    document.tasks = [{ id: "task", name: "Task", start: "2026-09-08", duration: 1 }];
     document.schedule = {
       tasks: [
         {

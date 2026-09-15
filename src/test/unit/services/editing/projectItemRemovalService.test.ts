@@ -27,14 +27,8 @@ suite("projectItemRemovalService", () => {
   test("returns undefined from buildUngroupUpdate when entity is missing", () => {
     const document = createDocument();
 
-    assert.strictEqual(
-      buildUngroupUpdate(document, { kind: "task", id: "missing" }),
-      undefined,
-    );
-    assert.strictEqual(
-      buildUngroupUpdate(document, { kind: "group", id: "missing" }),
-      undefined,
-    );
+    assert.strictEqual(buildUngroupUpdate(document, { kind: "task", id: "missing" }), undefined);
+    assert.strictEqual(buildUngroupUpdate(document, { kind: "group", id: "missing" }), undefined);
     assert.strictEqual(
       buildUngroupUpdate(document, { kind: "milestone", id: "missing" }),
       undefined,
@@ -91,11 +85,7 @@ suite("projectItemRemovalService", () => {
       ],
     };
 
-    const next = buildTaskOrMilestoneDeletionDocument(
-      document,
-      "task",
-      "anchor",
-    );
+    const next = buildTaskOrMilestoneDeletionDocument(document, "task", "anchor");
 
     assert.deepStrictEqual(next?.tasks, [
       {
@@ -131,11 +121,7 @@ suite("projectItemRemovalService", () => {
       ],
     };
 
-    const next = buildTaskOrMilestoneDeletionDocument(
-      document,
-      "task",
-      "anchor",
-    );
+    const next = buildTaskOrMilestoneDeletionDocument(document, "task", "anchor");
 
     assert.deepStrictEqual(next?.tasks, [
       {
@@ -164,11 +150,7 @@ suite("projectItemRemovalService", () => {
       ],
     };
 
-    const next = buildTaskOrMilestoneDeletionDocument(
-      document,
-      "milestone",
-      "anchor",
-    );
+    const next = buildTaskOrMilestoneDeletionDocument(document, "milestone", "anchor");
 
     assert.deepStrictEqual(next?.tasks, [
       { id: "source", name: "Source", start: "2026-01-03", duration: 4 },
@@ -192,11 +174,7 @@ suite("projectItemRemovalService", () => {
       ],
     };
 
-    const next = buildTaskOrMilestoneDeletionDocument(
-      document,
-      "milestone",
-      "anchor",
-    );
+    const next = buildTaskOrMilestoneDeletionDocument(document, "milestone", "anchor");
 
     assert.deepStrictEqual(next?.tasks, [
       { id: "source", name: "Source", start: "2026-01-01", end: "2026-01-03" },
@@ -264,10 +242,7 @@ suite("projectItemRemovalService", () => {
       ],
     };
 
-    assert.strictEqual(
-      buildTaskOrMilestoneDeletionDocument(document, "task", "anchor"),
-      undefined,
-    );
+    assert.strictEqual(buildTaskOrMilestoneDeletionDocument(document, "task", "anchor"), undefined);
   });
 });
 
@@ -284,9 +259,7 @@ function createDocument(): ProjectDocument {
         groupId: "g1",
       },
     ],
-    milestones: [
-      { id: "m1", name: "Milestone", date: "2026-01-02", groupId: "g1" },
-    ],
+    milestones: [{ id: "m1", name: "Milestone", date: "2026-01-02", groupId: "g1" }],
     groups: [
       { id: "g1", name: "Root" },
       { id: "g2", name: "Child", groupId: "g1" },

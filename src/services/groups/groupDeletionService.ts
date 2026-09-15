@@ -38,20 +38,14 @@ export function buildGroupDeletionDocument(
  * @param document The document to inspect.
  * @param groupId The group to check.
  */
-export function hasGroupContents(
-  document: ProjectDocument,
-  groupId: string,
-): boolean {
+export function hasGroupContents(document: ProjectDocument, groupId: string): boolean {
   return [...document.tasks, ...document.milestones, ...document.groups].some(
     (entity) => entity.groupId === groupId,
   );
 }
 
 /** Removes the group, everything nested inside it, and their dependencies. */
-function deleteGroupSubtree(
-  document: ProjectDocument,
-  groupId: string,
-): ProjectDocument {
+function deleteGroupSubtree(document: ProjectDocument, groupId: string): ProjectDocument {
   const scope = selectGroupScheduleScope(document, groupId);
   const deletedIds = new Set([
     ...scope.tasks.map((task) => task.id),
@@ -62,13 +56,9 @@ function deleteGroupSubtree(
     ...document,
     groups: document.groups.filter((group) => !scope.groupIds.has(group.id)),
     tasks: document.tasks.filter((task) => !deletedIds.has(task.id)),
-    milestones: document.milestones.filter(
-      (milestone) => !deletedIds.has(milestone.id),
-    ),
+    milestones: document.milestones.filter((milestone) => !deletedIds.has(milestone.id)),
     dependencies: document.dependencies.filter(
-      (dependency) =>
-        !deletedIds.has(dependency.sourceId) &&
-        !deletedIds.has(dependency.targetId),
+      (dependency) => !deletedIds.has(dependency.sourceId) && !deletedIds.has(dependency.targetId),
     ),
   };
 }
@@ -84,9 +74,7 @@ function promoteGroupContents(
 
   return {
     ...document,
-    groups: document.groups
-      .filter((group) => group.id !== groupId)
-      .map(reparent),
+    groups: document.groups.filter((group) => group.id !== groupId).map(reparent),
     tasks: document.tasks.map(reparent),
     milestones: document.milestones.map(reparent),
   };

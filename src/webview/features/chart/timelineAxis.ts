@@ -26,10 +26,7 @@ export interface TimelineTick {
 }
 
 /** Creates deterministic axis intervals and labels for one persisted zoom level. */
-export function createTimelineAxisModel(
-  zoomLevel: ZoomLevel,
-  locale: string,
-): TimelineAxisModel {
+export function createTimelineAxisModel(zoomLevel: ZoomLevel, locale: string): TimelineAxisModel {
   const month = new Intl.DateTimeFormat(locale, {
     month: "short",
     year: "numeric",
@@ -41,8 +38,7 @@ export function createTimelineAxisModel(
         selectedInterval: MS_PER_DAY,
         parentInterval: 7 * MS_PER_DAY,
         formatSelected: (value) => String(new Date(value).getUTCDate()),
-        formatParent: (value) =>
-          isoWeekday(value) === 1 ? `W${pad2(isoWeekNumber(value))}` : "",
+        formatParent: (value) => (isoWeekday(value) === 1 ? `W${pad2(isoWeekNumber(value))}` : ""),
         visibleDuration: 14 * MS_PER_DAY,
       };
     case "week":
@@ -50,8 +46,7 @@ export function createTimelineAxisModel(
         selectedInterval: 7 * MS_PER_DAY,
         parentInterval: 7 * MS_PER_DAY,
         formatSelected: (value) => `W${pad2(isoWeekNumber(value))}`,
-        formatParent: (value) =>
-          new Date(value).getUTCDate() <= 7 ? month.format(value) : "",
+        formatParent: (value) => (new Date(value).getUTCDate() <= 7 ? month.format(value) : ""),
         visibleDuration: 84 * MS_PER_DAY,
       };
     case "month":
@@ -69,10 +64,8 @@ export function createTimelineAxisModel(
       return {
         selectedInterval: 91 * MS_PER_DAY,
         parentInterval: 91 * MS_PER_DAY,
-        formatSelected: (value) =>
-          `Q${quarter(value)} ${new Date(value).getUTCFullYear()}`,
-        formatParent: (value) =>
-          new Date(value).getUTCMonth() < 3 ? year.format(value) : "",
+        formatSelected: (value) => `Q${quarter(value)} ${new Date(value).getUTCFullYear()}`,
+        formatParent: (value) => (new Date(value).getUTCMonth() < 3 ? year.format(value) : ""),
         visibleDuration: 2 * 365 * MS_PER_DAY,
       };
     case "year":
@@ -85,10 +78,7 @@ export function createTimelineAxisModel(
 }
 
 /** Aligns a visible range start to the selected calendar unit. */
-export function alignTimelineStart(
-  zoomLevel: ZoomLevel,
-  value: number,
-): number {
+export function alignTimelineStart(zoomLevel: ZoomLevel, value: number): number {
   const date = new Date(value);
   date.setUTCHours(0, 0, 0, 0);
   switch (zoomLevel) {
@@ -99,11 +89,7 @@ export function alignTimelineStart(
     case "month":
       return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1);
     case "quarter":
-      return Date.UTC(
-        date.getUTCFullYear(),
-        Math.floor(date.getUTCMonth() / 3) * 3,
-        1,
-      );
+      return Date.UTC(date.getUTCFullYear(), Math.floor(date.getUTCMonth() / 3) * 3, 1);
     case "year":
       return Date.UTC(date.getUTCFullYear(), 0, 1);
   }
@@ -151,14 +137,10 @@ function isoWeekday(value: number): number {
 /** Returns the ISO-8601 week number for a timestamp. */
 function isoWeekNumber(value: number): number {
   const date = new Date(value);
-  const thursday = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-  );
+  const thursday = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   thursday.setUTCDate(thursday.getUTCDate() + 4 - (thursday.getUTCDay() || 7));
   const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
-  return Math.ceil(
-    (thursday.getTime() - yearStart.getTime() + MS_PER_DAY) / (7 * MS_PER_DAY),
-  );
+  return Math.ceil((thursday.getTime() - yearStart.getTime() + MS_PER_DAY) / (7 * MS_PER_DAY));
 }
 
 /** Returns the calendar quarter for a timestamp. */

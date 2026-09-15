@@ -2,13 +2,9 @@ import { useTranslate } from "../../../l10n";
 import { CommonTextFieldsProps } from "../entityEditor.types";
 
 /** Renders name, description, and group assignment fields shared by all entity types. */
-export function CommonTextFields(
-  props: CommonTextFieldsProps,
-): React.JSX.Element {
+export function CommonTextFields(props: CommonTextFieldsProps): React.JSX.Element {
   const t = useTranslate();
-  const groupOptions = props.groups.filter(
-    (group) => group.id !== props.excludedGroupId,
-  );
+  const groupOptions = props.groups.filter((group) => group.id !== props.excludedGroupId);
 
   return (
     <>
@@ -26,9 +22,7 @@ export function CommonTextFields(
         <span>{t("Description")}</span>
         <textarea
           value={props.description ?? ""}
-          onChange={(event) =>
-            props.onDescription(event.target.value || undefined)
-          }
+          onChange={(event) => props.onDescription(event.target.value || undefined)}
           rows={3}
         />
       </label>

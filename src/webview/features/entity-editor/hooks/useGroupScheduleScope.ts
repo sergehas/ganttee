@@ -5,10 +5,7 @@ import {
   GroupSchedule,
 } from "@services/schedule/groupScheduleProjectionService";
 import { useMemo } from "react";
-import {
-  buildDirectGroupMemberRows,
-  DirectGroupMemberRow,
-} from "../groupMemberRows";
+import { buildDirectGroupMemberRows, DirectGroupMemberRow } from "../groupMemberRows";
 
 /** Derived group schedule and member rows for group-edit UI rendering. */
 export interface GroupScheduleScopeView {

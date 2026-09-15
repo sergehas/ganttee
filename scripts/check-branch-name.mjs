@@ -20,8 +20,7 @@ const LONG_LIVED = ["main", "develop"];
  * Gitflow prefixes and the allowed slug shape. The slug is lowercase
  * kebab-case, optionally starting with a numeric issue id (e.g. `123-`).
  */
-const PREFIXED =
-  /^(feature|release|hotfix|bugfix|support)\/[a-z0-9]+(?:[-.][a-z0-9]+)*$/;
+const PREFIXED = /^(feature|release|hotfix|bugfix|support)\/[a-z0-9]+(?:[-.][a-z0-9]+)*$/;
 
 /**
  * Resolves the current branch name, tolerating detached-HEAD state.

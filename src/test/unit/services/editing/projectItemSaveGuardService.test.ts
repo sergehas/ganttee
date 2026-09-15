@@ -1,8 +1,5 @@
 import { createEmptyDocument, ProjectDocument } from "@common/documents";
-import {
-  buildSaveUpdate,
-  canSaveEntity,
-} from "@services/editing/projectItemSaveGuardService";
+import { buildSaveUpdate, canSaveEntity } from "@services/editing/projectItemSaveGuardService";
 import * as assert from "assert";
 
 suite("projectItemSaveGuardService", () => {
@@ -48,36 +45,28 @@ suite("projectItemSaveGuardService", () => {
   });
 
   test("allows a dependency-defined milestone save", () => {
-    const update = buildSaveUpdate(
-      "milestone",
-      { id: "m1", name: "M" },
-      undefined,
-      [{ id: "d1", sourceId: "m1", targetId: "t1", type: "startAfter" }],
-    );
+    const update = buildSaveUpdate("milestone", { id: "m1", name: "M" }, undefined, [
+      { id: "d1", sourceId: "m1", targetId: "t1", type: "startAfter" },
+    ]);
 
     assert.strictEqual(update?.kind, "milestone");
   });
 
   test("blocks an undated milestone with both outgoing endpoint constraint types", () => {
-    const update = buildSaveUpdate(
-      "milestone",
-      { id: "m1", name: "Milestone" },
-      undefined,
-      [
-        {
-          id: "start",
-          sourceId: "m1",
-          targetId: "t1",
-          type: "startAfter",
-        },
-        {
-          id: "end",
-          sourceId: "m1",
-          targetId: "t1",
-          type: "endWith",
-        },
-      ],
-    );
+    const update = buildSaveUpdate("milestone", { id: "m1", name: "Milestone" }, undefined, [
+      {
+        id: "start",
+        sourceId: "m1",
+        targetId: "t1",
+        type: "startAfter",
+      },
+      {
+        id: "end",
+        sourceId: "m1",
+        targetId: "t1",
+        type: "endWith",
+      },
+    ]);
 
     assert.strictEqual(update, undefined);
   });
@@ -186,9 +175,7 @@ function createDocument(): ProjectDocument {
         groupId: "g1",
       },
     ],
-    milestones: [
-      { id: "m1", name: "Milestone", date: "2026-01-02", groupId: "g1" },
-    ],
+    milestones: [{ id: "m1", name: "Milestone", date: "2026-01-02", groupId: "g1" }],
     groups: [
       { id: "g1", name: "Root" },
       { id: "g2", name: "Child", groupId: "g1" },

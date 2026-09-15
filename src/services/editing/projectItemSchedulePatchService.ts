@@ -60,12 +60,7 @@ export function buildDatePatchUpdate(
       return undefined;
     }
     const updated: Milestone = { ...milestone, date };
-    return buildSaveUpdate(
-      "milestone",
-      updated,
-      options,
-      document.dependencies,
-    );
+    return buildSaveUpdate("milestone", updated, options, document.dependencies);
   }
 
   return undefined;
@@ -108,11 +103,6 @@ export function buildShiftByDaysPatch(
 }
 
 /** Offsets a date-only ISO string, passing `undefined` straight through. */
-function shiftIsoDate(
-  isoDate: string | undefined,
-  days: number,
-): string | undefined {
-  return isoDate === undefined
-    ? undefined
-    : formatIsoDate(addDays(parseIsoDate(isoDate), days));
+function shiftIsoDate(isoDate: string | undefined, days: number): string | undefined {
+  return isoDate === undefined ? undefined : formatIsoDate(addDays(parseIsoDate(isoDate), days));
 }

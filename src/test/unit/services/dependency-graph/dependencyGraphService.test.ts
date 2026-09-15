@@ -1,8 +1,4 @@
-import {
-  createEmptyDocument,
-  Dependency,
-  ProjectDocument,
-} from "@common/documents";
+import { createEmptyDocument, Dependency, ProjectDocument } from "@common/documents";
 import {
   assertAcyclicGraph,
   assertGraphIntegrity,
@@ -12,10 +8,7 @@ import {
 } from "@services/dependency-graph/dependencyGraphService";
 import * as assert from "assert";
 
-function documentWith(
-  taskIds: string[],
-  dependencies: Dependency[],
-): ProjectDocument {
+function documentWith(taskIds: string[], dependencies: Dependency[]): ProjectDocument {
   const document = createEmptyDocument();
   document.tasks = taskIds.map((id) => ({
     id,
@@ -38,10 +31,7 @@ function dep(sourceId: string, targetId: string): Dependency {
 
 suite("dependencyGraphService", () => {
   test("accepts a valid acyclic structural graph", () => {
-    const document = documentWith(
-      ["a", "b", "c"],
-      [dep("a", "b"), dep("b", "c")],
-    );
+    const document = documentWith(["a", "b", "c"], [dep("a", "b"), dep("b", "c")]);
     assert.doesNotThrow(() => assertResolvableGraph(document));
   });
 
@@ -62,14 +52,8 @@ suite("dependencyGraphService", () => {
   });
 
   test("detects a cycle", () => {
-    const document = documentWith(
-      ["a", "b", "c"],
-      [dep("a", "b"), dep("b", "c"), dep("c", "a")],
-    );
-    assert.throws(
-      () => assertAcyclicGraph(document),
-      /Dependency cycle detected/,
-    );
+    const document = documentWith(["a", "b", "c"], [dep("a", "b"), dep("b", "c"), dep("c", "a")]);
+    assert.throws(() => assertAcyclicGraph(document), /Dependency cycle detected/);
   });
 
   test("tolerates a missing endpoint until resolution is asserted", () => {
@@ -85,28 +69,19 @@ suite("dependencyGraphService", () => {
   });
 
   test("wouldCreateCycle detects a closing edge", () => {
-    const document = documentWith(
-      ["a", "b", "c"],
-      [dep("a", "b"), dep("b", "c")],
-    );
+    const document = documentWith(["a", "b", "c"], [dep("a", "b"), dep("b", "c")]);
     assert.strictEqual(wouldCreateCycle(document, dep("c", "a")), true);
     assert.strictEqual(wouldCreateCycle(document, dep("a", "c")), false);
   });
 
   test("wouldCreateCycle detects cycles that include milestones", () => {
-    const document = documentWith(
-      ["t1", "t2"],
-      [dep("t1", "m1"), dep("m1", "t2")],
-    );
+    const document = documentWith(["t1", "t2"], [dep("t1", "m1"), dep("m1", "t2")]);
     document.milestones = [{ id: "m1", name: "M", date: "2026-01-03" }];
     assert.strictEqual(wouldCreateCycle(document, dep("t2", "t1")), true);
   });
 
   test("topologicalOrder places predecessors first", () => {
-    const document = documentWith(
-      ["a", "b", "c"],
-      [dep("a", "b"), dep("b", "c")],
-    );
+    const document = documentWith(["a", "b", "c"], [dep("a", "b"), dep("b", "c")]);
     const order = topologicalOrder(document);
     assert.ok(order.indexOf("c") < order.indexOf("b"));
     assert.ok(order.indexOf("b") < order.indexOf("a"));

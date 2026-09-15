@@ -1,8 +1,5 @@
 import { CURRENT_DOCUMENT_VERSION } from "@common/documents";
-import {
-  parseDocument,
-  serializeDocument,
-} from "@services/document/documentService";
+import { parseDocument, serializeDocument } from "@services/document/documentService";
 import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";

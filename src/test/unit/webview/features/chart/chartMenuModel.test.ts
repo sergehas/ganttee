@@ -1,8 +1,5 @@
 import { DEFAULT_PROJECT_VIEW, ProjectView } from "@common/documents";
-import {
-  ChartMenuModel,
-  createChartMenuModel,
-} from "@webview/features/chart/chartMenuModel";
+import { ChartMenuModel, createChartMenuModel } from "@webview/features/chart/chartMenuModel";
 import * as assert from "assert";
 
 suite("chartMenuModel", () => {
@@ -11,24 +8,13 @@ suite("chartMenuModel", () => {
 
     assert.deepStrictEqual(
       model.layerActions.map((action) => action.label),
-      [
-        "Show dependencies",
-        "Show off-days",
-        "Show holidays",
-        "Show critical path",
-      ],
+      ["Show dependencies", "Show off-days", "Show holidays", "Show critical path"],
     );
     assert.deepStrictEqual(
       model.zoomActions.map((action) => action.label),
       ["Zoom in", "Zoom out", "Fit to window"],
     );
-    assert.deepStrictEqual(model.zoomLevels, [
-      "day",
-      "week",
-      "month",
-      "quarter",
-      "year",
-    ]);
+    assert.deepStrictEqual(model.zoomLevels, ["day", "week", "month", "quarter", "year"]);
   });
 
   test("preserves each layer's pressed state", () => {

@@ -32,19 +32,14 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 };
 
 /** Resolves partial project settings into an independent complete object. */
-export function resolveProjectSettings(
-  settings: Partial<ProjectSettings> = {},
-): ProjectSettings {
+export function resolveProjectSettings(settings: Partial<ProjectSettings> = {}): ProjectSettings {
   return {
     ...DEFAULT_PROJECT_SETTINGS,
     ...settings,
     workingCalendar: {
       ...DEFAULT_PROJECT_CALENDAR,
       ...settings.workingCalendar,
-      daysOff: [
-        ...(settings.workingCalendar?.daysOff ??
-          DEFAULT_PROJECT_CALENDAR.daysOff),
-      ],
+      daysOff: [...(settings.workingCalendar?.daysOff ?? DEFAULT_PROJECT_CALENDAR.daysOff)],
     },
     holidays: [...(settings.holidays ?? DEFAULT_PROJECT_SETTINGS.holidays)],
   };

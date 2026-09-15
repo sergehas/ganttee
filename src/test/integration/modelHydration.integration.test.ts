@@ -1,13 +1,7 @@
 import { CURRENT_DOCUMENT_VERSION } from "@common/documents";
 import { CyclicDependencyError } from "@common/models";
-import {
-  parseDocument,
-  serializeDocument,
-} from "@services/document/documentService";
-import {
-  hydrateDocument,
-  toDocument,
-} from "@services/model/projectModelService";
+import { parseDocument, serializeDocument } from "@services/document/documentService";
+import { hydrateDocument, toDocument } from "@services/model/projectModelService";
 import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
@@ -44,10 +38,7 @@ suite("modelHydration integration", () => {
 
     assert.strictEqual(reparsed.version, CURRENT_DOCUMENT_VERSION);
     assert.strictEqual(reparsed.tasks.length, original.tasks.length);
-    assert.strictEqual(
-      reparsed.dependencies.length,
-      original.dependencies.length,
-    );
+    assert.strictEqual(reparsed.dependencies.length, original.dependencies.length);
     assert.deepStrictEqual(
       reparsed.tasks.map((t) => t.id),
       original.tasks.map((t) => t.id),

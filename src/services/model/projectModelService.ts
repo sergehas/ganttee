@@ -14,13 +14,7 @@ import {
   ProjectDocument,
   Task as TaskDocument,
 } from "@common/documents";
-import {
-  CyclicDependencyError,
-  Group,
-  Milestone,
-  ProjectModel,
-  Task,
-} from "@common/models";
+import { CyclicDependencyError, Group, Milestone, ProjectModel, Task } from "@common/models";
 import { assertAcyclicGraph } from "../dependency-graph/dependencyGraphService";
 
 /**
@@ -42,9 +36,7 @@ export function hydrateDocument(document: ProjectDocument): ProjectModel {
   const dependencies = document.dependencies.map((dependency) => ({
     ...dependency,
   }));
-  const nodeIds = [...tasks, ...milestones, ...groups].map(
-    (entity) => entity.id,
-  );
+  const nodeIds = [...tasks, ...milestones, ...groups].map((entity) => entity.id);
 
   return new ProjectModel(
     tasks,
@@ -101,8 +93,7 @@ function toMilestone(milestone: MilestoneDocument): Milestone {
     name: milestone.name,
     description: milestone.description,
     groupId: milestone.groupId,
-    date:
-      milestone.date !== undefined ? parseIsoDate(milestone.date) : undefined,
+    date: milestone.date !== undefined ? parseIsoDate(milestone.date) : undefined,
   });
 }
 

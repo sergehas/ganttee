@@ -24,10 +24,7 @@ suite("datePresentation", () => {
       timeZone: "UTC",
     }).format(date);
 
-    function DateTimeFormatStub(
-      this: unknown,
-      locale?: string | string[],
-    ): Intl.DateTimeFormat {
+    function DateTimeFormatStub(this: unknown, locale?: string | string[]): Intl.DateTimeFormat {
       if (locale === "bad_locale") {
         throw new RangeError("Invalid language tag");
       }

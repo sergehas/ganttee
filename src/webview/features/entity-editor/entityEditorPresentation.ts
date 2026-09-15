@@ -1,9 +1,4 @@
-import {
-  Dependency,
-  DependencyType,
-  ProjectDocument,
-  TaskStatus,
-} from "@common/documents";
+import { Dependency, DependencyType, ProjectDocument, TaskStatus } from "@common/documents";
 import { formatShortDate } from "@common/datePresentation";
 import { parseIsoDate } from "@common/dates";
 import { EditableEntityKind } from "@common/protocol";
@@ -16,18 +11,10 @@ import {
 type WebviewTranslator = (source: string, ...values: unknown[]) => string;
 
 /** Selectable status values for the task status dropdown. */
-export const STATUS_OPTIONS: readonly TaskStatus[] = [
-  "todo",
-  "inProgress",
-  "done",
-];
+export const STATUS_OPTIONS: readonly TaskStatus[] = ["todo", "inProgress", "done"];
 
 /** Selectable dependency type values for the dependency type dropdown. */
-export const DEPENDENCY_OPTIONS: readonly DependencyType[] = [
-  "startAfter",
-  "startWith",
-  "endWith",
-];
+export const DEPENDENCY_OPTIONS: readonly DependencyType[] = ["startAfter", "startWith", "endWith"];
 
 /** Resolves a task status to its localization source message. */
 export function taskStatusLabel(status: TaskStatus): string {
@@ -68,10 +55,7 @@ export function entityKindLabel(kind: "task" | "milestone" | "group"): string {
 }
 
 /** Formats an optional group schedule ISO date for display. */
-export function displayGroupDate(
-  date: string | undefined,
-  locale: string,
-): string {
+export function displayGroupDate(date: string | undefined, locale: string): string {
   return date === undefined ? "" : formatShortDate(parseIsoDate(date), locale);
 }
 
@@ -132,10 +116,7 @@ export function milestoneValidationMessages(
 }
 
 /** Maps an entity kind to the corresponding form heading text. */
-export function titleOf(
-  kind: EditableEntityKind,
-  t: WebviewTranslator,
-): string {
+export function titleOf(kind: EditableEntityKind, t: WebviewTranslator): string {
   switch (kind) {
     case "task":
       return t("Edit Task");

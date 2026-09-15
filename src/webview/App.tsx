@@ -1,21 +1,13 @@
 import { useEffect, useState } from "react";
 import { Dependency, ProjectDocument, ProjectView } from "../common/documents";
-import {
-  EditableEntityKind,
-  EditableEntityMap,
-  EditableEntityRef,
-} from "../common/protocol";
+import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "../common/protocol";
 import { buildShiftByDaysPatch } from "../services/editing/projectItemSchedulePatchService";
 import { ChartMenuBar } from "./features/chart/components/ChartMenuBar";
 import { GanttChart } from "./features/chart/components/GanttChart";
 import { translate, WebviewL10n, WebviewL10nContext } from "./l10n";
 import { EntityEditor } from "./features/entity-editor/components/EntityEditor";
 import { useEntityEditWorkflow } from "./features/entity-editor/hooks/useEntityEditWorkflow";
-import {
-  createGanttViewState,
-  GanttViewState,
-  updateGanttViewDocument,
-} from "./viewState";
+import { createGanttViewState, GanttViewState, updateGanttViewDocument } from "./viewState";
 import { onHostMessage, postToHost } from "./vscodeApi";
 
 interface SaveEntityOptions {
@@ -27,11 +19,8 @@ interface SaveEntityOptions {
 export function App(): React.JSX.Element {
   const [viewState, setViewState] = useState<GanttViewState | null>(null);
   const [l10n, setL10n] = useState<WebviewL10n | null>(null);
-  const [selectedEntity, setSelectedEntity] =
-    useState<EditableEntityRef | null>(null);
-  const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(
-    null,
-  );
+  const [selectedEntity, setSelectedEntity] = useState<EditableEntityRef | null>(null);
+  const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(null);
   const [pendingView, setPendingView] = useState<ProjectView | null>(null);
   const [fitVersion, setFitVersion] = useState(0);
 
@@ -45,9 +34,7 @@ export function App(): React.JSX.Element {
         case "documentChanged":
           try {
             setPendingView(null);
-            setViewState(
-              createGanttViewState(message.document, message.revision),
-            );
+            setViewState(createGanttViewState(message.document, message.revision));
           } catch {
             setViewState(null);
           }
@@ -160,18 +147,10 @@ export function App(): React.JSX.Element {
     <WebviewL10nContext.Provider value={l10n}>
       <div className="ganttee-layout">
         <div className="ganttee-timeline">
-          <ChartMenuBar
-            view={chartView}
-            onViewChange={updateView}
-            onFitToWindow={fitToWindow}
-          />
-          {viewState.document.tasks.length === 0 &&
-          viewState.document.milestones.length === 0 ? (
+          <ChartMenuBar view={chartView} onViewChange={updateView} onFitToWindow={fitToWindow} />
+          {viewState.document.tasks.length === 0 && viewState.document.milestones.length === 0 ? (
             <div className="ganttee-empty">
-              {translate(
-                l10n,
-                "No tasks yet. Use the Ganttee sidebar to add one.",
-              )}
+              {translate(l10n, "No tasks yet. Use the Ganttee sidebar to add one.")}
             </div>
           ) : (
             <GanttChart
@@ -231,9 +210,7 @@ function resolveEntity(
       return entity ? { kind: "task", entity } : null;
     }
     case "milestone": {
-      const entity = document.milestones.find(
-        (milestone) => milestone.id === ref.id,
-      );
+      const entity = document.milestones.find((milestone) => milestone.id === ref.id);
       return entity ? { kind: "milestone", entity } : null;
     }
     case "group": {

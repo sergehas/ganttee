@@ -32,9 +32,7 @@ function createDocument(): ProjectDocument {
       },
       { id: "t3", name: "Ungrouped Task", start: "2026-02-01" },
     ],
-    milestones: [
-      { id: "m1", name: "Direct Milestone", date: "2026-01-02", groupId: "g1" },
-    ],
+    milestones: [{ id: "m1", name: "Direct Milestone", date: "2026-01-02", groupId: "g1" }],
     dependencies: [],
   };
 }
@@ -53,10 +51,7 @@ suite("groupHierarchyService", () => {
   });
 
   test("ignores a group that owns itself", () => {
-    const ids = collectDescendantGroupIds(
-      [{ id: "g1", name: "Self", groupId: "g1" }],
-      "g1",
-    );
+    const ids = collectDescendantGroupIds([{ id: "g1", name: "Self", groupId: "g1" }], "g1");
 
     assert.deepStrictEqual([...ids], ["g1"]);
   });
@@ -65,10 +60,7 @@ suite("groupHierarchyService", () => {
     const scope = selectGroupScheduleScope(createDocument(), "g1");
 
     assert.deepStrictEqual([...scope.groupIds].sort(), ["g1", "g2"]);
-    assert.deepStrictEqual(scope.tasks.map((task) => task.id).sort(), [
-      "t1",
-      "t2",
-    ]);
+    assert.deepStrictEqual(scope.tasks.map((task) => task.id).sort(), ["t1", "t2"]);
     assert.deepStrictEqual(
       scope.milestones.map((milestone) => milestone.id),
       ["m1"],
@@ -85,9 +77,7 @@ suite("groupHierarchyService", () => {
 
 suite("groupScheduleProjectionService", () => {
   test("spans the earliest start and latest end of its members", () => {
-    const schedule = deriveGroupSchedule(
-      selectGroupScheduleScope(createDocument(), "g1"),
-    );
+    const schedule = deriveGroupSchedule(selectGroupScheduleScope(createDocument(), "g1"));
 
     assert.deepStrictEqual(schedule, {
       start: "2026-01-01",

@@ -50,14 +50,8 @@ suite("scheduleGraphSanitizationService", () => {
       "dangling",
       "floating-edge",
     ]);
-    assert.deepStrictEqual(result.removedEntityIds.sort(), [
-      "floating",
-      "floating-2",
-    ]);
-    assert.deepStrictEqual(result.document.tasks, [
-      document.tasks[0],
-      document.tasks[3],
-    ]);
+    assert.deepStrictEqual(result.removedEntityIds.sort(), ["floating", "floating-2"]);
+    assert.deepStrictEqual(result.document.tasks, [document.tasks[0], document.tasks[3]]);
     assert.deepStrictEqual(result.document.dependencies, []);
     assert.strictEqual(document.dependencies.length, 3);
   });
@@ -104,9 +98,7 @@ suite("scheduleGraphSanitizationService", () => {
 
   test("sanitizes dangling source and target dependencies", () => {
     const document = createEmptyDocument();
-    document.tasks = [
-      { id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" },
-    ];
+    document.tasks = [{ id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" }];
     document.dependencies = [
       {
         id: "missing-source",
@@ -124,19 +116,14 @@ suite("scheduleGraphSanitizationService", () => {
 
     const result = sanitizeScheduleGraph(document);
 
-    assert.deepStrictEqual(result.removedDependencyIds, [
-      "missing-source",
-      "missing-target",
-    ]);
+    assert.deepStrictEqual(result.removedDependencyIds, ["missing-source", "missing-target"]);
     assert.deepStrictEqual(result.removedEntityIds, []);
     assert.deepStrictEqual(result.document.tasks, document.tasks);
   });
 
   test("sanitizes group source and target dependencies without deleting the group", () => {
     const document = createEmptyDocument();
-    document.tasks = [
-      { id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" },
-    ];
+    document.tasks = [{ id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" }];
     document.groups = [{ id: "group", name: "Group" }];
     document.dependencies = [
       {
@@ -155,10 +142,7 @@ suite("scheduleGraphSanitizationService", () => {
 
     const result = sanitizeScheduleGraph(document);
 
-    assert.deepStrictEqual(result.removedDependencyIds, [
-      "group-source",
-      "group-target",
-    ]);
+    assert.deepStrictEqual(result.removedDependencyIds, ["group-source", "group-target"]);
     assert.deepStrictEqual(result.removedEntityIds, []);
     assert.deepStrictEqual(result.document.groups, document.groups);
   });
@@ -166,9 +150,7 @@ suite("scheduleGraphSanitizationService", () => {
   test("keeps a component anchored by a milestone date", () => {
     const document = createEmptyDocument();
     document.tasks = [{ id: "task", name: "Task", duration: 1 }];
-    document.milestones = [
-      { id: "milestone", name: "Milestone", date: "2026-01-01" },
-    ];
+    document.milestones = [{ id: "milestone", name: "Milestone", date: "2026-01-01" }];
     document.dependencies = [
       {
         id: "edge",

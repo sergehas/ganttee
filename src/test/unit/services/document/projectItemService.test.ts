@@ -59,10 +59,7 @@ suite("projectItemService", () => {
   test("refuses to replace an entity that does not exist", () => {
     const document = createDocument();
 
-    assert.strictEqual(
-      replaceEntity(document, "task", { id: "missing", name: "X" }),
-      undefined,
-    );
+    assert.strictEqual(replaceEntity(document, "task", { id: "missing", name: "X" }), undefined);
   });
 
   test("does not mutate the input document", () => {

@@ -18,9 +18,5 @@
     }
   },
 
-  "include": [
-    "src/webview",
-    "src/common",
-    "src/services/taskConstraintService.ts"
-  ]
+  "include": ["src/webview", "src/common", "src/services/taskConstraintService.ts"]
 }

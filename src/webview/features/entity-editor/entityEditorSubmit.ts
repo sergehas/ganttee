@@ -1,10 +1,4 @@
-import {
-  Dependency,
-  Group,
-  Milestone,
-  ProjectDocument,
-  Task,
-} from "@common/documents";
+import { Dependency, Group, Milestone, ProjectDocument, Task } from "@common/documents";
 import { EditableEntityKind, EditableEntityMap } from "@common/protocol";
 import { FormEvent } from "react";
 import { TaskFormProps } from "./entityEditor.types";
@@ -33,12 +27,7 @@ export function createEntityEditorSubmit(
     if (!entity) {
       return;
     }
-    options.onSave(
-      entity.kind,
-      entity.value,
-      undefined,
-      options.document.dependencies,
-    );
+    options.onSave(entity.kind, entity.value, undefined, options.document.dependencies);
   };
 }
 

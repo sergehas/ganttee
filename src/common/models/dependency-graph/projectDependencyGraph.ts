@@ -67,9 +67,7 @@ export class DanglingDependencyError extends Error {
     readonly dependencyId: string,
     readonly endpointId: string,
   ) {
-    super(
-      `Dependency "${dependencyId}" references unknown entity "${endpointId}".`,
-    );
+    super(`Dependency "${dependencyId}" references unknown entity "${endpointId}".`);
   }
 }
 
@@ -99,12 +97,9 @@ export class ProjectDependencyGraph extends DirectedGraph<
       this.addNode(nodeId, {});
     }
     for (const dependency of dependencies) {
-      this.addDirectedEdgeWithKey(
-        dependency.id,
-        dependency.targetId,
-        dependency.sourceId,
-        { dependency },
-      );
+      this.addDirectedEdgeWithKey(dependency.id, dependency.targetId, dependency.sourceId, {
+        dependency,
+      });
     }
   }
 
@@ -135,17 +130,10 @@ export class ProjectDependencyGraph extends DirectedGraph<
     if (candidate.sourceId === candidate.targetId) {
       return true;
     }
-    if (
-      !this.hasNode(candidate.sourceId) ||
-      !this.hasNode(candidate.targetId)
-    ) {
+    if (!this.hasNode(candidate.sourceId) || !this.hasNode(candidate.targetId)) {
       return false;
     }
-    return graphologyWillCreateCycle(
-      this,
-      candidate.targetId,
-      candidate.sourceId,
-    );
+    return graphologyWillCreateCycle(this, candidate.targetId, candidate.sourceId);
   }
 
   /**
@@ -200,9 +188,7 @@ export class ProjectDependencyGraph extends DirectedGraph<
     if (!this.hasNode(sourceId)) {
       return [];
     }
-    return this.inEdges(sourceId).map((edge) =>
-      this.getEdgeAttribute(edge, "dependency"),
-    );
+    return this.inEdges(sourceId).map((edge) => this.getEdgeAttribute(edge, "dependency"));
   }
 }
 

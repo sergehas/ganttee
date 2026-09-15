@@ -1,4 +1,5 @@
 const esbuild = require("esbuild");
+const { sassPlugin } = require("esbuild-sass-plugin");
 
 const production = process.argv.includes("--production");
 const watch = process.argv.includes("--watch");
@@ -16,9 +17,7 @@ const esbuildProblemMatcherPlugin = {
     build.onEnd((result) => {
       result.errors.forEach(({ text, location }) => {
         console.error(`✘ [ERROR] ${text}`);
-        console.error(
-          `    ${location.file}:${location.line}:${location.column}:`,
-        );
+        console.error(`    ${location.file}:${location.line}:${location.column}:`);
       });
       console.log("[watch] build finished");
     });
@@ -57,7 +56,8 @@ async function main() {
     assetNames: "[name]",
     loader: { ".ttf": "file" },
     logLevel: "silent",
-    plugins: [esbuildProblemMatcherPlugin],
+    // sass-embedded backbone handles both .css and .scss via esbuild's css loader
+    plugins: [sassPlugin({ embedded: true }), esbuildProblemMatcherPlugin],
   });
 
   if (watch) {

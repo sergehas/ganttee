@@ -54,10 +54,8 @@ suite("timelineAxis", () => {
   test("assigns progressively wider visible durations", () => {
     const durations = ["day", "week", "month", "quarter", "year"].map(
       (level) =>
-        createTimelineAxisModel(
-          level as "day" | "week" | "month" | "quarter" | "year",
-          "en-US",
-        ).visibleDuration,
+        createTimelineAxisModel(level as "day" | "week" | "month" | "quarter" | "year", "en-US")
+          .visibleDuration,
     );
 
     assert.deepStrictEqual(
@@ -70,18 +68,9 @@ suite("timelineAxis", () => {
     const value = Date.UTC(2026, 8, 16, 14);
 
     assert.strictEqual(alignTimelineStart("day", value), Date.UTC(2026, 8, 14));
-    assert.strictEqual(
-      alignTimelineStart("week", value),
-      Date.UTC(2026, 8, 14),
-    );
-    assert.strictEqual(
-      alignTimelineStart("month", value),
-      Date.UTC(2026, 8, 1),
-    );
-    assert.strictEqual(
-      alignTimelineStart("quarter", value),
-      Date.UTC(2026, 6, 1),
-    );
+    assert.strictEqual(alignTimelineStart("week", value), Date.UTC(2026, 8, 14));
+    assert.strictEqual(alignTimelineStart("month", value), Date.UTC(2026, 8, 1));
+    assert.strictEqual(alignTimelineStart("quarter", value), Date.UTC(2026, 6, 1));
     assert.strictEqual(alignTimelineStart("year", value), Date.UTC(2026, 0, 1));
   });
 

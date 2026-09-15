@@ -20,11 +20,8 @@ export function postToHost(message: WebviewToHostMessage): void {
 }
 
 /** Subscribes to typed messages from the extension host. */
-export function onHostMessage(
-  handler: (message: HostToWebviewMessage) => void,
-): () => void {
-  const listener = (event: MessageEvent<HostToWebviewMessage>) =>
-    handler(event.data);
+export function onHostMessage(handler: (message: HostToWebviewMessage) => void): () => void {
+  const listener = (event: MessageEvent<HostToWebviewMessage>) => handler(event.data);
   window.addEventListener("message", listener);
   return () => window.removeEventListener("message", listener);
 }

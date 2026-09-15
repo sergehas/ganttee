@@ -71,21 +71,14 @@ export function buildSaveUpdate<K extends EditableEntityKind>(
 
 /** A task must be determinate and must not end before it starts. */
 function canSaveTask(task: Task, dependencies: readonly Dependency[]): boolean {
-  if (
-    task.start !== undefined &&
-    task.end !== undefined &&
-    task.start > task.end
-  ) {
+  if (task.start !== undefined && task.end !== undefined && task.start > task.end) {
     return false;
   }
   return !validateTaskConstraints(task, dependencies).blocking;
 }
 
 /** A milestone must resolve to exactly one date. */
-function canSaveMilestone(
-  milestone: Milestone,
-  dependencies: readonly Dependency[],
-): boolean {
+function canSaveMilestone(milestone: Milestone, dependencies: readonly Dependency[]): boolean {
   return !validateMilestoneConstraints(milestone, dependencies).blocking;
 }
 

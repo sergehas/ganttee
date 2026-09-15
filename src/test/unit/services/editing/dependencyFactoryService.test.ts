@@ -1,30 +1,12 @@
 import { createEmptyDocument, ProjectDocument } from "@common/documents";
-import {
-  buildDependency,
-  createDependencyId,
-} from "@services/editing/dependencyFactoryService";
+import { buildDependency, createDependencyId } from "@services/editing/dependencyFactoryService";
 import * as assert from "assert";
 
 suite("dependencyFactoryService", () => {
   test("builds dependency only when owner and target are present", () => {
-    const dependency = buildDependency(
-      "t1",
-      "m1",
-      "startAfter",
-      () => "dep-test",
-    );
-    const missingOwner = buildDependency(
-      undefined,
-      "m1",
-      "startAfter",
-      () => "dep-test",
-    );
-    const missingTarget = buildDependency(
-      "t1",
-      "",
-      "startAfter",
-      () => "dep-test",
-    );
+    const dependency = buildDependency("t1", "m1", "startAfter", () => "dep-test");
+    const missingOwner = buildDependency(undefined, "m1", "startAfter", () => "dep-test");
+    const missingTarget = buildDependency("t1", "", "startAfter", () => "dep-test");
 
     assert.deepStrictEqual(dependency, {
       id: "dep-test",
@@ -55,9 +37,7 @@ function createDocument(): ProjectDocument {
         groupId: "g1",
       },
     ],
-    milestones: [
-      { id: "m1", name: "Milestone", date: "2026-01-02", groupId: "g1" },
-    ],
+    milestones: [{ id: "m1", name: "Milestone", date: "2026-01-02", groupId: "g1" }],
     groups: [
       { id: "g1", name: "Root" },
       { id: "g2", name: "Child", groupId: "g1" },

@@ -1,14 +1,5 @@
-import {
-  addDays,
-  diffInDays,
-  formatIsoDate,
-  parseIsoDate,
-} from "@common/dates";
-import {
-  createEmptyDocument,
-  MILESTONE_DURATION,
-  ProjectDocument,
-} from "@common/documents";
+import { addDays, diffInDays, formatIsoDate, parseIsoDate } from "@common/dates";
+import { createEmptyDocument, MILESTONE_DURATION, ProjectDocument } from "@common/documents";
 import {
   CyclicDependencyError,
   Group,
@@ -18,14 +9,8 @@ import {
   Task,
   UnresolvableScheduleError,
 } from "@common/models";
-import {
-  parseDocument,
-  serializeDocument,
-} from "@services/document/documentService";
-import {
-  hydrateDocument,
-  toDocument,
-} from "@services/model/projectModelService";
+import { parseDocument, serializeDocument } from "@services/document/documentService";
+import { hydrateDocument, toDocument } from "@services/model/projectModelService";
 import * as assert from "assert";
 
 /** A well-formed document exercising every entity kind and constraint combo. */
@@ -47,9 +32,7 @@ const SAMPLE_DOCUMENT: ProjectDocument = {
   ],
   groups: [{ id: "g1", name: "Phase", collapsed: true }],
   milestones: [{ id: "m1", name: "M", date: "2026-01-10", groupId: "g1" }],
-  dependencies: [
-    { id: "d1", sourceId: "t2", targetId: "t1", type: "startAfter" },
-  ],
+  dependencies: [{ id: "d1", sourceId: "t2", targetId: "t1", type: "startAfter" }],
 };
 
 suite("date helpers", () => {
@@ -63,24 +46,15 @@ suite("date helpers", () => {
   });
 
   test("adds whole calendar days", () => {
-    assert.strictEqual(
-      formatIsoDate(addDays(parseIsoDate("2026-01-01"), 4)),
-      "2026-01-05",
-    );
+    assert.strictEqual(formatIsoDate(addDays(parseIsoDate("2026-01-01"), 4)), "2026-01-05");
   });
 
   test("subtracts calendar days for negative offsets", () => {
-    assert.strictEqual(
-      formatIsoDate(addDays(parseIsoDate("2026-01-05"), -4)),
-      "2026-01-01",
-    );
+    assert.strictEqual(formatIsoDate(addDays(parseIsoDate("2026-01-05"), -4)), "2026-01-01");
   });
 
   test("computes the decimal day difference", () => {
-    assert.strictEqual(
-      diffInDays(parseIsoDate("2026-01-01"), parseIsoDate("2026-01-05")),
-      4,
-    );
+    assert.strictEqual(diffInDays(parseIsoDate("2026-01-01"), parseIsoDate("2026-01-05")), 4);
   });
 });
 
@@ -185,10 +159,7 @@ suite("projectModelService", () => {
     const parsed = parseDocument(serializeDocument(SAMPLE_DOCUMENT));
     const roundTripped = toDocument(hydrateDocument(parsed));
     assert.deepStrictEqual(roundTripped, parsed);
-    assert.strictEqual(
-      serializeDocument(roundTripped),
-      serializeDocument(parsed),
-    );
+    assert.strictEqual(serializeDocument(roundTripped), serializeDocument(parsed));
   });
 
   test("preserves multi-line descriptions through hydration", () => {
@@ -264,9 +235,7 @@ suite("ganttModelService DAG invariants", () => {
   test("rejects a self-referencing dependency", () => {
     const document: ProjectDocument = {
       ...SAMPLE_DOCUMENT,
-      dependencies: [
-        { id: "d1", sourceId: "t1", targetId: "t1", type: "startAfter" },
-      ],
+      dependencies: [{ id: "d1", sourceId: "t1", targetId: "t1", type: "startAfter" }],
     };
     assert.throws(() => hydrateDocument(document), SelfLoopDependencyError);
   });

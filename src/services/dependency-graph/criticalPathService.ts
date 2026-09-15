@@ -1,8 +1,4 @@
-import {
-  ProjectDependencyGraph,
-  ProjectSchedule,
-  Schedulable,
-} from "@common/models";
+import { ProjectDependencyGraph, ProjectSchedule, Schedulable } from "@common/models";
 
 /** Identifies the single derived path emphasized by the chart. */
 export interface CriticalPathProjection {
@@ -18,12 +14,9 @@ export function projectCriticalPath(
   scheduled: ProjectSchedule,
 ): CriticalPathProjection {
   const entities = new Map<string, Schedulable>([
-    ...scheduled.tasks.map(
-      (task) => [task.id, task as Schedulable] as [string, Schedulable],
-    ),
+    ...scheduled.tasks.map((task) => [task.id, task as Schedulable] as [string, Schedulable]),
     ...scheduled.milestones.map(
-      (milestone) =>
-        [milestone.id, milestone as Schedulable] as [string, Schedulable],
+      (milestone) => [milestone.id, milestone as Schedulable] as [string, Schedulable],
     ),
   ]);
   const scores = new Map<string, number>();
@@ -58,9 +51,7 @@ export function projectCriticalPath(
   const nodeIds = paths.get(terminal[0]) ?? [];
   const dependencyIds = nodeIds.slice(1).map((nodeId, index) => {
     const edge = graph.edge(nodeIds[index], nodeId);
-    return edge === undefined
-      ? ""
-      : graph.getEdgeAttribute(edge, "dependency").id;
+    return edge === undefined ? "" : graph.getEdgeAttribute(edge, "dependency").id;
   });
   return { nodeIds, dependencyIds };
 }

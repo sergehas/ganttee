@@ -109,10 +109,7 @@ export function dependencyLinkEndpoints(
 }
 
 /** Resolves a task or milestone into dependency scheduling coordinates. */
-export function schedulableById(
-  document: ProjectDocument,
-  id: string,
-): SchedulableRef | undefined {
+export function schedulableById(document: ProjectDocument, id: string): SchedulableRef | undefined {
   const task = document.tasks.find((current) => current.id === id);
   if (task) {
     return {
@@ -129,9 +126,7 @@ export function schedulableById(
 }
 
 /** Extracts an editable entity reference from a chart event payload. */
-export function entityFromChartEvent(
-  params: unknown,
-): EditableEntityRef | undefined {
+export function entityFromChartEvent(params: unknown): EditableEntityRef | undefined {
   const event = params as {
     seriesName?: string;
     data?: { task?: Task; milestone?: Milestone; group?: Group };
@@ -180,25 +175,15 @@ export function chartTooltipFormatter(
     return `<strong>${escapeChartHtml(data.task.name)}</strong><br/>${formatRange(start, end)}`;
   }
   if (data?.milestone) {
-    const date = displayTooltipDate(
-      data.effectiveDate ?? data.milestone.date,
-      locale,
-      unavailable,
-    );
+    const date = displayTooltipDate(data.effectiveDate ?? data.milestone.date, locale, unavailable);
     return `<strong>${escapeChartHtml(data.milestone.name)}</strong><br/>${date}`;
   }
   return "";
 }
 
 /** Formats an optional ISO timestamp for a chart tooltip. */
-function displayTooltipDate(
-  iso: string | undefined,
-  locale: string,
-  unavailable: string,
-): string {
-  return iso === undefined
-    ? unavailable
-    : formatShortDate(parseIsoTimestamp(iso), locale);
+function displayTooltipDate(iso: string | undefined, locale: string, unavailable: string): string {
+  return iso === undefined ? unavailable : formatShortDate(parseIsoTimestamp(iso), locale);
 }
 
 /**
@@ -209,17 +194,12 @@ function displayTooltipDate(
  * arithmetic — use {@link diffIsoDates} instead.
  */
 export function toChartMs(isoDate: string): number {
-  return new Date(
-    isoDate.includes("T") ? isoDate : `${isoDate}T00:00:00`,
-  ).getTime();
+  return new Date(isoDate.includes("T") ? isoDate : `${isoDate}T00:00:00`).getTime();
 }
 
 /** Escapes entity text before it is inserted into tooltip HTML. */
 export function escapeChartHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /** Converts a pair of optional ISO dates into millisecond endpoints. */

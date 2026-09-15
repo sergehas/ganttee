@@ -160,8 +160,8 @@
     "watch-tests:alias": "tsc-alias --project tsconfig.json --watch --outDir out",
     "check-types": "tsc --noEmit --project tsconfig.json && tsc --noEmit --project tsconfig.webview.json",
     "lint": "eslint src",
-    "format": "prettier --log-level warn --write .",
-    "format:check": "prettier --log-level warn --check .",
+    "format": "prettier --log-level warn --config .prettierrc.json --write .",
+    "format:check": "prettier --log-level warn --config .prettierrc.json --check .",
     "pretest": "npm run compile-tests && npm run compile",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "vscode-test",
@@ -194,6 +194,7 @@
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.1.0",
     "esbuild": "^0.28.2",
+    "esbuild-sass-plugin": "^3.7.0",
     "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
@@ -201,6 +202,7 @@
     "mocha": "^12.0.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.9.6",
+    "sass-embedded": "^1.104.1",
     "tsc-alias": "^1.9.5",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.0"
@@ -215,10 +217,10 @@
   "lint-staged": {
     "*.{ts,tsx}": [
       "eslint --fix",
-      "prettier --write"
+      "prettier --log-level warn --config .prettierrc.json --write"
     ],
-    "*.{json,md,css,yml,yaml}": [
-      "prettier --write"
+    "*.{json,md,css,scss,yml,yaml}": [
+      "prettier --log-level warn --config .prettierrc.json --write"
     ]
   }
 }

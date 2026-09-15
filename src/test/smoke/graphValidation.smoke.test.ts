@@ -23,9 +23,7 @@ suite("graph validation smoke", () => {
 
   teardown(async () => {
     await vscode.commands.executeCommand("workbench.action.closeAllEditors");
-    await Promise.all(
-      temporaryDocuments.splice(0).map(deleteTemporaryGantteeDocument),
-    );
+    await Promise.all(temporaryDocuments.splice(0).map(deleteTemporaryGantteeDocument));
   });
 
   /** Creates an isolated writable document that the controller may sanitize. */
@@ -86,9 +84,7 @@ suite("graph validation smoke", () => {
     const uri = await createDocument(
       documentText({
         version: 2,
-        tasks: [
-          { id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" },
-        ],
+        tasks: [{ id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" }],
         groups: [],
         milestones: [],
         dependencies: [
@@ -112,8 +108,7 @@ suite("graph validation smoke", () => {
 
     const document = await waitForDocumentText(
       uri,
-      (text) =>
-        !text.includes("missing-source") && !text.includes("missing-target"),
+      (text) => !text.includes("missing-source") && !text.includes("missing-target"),
     );
     const parsed = JSON.parse(document.getText()) as {
       tasks: { id: string }[];
@@ -130,9 +125,7 @@ suite("graph validation smoke", () => {
     const uri = await createDocument(
       documentText({
         version: 2,
-        tasks: [
-          { id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" },
-        ],
+        tasks: [{ id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" }],
         groups: [{ id: "group", name: "Group" }],
         milestones: [],
         dependencies: [
@@ -156,8 +149,7 @@ suite("graph validation smoke", () => {
 
     const document = await waitForDocumentText(
       uri,
-      (text) =>
-        !text.includes("group-source") && !text.includes("group-target"),
+      (text) => !text.includes("group-source") && !text.includes("group-target"),
     );
     const parsed = JSON.parse(document.getText()) as {
       groups: { id: string }[];
@@ -200,8 +192,7 @@ suite("graph validation smoke", () => {
 
     const document = await waitForDocumentText(
       uri,
-      (text) =>
-        !text.includes("floating-task") && !text.includes("floating-milestone"),
+      (text) => !text.includes("floating-task") && !text.includes("floating-milestone"),
     );
     const parsed = JSON.parse(document.getText()) as {
       tasks: { id: string }[];

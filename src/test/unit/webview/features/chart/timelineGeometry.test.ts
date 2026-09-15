@@ -1,7 +1,4 @@
-import {
-  clipTimelineRectangle,
-  isPointInTimeline,
-} from "@webview/features/chart/timelineGeometry";
+import { clipTimelineRectangle, isPointInTimeline } from "@webview/features/chart/timelineGeometry";
 import * as assert from "assert";
 
 suite("timelineGeometry", () => {

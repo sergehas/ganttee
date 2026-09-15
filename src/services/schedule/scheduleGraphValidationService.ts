@@ -65,9 +65,7 @@ export type ScheduleDiagnostic =
  * @param document The document to evaluate.
  * @returns Every diagnostic found, in entity then dependency then component order.
  */
-export function evaluateScheduleGraph(
-  document: ProjectDocument,
-): readonly ScheduleDiagnostic[] {
+export function evaluateScheduleGraph(document: ProjectDocument): readonly ScheduleDiagnostic[] {
   const entityIds = new Set([
     ...document.tasks.map((task) => task.id),
     ...document.milestones.map((milestone) => milestone.id),
@@ -77,10 +75,7 @@ export function evaluateScheduleGraph(
 
   const determinacy = [
     ...document.tasks.map((task) =>
-      diagnoseDeterminacy(
-        task.id,
-        validateTaskConstraints(task, document.dependencies),
-      ),
+      diagnoseDeterminacy(task.id, validateTaskConstraints(task, document.dependencies)),
     ),
     ...document.milestones.map((milestone) =>
       diagnoseDeterminacy(
@@ -88,21 +83,13 @@ export function evaluateScheduleGraph(
         validateMilestoneConstraints(milestone, document.dependencies),
       ),
     ),
-  ].filter(
-    (diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined,
-  );
+  ].filter((diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined);
 
   const endpoints = document.dependencies
     .map((dependency) => diagnoseEndpoints(dependency, entityIds, groupIds))
-    .filter(
-      (diagnostic): diagnostic is ScheduleDiagnostic =>
-        diagnostic !== undefined,
-    );
+    .filter((diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined);
 
-  const graph = new ProjectDependencyGraph(
-    [...entityIds],
-    document.dependencies,
-  );
+  const graph = new ProjectDependencyGraph([...entityIds], document.dependencies);
   const schedulable = schedulableEntityIds(document);
   const anchoring: ScheduleDiagnostic[] = unanchoredComponents(
     graph.connectedComponents(),
@@ -129,9 +116,7 @@ export function blockingDiagnostics(
  *
  * @param diagnostics The diagnostics to inspect.
  */
-export function hasBlockingScheduleDiagnostic(
-  diagnostics: readonly ScheduleDiagnostic[],
-): boolean {
+export function hasBlockingScheduleDiagnostic(diagnostics: readonly ScheduleDiagnostic[]): boolean {
   return diagnostics.some((diagnostic) => diagnostic.severity === "blocking");
 }
 
@@ -145,9 +130,7 @@ export function diagnosticsFor(
   diagnostics: readonly ScheduleDiagnostic[],
   entityId: string,
 ): readonly ScheduleDiagnostic[] {
-  return diagnostics.filter((diagnostic) =>
-    diagnostic.entityIds.includes(entityId),
-  );
+  return diagnostics.filter((diagnostic) => diagnostic.entityIds.includes(entityId));
 }
 
 /** Turns a determinacy verdict into a diagnostic, if the entity has a problem. */
@@ -202,9 +185,7 @@ function diagnoseEndpoints(
 }
 
 /** Lists the endpoints that are constrained both statically and by a dependency. */
-function duplicatedEndpoints(
-  verdict: ConstraintVerdict,
-): readonly ScheduleEndpoint[] {
+function duplicatedEndpoints(verdict: ConstraintVerdict): readonly ScheduleEndpoint[] {
   const endpoints: ScheduleEndpoint[] = [];
   if (verdict.duplicateStart) {
     endpoints.push("start");

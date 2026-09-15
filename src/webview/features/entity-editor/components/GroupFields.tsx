@@ -11,10 +11,7 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
   const { locale } = useWebviewL10n();
   const t = useTranslate();
   const update = makeUpdater(group, props.onChange);
-  const { schedule, directMemberRows } = useGroupScheduleScope(
-    document,
-    group.id,
-  );
+  const { schedule, directMemberRows } = useGroupScheduleScope(document, group.id);
 
   return (
     <>
@@ -32,30 +29,18 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
       <div className="ganttee-field-row">
         <label className="ganttee-field">
           <span>{t("Start")}</span>
-          <input
-            type="text"
-            value={displayGroupDate(schedule.start, locale)}
-            readOnly
-          />
+          <input type="text" value={displayGroupDate(schedule.start, locale)} readOnly />
         </label>
         <label className="ganttee-field">
           <span>{t("End")}</span>
-          <input
-            type="text"
-            value={displayGroupDate(schedule.end, locale)}
-            readOnly
-          />
+          <input type="text" value={displayGroupDate(schedule.end, locale)} readOnly />
         </label>
       </div>
 
       <div className="ganttee-field-row">
         <label className="ganttee-field">
           <span>{t("Duration")}</span>
-          <input
-            type="text"
-            value={schedule.durationDays?.toString() ?? ""}
-            readOnly
-          />
+          <input type="text" value={schedule.durationDays?.toString() ?? ""} readOnly />
         </label>
 
         <label className="ganttee-field ganttee-field--checkbox">
@@ -104,10 +89,7 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
                       aria-label={t("Remove from group")}
                       title={t("Remove from group")}
                     >
-                      <span
-                        className="codicon codicon-remove"
-                        aria-hidden="true"
-                      />
+                      <span className="codicon codicon-remove" aria-hidden="true" />
                     </button>
                   </td>
                 </tr>

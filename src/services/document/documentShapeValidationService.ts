@@ -44,14 +44,11 @@ export function validateDocumentShape(raw: unknown): ProjectDocument {
   }
 
   const document: ProjectDocument = {
-    version:
-      typeof raw.version === "number" ? raw.version : CURRENT_DOCUMENT_VERSION,
+    version: typeof raw.version === "number" ? raw.version : CURRENT_DOCUMENT_VERSION,
     tasks: asArray(raw.tasks, "tasks").map(validateTask),
     groups: asArray(raw.groups, "groups").map(validateGroup),
     milestones: asArray(raw.milestones, "milestones").map(validateMilestone),
-    dependencies: asArray(raw.dependencies, "dependencies").map(
-      validateDependency,
-    ),
+    dependencies: asArray(raw.dependencies, "dependencies").map(validateDependency),
     settings: validateSettings(raw.settings),
     view: validateView(raw.view),
   };
@@ -169,9 +166,7 @@ function validateDateRange(raw: unknown, field: string): DateRange {
 /**
  * Validates and normalizes the reserved working calendar, dropping unknown keys.
  */
-function validateWorkingCalendar(
-  raw: Record<string, unknown>,
-): WorkingCalendar {
+function validateWorkingCalendar(raw: Record<string, unknown>): WorkingCalendar {
   const calendar = resolveProjectSettings().workingCalendar;
   if (Array.isArray(raw.daysOff)) {
     calendar.daysOff = raw.daysOff.map((day, index) =>
@@ -199,16 +194,10 @@ function validateTask(raw: unknown, index: number): Task {
     task.end = requireDate(raw.end, `tasks[${index}].end`);
   }
   if (raw.duration !== undefined) {
-    task.duration = requireNonNegativeNumber(
-      raw.duration,
-      `tasks[${index}].duration`,
-    );
+    task.duration = requireNonNegativeNumber(raw.duration, `tasks[${index}].duration`);
   }
   if (raw.description !== undefined) {
-    task.description = requireString(
-      raw.description,
-      `tasks[${index}].description`,
-    );
+    task.description = requireString(raw.description, `tasks[${index}].description`);
   }
   if (raw.progress !== undefined) {
     task.progress = clampProgress(raw.progress);
@@ -262,10 +251,7 @@ function validateMilestone(raw: unknown, index: number): Milestone {
     );
   }
   if (raw.groupId !== undefined) {
-    milestone.groupId = requireString(
-      raw.groupId,
-      `milestones[${index}].groupId`,
-    );
+    milestone.groupId = requireString(raw.groupId, `milestones[${index}].groupId`);
   }
   return milestone;
 }
@@ -362,12 +348,7 @@ function requireNumberInRange(
 
 /** Requires an ISO weekday integer from Monday 1 through Sunday 7. */
 function requireIsoWeekday(value: unknown, field: string): number {
-  if (
-    typeof value !== "number" ||
-    !Number.isInteger(value) ||
-    value < 1 ||
-    value > 7
-  ) {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 7) {
     throw new GanttParseError(`${field} must be an ISO weekday from 1 to 7.`);
   }
   return value;
@@ -387,17 +368,12 @@ function clampProgress(value: unknown): number {
  * Returns whether the value is a supported task status.
  */
 function isTaskStatus(value: unknown): value is TaskStatus {
-  return (
-    typeof value === "string" && TASK_STATUSES.includes(value as TaskStatus)
-  );
+  return typeof value === "string" && TASK_STATUSES.includes(value as TaskStatus);
 }
 
 /**
  * Returns whether the value is a supported dependency type.
  */
 function isDependencyType(value: unknown): value is DependencyType {
-  return (
-    typeof value === "string" &&
-    DEPENDENCY_TYPES.includes(value as DependencyType)
-  );
+  return typeof value === "string" && DEPENDENCY_TYPES.includes(value as DependencyType);
 }

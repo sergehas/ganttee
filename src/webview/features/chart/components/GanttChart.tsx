@@ -16,22 +16,10 @@ import { CriticalPathProjection } from "@services/dependency-graph/criticalPathS
 import { CHART_ROW_HEIGHT, CRITICAL_ITEM_STYLE } from "../chart.constants";
 import { isDirectEditGesture } from "../chartInteractions";
 import { CalendarArea, TimelineTickData } from "../chart.types";
-import {
-  renderCriticalLink,
-  renderLink,
-  renderMilestone,
-  renderTaskBar,
-} from "../chartRenderers";
+import { renderCriticalLink, renderLink, renderMilestone, renderTaskBar } from "../chartRenderers";
 import { translate, useWebviewL10n } from "../../../l10n";
-import {
-  alignTimelineStart,
-  buildTimelineTicks,
-  createTimelineAxisModel,
-} from "../timelineAxis";
-import {
-  AXIS_LABEL_COLOR,
-  createTimelineTickRenderer,
-} from "../timelineHeaderRenderer";
+import { alignTimelineStart, buildTimelineTicks, createTimelineAxisModel } from "../timelineAxis";
+import { AXIS_LABEL_COLOR, createTimelineTickRenderer } from "../timelineHeaderRenderer";
 import {
   chartTooltipFormatter,
   DAY,
@@ -143,14 +131,7 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
       containerRef.current.style.height = `${Math.max(rows, 1) * CHART_ROW_HEIGHT + 80}px`;
       chart.resize();
     }
-  }, [
-    l10n,
-    props.document,
-    props.schedule,
-    props.criticalPath,
-    props.view,
-    props.selectedEntity,
-  ]);
+  }, [l10n, props.document, props.schedule, props.criticalPath, props.view, props.selectedEntity]);
 
   return <div className="ganttee-chart" ref={containerRef} />;
 }
@@ -179,15 +160,9 @@ function buildOption(
   ];
   const indexById = new Map(rows.map((row, index) => [row.id, index]));
   const timestamps = [
-    ...tasks.flatMap((task) => [
-      task.effectiveStart().getTime(),
-      task.effectiveEnd().getTime(),
-    ]),
+    ...tasks.flatMap((task) => [task.effectiveStart().getTime(), task.effectiveEnd().getTime()]),
     ...milestones.map((milestone) => milestone.effectiveStart().getTime()),
-    ...groups.flatMap((group) => [
-      group.effectiveStart.getTime(),
-      group.effectiveEnd.getTime(),
-    ]),
+    ...groups.flatMap((group) => [group.effectiveStart.getTime(), group.effectiveEnd.getTime()]),
   ];
   const range = {
     min: Math.min(...timestamps) - 2 * 24 * 60 * 60 * 1000,
@@ -196,9 +171,7 @@ function buildOption(
 
   const taskData = tasks
     .map((task) => {
-      const authoringTask = document.tasks.find(
-        (candidate) => candidate.id === task.id,
-      )!;
+      const authoringTask = document.tasks.find((candidate) => candidate.id === task.id)!;
       return {
         value: [
           indexById.get(task.id) ?? 0,
@@ -208,32 +181,20 @@ function buildOption(
         task: authoringTask,
         effectiveStart: task.effectiveStart().toISOString(),
         effectiveEnd: task.effectiveEnd().toISOString(),
-        selected:
-          selectedEntity?.kind === "task" && selectedEntity.id === task.id,
+        selected: selectedEntity?.kind === "task" && selectedEntity.id === task.id,
         itemStyle:
-          view.showCriticalPath && criticalNodeIds.has(task.id)
-            ? CRITICAL_ITEM_STYLE
-            : undefined,
+          view.showCriticalPath && criticalNodeIds.has(task.id) ? CRITICAL_ITEM_STYLE : undefined,
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
   const milestoneData = milestones.map((milestone) => ({
-    value: [
-      indexById.get(milestone.id) ?? 0,
-      milestone.effectiveStart().getTime(),
-    ],
-    milestone: document.milestones.find(
-      (candidate) => candidate.id === milestone.id,
-    )!,
+    value: [indexById.get(milestone.id) ?? 0, milestone.effectiveStart().getTime()],
+    milestone: document.milestones.find((candidate) => candidate.id === milestone.id)!,
     effectiveDate: milestone.effectiveStart().toISOString(),
-    selected:
-      selectedEntity?.kind === "milestone" &&
-      selectedEntity.id === milestone.id,
+    selected: selectedEntity?.kind === "milestone" && selectedEntity.id === milestone.id,
     itemStyle:
-      view.showCriticalPath && criticalNodeIds.has(milestone.id)
-        ? CRITICAL_ITEM_STYLE
-        : undefined,
+      view.showCriticalPath && criticalNodeIds.has(milestone.id) ? CRITICAL_ITEM_STYLE : undefined,
   }));
 
   const groupData = groups.map((group) => ({
@@ -275,9 +236,7 @@ function buildOption(
         value: [targetRow, fromMs, sourceRow, toMsValue],
       };
     })
-    .filter(
-      (item): item is { id: string; value: number[] } => item !== undefined,
-    );
+    .filter((item): item is { id: string; value: number[] } => item !== undefined);
   const calendarAreas = buildCalendarAreas(document, range, view);
   const timelineAxis = createTimelineAxisModel(view.zoomLevel, locale);
   const axisRange = {
@@ -287,10 +246,7 @@ function buildOption(
   const timelineTicks = buildTimelineTicks(view.zoomLevel, locale, axisRange);
   const hasParentAxis = timelineAxis.formatParent !== undefined;
   const fullDuration = Math.max(axisRange.max - axisRange.min, 1);
-  const zoomEnd = Math.min(
-    100,
-    (timelineAxis.visibleDuration / fullDuration) * 100,
-  );
+  const zoomEnd = Math.min(100, (timelineAxis.visibleDuration / fullDuration) * 100);
 
   return {
     animation: false,
@@ -431,10 +387,7 @@ function buildCalendarAreas(
 }
 
 /** Creates the hidden continuous scale used by custom calendar ticks. */
-function createTimeAxis(range: {
-  min: number;
-  max: number;
-}): Record<string, unknown> {
+function createTimeAxis(range: { min: number; max: number }): Record<string, unknown> {
   return {
     type: "time",
     min: range.min,

@@ -24,10 +24,11 @@ suite("useGroupScheduleScope", () => {
       end: "2026-01-06",
       durationDays: 5,
     });
-    assert.deepStrictEqual(
-      capturedScope?.directMemberRows.map((row) => row.id).sort(),
-      ["group:g2", "milestone:m1", "task:t1"],
-    );
+    assert.deepStrictEqual(capturedScope?.directMemberRows.map((row) => row.id).sort(), [
+      "group:g2",
+      "milestone:m1",
+      "task:t1",
+    ]);
   });
 });
 
@@ -55,9 +56,7 @@ function createDocument(): ProjectDocument {
         groupId: "g2",
       },
     ],
-    milestones: [
-      { id: "m1", name: "Direct Milestone", date: "2026-01-02", groupId: "g1" },
-    ],
+    milestones: [{ id: "m1", name: "Direct Milestone", date: "2026-01-02", groupId: "g1" }],
     dependencies: [],
   };
 }

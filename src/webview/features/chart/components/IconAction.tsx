@@ -22,10 +22,7 @@ interface IconActionProps {
 }
 
 /** Renders a localized icon-only action or a nested icon-action group. */
-export function IconAction({
-  action,
-  pressed = false,
-}: IconActionProps): React.JSX.Element {
+export function IconAction({ action, pressed = false }: IconActionProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const hasChildren = Boolean(action.children?.length);
 
@@ -40,10 +37,7 @@ export function IconAction({
           title={action.label}
           onClick={() => setOpen((current) => !current)}
         >
-          <span
-            className={`codicon codicon-${action.icon}`}
-            aria-hidden="true"
-          />
+          <span className={`codicon codicon-${action.icon}`} aria-hidden="true" />
         </button>
         {open && (
           <div className="ganttee-icon-action-menu" role="menu">
@@ -58,10 +52,7 @@ export function IconAction({
                   setOpen(false);
                 }}
               >
-                <span
-                  className={`codicon codicon-${child.icon}`}
-                  aria-hidden="true"
-                />
+                <span className={`codicon codicon-${child.icon}`} aria-hidden="true" />
                 <span>{child.label}</span>
               </button>
             ))}

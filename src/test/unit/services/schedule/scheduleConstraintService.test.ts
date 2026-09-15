@@ -480,10 +480,7 @@ suite("scheduleConstraintService", () => {
   for (const testCase of taskRuleMatrix) {
     test(`validates task constraints for ${testCase.name}`, () => {
       assert.deepStrictEqual(
-        validateTaskConstraints(
-          task(testCase.task),
-          outgoingDependencies(testCase.outgoing),
-        ),
+        validateTaskConstraints(task(testCase.task), outgoingDependencies(testCase.outgoing)),
         testCase.expected,
       );
     });
@@ -611,10 +608,7 @@ suite("scheduleConstraintService", () => {
   for (const testCase of milestoneRuleMatrix) {
     test(`validates milestone constraints for ${testCase.name}`, () => {
       assert.deepStrictEqual(
-        validateMilestoneConstraints(
-          testCase.milestone,
-          outgoingDependencies(testCase.outgoing),
-        ),
+        validateMilestoneConstraints(testCase.milestone, outgoingDependencies(testCase.outgoing)),
         testCase.expected,
       );
     });
@@ -644,20 +638,14 @@ suite("scheduleConstraintService", () => {
 
   test("treats a milestone date as constraining both endpoints", () => {
     assert.deepStrictEqual(
-      describeMilestoneEndpointConstraints(
-        { id: "t1", name: "Milestone", date: "2026-01-01" },
-        [],
-      ),
+      describeMilestoneEndpointConstraints({ id: "t1", name: "Milestone", date: "2026-01-01" }, []),
       { start: ["static"], end: ["static"], hasDuration: true },
     );
   });
 
   test("ignores an empty milestone date", () => {
     assert.deepStrictEqual(
-      describeMilestoneEndpointConstraints(
-        { id: "t1", name: "Milestone", date: "" },
-        [],
-      ),
+      describeMilestoneEndpointConstraints({ id: "t1", name: "Milestone", date: "" }, []),
       { start: [], end: [], hasDuration: true },
     );
   });
@@ -734,14 +722,10 @@ suite("scheduleConstraintService", () => {
   });
 
   test("validates milestone date presence and dependency-defined dates", () => {
-    const missing = validateMilestoneConstraints(
-      { id: "m1", name: "Milestone" },
-      [],
-    );
-    const inferred = validateMilestoneConstraints(
-      { id: "m1", name: "Milestone" },
-      [{ id: "d1", sourceId: "m1", targetId: "t1", type: "endWith" }],
-    );
+    const missing = validateMilestoneConstraints({ id: "m1", name: "Milestone" }, []);
+    const inferred = validateMilestoneConstraints({ id: "m1", name: "Milestone" }, [
+      { id: "d1", sourceId: "m1", targetId: "t1", type: "endWith" },
+    ]);
     const duplicate = validateMilestoneConstraints(
       { id: "m1", name: "Milestone", date: "2026-01-01" },
       [{ id: "d1", sourceId: "m1", targetId: "t1", type: "startAfter" }],
@@ -754,24 +738,15 @@ suite("scheduleConstraintService", () => {
   });
 
   test("derives effectiveDuration from start and end", () => {
-    assert.strictEqual(
-      effectiveDuration(task({ start: "2026-01-01", end: "2026-01-05" })),
-      4,
-    );
+    assert.strictEqual(effectiveDuration(task({ start: "2026-01-01", end: "2026-01-05" })), 4);
   });
 
   test("prefers a user-set duration for effectiveDuration", () => {
-    assert.strictEqual(
-      effectiveDuration(task({ start: "2026-01-01", duration: 2.5 })),
-      2.5,
-    );
+    assert.strictEqual(effectiveDuration(task({ start: "2026-01-01", duration: 2.5 })), 2.5);
   });
 
   test("returns undefined effectiveDuration when under-constrained", () => {
-    assert.strictEqual(
-      effectiveDuration(task({ start: "2026-01-01" })),
-      undefined,
-    );
+    assert.strictEqual(effectiveDuration(task({ start: "2026-01-01" })), undefined);
   });
 
   test("surfaces user-set effective start and end", () => {

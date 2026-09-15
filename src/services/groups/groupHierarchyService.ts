@@ -34,9 +34,7 @@ export function collectDescendantGroupIds(
   while (frontier.length > 0) {
     const children = groups.filter(
       (group) =>
-        group.groupId !== undefined &&
-        frontier.includes(group.groupId) &&
-        !collected.has(group.id),
+        group.groupId !== undefined && frontier.includes(group.groupId) && !collected.has(group.id),
     );
     children.forEach((group) => collected.add(group.id));
     frontier = children.map((group) => group.id);
@@ -59,16 +57,11 @@ export function selectGroupScheduleScope(
   return {
     groupIds,
     tasks: document.tasks.filter((task) => isOwnedBy(task.groupId, groupIds)),
-    milestones: document.milestones.filter((milestone) =>
-      isOwnedBy(milestone.groupId, groupIds),
-    ),
+    milestones: document.milestones.filter((milestone) => isOwnedBy(milestone.groupId, groupIds)),
   };
 }
 
 /** Returns whether an optional owning group id is inside the hierarchy. */
-function isOwnedBy(
-  groupId: string | undefined,
-  groupIds: ReadonlySet<string>,
-): boolean {
+function isOwnedBy(groupId: string | undefined, groupIds: ReadonlySet<string>): boolean {
   return groupId !== undefined && groupIds.has(groupId);
 }

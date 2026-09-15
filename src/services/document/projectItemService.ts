@@ -65,9 +65,7 @@ export function replaceEntity<K extends EditableEntityKind>(
   return withEntities(
     document,
     kind,
-    entities.map((candidate) =>
-      candidate.id === entity.id ? entity : candidate,
-    ),
+    entities.map((candidate) => (candidate.id === entity.id ? entity : candidate)),
   );
 }
 
@@ -84,10 +82,7 @@ export function upsertEntity<K extends EditableEntityKind>(
   kind: K,
   entity: EditableEntityMap[K],
 ): ProjectDocument {
-  return (
-    replaceEntity(document, kind, entity) ??
-    appendEntity(document, kind, entity)
-  );
+  return replaceEntity(document, kind, entity) ?? appendEntity(document, kind, entity);
 }
 
 /** Returns a document with one kind's collection replaced wholesale. */

@@ -19,34 +19,16 @@ export function ChartMenuBar({
   onFitToWindow,
 }: ChartMenuBarProps): React.JSX.Element {
   const translate = useTranslate();
-  const model = createChartMenuModel(
-    view,
-    translate,
-    onViewChange,
-    onFitToWindow,
-  );
+  const model = createChartMenuModel(view, translate, onViewChange, onFitToWindow);
 
   return (
-    <nav
-      className="ganttee-menu-bar"
-      aria-label={translate("Chart view controls")}
-    >
-      <div
-        className="ganttee-menu-bar__group"
-        aria-label={translate("Chart layers")}
-      >
+    <nav className="ganttee-menu-bar" aria-label={translate("Chart view controls")}>
+      <div className="ganttee-menu-bar__group" aria-label={translate("Chart layers")}>
         {model.layerActions.map((action) => (
-          <IconAction
-            action={action}
-            pressed={action.pressed}
-            key={action.id}
-          />
+          <IconAction action={action} pressed={action.pressed} key={action.id} />
         ))}
       </div>
-      <div
-        className="ganttee-menu-bar__group"
-        aria-label={translate("Zoom controls")}
-      >
+      <div className="ganttee-menu-bar__group" aria-label={translate("Zoom controls")}>
         <IconAction action={model.zoomActions[0]} />
         <select
           className="ganttee-zoom-select"

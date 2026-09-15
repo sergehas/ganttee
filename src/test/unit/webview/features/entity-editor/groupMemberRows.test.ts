@@ -53,9 +53,7 @@ function createDocument(): ProjectDocument {
         groupId: "g2",
       },
     ],
-    milestones: [
-      { id: "m1", name: "Direct Milestone", date: "2026-01-02", groupId: "g1" },
-    ],
+    milestones: [{ id: "m1", name: "Direct Milestone", date: "2026-01-02", groupId: "g1" }],
     dependencies: [],
   };
 }

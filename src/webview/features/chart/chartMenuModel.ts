@@ -40,8 +40,7 @@ export function createChartMenuModel(
   onFitToWindow: () => void,
 ): ChartMenuModel {
   const toggle = (
-    layer:
-      "showDependencies" | "showOffDays" | "showHolidays" | "showCriticalPath",
+    layer: "showDependencies" | "showOffDays" | "showHolidays" | "showCriticalPath",
   ) => onViewChange(toggleProjectViewLayer(view, layer));
 
   return {
@@ -53,12 +52,8 @@ export function createChartMenuModel(
         view.showDependencies,
         () => toggle("showDependencies"),
       ),
-      createLayerAction(
-        "off-days",
-        "calendar",
-        translate("Show off-days"),
-        view.showOffDays,
-        () => toggle("showOffDays"),
+      createLayerAction("off-days", "calendar", translate("Show off-days"), view.showOffDays, () =>
+        toggle("showOffDays"),
       ),
       createLayerAction(
         "holidays",
@@ -82,12 +77,7 @@ export function createChartMenuModel(
       createAction("zoom-out", "zoom-out", translate("Zoom out"), () =>
         onViewChange(withZoomLevel(view, zoomOut(view.zoomLevel))),
       ),
-      createAction(
-        "fit",
-        "screen-full",
-        translate("Fit to window"),
-        onFitToWindow,
-      ),
+      createAction("fit", "screen-full", translate("Fit to window"), onFitToWindow),
     ],
     zoomLevels: ZOOM_LEVELS,
   };

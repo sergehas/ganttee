@@ -9,10 +9,7 @@ export interface WebviewL10n {
 }
 
 /** Resolves English source messages for webview presentation. */
-export type WebviewTranslator = (
-  source: string,
-  ...values: unknown[]
-) => string;
+export type WebviewTranslator = (source: string, ...values: unknown[]) => string;
 
 /** Resolves a catalog string and substitutes available positional values. */
 export function translate(
@@ -28,9 +25,7 @@ export function translate(
 }
 
 /** Provides webview localization to the React component tree. */
-export const WebviewL10nContext = createContext<WebviewL10n | undefined>(
-  undefined,
-);
+export const WebviewL10nContext = createContext<WebviewL10n | undefined>(undefined);
 
 /** Returns the localization state after the webview session is initialized. */
 export function useWebviewL10n(): WebviewL10n {

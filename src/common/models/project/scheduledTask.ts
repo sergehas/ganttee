@@ -15,12 +15,7 @@ export class ScheduledTask extends Task {
    * @param effectiveEnd The computed UTC end.
    * @param effectiveDuration The computed duration in working days.
    */
-  constructor(
-    task: Task,
-    effectiveStart: Date,
-    effectiveEnd: Date,
-    effectiveDuration: number,
-  ) {
+  constructor(task: Task, effectiveStart: Date, effectiveEnd: Date, effectiveDuration: number) {
     super(task);
     this.resolvedStart = new Date(effectiveStart.getTime());
     this.resolvedEnd = new Date(effectiveEnd.getTime());

@@ -2,10 +2,7 @@ import { createEmptyDocument, Task } from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
 import { serializeDocument } from "@services/document/documentService";
 import { GanttEditorProvider } from "@views/editor/ganttEditorProvider";
-import {
-  entityRefOf,
-  GanttExplorerProvider,
-} from "@views/sidebar/ganttExplorerProvider";
+import { entityRefOf, GanttExplorerProvider } from "@views/sidebar/ganttExplorerProvider";
 import * as vscode from "vscode";
 import { GanttStore } from "./ganttStore";
 
@@ -32,13 +29,8 @@ function registerCommands(
   store: GanttStore,
   explorer: GanttExplorerProvider,
 ): void {
-  const register = (
-    command: string,
-    handler: (...args: unknown[]) => unknown,
-  ) =>
-    context.subscriptions.push(
-      vscode.commands.registerCommand(command, handler),
-    );
+  const register = (command: string, handler: (...args: unknown[]) => unknown) =>
+    context.subscriptions.push(vscode.commands.registerCommand(command, handler));
 
   register("ganttee.refreshExplorer", () => explorer.refresh());
 
@@ -51,9 +43,7 @@ function registerCommands(
   register("ganttee.newTask", async () => {
     const controller = store.active;
     if (!controller) {
-      void vscode.window.showInformationMessage(
-        vscode.l10n.t("Open a Gantt chart to add a task."),
-      );
+      void vscode.window.showInformationMessage(vscode.l10n.t("Open a Gantt chart to add a task."));
       return;
     }
     const task = createDefaultTask(vscode.l10n.t("New Task"));
@@ -155,9 +145,7 @@ function isEntityRef(value: unknown): value is EditableEntityRef {
   }
   const candidate = value as { kind?: unknown; id?: unknown };
   return (
-    (candidate.kind === "task" ||
-      candidate.kind === "milestone" ||
-      candidate.kind === "group") &&
+    (candidate.kind === "task" || candidate.kind === "milestone" || candidate.kind === "group") &&
     typeof candidate.id === "string"
   );
 }

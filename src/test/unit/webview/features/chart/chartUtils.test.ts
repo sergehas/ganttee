@@ -67,14 +67,14 @@ suite("chartUtils", () => {
     const source = { id: "source", start: "2026-01-03", end: "2026-01-05" };
     const target = { id: "target", start: "2026-01-07", end: "2026-01-09" };
 
-    assert.deepStrictEqual(
-      dependencyLinkEndpoints("startAfter", source, target),
-      [toChartMs("2026-01-09"), toChartMs("2026-01-03")],
-    );
-    assert.deepStrictEqual(
-      dependencyLinkEndpoints("startWith", source, target),
-      [toChartMs("2026-01-07"), toChartMs("2026-01-03")],
-    );
+    assert.deepStrictEqual(dependencyLinkEndpoints("startAfter", source, target), [
+      toChartMs("2026-01-09"),
+      toChartMs("2026-01-03"),
+    ]);
+    assert.deepStrictEqual(dependencyLinkEndpoints("startWith", source, target), [
+      toChartMs("2026-01-07"),
+      toChartMs("2026-01-03"),
+    ]);
     assert.deepStrictEqual(dependencyLinkEndpoints("endWith", source, target), [
       toChartMs("2026-01-09"),
       toChartMs("2026-01-05"),
@@ -129,14 +129,8 @@ suite("chartUtils", () => {
       }),
       { kind: "group", id: "g1" },
     );
-    assert.strictEqual(
-      entityFromChartEvent({ seriesName: "dependencies" }),
-      undefined,
-    );
-    assert.strictEqual(
-      escapeChartHtml("<Task & more>"),
-      "&lt;Task &amp; more&gt;",
-    );
+    assert.strictEqual(entityFromChartEvent({ seriesName: "dependencies" }), undefined);
+    assert.strictEqual(escapeChartHtml("<Task & more>"), "&lt;Task &amp; more&gt;");
     assert.strictEqual(
       chartTooltipFormatter(
         {
@@ -188,10 +182,7 @@ suite("chartUtils", () => {
       ),
       "<strong>Undated</strong><br/>—",
     );
-    assert.strictEqual(
-      chartTooltipFormatter({}, locale, unavailable, formatRange),
-      "",
-    );
+    assert.strictEqual(chartTooltipFormatter({}, locale, unavailable, formatRange), "");
   });
 
   test("formats computed effective timestamps from scheduled chart data", () => {

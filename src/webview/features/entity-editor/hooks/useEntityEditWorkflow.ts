@@ -1,18 +1,8 @@
 import { Dependency, DependencyType, ProjectDocument } from "@common/documents";
-import {
-  EditableEntityKind,
-  EditableEntityMap,
-  EditableEntityRef,
-} from "@common/protocol";
-import {
-  buildDependency,
-  createDependencyId,
-} from "@services/editing/dependencyFactoryService";
+import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
+import { buildDependency, createDependencyId } from "@services/editing/dependencyFactoryService";
 import { buildUngroupUpdate } from "@services/editing/projectItemRemovalService";
-import {
-  buildSaveUpdate,
-  SaveEntityOptions,
-} from "@services/editing/projectItemSaveGuardService";
+import { buildSaveUpdate, SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
 import {
   buildDatePatchUpdate,
   EntityDatePatch,
@@ -54,11 +44,7 @@ export interface EntityEditWorkflow {
     options?: SaveEntityOptions,
   ) => void;
   /** Creates and sends a dependency. */
-  addDependency: (
-    ownerId: string | undefined,
-    targetId: string,
-    type: DependencyType,
-  ) => void;
+  addDependency: (ownerId: string | undefined, targetId: string, type: DependencyType) => void;
   /** Removes a dependency by identifier. */
   removeDependency: (dependencyId: string) => void;
   /** Applies a chart date patch and saves the result. */
@@ -76,9 +62,7 @@ export interface EntityEditWorkflow {
  * The workflow centralizes save guards and mutation shaping so multiple UI
  * surfaces apply exactly the same rules.
  */
-export function useEntityEditWorkflow(
-  actions: HostEditActions,
-): EntityEditWorkflow {
+export function useEntityEditWorkflow(actions: HostEditActions): EntityEditWorkflow {
   const saveEntity = useCallback(
     (
       kind: EditableEntityKind,
@@ -102,11 +86,7 @@ export function useEntityEditWorkflow(
   );
 
   const ungroupEntity = useCallback(
-    (
-      document: ProjectDocument,
-      entity: EditableEntityRef,
-      options?: SaveEntityOptions,
-    ) => {
+    (document: ProjectDocument, entity: EditableEntityRef, options?: SaveEntityOptions) => {
       const update = buildUngroupUpdate(document, entity, options);
       if (update) {
         actions.onSave(update.kind, update.entity, update.options);
@@ -117,12 +97,7 @@ export function useEntityEditWorkflow(
 
   const addDependency = useCallback(
     (ownerId: string | undefined, targetId: string, type: DependencyType) => {
-      const dependency = buildDependency(
-        ownerId,
-        targetId,
-        type,
-        createDependencyId,
-      );
+      const dependency = buildDependency(ownerId, targetId, type, createDependencyId);
       if (dependency) {
         actions.onAddDependency(dependency);
       }

@@ -51,14 +51,8 @@ export function describeTaskEndpointConstraints(
   dependencies: readonly Dependency[],
 ): EndpointConstraints {
   return {
-    start: sourcesOf(
-      task.start !== undefined,
-      constrainsStart(task.id, dependencies),
-    ),
-    end: sourcesOf(
-      task.end !== undefined,
-      constrainsEnd(task.id, dependencies),
-    ),
+    start: sourcesOf(task.start !== undefined, constrainsStart(task.id, dependencies)),
+    end: sourcesOf(task.end !== undefined, constrainsEnd(task.id, dependencies)),
     hasDuration: task.duration !== undefined,
   };
 }
@@ -90,9 +84,7 @@ export function describeMilestoneEndpointConstraints(
  * @param constraints The task's endpoint constraints.
  * @returns The determinacy verdict.
  */
-export function judgeTaskConstraints(
-  constraints: EndpointConstraints,
-): ConstraintVerdict {
+export function judgeTaskConstraints(constraints: EndpointConstraints): ConstraintVerdict {
   const count =
     Number(constraints.start.length > 0) +
     Number(constraints.hasDuration) +
@@ -120,17 +112,13 @@ export function judgeTaskConstraints(
  * @param constraints The milestone's endpoint constraints.
  * @returns The determinacy verdict.
  */
-export function judgeMilestoneConstraints(
-  constraints: EndpointConstraints,
-): ConstraintVerdict {
+export function judgeMilestoneConstraints(constraints: EndpointConstraints): ConstraintVerdict {
   const hasStaticDate = constraints.start.includes("static");
   const startFromDependency = constraints.start.includes("dependency");
   const endFromDependency = constraints.end.includes("dependency");
   const hasDate = hasStaticDate || startFromDependency || endFromDependency;
-  const duplicateDate =
-    hasStaticDate && (startFromDependency || endFromDependency);
-  const contradictoryDependencies =
-    !hasStaticDate && startFromDependency && endFromDependency;
+  const duplicateDate = hasStaticDate && (startFromDependency || endFromDependency);
+  const contradictoryDependencies = !hasStaticDate && startFromDependency && endFromDependency;
 
   return {
     count: hasDate ? 2 : 0,
@@ -153,9 +141,7 @@ export function validateTaskConstraints(
   task: Task,
   dependencies: readonly Dependency[],
 ): ConstraintVerdict {
-  return judgeTaskConstraints(
-    describeTaskEndpointConstraints(task, dependencies),
-  );
+  return judgeTaskConstraints(describeTaskEndpointConstraints(task, dependencies));
 }
 
 /**
@@ -169,16 +155,11 @@ export function validateMilestoneConstraints(
   milestone: Milestone,
   dependencies: readonly Dependency[],
 ): ConstraintVerdict {
-  return judgeMilestoneConstraints(
-    describeMilestoneEndpointConstraints(milestone, dependencies),
-  );
+  return judgeMilestoneConstraints(describeMilestoneEndpointConstraints(milestone, dependencies));
 }
 
 /** Lists the sources that apply to a single endpoint, in precedence order. */
-function sourcesOf(
-  fromStatic: boolean,
-  fromDependency: boolean,
-): readonly ConstraintSource[] {
+function sourcesOf(fromStatic: boolean, fromDependency: boolean): readonly ConstraintSource[] {
   const sources: ConstraintSource[] = [];
   if (fromStatic) {
     sources.push("static");
@@ -190,10 +171,7 @@ function sourcesOf(
 }
 
 /** Returns whether an outgoing dependency fixes the entity's start. */
-function constrainsStart(
-  entityId: string,
-  dependencies: readonly Dependency[],
-): boolean {
+function constrainsStart(entityId: string, dependencies: readonly Dependency[]): boolean {
   return dependencies.some(
     (dependency) =>
       dependency.sourceId === entityId &&
@@ -202,12 +180,8 @@ function constrainsStart(
 }
 
 /** Returns whether an outgoing dependency fixes the entity's end. */
-function constrainsEnd(
-  entityId: string,
-  dependencies: readonly Dependency[],
-): boolean {
+function constrainsEnd(entityId: string, dependencies: readonly Dependency[]): boolean {
   return dependencies.some(
-    (dependency) =>
-      dependency.sourceId === entityId && dependency.type === "endWith",
+    (dependency) => dependency.sourceId === entityId && dependency.type === "endWith",
   );
 }

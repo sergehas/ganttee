@@ -1,9 +1,4 @@
-import {
-  createEmptyDocument,
-  Milestone,
-  ProjectDocument,
-  Task,
-} from "@common/documents";
+import { createEmptyDocument, Milestone, ProjectDocument, Task } from "@common/documents";
 import {
   buildDatePatchUpdate,
   buildShiftByDaysPatch,
@@ -29,10 +24,7 @@ suite("projectItemSchedulePatchService", () => {
     assert.strictEqual((taskUpdate?.entity as Task).start, "2026-02-01");
     assert.strictEqual((taskUpdate?.entity as Task).end, "2026-02-05");
     assert.strictEqual(milestoneUpdate?.kind, "milestone");
-    assert.strictEqual(
-      (milestoneUpdate?.entity as Milestone).date,
-      "2026-02-10",
-    );
+    assert.strictEqual((milestoneUpdate?.entity as Milestone).date, "2026-02-10");
   });
 
   test("builds milestone date patch from start/end fallbacks", () => {
@@ -56,11 +48,7 @@ suite("projectItemSchedulePatchService", () => {
   test("falls back to entity dates when patch omits start/end", () => {
     const document = createDocument();
 
-    const taskUpdate = buildDatePatchUpdate(
-      document,
-      { kind: "task", id: "t1" },
-      {},
-    );
+    const taskUpdate = buildDatePatchUpdate(document, { kind: "task", id: "t1" }, {});
 
     assert.strictEqual((taskUpdate?.entity as Task).start, "2026-01-01");
     assert.strictEqual((taskUpdate?.entity as Task).end, "2026-01-04");
@@ -74,36 +62,21 @@ suite("projectItemSchedulePatchService", () => {
       undefined,
     );
     assert.strictEqual(
-      buildDatePatchUpdate(
-        document,
-        { kind: "milestone", id: "missing" },
-        { date: "2026-02-01" },
-      ),
+      buildDatePatchUpdate(document, { kind: "milestone", id: "missing" }, { date: "2026-02-01" }),
       undefined,
     );
     assert.strictEqual(
       buildDatePatchUpdate(document, { kind: "milestone", id: "m1" }, {}),
       undefined,
     );
-    assert.strictEqual(
-      buildDatePatchUpdate(document, { kind: "group", id: "g1" }, {}),
-      undefined,
-    );
+    assert.strictEqual(buildDatePatchUpdate(document, { kind: "group", id: "g1" }, {}), undefined);
   });
 
   test("builds shift-by-days patches", () => {
     const document = createDocument();
 
-    const taskPatch = buildShiftByDaysPatch(
-      document,
-      { kind: "task", id: "t1" },
-      2,
-    );
-    const milestonePatch = buildShiftByDaysPatch(
-      document,
-      { kind: "milestone", id: "m1" },
-      2,
-    );
+    const taskPatch = buildShiftByDaysPatch(document, { kind: "task", id: "t1" }, 2);
+    const milestonePatch = buildShiftByDaysPatch(document, { kind: "milestone", id: "m1" }, 2);
 
     assert.deepStrictEqual(taskPatch, {
       start: "2026-01-03",
@@ -125,10 +98,7 @@ suite("projectItemSchedulePatchService", () => {
       buildShiftByDaysPatch(document, { kind: "milestone", id: "missing" }, 1),
       undefined,
     );
-    assert.strictEqual(
-      buildShiftByDaysPatch(document, { kind: "group", id: "g1" }, 1),
-      undefined,
-    );
+    assert.strictEqual(buildShiftByDaysPatch(document, { kind: "group", id: "g1" }, 1), undefined);
   });
 
   test("returns undefined from buildShiftByDaysPatch when task has no dates", () => {
@@ -149,11 +119,7 @@ suite("projectItemSchedulePatchService", () => {
       tasks: [{ id: "t-start", name: "Start only", start: "2026-03-01" }],
     };
 
-    const patch = buildShiftByDaysPatch(
-      document,
-      { kind: "task", id: "t-start" },
-      1,
-    );
+    const patch = buildShiftByDaysPatch(document, { kind: "task", id: "t-start" }, 1);
 
     assert.deepStrictEqual(patch, { start: "2026-03-02", end: undefined });
   });
@@ -172,9 +138,7 @@ function createDocument(): ProjectDocument {
         groupId: "g1",
       },
     ],
-    milestones: [
-      { id: "m1", name: "Milestone", date: "2026-01-02", groupId: "g1" },
-    ],
+    milestones: [{ id: "m1", name: "Milestone", date: "2026-01-02", groupId: "g1" }],
     groups: [
       { id: "g1", name: "Root" },
       { id: "g2", name: "Child", groupId: "g1" },

@@ -72,9 +72,7 @@ suite("documentMigrationService", () => {
   test("leaves current-schema documents unchanged", () => {
     const raw = {
       version: CURRENT_DOCUMENT_VERSION,
-      dependencies: [
-        { id: "d1", sourceId: "t1", targetId: "t2", type: "endWith" },
-      ],
+      dependencies: [{ id: "d1", sourceId: "t1", targetId: "t2", type: "endWith" }],
     };
 
     assert.deepStrictEqual(migrateDocument(raw), raw);
@@ -155,16 +153,12 @@ suite("documentMigrationService", () => {
   test("preserves unknown legacy dependency types for downstream validation", () => {
     const migrated = migrateDocument({
       version: 1,
-      dependencies: [
-        { id: "d1", sourceId: "t1", targetId: "t2", type: "legacyType" },
-      ],
+      dependencies: [{ id: "d1", sourceId: "t1", targetId: "t2", type: "legacyType" }],
     });
 
     assert.deepStrictEqual(migrated, {
       version: CURRENT_DOCUMENT_VERSION,
-      dependencies: [
-        { id: "d1", sourceId: "t1", targetId: "t2", type: "legacyType" },
-      ],
+      dependencies: [{ id: "d1", sourceId: "t1", targetId: "t2", type: "legacyType" }],
     });
   });
 
@@ -185,9 +179,7 @@ suite("documentMigrationService", () => {
           end: "2026-01-04",
         },
       ],
-      dependencies: [
-        { id: "d1", sourceId: "t1", targetId: "t2", type: "legacyType" },
-      ],
+      dependencies: [{ id: "d1", sourceId: "t1", targetId: "t2", type: "legacyType" }],
     });
 
     assert.throws(() => parseDocument(text), GanttParseError);
@@ -196,9 +188,7 @@ suite("documentMigrationService", () => {
   test("keeps a v1 start+end task as the start+end pair with derived duration, round-trip stable", () => {
     const text = JSON.stringify({
       version: 1,
-      tasks: [
-        { id: "t1", title: "Task 1", start: "2026-01-01", end: "2026-01-05" },
-      ],
+      tasks: [{ id: "t1", title: "Task 1", start: "2026-01-01", end: "2026-01-05" }],
       dependencies: [],
     });
 

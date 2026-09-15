@@ -19,9 +19,7 @@ export interface EntityEditorDraft {
 }
 
 /** Synchronizes entity-specific draft state with the active editing target. */
-export function useEntityEditorDraft(
-  editingEntity: TaskFormEditingEntity,
-): EntityEditorDraft {
+export function useEntityEditorDraft(editingEntity: TaskFormEditingEntity): EntityEditorDraft {
   const [taskDraft, setTaskDraft] = useState<Task | null>(null);
   const [milestoneDraft, setMilestoneDraft] = useState<Milestone | null>(null);
   const [groupDraft, setGroupDraft] = useState<Group | null>(null);

@@ -10,13 +10,7 @@ import * as assert from "assert";
 
 suite("projectViewControls", () => {
   test("keeps zoom levels ordered from finest to coarsest", () => {
-    assert.deepStrictEqual(ZOOM_LEVELS, [
-      "day",
-      "week",
-      "month",
-      "quarter",
-      "year",
-    ]);
+    assert.deepStrictEqual(ZOOM_LEVELS, ["day", "week", "month", "quarter", "year"]);
   });
 
   test("moves in both zoom directions and clamps at the boundaries", () => {

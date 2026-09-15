@@ -33,15 +33,11 @@ export function assertDocumentRelations(document: ProjectDocument): void {
 }
 
 /** Asserts that every dependency id is unique within the document. */
-function assertUniqueDependencyIds(
-  dependencies: ProjectDocument["dependencies"],
-): void {
+function assertUniqueDependencyIds(dependencies: ProjectDocument["dependencies"]): void {
   const seen = new Set<string>();
   for (const dependency of dependencies) {
     if (seen.has(dependency.id)) {
-      throw new GanttParseError(
-        `Dependency id "${dependency.id}" must be unique.`,
-      );
+      throw new GanttParseError(`Dependency id "${dependency.id}" must be unique.`);
     }
     seen.add(dependency.id);
   }
@@ -50,11 +46,7 @@ function assertUniqueDependencyIds(
 /** Asserts that every entity id is unique across all entity kinds. */
 function assertUniqueEntityIds(document: ProjectDocument): void {
   const seen = new Set<string>();
-  const entities = [
-    ...document.tasks,
-    ...document.groups,
-    ...document.milestones,
-  ];
+  const entities = [...document.tasks, ...document.groups, ...document.milestones];
   for (const entity of entities) {
     if (seen.has(entity.id)) {
       throw new GanttParseError(
@@ -68,11 +60,7 @@ function assertUniqueEntityIds(document: ProjectDocument): void {
 /** Asserts that each task keeps `start <= end` when both endpoints exist. */
 function assertTaskDateOrder(tasks: Task[]): void {
   tasks.forEach((task, index) => {
-    if (
-      task.start !== undefined &&
-      task.end !== undefined &&
-      task.start > task.end
-    ) {
+    if (task.start !== undefined && task.end !== undefined && task.start > task.end) {
       throw new GanttParseError(
         `tasks[${index}] has an invalid date range: start must be on or before end.`,
       );
@@ -88,23 +76,17 @@ function assertGroupHierarchy(groups: Group[]): void {
       return;
     }
     if (group.groupId === group.id) {
-      throw new GanttParseError(
-        `groups[${index}] cannot reference itself as parent group.`,
-      );
+      throw new GanttParseError(`groups[${index}] cannot reference itself as parent group.`);
     }
     if (!groupById.has(group.groupId)) {
-      throw new GanttParseError(
-        `groups[${index}].groupId references an unknown group id.`,
-      );
+      throw new GanttParseError(`groups[${index}].groupId references an unknown group id.`);
     }
 
     const visited = new Set<string>([group.id]);
     let cursor: string | undefined = group.groupId;
     while (cursor !== undefined) {
       if (visited.has(cursor)) {
-        throw new GanttParseError(
-          `groups[${index}] creates a parent cycle in group hierarchy.`,
-        );
+        throw new GanttParseError(`groups[${index}] creates a parent cycle in group hierarchy.`);
       }
       visited.add(cursor);
       cursor = groupById.get(cursor)?.groupId;
@@ -117,16 +99,12 @@ function assertGroupReferences(document: ProjectDocument): void {
   const groupIds = new Set(document.groups.map((group) => group.id));
   document.tasks.forEach((task, index) => {
     if (task.groupId !== undefined && !groupIds.has(task.groupId)) {
-      throw new GanttParseError(
-        `tasks[${index}].groupId references an unknown group id.`,
-      );
+      throw new GanttParseError(`tasks[${index}].groupId references an unknown group id.`);
     }
   });
   document.milestones.forEach((milestone, index) => {
     if (milestone.groupId !== undefined && !groupIds.has(milestone.groupId)) {
-      throw new GanttParseError(
-        `milestones[${index}].groupId references an unknown group id.`,
-      );
+      throw new GanttParseError(`milestones[${index}].groupId references an unknown group id.`);
     }
   });
 }

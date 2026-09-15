@@ -14,14 +14,8 @@ import { createEntityEditorSubmit } from "../entityEditorSubmit";
 export function EntityEditor(props: TaskFormProps): React.JSX.Element {
   const { editingEntity, document } = props;
   const t = useTranslate();
-  const {
-    taskDraft,
-    milestoneDraft,
-    groupDraft,
-    setTaskDraft,
-    setMilestoneDraft,
-    setGroupDraft,
-  } = useEntityEditorDraft(editingEntity);
+  const { taskDraft, milestoneDraft, groupDraft, setTaskDraft, setMilestoneDraft, setGroupDraft } =
+    useEntityEditorDraft(editingEntity);
 
   const dependencyOwnerId = taskDraft?.id ?? milestoneDraft?.id;
   const depEditor = useDependencyEditorState(dependencyOwnerId, document, {
@@ -55,9 +49,7 @@ export function EntityEditor(props: TaskFormProps): React.JSX.Element {
       {taskDraft && (
         <TaskFields
           task={taskDraft}
-          scheduledTask={props.schedule.tasks.find(
-            (task) => task.id === taskDraft.id,
-          )}
+          scheduledTask={props.schedule.tasks.find((task) => task.id === taskDraft.id)}
           onChange={setTaskDraft}
           {...depEditor}
         />

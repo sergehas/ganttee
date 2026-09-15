@@ -27,25 +27,16 @@ suite("editor smoke", () => {
 
   test("ganttee.newTask command is registered", async () => {
     const all = await vscode.commands.getCommands(true);
-    assert.ok(
-      all.includes("ganttee.newTask"),
-      "ganttee.newTask not registered",
-    );
+    assert.ok(all.includes("ganttee.newTask"), "ganttee.newTask not registered");
   });
 
   test("ganttee.editTask command is registered", async () => {
     const all = await vscode.commands.getCommands(true);
-    assert.ok(
-      all.includes("ganttee.editTask"),
-      "ganttee.editTask not registered",
-    );
+    assert.ok(all.includes("ganttee.editTask"), "ganttee.editTask not registered");
   });
 
   test("ganttee.deleteTask command is registered", async () => {
     const all = await vscode.commands.getCommands(true);
-    assert.ok(
-      all.includes("ganttee.deleteTask"),
-      "ganttee.deleteTask not registered",
-    );
+    assert.ok(all.includes("ganttee.deleteTask"), "ganttee.deleteTask not registered");
   });
 });
