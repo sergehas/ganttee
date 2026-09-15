@@ -83,7 +83,8 @@ aggregate command has already covered it. Run a separate configured command only
 check that remains uncovered.
 
 If no recognized build-system configuration provides quality-check commands, use the `other`
-fallback for lint / formatting: `npx --yes prettier --config ./prettierrc.json --write .`
+fallback for lint / formatting:
+`npx --yes prettier --log-level warn --config ./prettierrc.json --write .`
 
 Report any failures to the user before proceeding. Let the user decide whether to fix them first or
 raise the PR anyway (e.g. draft PR for early feedback).
