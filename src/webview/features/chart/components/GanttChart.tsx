@@ -1,3 +1,7 @@
+import { ProjectDocument, ProjectView } from "@common/documents";
+import { ProjectSchedule } from "@common/models";
+import { EditableEntityRef } from "@common/protocol";
+import { CriticalPathProjection } from "@services/dependency-graph/criticalPathService";
 import type {} from "echarts";
 import { CustomChart } from "echarts/charts";
 import {
@@ -9,17 +13,11 @@ import {
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
-import { ProjectDocument, ProjectView } from "@common/documents";
-import { ProjectSchedule } from "@common/models";
-import { EditableEntityRef } from "@common/protocol";
-import { CriticalPathProjection } from "@services/dependency-graph/criticalPathService";
-import { CHART_ROW_HEIGHT, CRITICAL_ITEM_STYLE } from "../chart.constants";
-import { isDirectEditGesture } from "../chartInteractions";
-import { CalendarArea, TimelineTickData } from "../chart.types";
-import { renderCriticalLink, renderLink, renderMilestone, renderTaskBar } from "../chartRenderers";
 import { translate, useWebviewL10n } from "../../../l10n";
-import { alignTimelineStart, buildTimelineTicks, createTimelineAxisModel } from "../timelineAxis";
-import { AXIS_LABEL_COLOR, createTimelineTickRenderer } from "../timelineHeaderRenderer";
+import { CHART_ROW_HEIGHT, CRITICAL_ITEM_STYLE } from "../chart.constants";
+import { CalendarArea, TimelineTickData } from "../chart.types";
+import { isDirectEditGesture } from "../chartInteractions";
+import { renderCriticalLink, renderLink, renderMilestone, renderTaskBar } from "../chartRenderers";
 import {
   chartTooltipFormatter,
   DAY,
@@ -27,6 +25,9 @@ import {
   entityFromChartEvent,
   toChartMs,
 } from "../chartUtils";
+import { alignTimelineStart, buildTimelineTicks, createTimelineAxisModel } from "../timelineAxis";
+import { AXIS_LABEL_COLOR, createTimelineTickRenderer } from "../timelineHeaderRenderer";
+import "./GanttChart.scss";
 
 echarts.use([
   CustomChart,
@@ -133,7 +134,7 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
     }
   }, [l10n, props.document, props.schedule, props.criticalPath, props.view, props.selectedEntity]);
 
-  return <div className="ganttee-chart" ref={containerRef} />;
+  return <div className="ganttee-gantt-chart" ref={containerRef} />;
 }
 
 /** Builds the ECharts option from the current document and selection. */

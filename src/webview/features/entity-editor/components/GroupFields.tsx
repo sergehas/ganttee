@@ -1,9 +1,14 @@
-import { makeUpdater } from "../hooks/useFieldUpdater";
-import { useGroupScheduleScope } from "../hooks/useGroupScheduleScope";
+import "../../../components/Form.scss";
+import { FormField } from "../../../components/FormField";
+import { IconButton } from "../../../components/IconButton";
 import { useTranslate, useWebviewL10n } from "../../../l10n";
 import { GroupFieldsProps } from "../entityEditor.types";
 import { displayGroupDate, entityKindLabel } from "../entityEditorPresentation";
+import { makeUpdater } from "../hooks/useFieldUpdater";
+import { useGroupScheduleScope } from "../hooks/useGroupScheduleScope";
 import { CommonTextFields } from "./CommonTextFields";
+
+import "./GroupFields.scss";
 
 /** Renders group-specific fields: schedule summary, collapsed toggle, and owned member list. */
 export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
@@ -14,7 +19,7 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
   const { schedule, directMemberRows } = useGroupScheduleScope(document, group.id);
 
   return (
-    <>
+    <div className="ganttee-form ganttee-group-fields">
       <CommonTextFields
         name={group.name}
         description={group.description}
@@ -26,39 +31,35 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
         onGroupId={(groupId) => update("groupId", groupId)}
       />
 
-      <div className="ganttee-field-row">
-        <label className="ganttee-field">
-          <span>{t("Start")}</span>
+      <div className="ganttee-form__row">
+        <FormField label={t("Start")}>
           <input type="text" value={displayGroupDate(schedule.start, locale)} readOnly />
-        </label>
-        <label className="ganttee-field">
-          <span>{t("End")}</span>
+        </FormField>
+        <FormField label={t("End")}>
           <input type="text" value={displayGroupDate(schedule.end, locale)} readOnly />
-        </label>
+        </FormField>
       </div>
 
-      <div className="ganttee-field-row">
-        <label className="ganttee-field">
-          <span>{t("Duration")}</span>
+      <div className="ganttee-form__row">
+        <FormField label={t("Duration")}>
           <input type="text" value={schedule.durationDays?.toString() ?? ""} readOnly />
-        </label>
+        </FormField>
 
-        <label className="ganttee-field ganttee-field--checkbox">
+        <FormField checkbox label={t("Collapsed")}>
           <input
             type="checkbox"
             checked={group.collapsed ?? false}
             onChange={(event) => update("collapsed", event.target.checked)}
           />
-          <span>{t("Collapsed")}</span>
-        </label>
+        </FormField>
       </div>
 
-      <fieldset className="ganttee-dependencies">
+      <fieldset>
         <legend>{t("Owned Entities")}</legend>
         {directMemberRows.length === 0 ? (
-          <p className="ganttee-muted">{t("No owned entities.")}</p>
+          <p className="ganttee-group-fields__empty">{t("No owned entities.")}</p>
         ) : (
-          <table className="ganttee-table">
+          <table className="ganttee-group-fields__table">
             <thead>
               <tr>
                 <th>{t("Name")}</th>
@@ -82,15 +83,11 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
                   </td>
                   <td>{t(entityKindLabel(row.kind))}</td>
                   <td>
-                    <button
-                      type="button"
-                      className="ganttee-icon-button"
+                    <IconButton
+                      icon="remove"
+                      label={t("Remove from group")}
                       onClick={() => props.onUngroupEntity(row.entity)}
-                      aria-label={t("Remove from group")}
-                      title={t("Remove from group")}
-                    >
-                      <span className="codicon codicon-remove" aria-hidden="true" />
-                    </button>
+                    />
                   </td>
                 </tr>
               ))}
@@ -98,6 +95,6 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
           </table>
         )}
       </fieldset>
-    </>
+    </div>
   );
 }

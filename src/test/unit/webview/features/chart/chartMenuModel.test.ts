@@ -1,8 +1,11 @@
 import { DEFAULT_PROJECT_VIEW, ProjectView } from "@common/documents";
-import { ChartMenuModel, createChartMenuModel } from "@webview/features/chart/chartMenuModel";
+import {
+  ChartMenuPresentation,
+  createChartMenuPresentation,
+} from "@webview/features/chart/chartMenuPresentation";
 import * as assert from "assert";
 
-suite("chartMenuModel", () => {
+suite("chartMenuPresentation", () => {
   test("creates ordered localized layer and zoom actions", () => {
     const model = createModel(DEFAULT_PROJECT_VIEW);
 
@@ -36,7 +39,7 @@ suite("chartMenuModel", () => {
     const view = { ...DEFAULT_PROJECT_VIEW };
     const proposals: ProjectView[] = [];
     let fitCount = 0;
-    const model = createChartMenuModel(
+    const model = createChartMenuPresentation(
       view,
       (source) => source,
       (nextView) => proposals.push(nextView),
@@ -57,9 +60,9 @@ suite("chartMenuModel", () => {
   });
 });
 
-/** Builds a menu model with identity localization for test readability. */
-function createModel(view: ProjectView): ChartMenuModel {
-  return createChartMenuModel(
+/** Builds menu presentation data with identity localization for test readability. */
+function createModel(view: ProjectView): ChartMenuPresentation {
+  return createChartMenuPresentation(
     view,
     (source) => source,
     () => undefined,

@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { Dependency, ProjectDocument, ProjectView } from "../common/documents";
 import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "../common/protocol";
 import { buildShiftByDaysPatch } from "../services/editing/projectItemSchedulePatchService";
+import "./App.scss";
 import { ChartMenuBar } from "./features/chart/components/ChartMenuBar";
 import { GanttChart } from "./features/chart/components/GanttChart";
-import { translate, WebviewL10n, WebviewL10nContext } from "./l10n";
 import { EntityEditor } from "./features/entity-editor/components/EntityEditor";
 import { useEntityEditWorkflow } from "./features/entity-editor/hooks/useEntityEditWorkflow";
+import { translate, WebviewL10n, WebviewL10nContext } from "./l10n";
 import { createGanttViewState, GanttViewState, updateGanttViewDocument } from "./viewState";
 import { onHostMessage, postToHost } from "./vscodeApi";
 
@@ -105,12 +106,12 @@ export function App(): React.JSX.Element {
   });
 
   if (!l10n) {
-    return <div className="ganttee-empty" aria-busy="true" />;
+    return <div className="ganttee-app__empty" aria-busy="true" />;
   }
 
   if (!viewState) {
     return (
-      <div className="ganttee-empty" aria-busy="true">
+      <div className="ganttee-app__empty" aria-busy="true">
         {translate(l10n, "Loading Gantt chart...")}
       </div>
     );
@@ -145,11 +146,11 @@ export function App(): React.JSX.Element {
 
   return (
     <WebviewL10nContext.Provider value={l10n}>
-      <div className="ganttee-layout">
-        <div className="ganttee-timeline">
+      <div className="ganttee-app">
+        <div className="ganttee-app__timeline">
           <ChartMenuBar view={chartView} onViewChange={updateView} onFitToWindow={fitToWindow} />
           {viewState.document.tasks.length === 0 && viewState.document.milestones.length === 0 ? (
-            <div className="ganttee-empty">
+            <div className="ganttee-app__empty">
               {translate(l10n, "No tasks yet. Use the Ganttee sidebar to add one.")}
             </div>
           ) : (
@@ -167,7 +168,7 @@ export function App(): React.JSX.Element {
           )}
         </div>
         {editingTarget && (
-          <aside className="ganttee-panel">
+          <aside className="ganttee-app__panel">
             <EntityEditor
               editingEntity={editingTarget}
               document={viewState.document}

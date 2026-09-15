@@ -1,12 +1,15 @@
 import { formatShortDate } from "@common/datePresentation";
 import { validateMilestoneConstraints } from "@services/schedule/scheduleConstraintService";
-import { makeUpdater } from "../hooks/useFieldUpdater";
+import "../../../components/Form.scss";
+import { FormField } from "../../../components/FormField";
 import { useTranslate, useWebviewL10n } from "../../../l10n";
 import { MilestoneFieldsProps } from "../entityEditor.types";
+import { milestoneValidationMessages } from "../entityEditorPresentation";
+import { makeUpdater } from "../hooks/useFieldUpdater";
 import { CommonTextFields } from "./CommonTextFields";
 import { DependencyFields } from "./DependencyFields";
+import "./MilestoneFields.scss";
 import { ValidationMessage } from "./ValidationMessage";
-import { milestoneValidationMessages } from "../entityEditorPresentation";
 
 /** Renders milestone-specific fields plus dependency editing controls. */
 export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element {
@@ -18,7 +21,7 @@ export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element 
   const validation = validateMilestoneConstraints(milestone, document.dependencies);
 
   return (
-    <>
+    <div className="ganttee-form ">
       <CommonTextFields
         name={milestone.name}
         description={milestone.description}
@@ -29,8 +32,7 @@ export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element 
         onGroupId={(groupId) => update("groupId", groupId)}
       />
 
-      <label className="ganttee-field">
-        <span>{t("Date")}</span>
+      <FormField label={t("Date")}>
         <input
           type="date"
           value={milestone.date ?? ""}
@@ -39,7 +41,7 @@ export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element 
         {scheduledMilestone && (
           <output>{formatShortDate(scheduledMilestone.effectiveStart(), locale)}</output>
         )}
-      </label>
+      </FormField>
 
       {milestoneValidationMessages(validation).map((message) => (
         <ValidationMessage severity={message.severity} key={message.source}>
@@ -48,6 +50,6 @@ export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element 
       ))}
 
       <DependencyFields {...depProps} />
-    </>
+    </div>
   );
 }

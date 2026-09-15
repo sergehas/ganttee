@@ -1,16 +1,21 @@
 import { formatShortDate } from "@common/datePresentation";
 import { TaskStatus } from "@common/documents";
 import { validateTaskConstraints } from "@services/schedule/scheduleConstraintService";
-import { makeUpdater } from "../hooks/useFieldUpdater";
+import "../../../components/Form.scss";
+import { FormField } from "../../../components/FormField";
+import { Select } from "../../../components/Select";
 import { useTranslate, useWebviewL10n } from "../../../l10n";
 import { TaskFieldsProps } from "../entityEditor.types";
+
 import {
   STATUS_OPTIONS,
   taskStatusLabel,
   taskValidationMessages,
 } from "../entityEditorPresentation";
+import { makeUpdater } from "../hooks/useFieldUpdater";
 import { CommonTextFields } from "./CommonTextFields";
 import { DependencyFields } from "./DependencyFields";
+import "./TaskFields.scss";
 import { ValidationMessage } from "./ValidationMessage";
 
 /** Renders task-specific fields plus dependency editing controls. */
@@ -24,7 +29,7 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
   const validation = validateTaskConstraints(task, document.dependencies);
 
   return (
-    <>
+    <div className="ganttee-form">
       <CommonTextFields
         name={task.name}
         description={task.description}
@@ -34,9 +39,8 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
         onDescription={(description) => update("description", description)}
         onGroupId={(groupId) => update("groupId", groupId)}
       />
-      <div className="ganttee-field-row">
-        <label className="ganttee-field">
-          <span>{t("Start")}</span>
+      <div className="ganttee-form__row">
+        <FormField label={t("Start")}>
           <input
             type="date"
             value={task.start ?? ""}
@@ -45,9 +49,8 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
           {scheduledTask && (
             <output>{formatShortDate(scheduledTask.effectiveStart(), locale)}</output>
           )}
-        </label>
-        <label className="ganttee-field">
-          <span>{t("End")}</span>
+        </FormField>
+        <FormField label={t("End")}>
           <input
             type="date"
             min={task.start}
@@ -57,12 +60,11 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
           {scheduledTask && (
             <output>{formatShortDate(scheduledTask.effectiveEnd(), locale)}</output>
           )}
-        </label>
+        </FormField>
       </div>
 
-      <div className="ganttee-field-row">
-        <label className="ganttee-field">
-          <span>{t("Duration")}</span>
+      <div className="ganttee-form__row">
+        <FormField label={t("Duration")}>
           <input
             type="number"
             min={0}
@@ -73,9 +75,8 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
             }
           />
           {scheduledTask && <output>{scheduledTask.effectiveDuration()}</output>}
-        </label>
-        <label className="ganttee-field">
-          <span>{t("Progress")}</span>
+        </FormField>
+        <FormField label={t("Progress")}>
           <input
             type="range"
             min={0}
@@ -83,12 +84,11 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
             value={Math.round((task.progress ?? 0) * 100)}
             onChange={(event) => update("progress", Number(event.target.value) / 100)}
           />
-        </label>
+        </FormField>
       </div>
 
-      <label className="ganttee-field">
-        <span>{t("Status")}</span>
-        <select
+      <FormField label={t("Status")}>
+        <Select
           value={task.status ?? "todo"}
           onChange={(event) => update("status", event.target.value as TaskStatus)}
         >
@@ -97,8 +97,8 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
               {t(taskStatusLabel(status))}
             </option>
           ))}
-        </select>
-      </label>
+        </Select>
+      </FormField>
 
       {taskValidationMessages(validation).map((message) => (
         <ValidationMessage severity={message.severity} key={message.source}>
@@ -107,6 +107,6 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
       ))}
 
       <DependencyFields {...depProps} />
-    </>
+    </div>
   );
 }

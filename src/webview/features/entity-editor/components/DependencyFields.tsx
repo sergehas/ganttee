@@ -1,4 +1,6 @@
 import { DependencyType } from "@common/documents";
+import { IconButton } from "../../../components/IconButton";
+import { Select } from "../../../components/Select";
 import { useTranslate } from "../../../l10n";
 import { DependencyFieldsProps } from "../entityEditor.types";
 import {
@@ -6,32 +8,31 @@ import {
   dependencyTypeLabel,
   describeDependency,
 } from "../entityEditorPresentation";
+import "./DependencyFields.scss";
 
 /** Renders the dependency list and add-dependency controls. */
 export function DependencyFields(props: DependencyFieldsProps): React.JSX.Element {
   const t = useTranslate();
   return (
-    <fieldset className="ganttee-dependencies">
+    <fieldset className="ganttee-dependency-fields">
       <legend>{t("Dependencies")}</legend>
-      {props.dependencies.length === 0 && <p className="ganttee-muted">{t("No dependencies.")}</p>}
+      {props.dependencies.length === 0 && (
+        <p className="ganttee-dependency-fields__empty">{t("No dependencies.")}</p>
+      )}
       <ul>
         {props.dependencies.map((dep) => (
           <li key={dep.id}>
             <span>{describeDependency(dep, props.document, t)}</span>
-            <button
-              type="button"
-              className="ganttee-icon-button"
+            <IconButton
+              icon="trash"
+              label={t("Remove dependency")}
               onClick={() => props.onRemoveDependency(dep.id)}
-              aria-label={t("Remove dependency")}
-              title={t("Remove dependency")}
-            >
-              <span className="codicon codicon-trash" aria-hidden="true" />
-            </button>
+            />
           </li>
         ))}
       </ul>
-      <div className="ganttee-field-row">
-        <select
+      <div className="ganttee-dependency-fields__controls">
+        <Select
           value={props.dependencyType}
           aria-label={t("Dependency type")}
           onChange={(event) => props.onDependencyTypeChange(event.target.value as DependencyType)}
@@ -41,8 +42,8 @@ export function DependencyFields(props: DependencyFieldsProps): React.JSX.Elemen
               {t(dependencyTypeLabel(type))}
             </option>
           ))}
-        </select>
-        <select
+        </Select>
+        <Select
           value={props.dependencyTarget}
           aria-label={t("Dependency target")}
           onChange={(event) => props.onDependencyTargetChange(event.target.value)}
@@ -53,16 +54,8 @@ export function DependencyFields(props: DependencyFieldsProps): React.JSX.Elemen
               {other.name}
             </option>
           ))}
-        </select>
-        <button
-          type="button"
-          className="ganttee-icon-button"
-          onClick={props.onAddDependency}
-          aria-label={t("Add")}
-          title={t("Add")}
-        >
-          <span className="codicon codicon-add" aria-hidden="true" />
-        </button>
+        </Select>
+        <IconButton icon="add" label={t("Add")} onClick={props.onAddDependency} />
       </div>
     </fieldset>
   );

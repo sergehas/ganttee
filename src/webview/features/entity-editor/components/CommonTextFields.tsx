@@ -1,5 +1,8 @@
+import { FormField } from "../../../components/FormField";
+import { Select } from "../../../components/Select";
 import { useTranslate } from "../../../l10n";
 import { CommonTextFieldsProps } from "../entityEditor.types";
+import "./CommonTextFields.scss";
 
 /** Renders name, description, and group assignment fields shared by all entity types. */
 export function CommonTextFields(props: CommonTextFieldsProps): React.JSX.Element {
@@ -7,29 +10,26 @@ export function CommonTextFields(props: CommonTextFieldsProps): React.JSX.Elemen
   const groupOptions = props.groups.filter((group) => group.id !== props.excludedGroupId);
 
   return (
-    <>
-      <label className="ganttee-field">
-        <span>{t("Name")}</span>
+    <div className="ganttee-common-text-fields">
+      <FormField label={t("Name")}>
         <input
           type="text"
           value={props.name}
           onChange={(event) => props.onName(event.target.value)}
           required
         />
-      </label>
+      </FormField>
 
-      <label className="ganttee-field">
-        <span>{t("Description")}</span>
+      <FormField label={t("Description")}>
         <textarea
           value={props.description ?? ""}
           onChange={(event) => props.onDescription(event.target.value || undefined)}
           rows={3}
         />
-      </label>
+      </FormField>
 
-      <label className="ganttee-field">
-        <span>{t("Group")}</span>
-        <select
+      <FormField label={t("Group")}>
+        <Select
           value={props.groupId ?? ""}
           onChange={(event) => props.onGroupId(event.target.value || undefined)}
         >
@@ -39,8 +39,8 @@ export function CommonTextFields(props: CommonTextFieldsProps): React.JSX.Elemen
               {group.name}
             </option>
           ))}
-        </select>
-      </label>
-    </>
+        </Select>
+      </FormField>
+    </div>
   );
 }

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { IconButton } from "../../../components/IconButton";
+import "./IconAction.scss";
 
 /** A leaf action or nested action group shown by an icon control. */
 export interface IconActionItem {
@@ -28,24 +30,19 @@ export function IconAction({ action, pressed = false }: IconActionProps): React.
 
   if (hasChildren) {
     return (
-      <div className="ganttee-icon-action-group">
-        <button
-          type="button"
-          className="ganttee-icon-button"
-          aria-label={action.label}
-          aria-expanded={open}
-          title={action.label}
+      <div className="ganttee-icon-action">
+        <IconButton
+          icon={action.icon}
+          label={action.label}
           onClick={() => setOpen((current) => !current)}
-        >
-          <span className={`codicon codicon-${action.icon}`} aria-hidden="true" />
-        </button>
+        />
         {open && (
-          <div className="ganttee-icon-action-menu" role="menu">
+          <div className="ganttee-icon-action__menu" role="menu">
             {action.children?.map((child) => (
               <button
                 type="button"
                 role="menuitem"
-                className="ganttee-icon-action-menu__item"
+                className="ganttee-icon-action__menu-item"
                 key={child.id}
                 onClick={() => {
                   child.onSelect?.();
@@ -63,15 +60,11 @@ export function IconAction({ action, pressed = false }: IconActionProps): React.
   }
 
   return (
-    <button
-      type="button"
-      className="ganttee-icon-button"
-      aria-label={action.label}
-      aria-pressed={pressed}
-      title={action.label}
+    <IconButton
+      icon={action.icon}
+      label={action.label}
+      pressed={pressed}
       onClick={action.onSelect}
-    >
-      <span className={`codicon codicon-${action.icon}`} aria-hidden="true" />
-    </button>
+    />
   );
 }

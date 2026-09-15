@@ -1,12 +1,14 @@
+import { IconButton } from "../../../components/IconButton";
+import { useTranslate } from "../../../l10n";
+import { TaskFormProps } from "../entityEditor.types";
+import { titleOf } from "../entityEditorPresentation";
+import { createEntityEditorSubmit } from "../entityEditorSubmit";
+import { useDependencyEditorState } from "../hooks/useDependencyEditorState";
+import { useEntityEditorDraft } from "../hooks/useEntityEditorDraft";
+import "./EntityEditor.scss";
 import { GroupFields } from "./GroupFields";
 import { MilestoneFields } from "./MilestoneFields";
 import { TaskFields } from "./TaskFields";
-import { useTranslate } from "../../../l10n";
-import { TaskFormProps } from "../entityEditor.types";
-import { useEntityEditorDraft } from "../hooks/useEntityEditorDraft";
-import { useDependencyEditorState } from "../hooks/useDependencyEditorState";
-import { titleOf } from "../entityEditorPresentation";
-import { createEntityEditorSubmit } from "../entityEditorSubmit";
 
 /**
  * Entity-aware edit form for tasks, milestones, and groups.
@@ -32,18 +34,10 @@ export function EntityEditor(props: TaskFormProps): React.JSX.Element {
   });
 
   return (
-    <form className="ganttee-form" onSubmit={submit}>
-      <div className="ganttee-form__header">
+    <form className="ganttee-entity-editor" onSubmit={submit}>
+      <div className="ganttee-entity-editor__header">
         <h2>{titleOf(editingEntity.kind, t)}</h2>
-        <button
-          type="button"
-          className="ganttee-icon-button"
-          onClick={props.onClose}
-          aria-label={t("Close")}
-          title={t("Close")}
-        >
-          <span className="codicon codicon-close" aria-hidden="true" />
-        </button>
+        <IconButton icon="close" label={t("Close")} onClick={props.onClose} />
       </div>
 
       {taskDraft && (
@@ -80,7 +74,7 @@ export function EntityEditor(props: TaskFormProps): React.JSX.Element {
         />
       )}
 
-      <div className="ganttee-form__actions">
+      <div className="ganttee-entity-editor__actions">
         <button type="submit" className="ganttee-primary">
           {t("Save")}
         </button>

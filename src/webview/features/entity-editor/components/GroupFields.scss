@@ -1,0 +1,28 @@
+.ganttee-group-fields {
+  .ganttee-group-fields__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--vscode-fontSize-label1, 12px);
+
+    th,
+    td {
+      padding: var(--vscode-spacing-size40, 4px) var(--vscode-spacing-size60, 6px);
+      border-bottom: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    a {
+      color: var(--vscode-textLink-foreground);
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}

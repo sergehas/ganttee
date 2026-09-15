@@ -23,7 +23,7 @@ export interface ChartMenuAction {
 }
 
 /** Plain action groups used to render the chart menu bar. */
-export interface ChartMenuModel {
+export interface ChartMenuPresentation {
   /** Independent chart-layer actions. */
   readonly layerActions: readonly ChartMenuAction[];
   /** Zoom and fit actions. */
@@ -32,13 +32,13 @@ export interface ChartMenuModel {
   readonly zoomLevels: readonly ZoomLevel[];
 }
 
-/** Builds the localized chart menu model without depending on React or the DOM. */
-export function createChartMenuModel(
+/** Builds localized chart menu presentation data without depending on React or the DOM. */
+export function createChartMenuPresentation(
   view: ProjectView,
   translate: WebviewTranslator,
   onViewChange: (view: ProjectView) => void,
   onFitToWindow: () => void,
-): ChartMenuModel {
+): ChartMenuPresentation {
   const toggle = (
     layer: "showDependencies" | "showOffDays" | "showHolidays" | "showCriticalPath",
   ) => onViewChange(toggleProjectViewLayer(view, layer));

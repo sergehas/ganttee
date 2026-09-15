@@ -1,0 +1,40 @@
+.ganttee-icon-action {
+  position: relative;
+}
+
+.ganttee-icon-action__menu {
+  position: absolute;
+  top: calc(100% + var(--vscode-spacing-size40, 4px));
+  left: 0;
+  z-index: 10;
+  display: flex;
+  min-width: 160px;
+  flex-direction: column;
+  padding: var(--vscode-spacing-size40, 4px);
+  background-color: var(--vscode-menu-background);
+  border: var(--vscode-strokeThickness, 1px) solid var(--vscode-menu-border);
+  box-shadow: 0 4px 12px var(--vscode-widget-shadow);
+}
+
+.ganttee-icon-action__menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--vscode-spacing-size80, 8px);
+  padding: var(--vscode-spacing-size60, 6px) var(--vscode-spacing-size80, 8px);
+  color: var(--vscode-menu-foreground);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+
+  &:hover {
+    color: var(--vscode-menu-selectionForeground);
+    background-color: var(--vscode-menu-selectionBackground);
+  }
+
+  &:focus-visible {
+    outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+  }
+}

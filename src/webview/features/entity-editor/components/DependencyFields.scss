@@ -1,0 +1,30 @@
+.ganttee-dependency-fields {
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--vscode-spacing-size40, 4px);
+    margin: 0 0 var(--vscode-spacing-size80, 8px);
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--vscode-spacing-size80, 8px);
+    font-size: var(--vscode-fontSize-label1, 12px);
+
+    > span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+}
+
+.ganttee-dependency-fields__controls {
+  display: flex;
+  gap: var(--vscode-spacing-size80, 8px);
+}

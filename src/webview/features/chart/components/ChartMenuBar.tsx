@@ -1,6 +1,8 @@
 import { ProjectView } from "@common/documents";
-import { createChartMenuModel } from "../chartMenuModel";
+import { Select } from "../../../components/Select";
 import { useTranslate } from "../../../l10n";
+import { createChartMenuPresentation } from "../chartMenuPresentation";
+import "./ChartMenuBar.scss";
 import { IconAction } from "./IconAction";
 
 interface ChartMenuBarProps {
@@ -19,19 +21,20 @@ export function ChartMenuBar({
   onFitToWindow,
 }: ChartMenuBarProps): React.JSX.Element {
   const translate = useTranslate();
-  const model = createChartMenuModel(view, translate, onViewChange, onFitToWindow);
+  const presentation = createChartMenuPresentation(view, translate, onViewChange, onFitToWindow);
 
   return (
-    <nav className="ganttee-menu-bar" aria-label={translate("Chart view controls")}>
-      <div className="ganttee-menu-bar__group" aria-label={translate("Chart layers")}>
-        {model.layerActions.map((action) => (
+    <nav className="ganttee-chart-menu-bar" aria-label={translate("Chart view controls")}>
+      <div className="ganttee-chart-menu-bar__group" aria-label={translate("Chart layers")}>
+        {presentation.layerActions.map((action) => (
           <IconAction action={action} pressed={action.pressed} key={action.id} />
         ))}
       </div>
-      <div className="ganttee-menu-bar__group" aria-label={translate("Zoom controls")}>
-        <IconAction action={model.zoomActions[0]} />
-        <select
-          className="ganttee-zoom-select"
+      <div className="ganttee-chart-menu-bar__group" aria-label={translate("Zoom controls")}>
+        <IconAction action={presentation.zoomActions[0]} />
+        <Select
+          className="ganttee-chart-menu-bar__zoom-select"
+          variant="compact"
           aria-label={translate("Zoom level")}
           value={view.zoomLevel}
           onChange={(event) =>
@@ -41,14 +44,14 @@ export function ChartMenuBar({
             })
           }
         >
-          {model.zoomLevels.map((level) => (
+          {presentation.zoomLevels.map((level) => (
             <option value={level} key={level}>
               {translate(level[0].toUpperCase() + level.slice(1))}
             </option>
           ))}
-        </select>
-        <IconAction action={model.zoomActions[1]} />
-        <IconAction action={model.zoomActions[2]} />
+        </Select>
+        <IconAction action={presentation.zoomActions[1]} />
+        <IconAction action={presentation.zoomActions[2]} />
       </div>
     </nav>
   );

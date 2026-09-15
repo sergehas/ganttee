@@ -11,28 +11,3 @@ body {
   color: var(--vscode-foreground);
   background-color: var(--vscode-editor-background);
 }
-
-.ganttee-layout {
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
-}
-
-.ganttee-timeline {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
-  padding: var(--vscode-spacing-size120, 12px);
-}
-
-.ganttee-empty,
-.ganttee-muted {
-  color: var(--vscode-descriptionForeground);
-}
-
-.ganttee-empty {
-  padding: var(--vscode-spacing-size240, 24px);
-  text-align: center;
-}

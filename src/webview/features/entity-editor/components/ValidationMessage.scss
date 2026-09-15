@@ -1,0 +1,22 @@
+.ganttee-validation-message {
+  padding: var(--vscode-spacing-size80, 8px);
+  border-radius: var(--vscode-cornerRadius-small, 4px);
+  font-size: var(--vscode-fontSize-label1, 12px);
+  line-height: 17px;
+
+  p {
+    margin: 0;
+  }
+
+  &--warning {
+    color: var(--vscode-inputValidation-warningForeground);
+    background-color: var(--vscode-inputValidation-warningBackground);
+    border: var(--vscode-strokeThickness, 1px) solid var(--vscode-inputValidation-warningBorder);
+  }
+
+  &--error {
+    color: var(--vscode-inputValidation-errorForeground);
+    background-color: var(--vscode-inputValidation-errorBackground);
+    border: var(--vscode-strokeThickness, 1px) solid var(--vscode-inputValidation-errorBorder);
+  }
+}

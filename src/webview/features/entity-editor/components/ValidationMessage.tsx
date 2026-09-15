@@ -1,3 +1,5 @@
+import "./ValidationMessage.scss";
+
 /** Visual severity used by a validation message. */
 export type ValidationMessageSeverity = "warning" | "error";
 
