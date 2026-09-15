@@ -1,16 +1,9 @@
 import { ProjectDocument } from "@common/documents";
-import { selectGroupScheduleScope } from "@services/groups/groupHierarchyService";
-import {
-  deriveGroupSchedule,
-  GroupSchedule,
-} from "@services/schedule/groupScheduleProjectionService";
 import { useMemo } from "react";
 import { buildDirectGroupMemberRows, DirectGroupMemberRow } from "../groupMemberRows";
 
-/** Derived group schedule and member rows for group-edit UI rendering. */
+/** Derived member rows for group-edit UI rendering. */
 export interface GroupScheduleScopeView {
-  /** Effective schedule derived from the group contents. */
-  schedule: GroupSchedule;
   /** Rows for entities directly contained by the group. */
   directMemberRows: DirectGroupMemberRow[];
 }
@@ -20,14 +13,10 @@ export function useGroupScheduleScope(
   document: ProjectDocument,
   groupId: string,
 ): GroupScheduleScopeView {
-  const schedule = useMemo(
-    () => deriveGroupSchedule(selectGroupScheduleScope(document, groupId)),
-    [document, groupId],
-  );
   const directMemberRows = useMemo(
     () => buildDirectGroupMemberRows(document, groupId),
     [document, groupId],
   );
 
-  return { schedule, directMemberRows };
+  return { directMemberRows };
 }

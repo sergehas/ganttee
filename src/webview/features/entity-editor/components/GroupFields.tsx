@@ -1,9 +1,10 @@
+import { formatShortDate } from "@common/datePresentation";
 import "../../../components/Form.scss";
 import { FormField } from "../../../components/FormField";
 import { IconButton } from "../../../components/IconButton";
 import { useTranslate, useWebviewL10n } from "../../../l10n";
 import { GroupFieldsProps } from "../entityEditor.types";
-import { displayGroupDate, entityKindLabel } from "../entityEditorPresentation";
+import { entityKindLabel } from "../entityEditorPresentation";
 import { makeUpdater } from "../hooks/useFieldUpdater";
 import { useGroupScheduleScope } from "../hooks/useGroupScheduleScope";
 import { CommonTextFields } from "./CommonTextFields";
@@ -16,7 +17,8 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
   const { locale } = useWebviewL10n();
   const t = useTranslate();
   const update = makeUpdater(group, props.onChange);
-  const { schedule, directMemberRows } = useGroupScheduleScope(document, group.id);
+  const scheduledGroup = props.schedule.groups.find((candidate) => candidate.id === group.id);
+  const { directMemberRows } = useGroupScheduleScope(document, group.id);
 
   return (
     <div className="ganttee-form ganttee-group-fields">
@@ -33,16 +35,24 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
 
       <div className="ganttee-form__row">
         <FormField label={t("Start")}>
-          <input type="text" value={displayGroupDate(schedule.start, locale)} readOnly />
+          <input
+            type="text"
+            value={scheduledGroup ? formatShortDate(scheduledGroup.effectiveStart, locale) : ""}
+            readOnly
+          />
         </FormField>
         <FormField label={t("End")}>
-          <input type="text" value={displayGroupDate(schedule.end, locale)} readOnly />
+          <input
+            type="text"
+            value={scheduledGroup ? formatShortDate(scheduledGroup.effectiveEnd, locale) : ""}
+            readOnly
+          />
         </FormField>
       </div>
 
       <div className="ganttee-form__row">
         <FormField label={t("Duration")}>
-          <input type="text" value={schedule.durationDays?.toString() ?? ""} readOnly />
+          <input type="text" value={scheduledGroup?.effectiveDuration.toString() ?? ""} readOnly />
         </FormField>
 
         <FormField checkbox label={t("Collapsed")}>

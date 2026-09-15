@@ -93,6 +93,8 @@ export interface GroupFieldsProps {
   group: Group;
   /** Current parsed Gantt document. */
   document: ProjectDocument;
+  /** Current host-computed schedule. */
+  schedule: ProjectSchedule;
   /** Replaces the group draft. */
   onChange: (group: Group) => void;
   /** Opens a member entity in the edit form. */

@@ -64,6 +64,7 @@ export function EntityEditor(props: TaskFormProps): React.JSX.Element {
         <GroupFields
           group={groupDraft}
           document={document}
+          schedule={props.schedule}
           onChange={setGroupDraft}
           onRequestEditEntity={props.onRequestEditEntity}
           onUngroupEntity={(ref) => {

@@ -3,7 +3,6 @@ import {
   collectDescendantGroupIds,
   selectGroupScheduleScope,
 } from "@services/groups/groupHierarchyService";
-import { deriveGroupSchedule } from "@services/schedule/groupScheduleProjectionService";
 import * as assert from "assert";
 
 function createDocument(): ProjectDocument {
@@ -72,56 +71,5 @@ suite("groupHierarchyService", () => {
 
     assert.deepStrictEqual(scope.tasks, []);
     assert.deepStrictEqual(scope.milestones, []);
-  });
-});
-
-suite("groupScheduleProjectionService", () => {
-  test("spans the earliest start and latest end of its members", () => {
-    const schedule = deriveGroupSchedule(selectGroupScheduleScope(createDocument(), "g1"));
-
-    assert.deepStrictEqual(schedule, {
-      start: "2026-01-01",
-      end: "2026-01-06",
-      durationDays: 5,
-    });
-  });
-
-  test("returns an empty schedule when no member is dated", () => {
-    assert.deepStrictEqual(
-      deriveGroupSchedule({
-        groupIds: new Set(["g1"]),
-        tasks: [],
-        milestones: [],
-      }),
-      {},
-    );
-  });
-
-  test("uses a milestone date as both ends of the span", () => {
-    const schedule = deriveGroupSchedule({
-      groupIds: new Set(["g1"]),
-      tasks: [],
-      milestones: [{ id: "m1", name: "M", date: "2026-03-01" }],
-    });
-
-    assert.deepStrictEqual(schedule, {
-      start: "2026-03-01",
-      end: "2026-03-01",
-      durationDays: 0,
-    });
-  });
-
-  test("skips a milestone that has no date", () => {
-    const schedule = deriveGroupSchedule({
-      groupIds: new Set(["g1"]),
-      tasks: [{ id: "t1", name: "T", start: "2026-03-01", end: "2026-03-04" }],
-      milestones: [{ id: "m1", name: "M" }],
-    });
-
-    assert.deepStrictEqual(schedule, {
-      start: "2026-03-01",
-      end: "2026-03-04",
-      durationDays: 3,
-    });
   });
 });

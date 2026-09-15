@@ -8,7 +8,7 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 suite("useGroupScheduleScope", () => {
-  test("returns derived schedule and direct member rows", () => {
+  test("returns direct member rows", () => {
     const document = createDocument();
     let capturedScope: GroupScheduleScopeView | undefined;
 
@@ -19,11 +19,6 @@ suite("useGroupScheduleScope", () => {
 
     renderToStaticMarkup(React.createElement(HookProbe));
 
-    assert.deepStrictEqual(capturedScope?.schedule, {
-      start: "2026-01-01",
-      end: "2026-01-06",
-      durationDays: 5,
-    });
     assert.deepStrictEqual(capturedScope?.directMemberRows.map((row) => row.id).sort(), [
       "group:g2",
       "milestone:m1",
