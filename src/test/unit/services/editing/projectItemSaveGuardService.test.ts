@@ -1,4 +1,3 @@
-import { createEmptyDocument, ProjectDocument } from "@common/documents";
 import { buildSaveUpdate, canSaveEntity } from "@services/editing/projectItemSaveGuardService";
 import * as assert from "assert";
 
@@ -161,25 +160,3 @@ suite("projectItemSaveGuardService", () => {
     );
   });
 });
-
-function createDocument(): ProjectDocument {
-  return {
-    ...createEmptyDocument(),
-    version: 1,
-    tasks: [
-      {
-        id: "t1",
-        name: "Task",
-        start: "2026-01-01",
-        end: "2026-01-04",
-        groupId: "g1",
-      },
-    ],
-    milestones: [{ id: "m1", name: "Milestone", date: "2026-01-02", groupId: "g1" }],
-    groups: [
-      { id: "g1", name: "Root" },
-      { id: "g2", name: "Child", groupId: "g1" },
-    ],
-    dependencies: [],
-  };
-}

@@ -9,11 +9,7 @@ import {
 import * as assert from "assert";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-
-/** Default translation bundle containing the source-message catalog. */
-const defaultL10nBundle = require("../../../../l10n/bundle.l10n.json") as Readonly<
-  Record<string, string>
->;
+import * as defaultL10nBundle from "../../../../l10n/bundle.l10n.json";
 
 suite("webview l10n", () => {
   test("resolves every default-bundle key through the supplied localizer", () => {

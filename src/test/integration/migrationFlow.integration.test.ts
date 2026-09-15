@@ -19,13 +19,13 @@ suite("migrationFlow integration", () => {
 
     assert.strictEqual(migrated["version"], CURRENT_DOCUMENT_VERSION);
 
-    const tasks = migrated["tasks"] as Array<Record<string, unknown>>;
+    const tasks = migrated["tasks"] as Record<string, unknown>[];
     assert.ok(
       tasks.every((t) => "name" in t && !("title" in t)),
       "title should be renamed to name",
     );
 
-    const groups = migrated["groups"] as Array<Record<string, unknown>>;
+    const groups = migrated["groups"] as Record<string, unknown>[];
     assert.ok(
       groups.every((g) => !("parentId" in g)),
       "parentId should be removed from groups",
@@ -43,7 +43,7 @@ suite("migrationFlow integration", () => {
       dependencies: [{ id: "d1", sourceId: "t1", targetId: "t2", type: "finishAfter" }],
     };
     const migrated = migrateDocument(raw) as Record<string, unknown>;
-    const deps = migrated["dependencies"] as Array<Record<string, unknown>>;
+    const deps = migrated["dependencies"] as Record<string, unknown>[];
 
     // finishAfter is no longer supported; it remains unmigrated as finishAfter
     assert.strictEqual(deps[0]["type"], "finishAfter");

@@ -1,4 +1,3 @@
-import { createEmptyDocument, ProjectDocument } from "@common/documents";
 import { buildDependency, createDependencyId } from "@services/editing/dependencyFactoryService";
 import * as assert from "assert";
 
@@ -23,25 +22,3 @@ suite("dependencyFactoryService", () => {
     assert.ok(id.startsWith("dep-"), `Expected dep- prefix, got: ${id}`);
   });
 });
-
-function createDocument(): ProjectDocument {
-  return {
-    ...createEmptyDocument(),
-    version: 1,
-    tasks: [
-      {
-        id: "t1",
-        name: "Task",
-        start: "2026-01-01",
-        end: "2026-01-04",
-        groupId: "g1",
-      },
-    ],
-    milestones: [{ id: "m1", name: "Milestone", date: "2026-01-02", groupId: "g1" }],
-    groups: [
-      { id: "g1", name: "Root" },
-      { id: "g2", name: "Child", groupId: "g1" },
-    ],
-    dependencies: [],
-  };
-}

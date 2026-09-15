@@ -1,6 +1,6 @@
-import { Dependency, Group, Milestone, ProjectDocument, Task } from "@common/documents";
+import { Group, Milestone, ProjectDocument, Task } from "@common/documents";
 import { EditableEntityKind, EditableEntityMap } from "@common/protocol";
-import { FormEvent } from "react";
+import { SyntheticEvent } from "react";
 import { TaskFormProps } from "./entityEditor.types";
 
 /** Inputs required to route an entity editor form submission. */
@@ -20,7 +20,7 @@ export interface EntityEditorSubmitOptions {
 /** Creates the form submit handler for the active entity draft. */
 export function createEntityEditorSubmit(
   options: EntityEditorSubmitOptions,
-): (event: FormEvent) => void {
+): (event: SyntheticEvent<HTMLFormElement>) => void {
   return (event) => {
     event.preventDefault();
     const entity = activeDraft(options);

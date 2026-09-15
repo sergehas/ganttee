@@ -24,7 +24,11 @@ export const renderTaskBar: CustomSeriesRenderItem = (
   if (shape === undefined) {
     return undefined;
   }
-  return { type: "rect", shape: { ...shape, r: 3 }, style: api.style() };
+  return {
+    type: "rect",
+    shape: { ...shape, r: 3 },
+    style: { fill: api.visual("color") as string },
+  };
 };
 
 /** Renders a milestone as a diamond marker. */
@@ -48,10 +52,11 @@ export const renderMilestone: CustomSeriesRenderItem = (
         [point[0] - size, point[1]],
       ],
     },
-    style: api.style({
+    style: {
+      fill: api.visual("color") as string,
       stroke: "var(--vscode-editor-foreground)",
       lineWidth: 1,
-    }),
+    },
   };
 };
 

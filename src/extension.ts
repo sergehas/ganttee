@@ -22,7 +22,9 @@ export function activate(context: vscode.ExtensionContext) {
   registerCommands(context, store, explorer);
 }
 
-export function deactivate() {}
+export function deactivate() {
+  /* noop */
+}
 
 function registerCommands(
   context: vscode.ExtensionContext,

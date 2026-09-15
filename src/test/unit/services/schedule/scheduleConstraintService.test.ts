@@ -46,7 +46,7 @@ function task(overrides: Partial<Task>): Task {
 }
 
 suite("scheduleConstraintService", () => {
-  const taskRuleMatrix: ReadonlyArray<{
+  const taskRuleMatrix: readonly {
     name: string;
     task: Partial<Task>;
     outgoing: OutgoingConstraintGroup;
@@ -58,7 +58,7 @@ suite("scheduleConstraintService", () => {
       overConstrained: boolean;
       blocking: boolean;
     };
-  }> = [
+  }[] = [
     {
       name: "none with no outgoing dependency",
       task: {},
@@ -486,7 +486,7 @@ suite("scheduleConstraintService", () => {
     });
   }
 
-  const milestoneRuleMatrix: ReadonlyArray<{
+  const milestoneRuleMatrix: readonly {
     name: string;
     milestone: Milestone;
     outgoing: OutgoingConstraintGroup;
@@ -498,7 +498,7 @@ suite("scheduleConstraintService", () => {
       overConstrained: boolean;
       blocking: boolean;
     };
-  }> = [
+  }[] = [
     {
       name: "date with no outgoing dependency",
       milestone: { id: "t1", name: "Milestone", date: "2026-01-01" },

@@ -8,7 +8,6 @@ import {
   EntityDatePatch,
 } from "@services/editing/projectItemSchedulePatchService";
 import { useCallback } from "react";
-import { DependencyEditorProps } from "../entityEditor.types";
 
 /** Host actions consumed by the shared webview edit workflow. */
 interface HostEditActions {
