@@ -1,6 +1,6 @@
-import { MILESTONE_DURATION } from "../../documents/project/milestone";
-import { ProjectItem as ProjectItemDocument } from "../../documents/project/projectItem";
-import { ProjectItem, UnresolvableScheduleError } from "./projectItem";
+import { MILESTONE_DURATION } from "@common/documents/project/milestone";
+import { ProjectItem as ProjectItemDocument } from "@common/documents/project/projectItem";
+import { ProjectItem, UnresolvableScheduleError } from "@common/models/project/projectItem";
 
 /** Construction fields for an in-memory milestone. */
 export interface MilestoneProps extends ProjectItemDocument {

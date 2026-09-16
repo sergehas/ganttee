@@ -1,1 +1,1 @@
-export * from "./projectDependencyGraph";
+export * from "@common/models/dependency-graph/projectDependencyGraph";

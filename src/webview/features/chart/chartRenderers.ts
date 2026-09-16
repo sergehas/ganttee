@@ -1,11 +1,15 @@
+import { CHART_BAR_RATIO } from "@webview/features/chart/chart.constants";
+import {
+  clipTimelineRectangle,
+  isPointInTimeline,
+  TimelineRectangle,
+} from "@webview/features/chart/timelineGeometry";
 import type {
   CustomSeriesRenderItem,
   CustomSeriesRenderItemAPI,
   CustomSeriesRenderItemParams,
   CustomSeriesRenderItemReturn,
 } from "echarts";
-import { CHART_BAR_RATIO } from "./chart.constants";
-import { clipTimelineRectangle, isPointInTimeline, TimelineRectangle } from "./timelineGeometry";
 
 /** Renders a task or group as a horizontal timeline bar. */
 export const renderTaskBar: CustomSeriesRenderItem = (

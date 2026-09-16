@@ -1,15 +1,15 @@
 import { formatShortDate } from "@common/datePresentation";
-import "../../../components/Form.scss";
-import { FormField } from "../../../components/FormField";
-import { IconButton } from "../../../components/IconButton";
-import { useTranslate, useWebviewL10n } from "../../../l10n";
-import { GroupFieldsProps } from "../entityEditor.types";
-import { entityKindLabel } from "../entityEditorPresentation";
-import { makeUpdater } from "../hooks/useFieldUpdater";
-import { useGroupScheduleScope } from "../hooks/useGroupScheduleScope";
-import { CommonTextFields } from "./CommonTextFields";
+import "@webview/components/Form.scss";
+import { FormField } from "@webview/components/FormField";
+import { IconButton } from "@webview/components/IconButton";
+import { CommonTextFields } from "@webview/features/entity-editor/components/CommonTextFields";
+import { GroupFieldsProps } from "@webview/features/entity-editor/entityEditor.types";
+import { entityKindLabel } from "@webview/features/entity-editor/entityEditorPresentation";
+import { makeUpdater } from "@webview/features/entity-editor/hooks/useFieldUpdater";
+import { useGroupScheduleScope } from "@webview/features/entity-editor/hooks/useGroupScheduleScope";
+import { useTranslate, useWebviewL10n } from "@webview/l10n";
 
-import "./GroupFields.scss";
+import "@webview/features/entity-editor/components/GroupFields.scss";
 
 /** Renders group-specific fields: schedule summary, collapsed toggle, and owned member list. */
 export function GroupFields(props: GroupFieldsProps): React.JSX.Element {

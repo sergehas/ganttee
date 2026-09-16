@@ -12,12 +12,12 @@ import {
   anchoredEntityIds,
   schedulableEntityIds,
   unanchoredComponents,
-} from "../dependency-graph/componentAnchoringService";
+} from "@services/dependency-graph/componentAnchoringService";
 import {
   ConstraintVerdict,
   validateMilestoneConstraints,
   validateTaskConstraints,
-} from "./scheduleConstraintService";
+} from "@services/schedule/scheduleConstraintService";
 
 /** Whether a diagnostic prevents persistence or only warrants a warning. */
 export type ScheduleDiagnosticSeverity = "blocking" | "warning";

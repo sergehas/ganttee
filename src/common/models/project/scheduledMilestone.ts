@@ -1,5 +1,5 @@
-import { MILESTONE_DURATION } from "../../documents/project/milestone";
-import { Milestone } from "./milestone";
+import { MILESTONE_DURATION } from "@common/documents/project/milestone";
+import { Milestone } from "@common/models/project/milestone";
 
 /** A milestone paired with its immutable computed date. */
 export class ScheduledMilestone extends Milestone {

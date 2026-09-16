@@ -11,9 +11,12 @@ import { formatIsoDate } from "@common/dates";
 import { ProjectDocument, Task } from "@common/documents";
 import { UnresolvableScheduleError } from "@common/models";
 import { EditableEntityRef } from "@common/protocol";
-import { findEntity } from "../document/projectItemService";
-import { hydrateDocument } from "../model/projectModelService";
-import { EditableEntityUpdate, SaveEntityOptions } from "./projectItemSaveGuardService";
+import { findEntity } from "@services/document/projectItemService";
+import {
+  EditableEntityUpdate,
+  SaveEntityOptions,
+} from "@services/editing/projectItemSaveGuardService";
+import { hydrateDocument } from "@services/model/projectModelService";
 
 /**
  * Detaches an entity from its group.

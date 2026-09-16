@@ -1,15 +1,15 @@
+import { Dependency, ProjectDocument, ProjectView } from "@common/documents";
+import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
+import { buildShiftByDaysPatch } from "@services/editing/projectItemSchedulePatchService";
+import "@webview/App.scss";
+import { ChartMenuBar } from "@webview/features/chart/components/ChartMenuBar";
+import { GanttChart } from "@webview/features/chart/components/GanttChart";
+import { EntityEditor } from "@webview/features/entity-editor/components/EntityEditor";
+import { useEntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
+import { translate, WebviewL10n, WebviewL10nContext } from "@webview/l10n";
+import { createGanttViewState, GanttViewState, updateGanttViewDocument } from "@webview/viewState";
+import { onHostMessage, postToHost } from "@webview/vscodeApi";
 import { useEffect, useState } from "react";
-import { Dependency, ProjectDocument, ProjectView } from "../common/documents";
-import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "../common/protocol";
-import { buildShiftByDaysPatch } from "../services/editing/projectItemSchedulePatchService";
-import "./App.scss";
-import { ChartMenuBar } from "./features/chart/components/ChartMenuBar";
-import { GanttChart } from "./features/chart/components/GanttChart";
-import { EntityEditor } from "./features/entity-editor/components/EntityEditor";
-import { useEntityEditWorkflow } from "./features/entity-editor/hooks/useEntityEditWorkflow";
-import { translate, WebviewL10n, WebviewL10nContext } from "./l10n";
-import { createGanttViewState, GanttViewState, updateGanttViewDocument } from "./viewState";
-import { onHostMessage, postToHost } from "./vscodeApi";
 
 interface SaveEntityOptions {
   /** Keeps the edit panel open after the host update. */

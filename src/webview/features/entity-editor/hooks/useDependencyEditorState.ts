@@ -1,7 +1,7 @@
 import { DependencyType, ProjectDocument } from "@common/documents";
+import { DependencyEditorProps } from "@webview/features/entity-editor/entityEditor.types";
+import { EntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
 import { useCallback, useMemo, useState } from "react";
-import { DependencyEditorProps } from "../entityEditor.types";
-import { EntityEditWorkflow } from "./useEntityEditWorkflow";
 
 /** Manages dependency-editor state for a task or milestone draft. */
 export function useDependencyEditorState(

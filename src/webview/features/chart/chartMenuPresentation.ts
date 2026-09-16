@@ -1,12 +1,12 @@
 import { ProjectView, ZoomLevel } from "@common/documents";
-import { WebviewTranslator } from "../../l10n";
 import {
   toggleProjectViewLayer,
   withZoomLevel,
   ZOOM_LEVELS,
   zoomIn,
   zoomOut,
-} from "./projectViewControls";
+} from "@webview/features/chart/projectViewControls";
+import { WebviewTranslator } from "@webview/l10n";
 
 /** Plain icon action data consumed by the chart menu component. */
 export interface ChartMenuAction {

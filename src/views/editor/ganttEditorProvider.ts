@@ -1,6 +1,6 @@
+import { GanttStore } from "@src/ganttStore";
+import { GanttEditorController } from "@views/editor/ganttEditorController";
 import * as vscode from "vscode";
-import { GanttStore } from "../../ganttStore";
-import { GanttEditorController } from "./ganttEditorController";
 
 /** Registers the Gantt chart custom editor for `.ganttee` files. */
 export class GanttEditorProvider implements vscode.CustomTextEditorProvider {

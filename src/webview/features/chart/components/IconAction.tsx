@@ -1,6 +1,6 @@
+import { IconButton } from "@webview/components/IconButton";
+import "@webview/features/chart/components/IconAction.scss";
 import { useState } from "react";
-import { IconButton } from "../../../components/IconButton";
-import "./IconAction.scss";
 
 /** A leaf action or nested action group shown by an icon control. */
 export interface IconActionItem {

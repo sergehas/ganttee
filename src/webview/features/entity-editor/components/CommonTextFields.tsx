@@ -1,8 +1,8 @@
-import { FormField } from "../../../components/FormField";
-import { Select } from "../../../components/Select";
-import { useTranslate } from "../../../l10n";
-import { CommonTextFieldsProps } from "../entityEditor.types";
-import "./CommonTextFields.scss";
+import { FormField } from "@webview/components/FormField";
+import { Select } from "@webview/components/Select";
+import "@webview/features/entity-editor/components/CommonTextFields.scss";
+import { CommonTextFieldsProps } from "@webview/features/entity-editor/entityEditor.types";
+import { useTranslate } from "@webview/l10n";
 
 /** Renders name, description, and group assignment fields shared by all entity types. */
 export function CommonTextFields(props: CommonTextFieldsProps): React.JSX.Element {

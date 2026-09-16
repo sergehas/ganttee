@@ -1,14 +1,14 @@
 import { DependencyType } from "@common/documents";
-import { IconButton } from "../../../components/IconButton";
-import { Select } from "../../../components/Select";
-import { useTranslate } from "../../../l10n";
-import { DependencyFieldsProps } from "../entityEditor.types";
+import { IconButton } from "@webview/components/IconButton";
+import { Select } from "@webview/components/Select";
+import "@webview/features/entity-editor/components/DependencyFields.scss";
+import { DependencyFieldsProps } from "@webview/features/entity-editor/entityEditor.types";
 import {
   DEPENDENCY_OPTIONS,
   dependencyTypeLabel,
   describeDependency,
-} from "../entityEditorPresentation";
-import "./DependencyFields.scss";
+} from "@webview/features/entity-editor/entityEditorPresentation";
+import { useTranslate } from "@webview/l10n";
 
 /** Renders the dependency list and add-dependency controls. */
 export function DependencyFields(props: DependencyFieldsProps): React.JSX.Element {

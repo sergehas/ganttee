@@ -1,4 +1,4 @@
-import { DateRange } from "../../dates";
+import { DateRange } from "@common/dates";
 
 /** A persisted project-level working calendar. */
 export interface WorkingCalendar {

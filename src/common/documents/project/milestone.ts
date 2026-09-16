@@ -1,4 +1,4 @@
-import { ProjectItem } from "./projectItem";
+import { ProjectItem } from "@common/documents/project/projectItem";
 
 /** The fixed duration, in working days, of every milestone. */
 export const MILESTONE_DURATION = 0;

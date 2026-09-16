@@ -1,10 +1,10 @@
-import { ProjectScheduleDocument } from "../project-schedule/projectScheduleDocument";
-import { Dependency } from "./dependency";
-import { Group } from "./group";
-import { Milestone } from "./milestone";
-import { ProjectSettings, resolveProjectSettings } from "./projectSettings";
-import { ProjectView, resolveProjectView } from "./projectView";
-import { Task } from "./task";
+import { ProjectScheduleDocument } from "@common/documents/project-schedule/projectScheduleDocument";
+import { Dependency } from "@common/documents/project/dependency";
+import { Group } from "@common/documents/project/group";
+import { Milestone } from "@common/documents/project/milestone";
+import { ProjectSettings, resolveProjectSettings } from "@common/documents/project/projectSettings";
+import { ProjectView, resolveProjectView } from "@common/documents/project/projectView";
+import { Task } from "@common/documents/project/task";
 
 /** Current on-disk schema version for `.ganttee` documents. */
 export const CURRENT_DOCUMENT_VERSION = 2;

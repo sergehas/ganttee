@@ -1,6 +1,9 @@
 import { ProjectDocument } from "@common/documents";
+import {
+  buildDirectGroupMemberRows,
+  DirectGroupMemberRow,
+} from "@webview/features/entity-editor/groupMemberRows";
 import { useMemo } from "react";
-import { buildDirectGroupMemberRows, DirectGroupMemberRow } from "../groupMemberRows";
 
 /** Derived member rows for group-edit UI rendering. */
 export interface GroupScheduleScopeView {

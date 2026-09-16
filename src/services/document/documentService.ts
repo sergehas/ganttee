@@ -7,11 +7,14 @@
  */
 
 import { createEmptyDocument, ProjectDocument } from "@common/documents";
-import { migrateDocument } from "./documentMigrationService";
-import { assertDocumentRelations } from "./documentRelationValidationService";
-import { GanttParseError, validateDocumentShape } from "./documentShapeValidationService";
+import { migrateDocument } from "@services/document/documentMigrationService";
+import { assertDocumentRelations } from "@services/document/documentRelationValidationService";
+import {
+  GanttParseError,
+  validateDocumentShape,
+} from "@services/document/documentShapeValidationService";
 
-export { GanttParseError } from "./documentShapeValidationService";
+export { GanttParseError } from "@services/document/documentShapeValidationService";
 
 /**
  * Parses raw file text into a validated document, applying schema migrations

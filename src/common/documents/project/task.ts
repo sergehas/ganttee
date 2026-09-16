@@ -1,5 +1,5 @@
-import { MS_PER_DAY } from "../../dates";
-import { ProjectItem } from "./projectItem";
+import { MS_PER_DAY } from "@common/dates";
+import { ProjectItem } from "@common/documents/project/projectItem";
 
 /** Lifecycle state of a task. */
 export const TASK_STATUSES = ["todo", "inProgress", "done"] as const;

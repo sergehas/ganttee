@@ -16,7 +16,8 @@
       "@common/*": ["./src/common/*"],
       "@services/*": ["./src/services/*"],
       "@webview/*": ["./src/webview/*"] /*required for tests*/,
-      "@views/*": ["./src/views/*"]
+      "@views/*": ["./src/views/*"],
+      "@src/*": ["./src/*"]
     }
   },
   "exclude": ["node_modules", ".vscode-test", "src/webview"]

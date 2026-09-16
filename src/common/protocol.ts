@@ -1,4 +1,11 @@
-import { Dependency, Group, Milestone, ProjectDocument, ProjectView, Task } from "./documents";
+import {
+  Dependency,
+  Group,
+  Milestone,
+  ProjectDocument,
+  ProjectView,
+  Task,
+} from "@common/documents";
 
 /**
  * Message protocol between the extension host and the editor webview.

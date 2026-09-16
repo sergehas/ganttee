@@ -1,4 +1,4 @@
-import { ProjectItem } from "./projectItem";
+import { ProjectItem } from "@common/documents/project/projectItem";
 
 /** A persisted named collection of project items. */
 export interface Group extends ProjectItem {

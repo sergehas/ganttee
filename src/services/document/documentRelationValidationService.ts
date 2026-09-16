@@ -6,8 +6,8 @@
  */
 
 import { Group, ProjectDocument, Task } from "@common/documents";
-import { assertGraphIntegrity } from "../dependency-graph/dependencyGraphService";
-import { GanttParseError } from "./documentShapeValidationService";
+import { assertGraphIntegrity } from "@services/dependency-graph/dependencyGraphService";
+import { GanttParseError } from "@services/document/documentShapeValidationService";
 
 /**
  * Asserts every cross-entity rule: unique ids, ordered task dates, a sound

@@ -12,7 +12,7 @@ import {
   anchoredEntityIds,
   schedulableEntityIds,
   unanchoredComponents,
-} from "../dependency-graph/componentAnchoringService";
+} from "@services/dependency-graph/componentAnchoringService";
 
 /** A sanitized document together with everything sanitization destroyed. */
 export interface ScheduleGraphSanitization {

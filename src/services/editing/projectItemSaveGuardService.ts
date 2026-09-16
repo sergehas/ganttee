@@ -10,7 +10,7 @@ import { EditableEntityKind, EditableEntityMap } from "@common/protocol";
 import {
   validateMilestoneConstraints,
   validateTaskConstraints,
-} from "../schedule/scheduleConstraintService";
+} from "@services/schedule/scheduleConstraintService";
 
 /** Optional behavior flags for save actions initiated by the webview. */
 export interface SaveEntityOptions {

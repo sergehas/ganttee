@@ -1,4 +1,4 @@
-import { ProjectItem as ProjectItemDocument } from "../../documents/project/projectItem";
+import { ProjectItem as ProjectItemDocument } from "@common/documents/project/projectItem";
 
 /** A project item that can resolve its effective scheduled time span. */
 export interface Schedulable {

@@ -1,4 +1,4 @@
-import "./FormField.scss";
+import "@webview/components/FormField.scss";
 
 /** Props for a labeled form field wrapper. */
 interface FormFieldProps {

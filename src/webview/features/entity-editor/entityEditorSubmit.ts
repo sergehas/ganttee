@@ -1,7 +1,7 @@
 import { Group, Milestone, ProjectDocument, Task } from "@common/documents";
 import { EditableEntityKind, EditableEntityMap } from "@common/protocol";
+import { TaskFormProps } from "@webview/features/entity-editor/entityEditor.types";
 import { SyntheticEvent } from "react";
-import { TaskFormProps } from "./entityEditor.types";
 
 /** Inputs required to route an entity editor form submission. */
 export interface EntityEditorSubmitOptions {

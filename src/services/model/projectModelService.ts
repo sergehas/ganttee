@@ -15,7 +15,7 @@ import {
   Task as TaskDocument,
 } from "@common/documents";
 import { Group, Milestone, ProjectModel, Task } from "@common/models";
-import { assertAcyclicGraph } from "../dependency-graph/dependencyGraphService";
+import { assertAcyclicGraph } from "@services/dependency-graph/dependencyGraphService";
 
 /**
  * Converts a validated plain document into a {@link ProjectModel}, parsing each

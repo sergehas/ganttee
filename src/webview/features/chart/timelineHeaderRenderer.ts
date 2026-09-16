@@ -1,10 +1,10 @@
+import { TimelineRectangle } from "@webview/features/chart/timelineGeometry";
 import type {
   CustomSeriesRenderItem,
   CustomSeriesRenderItemAPI,
   CustomSeriesRenderItemParams,
   CustomSeriesRenderItemReturn,
 } from "echarts";
-import { TimelineRectangle } from "./timelineGeometry";
 
 /** Shared color for native Y-axis and custom timeline header labels. */
 export const AXIS_LABEL_COLOR = "#6e7079";

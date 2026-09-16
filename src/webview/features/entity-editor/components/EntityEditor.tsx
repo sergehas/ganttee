@@ -1,14 +1,14 @@
-import { IconButton } from "../../../components/IconButton";
-import { useTranslate } from "../../../l10n";
-import { TaskFormProps } from "../entityEditor.types";
-import { titleOf } from "../entityEditorPresentation";
-import { createEntityEditorSubmit } from "../entityEditorSubmit";
-import { useDependencyEditorState } from "../hooks/useDependencyEditorState";
-import { useEntityEditorDraft } from "../hooks/useEntityEditorDraft";
-import "./EntityEditor.scss";
-import { GroupFields } from "./GroupFields";
-import { MilestoneFields } from "./MilestoneFields";
-import { TaskFields } from "./TaskFields";
+import { IconButton } from "@webview/components/IconButton";
+import "@webview/features/entity-editor/components/EntityEditor.scss";
+import { GroupFields } from "@webview/features/entity-editor/components/GroupFields";
+import { MilestoneFields } from "@webview/features/entity-editor/components/MilestoneFields";
+import { TaskFields } from "@webview/features/entity-editor/components/TaskFields";
+import { TaskFormProps } from "@webview/features/entity-editor/entityEditor.types";
+import { titleOf } from "@webview/features/entity-editor/entityEditorPresentation";
+import { createEntityEditorSubmit } from "@webview/features/entity-editor/entityEditorSubmit";
+import { useDependencyEditorState } from "@webview/features/entity-editor/hooks/useDependencyEditorState";
+import { useEntityEditorDraft } from "@webview/features/entity-editor/hooks/useEntityEditorDraft";
+import { useTranslate } from "@webview/l10n";
 
 /**
  * Entity-aware edit form for tasks, milestones, and groups.

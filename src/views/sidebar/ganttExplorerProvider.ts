@@ -6,9 +6,9 @@ import {
   diagnosticsFor,
   ScheduleDiagnostic,
 } from "@services/schedule/scheduleGraphValidationService";
+import { GanttStore } from "@src/ganttStore";
+import { describeDiagnostic } from "@views/scheduleDiagnosticPresenter";
 import * as vscode from "vscode";
-import { GanttStore } from "../../ganttStore";
-import { describeDiagnostic } from "../scheduleDiagnosticPresenter";
 
 type GanttNode =
   | { kind: "group"; group: Group }

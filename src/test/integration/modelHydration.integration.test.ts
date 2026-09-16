@@ -2,10 +2,10 @@ import { CURRENT_DOCUMENT_VERSION } from "@common/documents";
 import { CyclicDependencyError } from "@common/models";
 import { parseDocument, serializeDocument } from "@services/document/documentService";
 import { hydrateDocument, toDocument } from "@services/model/projectModelService";
+import { FIXTURES_DIR } from "@src/test/testFixtures";
 import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
-import { FIXTURES_DIR } from "../testFixtures";
 
 function loadFixture(name: string) {
   return parseDocument(fs.readFileSync(path.join(FIXTURES_DIR, name), "utf-8"));

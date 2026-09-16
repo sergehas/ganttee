@@ -1,10 +1,10 @@
 import { CURRENT_DOCUMENT_VERSION } from "@common/documents";
 import { migrateDocument } from "@services/document/documentMigrationService";
 import { parseDocument } from "@services/document/documentService";
+import { FIXTURES_DIR } from "@src/test/testFixtures";
 import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
-import { FIXTURES_DIR } from "../testFixtures";
 
 function readFixtureRaw(name: string): unknown {
   return JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, name), "utf-8"));

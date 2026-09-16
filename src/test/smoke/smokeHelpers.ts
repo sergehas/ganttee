@@ -1,7 +1,7 @@
+import { FIXTURES_DIR } from "@src/test/testFixtures";
 import * as os from "os";
 import * as path from "path";
 import * as vscode from "vscode";
-import { FIXTURES_DIR } from "../testFixtures";
 
 /** Opens a fixture file with the Ganttee custom editor and waits for it to become active. */
 export async function openGantteeEditor(fixtureName: string): Promise<vscode.Uri> {

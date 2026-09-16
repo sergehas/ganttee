@@ -1,4 +1,4 @@
-import "./ValidationMessage.scss";
+import "@webview/features/entity-editor/components/ValidationMessage.scss";
 
 /** Visual severity used by a validation message. */
 export type ValidationMessageSeverity = "warning" | "error";

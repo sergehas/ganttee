@@ -1,4 +1,4 @@
-import "./IconButton.scss";
+import "@webview/components/IconButton.scss";
 
 /** Props for a compact icon-only action button. */
 interface IconButtonProps {

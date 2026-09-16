@@ -1,5 +1,5 @@
+import "@webview/components/Select.scss";
 import type { SelectHTMLAttributes } from "react";
-import "./Select.scss";
 
 /** Visual variants supported by the shared select component. */
 type SelectVariant = "default" | "compact";

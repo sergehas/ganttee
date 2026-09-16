@@ -14,7 +14,8 @@
     "paths": {
       "@common/*": ["./src/common/*"],
       "@services/*": ["./src/services/*"],
-      "@webview/*": ["./src/webview/*"]
+      "@webview/*": ["./src/webview/*"],
+      "@src/*": ["./src/*"]
     }
   },
 

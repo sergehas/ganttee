@@ -1,9 +1,9 @@
 import { ProjectView } from "@common/documents";
-import { Select } from "../../../components/Select";
-import { useTranslate } from "../../../l10n";
-import { createChartMenuPresentation } from "../chartMenuPresentation";
-import "./ChartMenuBar.scss";
-import { IconAction } from "./IconAction";
+import { Select } from "@webview/components/Select";
+import { createChartMenuPresentation } from "@webview/features/chart/chartMenuPresentation";
+import "@webview/features/chart/components/ChartMenuBar.scss";
+import { IconAction } from "@webview/features/chart/components/IconAction";
+import { useTranslate } from "@webview/l10n";
 
 interface ChartMenuBarProps {
   /** Current persisted chart preferences. */

@@ -11,6 +11,7 @@
  * dependency target before the constrained source.
  */
 
+import { Dependency } from "@common/documents/project/dependency";
 import { DirectedGraph } from "graphology";
 import { connectedComponents as graphologyConnectedComponents } from "graphology-components";
 import {
@@ -18,7 +19,6 @@ import {
   topologicalSort as graphologyTopologicalSort,
   willCreateCycle as graphologyWillCreateCycle,
 } from "graphology-dag";
-import { Dependency } from "../../documents/project/dependency";
 
 /** Thrown when a dependency links an entity to itself. */
 export class SelfLoopDependencyError extends Error {

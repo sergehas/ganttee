@@ -1,4 +1,4 @@
-import { Task } from "./task";
+import { Task } from "@common/models/project/task";
 
 /** A task paired with immutable effective scheduling values. */
 export class ScheduledTask extends Task {

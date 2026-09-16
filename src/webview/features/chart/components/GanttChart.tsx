@@ -2,6 +2,33 @@ import { ProjectDocument, ProjectView } from "@common/documents";
 import { ProjectSchedule } from "@common/models";
 import { EditableEntityRef } from "@common/protocol";
 import { CriticalPathProjection } from "@services/dependency-graph/criticalPathService";
+import { CHART_ROW_HEIGHT, CRITICAL_ITEM_STYLE } from "@webview/features/chart/chart.constants";
+import { CalendarArea, TimelineTickData } from "@webview/features/chart/chart.types";
+import { isDirectEditGesture } from "@webview/features/chart/chartInteractions";
+import {
+  renderCriticalLink,
+  renderLink,
+  renderMilestone,
+  renderTaskBar,
+} from "@webview/features/chart/chartRenderers";
+import {
+  chartTooltipFormatter,
+  DAY,
+  dependencyLinkEndpoints,
+  entityFromChartEvent,
+  toChartMs,
+} from "@webview/features/chart/chartUtils";
+import "@webview/features/chart/components/GanttChart.scss";
+import {
+  alignTimelineStart,
+  buildTimelineTicks,
+  createTimelineAxisModel,
+} from "@webview/features/chart/timelineAxis";
+import {
+  AXIS_LABEL_COLOR,
+  createTimelineTickRenderer,
+} from "@webview/features/chart/timelineHeaderRenderer";
+import { translate, useWebviewL10n } from "@webview/l10n";
 import type {} from "echarts";
 import { CustomChart } from "echarts/charts";
 import {
@@ -13,21 +40,6 @@ import {
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
-import { translate, useWebviewL10n } from "../../../l10n";
-import { CHART_ROW_HEIGHT, CRITICAL_ITEM_STYLE } from "../chart.constants";
-import { CalendarArea, TimelineTickData } from "../chart.types";
-import { isDirectEditGesture } from "../chartInteractions";
-import { renderCriticalLink, renderLink, renderMilestone, renderTaskBar } from "../chartRenderers";
-import {
-  chartTooltipFormatter,
-  DAY,
-  dependencyLinkEndpoints,
-  entityFromChartEvent,
-  toChartMs,
-} from "../chartUtils";
-import { alignTimelineStart, buildTimelineTicks, createTimelineAxisModel } from "../timelineAxis";
-import { AXIS_LABEL_COLOR, createTimelineTickRenderer } from "../timelineHeaderRenderer";
-import "./GanttChart.scss";
 
 echarts.use([
   CustomChart,

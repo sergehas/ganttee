@@ -1,22 +1,22 @@
 import { formatShortDate } from "@common/datePresentation";
 import { TaskStatus } from "@common/documents";
 import { validateTaskConstraints } from "@services/schedule/scheduleConstraintService";
-import "../../../components/Form.scss";
-import { FormField } from "../../../components/FormField";
-import { Select } from "../../../components/Select";
-import { useTranslate, useWebviewL10n } from "../../../l10n";
-import { TaskFieldsProps } from "../entityEditor.types";
+import "@webview/components/Form.scss";
+import { FormField } from "@webview/components/FormField";
+import { Select } from "@webview/components/Select";
+import { TaskFieldsProps } from "@webview/features/entity-editor/entityEditor.types";
+import { useTranslate, useWebviewL10n } from "@webview/l10n";
 
+import { CommonTextFields } from "@webview/features/entity-editor/components/CommonTextFields";
+import { DependencyFields } from "@webview/features/entity-editor/components/DependencyFields";
+import "@webview/features/entity-editor/components/TaskFields.scss";
+import { ValidationMessage } from "@webview/features/entity-editor/components/ValidationMessage";
 import {
   STATUS_OPTIONS,
   taskStatusLabel,
   taskValidationMessages,
-} from "../entityEditorPresentation";
-import { makeUpdater } from "../hooks/useFieldUpdater";
-import { CommonTextFields } from "./CommonTextFields";
-import { DependencyFields } from "./DependencyFields";
-import "./TaskFields.scss";
-import { ValidationMessage } from "./ValidationMessage";
+} from "@webview/features/entity-editor/entityEditorPresentation";
+import { makeUpdater } from "@webview/features/entity-editor/hooks/useFieldUpdater";
 
 /** Renders task-specific fields plus dependency editing controls. */
 export function TaskFields(props: TaskFieldsProps): React.JSX.Element {

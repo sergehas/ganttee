@@ -1,9 +1,9 @@
 import { CURRENT_DOCUMENT_VERSION } from "@common/documents";
 import { parseDocument, serializeDocument } from "@services/document/documentService";
+import { FIXTURES_DIR } from "@src/test/testFixtures";
 import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
-import { FIXTURES_DIR } from "../testFixtures";
 
 function readFixture(name: string): string {
   return fs.readFileSync(path.join(FIXTURES_DIR, name), "utf-8");

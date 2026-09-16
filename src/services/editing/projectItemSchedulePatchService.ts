@@ -8,12 +8,12 @@
 import { addDays, formatIsoDate, parseIsoDate } from "@common/dates";
 import { Milestone, ProjectDocument, Task } from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
-import { findEntity } from "../document/projectItemService";
+import { findEntity } from "@services/document/projectItemService";
 import {
   buildSaveUpdate,
   EditableEntityUpdate,
   SaveEntityOptions,
-} from "./projectItemSaveGuardService";
+} from "@services/editing/projectItemSaveGuardService";
 
 /** Partial schedule patch emitted by direct chart interactions. */
 export interface EntityDatePatch {

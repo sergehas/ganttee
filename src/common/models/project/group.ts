@@ -1,5 +1,5 @@
-import { ProjectItem as ProjectItemDocument } from "../../documents/project/projectItem";
-import { ProjectItem } from "./projectItem";
+import { ProjectItem as ProjectItemDocument } from "@common/documents/project/projectItem";
+import { ProjectItem } from "@common/models/project/projectItem";
 
 /** Construction fields for an in-memory group. */
 export interface GroupProps extends ProjectItemDocument {

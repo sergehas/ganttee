@@ -46,9 +46,9 @@ import {
   ScheduleDiagnostic,
 } from "@services/schedule/scheduleGraphValidationService";
 import { schedule } from "@services/schedule/schedulingService";
+import { createWebviewL10nCatalog } from "@views/editor/webviewL10n";
+import { summarizeBlockingDiagnostics } from "@views/scheduleDiagnosticPresenter";
 import * as vscode from "vscode";
-import { summarizeBlockingDiagnostics } from "../scheduleDiagnosticPresenter";
-import { createWebviewL10nCatalog } from "./webviewL10n";
 
 /**
  * Bridges a single `.ganttee` {@link vscode.TextDocument} with its webview and

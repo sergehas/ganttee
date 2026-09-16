@@ -1,2 +1,2 @@
-export * from "./project";
-export * from "./project-schedule";
+export * from "@common/documents/project";
+export * from "@common/documents/project-schedule";

@@ -1,10 +1,10 @@
-import { Dependency } from "../../documents/project/dependency";
-import { ProjectSettings } from "../../documents/project/projectSettings";
-import { ProjectView } from "../../documents/project/projectView";
-import { ProjectDependencyGraph } from "../dependency-graph/projectDependencyGraph";
-import { Group } from "./group";
-import { Milestone } from "./milestone";
-import { Task } from "./task";
+import { Dependency } from "@common/documents/project/dependency";
+import { ProjectSettings } from "@common/documents/project/projectSettings";
+import { ProjectView } from "@common/documents/project/projectView";
+import { ProjectDependencyGraph } from "@common/models/dependency-graph/projectDependencyGraph";
+import { Group } from "@common/models/project/group";
+import { Milestone } from "@common/models/project/milestone";
+import { Task } from "@common/models/project/task";
 
 /** Raised when scheduling cannot produce a complete valid model. */
 export class SchedulingError extends Error {}

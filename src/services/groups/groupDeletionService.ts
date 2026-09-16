@@ -8,7 +8,7 @@
 
 import { ProjectDocument } from "@common/documents";
 import { GroupDeleteStrategy } from "@common/protocol";
-import { selectGroupScheduleScope } from "./groupHierarchyService";
+import { selectGroupScheduleScope } from "@services/groups/groupHierarchyService";
 
 /**
  * Removes a group from a document using the requested strategy.

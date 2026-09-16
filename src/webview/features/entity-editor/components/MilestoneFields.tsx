@@ -1,15 +1,15 @@
 import { formatShortDate } from "@common/datePresentation";
 import { validateMilestoneConstraints } from "@services/schedule/scheduleConstraintService";
-import "../../../components/Form.scss";
-import { FormField } from "../../../components/FormField";
-import { useTranslate, useWebviewL10n } from "../../../l10n";
-import { MilestoneFieldsProps } from "../entityEditor.types";
-import { milestoneValidationMessages } from "../entityEditorPresentation";
-import { makeUpdater } from "../hooks/useFieldUpdater";
-import { CommonTextFields } from "./CommonTextFields";
-import { DependencyFields } from "./DependencyFields";
-import "./MilestoneFields.scss";
-import { ValidationMessage } from "./ValidationMessage";
+import "@webview/components/Form.scss";
+import { FormField } from "@webview/components/FormField";
+import { CommonTextFields } from "@webview/features/entity-editor/components/CommonTextFields";
+import { DependencyFields } from "@webview/features/entity-editor/components/DependencyFields";
+import "@webview/features/entity-editor/components/MilestoneFields.scss";
+import { ValidationMessage } from "@webview/features/entity-editor/components/ValidationMessage";
+import { MilestoneFieldsProps } from "@webview/features/entity-editor/entityEditor.types";
+import { milestoneValidationMessages } from "@webview/features/entity-editor/entityEditorPresentation";
+import { makeUpdater } from "@webview/features/entity-editor/hooks/useFieldUpdater";
+import { useTranslate, useWebviewL10n } from "@webview/l10n";
 
 /** Renders milestone-specific fields plus dependency editing controls. */
 export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element {

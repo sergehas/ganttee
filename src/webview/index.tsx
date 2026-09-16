@@ -1,7 +1,7 @@
 import "@vscode/codicons/dist/codicon.css";
+import { App } from "@webview/App";
+import "@webview/index.scss";
 import { createRoot } from "react-dom/client";
-import { App } from "./App";
-import "./index.scss";
 
 const container = document.getElementById("root");
 if (container) {

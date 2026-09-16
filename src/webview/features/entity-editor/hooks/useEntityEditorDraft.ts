@@ -1,6 +1,6 @@
 import { Group, Milestone, Task } from "@common/documents";
+import { TaskFormEditingEntity } from "@webview/features/entity-editor/entityEditor.types";
 import { useEffect, useState } from "react";
-import { TaskFormEditingEntity } from "../entityEditor.types";
 
 /** Editable drafts for the entity currently displayed by the editor. */
 export interface EntityEditorDraft {
