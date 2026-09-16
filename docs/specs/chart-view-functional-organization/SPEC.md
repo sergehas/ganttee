@@ -1,13 +1,13 @@
 ---
-Status: Implementing
+Status: Implemented
 Owner: Copilot
-Last updated: 2026-09-13
+Last updated: 2026-09-16
 Related ADRs: none
 ---
 
 # Feature: Chart View Functional Organization
 
-![Status: Implementing](https://img.shields.io/badge/status-Implementing-F59F00?style=for-the-badge)
+![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge)
 
 ## 1. Summary
 
