@@ -1,3 +1,5 @@
+import { isIconName } from "@common/icons";
+import { Icon } from "@webview/components/Icon";
 import "@webview/components/IconButton.scss";
 
 /** Props for a compact icon-only action button. */
@@ -31,7 +33,11 @@ export function IconButton({
       title={label}
       onClick={onClick}
     >
-      <span className={`codicon codicon-${icon}`} aria-hidden="true" />
+      {isIconName(icon) ? (
+        <Icon name={icon} />
+      ) : (
+        <span className={`codicon codicon-${icon}`} aria-hidden="true" />
+      )}
     </button>
   );
 }
