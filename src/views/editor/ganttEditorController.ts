@@ -71,6 +71,7 @@ export class GanttEditorController {
   constructor(
     private readonly document: vscode.TextDocument,
     private readonly webviewPanel: vscode.WebviewPanel,
+    private readonly iconBaseUri: string,
   ) {
     this.reparse();
 
@@ -130,6 +131,7 @@ export class GanttEditorController {
       type: "init",
       document: this.transportDocument(),
       revision: this.document.version,
+      iconBaseUri: this.iconBaseUri,
     });
   }
 

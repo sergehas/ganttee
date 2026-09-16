@@ -107,6 +107,8 @@ export interface GroupFieldsProps {
 export interface DependencyEditorProps {
   /** Current parsed Gantt document. */
   document: ProjectDocument;
+  /** Identifier of the entity currently being edited. */
+  ownerId: string | undefined;
   /** Dependencies involving the current owner. */
   dependencies: Dependency[];
   /** Selected dependency type. */
@@ -123,6 +125,8 @@ export interface DependencyEditorProps {
   onAddDependency: () => void;
   /** Removes a dependency by identifier. */
   onRemoveDependency: (dependencyId: string) => void;
+  /** Opens the other entity of a dependency in the edit form. */
+  onRequestEditEntity: (entity: EditableEntityRef) => void;
 }
 
 /** Props for dependency list/add controls section. */

@@ -52,19 +52,15 @@ export function createChartMenuPresentation(
         view.showDependencies,
         () => toggle("showDependencies"),
       ),
-      createLayerAction("off-days", "calendar", translate("Show off-days"), view.showOffDays, () =>
+      createLayerAction("off-days", "off-days", translate("Show off-days"), view.showOffDays, () =>
         toggle("showOffDays"),
       ),
-      createLayerAction(
-        "holidays",
-        "calendar-add",
-        translate("Show holidays"),
-        view.showHolidays,
-        () => toggle("showHolidays"),
+      createLayerAction("holidays", "calendar", translate("Show holidays"), view.showHolidays, () =>
+        toggle("showHolidays"),
       ),
       createLayerAction(
         "critical-path",
-        "pulse",
+        "warning-compact",
         translate("Show critical path"),
         view.showCriticalPath,
         () => toggle("showCriticalPath"),

@@ -4,9 +4,8 @@ import { createEmptyDocument, DependencyType, ProjectDocument } from "@common/do
 import {
   DEPENDENCY_OPTIONS,
   dependencyTypeLabel,
-  describeDependency,
   displayGroupDate,
-  entityKindLabel,
+  entityKindIcon,
   findEntityName,
   findEntityRefById,
   milestoneValidationMessages,
@@ -36,10 +35,10 @@ suite("taskForm entityPresentation", () => {
     assert.strictEqual(dependencyTypeLabel("custom" as DependencyType), "custom");
   });
 
-  test("resolves entity kind labels", () => {
-    assert.strictEqual(entityKindLabel("task"), "Task");
-    assert.strictEqual(entityKindLabel("milestone"), "Milestone");
-    assert.strictEqual(entityKindLabel("group"), "Group");
+  test("resolves entity kind icons", () => {
+    assert.strictEqual(entityKindIcon("task"), "checklist");
+    assert.strictEqual(entityKindIcon("milestone"), "milestone");
+    assert.strictEqual(entityKindIcon("group"), "folder");
   });
 
   test("formats group dates for display with fallback for undefined", () => {
@@ -218,56 +217,6 @@ suite("taskForm entityPresentation", () => {
     assert.strictEqual(findEntityName(document, "m1", testTranslate), "Milestone One");
     assert.strictEqual(findEntityName(document, "unknown", testTranslate), "?");
   });
-
-  test("describes dependency with labels and fallback names", () => {
-    const document = createDocument();
-
-    const known = describeDependency(
-      {
-        id: "d1",
-        sourceId: "t1",
-        targetId: "m1",
-        type: "startAfter",
-      },
-      document,
-      testTranslate,
-    );
-    const unknownTarget = describeDependency(
-      {
-        id: "d2",
-        sourceId: "t1",
-        targetId: "missing",
-        type: "startWith",
-      },
-      document,
-      testTranslate,
-    );
-    const endWith = describeDependency(
-      {
-        id: "d3",
-        sourceId: "m1",
-        targetId: "t1",
-        type: "endWith",
-      },
-      document,
-      testTranslate,
-    );
-    const unknownDependency = describeDependency(
-      {
-        id: "d4",
-        sourceId: "missing",
-        targetId: "t1",
-        type: "legacy" as DependencyType,
-      },
-      document,
-      testTranslate,
-    );
-
-    assert.strictEqual(known, "Task One → Start After → Milestone One");
-    assert.strictEqual(unknownTarget, "Task One → Start With → ?");
-    assert.strictEqual(endWith, "Milestone One → End With → Task One");
-    assert.strictEqual(unknownDependency, "? → legacy → Task One");
-  });
 });
 
 /** Creates a mock project document with tasks, milestones, and groups for testing. */
@@ -291,7 +240,7 @@ function testTranslate(source: string, ...values: unknown[]): string {
     "Start After": "Start After",
     "Start With": "Start With",
     "End With": "End With",
-    "{0} → {1} → {2}": "{0} → {1} → {2}",
+    "{0} → {1}": "{0} → {1}",
     "?": "?",
   };
   const message = strings[source] ?? source;

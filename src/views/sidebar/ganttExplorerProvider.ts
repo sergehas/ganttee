@@ -22,7 +22,10 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-  constructor(private readonly store: GanttStore) {
+  constructor(
+    private readonly store: GanttStore,
+    private readonly extensionUri: vscode.Uri,
+  ) {
     store.onDidChangeActive(() => this._onDidChangeTreeData.fire());
   }
 
@@ -89,7 +92,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   private groupItem(group: Group): vscode.TreeItem {
     const item = new vscode.TreeItem(group.name, vscode.TreeItemCollapsibleState.Expanded);
     item.contextValue = "ganttee.group";
-    item.iconPath = new vscode.ThemeIcon("folder");
+    item.iconPath = new vscode.ThemeIcon("folder"); // for custome icon, use customIconPath(this.extensionUri, "group");
     item.id = `group:${group.id}`;
     this.applyDiagnosticPresentation(item, group.id);
     const scheduledGroup = this.scheduledModel?.groups.find(
@@ -116,7 +119,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       );
     }
     item.contextValue = "ganttee.task";
-    item.iconPath = new vscode.ThemeIcon("checklist");
+    item.iconPath = new vscode.ThemeIcon("checklist"); //custome icon : customIconPath(this.extensionUri, "task");
     item.id = `task:${task.id}`;
     item.command = {
       command: "ganttee.revealEntity",
@@ -138,7 +141,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
       item.description = formatShortDate(scheduledMilestone.effectiveStart(), vscode.env.language);
     }
     item.contextValue = "ganttee.milestone";
-    item.iconPath = new vscode.ThemeIcon("milestone");
+    item.iconPath = new vscode.ThemeIcon("milestone"); //custom icon: customIconPath(this.extensionUri, "milestone");
     item.id = `milestone:${milestone.id}`;
     item.command = {
       command: "ganttee.revealEntity",

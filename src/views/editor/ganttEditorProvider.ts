@@ -28,7 +28,10 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
     };
     webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
 
-    const controller = new GanttEditorController(document, webviewPanel);
+    const iconBaseUri = webviewPanel.webview.asWebviewUri(
+      vscode.Uri.joinPath(this.context.extensionUri, "media", "icons"),
+    );
+    const controller = new GanttEditorController(document, webviewPanel, iconBaseUri.toString());
     this.store.setActive(controller);
 
     const modelSubscription = controller.onDidChangeModel(() => {

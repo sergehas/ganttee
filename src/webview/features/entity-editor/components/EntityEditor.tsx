@@ -20,10 +20,15 @@ export function EntityEditor(props: TaskFormProps): React.JSX.Element {
     useEntityEditorDraft(editingEntity);
 
   const dependencyOwnerId = taskDraft?.id ?? milestoneDraft?.id;
-  const depEditor = useDependencyEditorState(dependencyOwnerId, document, {
-    addDependency: props.onAddDependency,
-    removeDependency: props.onRemoveDependency,
-  });
+  const depEditor = useDependencyEditorState(
+    dependencyOwnerId,
+    document,
+    {
+      addDependency: props.onAddDependency,
+      removeDependency: props.onRemoveDependency,
+    },
+    props.onRequestEditEntity,
+  );
 
   const submit = createEntityEditorSubmit({
     document,

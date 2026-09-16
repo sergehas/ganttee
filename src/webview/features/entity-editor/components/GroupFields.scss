@@ -1,28 +1,39 @@
 .ganttee-group-fields {
-  .ganttee-group-fields__table {
-    width: 100%;
-    border-collapse: collapse;
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--vscode-spacing-size40, 4px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--vscode-spacing-size80, 8px);
     font-size: var(--vscode-fontSize-label1, 12px);
 
-    th,
-    td {
-      padding: var(--vscode-spacing-size40, 4px) var(--vscode-spacing-size60, 6px);
-      border-bottom: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
-      text-align: left;
-      vertical-align: top;
+    > span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  a {
+    color: var(--vscode-textLink-foreground);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
     }
 
-    tbody tr:last-child td {
-      border-bottom: 0;
-    }
-
-    a {
-      color: var(--vscode-textLink-foreground);
-      text-decoration: none;
-
-      &:hover {
-        text-decoration: underline;
-      }
+    .codicon {
+      margin-right: var(--vscode-spacing-size40, 4px);
+      vertical-align: text-bottom;
     }
   }
 }

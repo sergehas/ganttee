@@ -4,7 +4,7 @@ import { FormField } from "@webview/components/FormField";
 import { IconButton } from "@webview/components/IconButton";
 import { CommonTextFields } from "@webview/features/entity-editor/components/CommonTextFields";
 import { GroupFieldsProps } from "@webview/features/entity-editor/entityEditor.types";
-import { entityKindLabel } from "@webview/features/entity-editor/entityEditorPresentation";
+import { entityKindIcon } from "@webview/features/entity-editor/entityEditorPresentation";
 import { makeUpdater } from "@webview/features/entity-editor/hooks/useFieldUpdater";
 import { useGroupScheduleScope } from "@webview/features/entity-editor/hooks/useGroupScheduleScope";
 import { useTranslate, useWebviewL10n } from "@webview/l10n";
@@ -69,40 +69,32 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
         {directMemberRows.length === 0 ? (
           <p className="ganttee-group-fields__empty">{t("No owned entities.")}</p>
         ) : (
-          <table className="ganttee-group-fields__table">
-            <thead>
-              <tr>
-                <th>{t("Name")}</th>
-                <th>{t("Type")}</th>
-                <th aria-label={t("Actions")}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {directMemberRows.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <a
-                      href="#"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        props.onRequestEditEntity(row.entity);
-                      }}
-                    >
-                      {row.name}
-                    </a>
-                  </td>
-                  <td>{t(entityKindLabel(row.kind))}</td>
-                  <td>
-                    <IconButton
-                      icon="remove"
-                      label={t("Remove from group")}
-                      onClick={() => props.onUngroupEntity(row.entity)}
+          <ul>
+            {directMemberRows.map((row) => (
+              <li key={row.id}>
+                <span>
+                  <a
+                    href="#"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      props.onRequestEditEntity(row.entity);
+                    }}
+                  >
+                    <span
+                      className={`codicon codicon-${entityKindIcon(row.kind)}`}
+                      aria-hidden="true"
                     />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    {row.name}
+                  </a>
+                </span>
+                <IconButton
+                  icon="remove"
+                  label={t("Remove from group")}
+                  onClick={() => props.onUngroupEntity(row.entity)}
+                />
+              </li>
+            ))}
+          </ul>
         )}
       </fieldset>
     </div>

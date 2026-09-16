@@ -22,9 +22,24 @@
       white-space: nowrap;
     }
   }
+
+  a {
+    color: var(--vscode-textLink-foreground);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    .codicon {
+      margin-right: var(--vscode-spacing-size40, 4px);
+      vertical-align: text-bottom;
+    }
+  }
 }
 
 .ganttee-dependency-fields__controls {
   display: flex;
   gap: var(--vscode-spacing-size80, 8px);
+  margin-bottom: var(--vscode-spacing-size80, 8px);
 }

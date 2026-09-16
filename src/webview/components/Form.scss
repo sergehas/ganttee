@@ -16,6 +16,9 @@
     padding: var(--vscode-spacing-size80, 8px);
     border: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
     border-radius: var(--vscode-cornerRadius-medium, 6px);
+    display: flex;
+    flex-direction: column;
+    gap: var(--vscode-spacing-size120, 12px);
 
     legend {
       padding: 0 var(--vscode-spacing-size40, 4px);

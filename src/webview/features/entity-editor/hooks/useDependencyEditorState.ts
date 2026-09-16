@@ -1,4 +1,5 @@
 import { DependencyType, ProjectDocument } from "@common/documents";
+import { EditableEntityRef } from "@common/protocol";
 import { DependencyEditorProps } from "@webview/features/entity-editor/entityEditor.types";
 import { EntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
 import { useCallback, useMemo, useState } from "react";
@@ -8,6 +9,7 @@ export function useDependencyEditorState(
   ownerId: string | undefined,
   document: ProjectDocument,
   workflow: Pick<EntityEditWorkflow, "addDependency" | "removeDependency">,
+  onRequestEditEntity: (entity: EditableEntityRef) => void,
 ): DependencyEditorProps {
   const [dependencyTarget, setDependencyTarget] = useState("");
   const [dependencyType, setDependencyType] = useState<DependencyType>("startAfter");
@@ -42,6 +44,7 @@ export function useDependencyEditorState(
 
   return {
     document,
+    ownerId,
     dependencies,
     dependencyType,
     dependencyTarget,
@@ -50,5 +53,6 @@ export function useDependencyEditorState(
     onDependencyTargetChange: setDependencyTarget,
     onAddDependency: addDependency,
     onRemoveDependency: workflow.removeDependency,
+    onRequestEditEntity,
   };
 }

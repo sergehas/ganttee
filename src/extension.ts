@@ -12,7 +12,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(GanttEditorProvider.register(context, store));
 
-  const explorer = new GanttExplorerProvider(store);
+  const explorer = new GanttExplorerProvider(store, context.extensionUri);
+  context.subscriptions.push(vscode.window.onDidChangeActiveColorTheme(() => explorer.refresh()));
   context.subscriptions.push(
     vscode.window.createTreeView(GanttExplorerProvider.viewId, {
       treeDataProvider: explorer,

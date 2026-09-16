@@ -21,7 +21,12 @@ export type HostToWebviewMessage =
       locale: string;
       strings: Readonly<Record<string, string>>;
     }
-  | { type: "init"; document: ProjectDocument; revision: number }
+  | {
+      type: "init";
+      document: ProjectDocument;
+      revision: number;
+      iconBaseUri: string;
+    }
   | { type: "documentChanged"; document: ProjectDocument; revision: number }
   | { type: "selectEntity"; entity: EditableEntityRef }
   | { type: "editEntity"; entity: EditableEntityRef };

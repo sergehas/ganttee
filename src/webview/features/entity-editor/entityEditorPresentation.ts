@@ -1,6 +1,6 @@
-import { Dependency, DependencyType, ProjectDocument, TaskStatus } from "@common/documents";
 import { formatShortDate } from "@common/datePresentation";
 import { parseIsoDate } from "@common/dates";
+import { DependencyType, ProjectDocument, TaskStatus } from "@common/documents";
 import { EditableEntityKind } from "@common/protocol";
 import {
   validateMilestoneConstraints,
@@ -42,15 +42,15 @@ export function dependencyTypeLabel(type: DependencyType): string {
   }
 }
 
-/** Resolves an owned entity kind to its localization source message. */
-export function entityKindLabel(kind: "task" | "milestone" | "group"): string {
+/** Resolves an owned entity kind to the codicon used for it in the host treeview. */
+export function entityKindIcon(kind: "task" | "milestone" | "group"): string {
   switch (kind) {
     case "task":
-      return "Task";
+      return "checklist";
     case "milestone":
-      return "Milestone";
+      return "milestone";
     case "group":
-      return "Group";
+      return "folder";
   }
 }
 
@@ -125,18 +125,6 @@ export function titleOf(kind: EditableEntityKind, t: WebviewTranslator): string 
     case "group":
       return t("Edit Group");
   }
-}
-
-/** Returns a human-readable dependency label in the form "Source → Type → Target". */
-export function describeDependency(
-  dep: Dependency,
-  document: ProjectDocument,
-  t: WebviewTranslator,
-): string {
-  const source = findEntityName(document, dep.sourceId, t);
-  const target = findEntityName(document, dep.targetId, t);
-  const label = t(dependencyTypeLabel(dep.type));
-  return t("{0} → {1} → {2}", source, label, target);
 }
 
 /** Resolves a task or milestone ID to its display name, returning "?" when not found. */
