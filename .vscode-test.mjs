@@ -11,6 +11,6 @@ export default defineConfig({
   ],
   coverage: {
     // "json-summary" feeds scripts/check-coverage.mjs; "html"/"text" are for human inspection.
-    reporter: ["html", "text", "json-summary"],
+    reporter: ["text", "json-summary", "lcov"],
   },
 });

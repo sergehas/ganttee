@@ -2,6 +2,7 @@ import js from "@eslint/js";
 import json from "@eslint/json";
 import prettierConfig from "eslint-config-prettier";
 import { defineConfig, globalIgnores } from "eslint/config";
+import globals from "globals";
 import typescript from "typescript-eslint";
 
 export default defineConfig([
@@ -11,6 +12,9 @@ export default defineConfig([
     files: ["**/*.{js,mjs,cjs}"],
     ignores: [],
     ...js.configs.recommended,
+    languageOptions: {
+      globals: globals.node,
+    },
     extends: [prettierConfig],
   },
   {

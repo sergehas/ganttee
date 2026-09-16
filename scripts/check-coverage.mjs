@@ -1,9 +1,10 @@
-// Fails the process if branch coverage from coverage/coverage-summary.json is below the threshold.
+// Fails the process if branch or function coverage per file is below the threshold.
 import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
 import path from "path";
+import { fileURLToPath } from "url";
 
 const MIN_BRANCH_COVERAGE_PCT = 90;
+const MIN_FUNCTION_COVERAGE_PCT = 90;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const summaryPath = path.join(__dirname, "..", "coverage", "coverage-summary.json");
@@ -17,17 +18,40 @@ try {
   process.exit(1);
 }
 
-const branchesPct = summary.total?.branches?.pct;
-if (typeof branchesPct !== "number") {
-  console.error("Coverage summary is missing a total.branches.pct value.");
-  process.exit(1);
+const coverageBelowThreshold = Object.entries(summary)
+  .filter(([filePath]) => filePath !== "total")
+  .flatMap(([filePath, coverage]) => {
+    const failures = [];
+
+    if (coverage.branches?.pct < MIN_BRANCH_COVERAGE_PCT) {
+      failures.push({
+        filePath,
+        coverageType: "Branch",
+        percentage: coverage.branches.pct,
+        threshold: MIN_BRANCH_COVERAGE_PCT,
+      });
+    }
+
+    if (coverage.functions?.pct < MIN_FUNCTION_COVERAGE_PCT) {
+      failures.push({
+        filePath,
+        coverageType: "Function",
+        percentage: coverage.functions.pct,
+        threshold: MIN_FUNCTION_COVERAGE_PCT,
+      });
+    }
+
+    return failures;
+  });
+
+if (coverageBelowThreshold.length === 0) {
+  process.exit(0);
 }
 
-console.log(`Branch coverage: ${branchesPct}% (minimum required: ${MIN_BRANCH_COVERAGE_PCT}%)`);
-
-if (branchesPct < MIN_BRANCH_COVERAGE_PCT) {
-  console.error(
-    `Branch coverage ${branchesPct}% is below the required ${MIN_BRANCH_COVERAGE_PCT}% threshold.`,
+for (const { filePath, coverageType, percentage, threshold } of coverageBelowThreshold) {
+  console.warn(
+    `${coverageType} coverage ${percentage}% for ${filePath} is below the required ${threshold}% threshold.`,
   );
-  process.exit(1);
 }
+
+process.exit(1);
