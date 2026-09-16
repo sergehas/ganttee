@@ -6,8 +6,8 @@
  * import them; anything user-facing is resolved here on the host.
  */
 
+import { ScheduleDiagnostic } from "@services/schedule/scheduleGraphValidationService";
 import * as vscode from "vscode";
-import { ScheduleDiagnostic } from "../services/scheduleGraphValidationService";
 
 /**
  * Describes one diagnostic as it applies to a single entity.
@@ -16,10 +16,7 @@ import { ScheduleDiagnostic } from "../services/scheduleGraphValidationService";
  * @param entityId The entity the message is shown against.
  * @returns A localized, human-readable sentence.
  */
-export function describeDiagnostic(
-  diagnostic: ScheduleDiagnostic,
-  entityId: string,
-): string {
+export function describeDiagnostic(diagnostic: ScheduleDiagnostic, entityId: string): string {
   switch (diagnostic.kind) {
     case "underConstrained":
       return vscode.l10n.t(
@@ -44,10 +41,7 @@ export function describeDiagnostic(
         diagnostic.dependencyId,
       );
     case "unanchoredComponent":
-      return vscode.l10n.t(
-        "Component containing '{0}' has no absolute date anchor.",
-        entityId,
-      );
+      return vscode.l10n.t("Component containing '{0}' has no absolute date anchor.", entityId);
   }
 }
 
@@ -58,27 +52,22 @@ export function describeDiagnostic(
  * @param diagnostics The blocking diagnostics to summarize.
  * @returns A localized summary, or an empty string when nothing blocks.
  */
-export function summarizeBlockingDiagnostics(
-  diagnostics: readonly ScheduleDiagnostic[],
-): string {
+export function summarizeBlockingDiagnostics(diagnostics: readonly ScheduleDiagnostic[]): string {
   const groups: readonly {
     kind: ScheduleDiagnostic["kind"];
     format: (subjects: string) => string;
   }[] = [
     {
       kind: "underConstrained",
-      format: (subjects) =>
-        vscode.l10n.t("under-constrained items: {0}", subjects),
+      format: (subjects) => vscode.l10n.t("under-constrained items: {0}", subjects),
     },
     {
       kind: "overConstrained",
-      format: (subjects) =>
-        vscode.l10n.t("over-constrained items: {0}", subjects),
+      format: (subjects) => vscode.l10n.t("over-constrained items: {0}", subjects),
     },
     {
       kind: "danglingDependency",
-      format: (subjects) =>
-        vscode.l10n.t("dangling dependencies: {0}", subjects),
+      format: (subjects) => vscode.l10n.t("dangling dependencies: {0}", subjects),
     },
     {
       kind: "groupDependency",
@@ -86,8 +75,7 @@ export function summarizeBlockingDiagnostics(
     },
     {
       kind: "unanchoredComponent",
-      format: (subjects) =>
-        vscode.l10n.t("unanchored components: {0}", subjects),
+      format: (subjects) => vscode.l10n.t("unanchored components: {0}", subjects),
     },
   ];
 
@@ -109,8 +97,7 @@ function subjectsOf(
   return diagnostics
     .filter((diagnostic) => diagnostic.kind === kind)
     .flatMap((diagnostic) =>
-      diagnostic.kind === "danglingDependency" ||
-      diagnostic.kind === "groupDependency"
+      diagnostic.kind === "danglingDependency" || diagnostic.kind === "groupDependency"
         ? [diagnostic.dependencyId]
         : [...diagnostic.entityIds],
     );

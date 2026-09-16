@@ -1,0 +1,44 @@
+.ganttee-form-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--vscode-spacing-size40, 4px);
+
+  > span {
+    color: var(--vscode-descriptionForeground);
+    font-size: var(--vscode-fontSize-label1, 12px);
+  }
+
+  &--checkbox {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--vscode-spacing-size80, 8px);
+
+    > span {
+      color: var(--vscode-foreground);
+    }
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: var(--vscode-spacing-size60, 6px) var(--vscode-spacing-size80, 8px);
+    color: var(--vscode-input-foreground);
+    background-color: var(--vscode-input-background);
+    border: var(--vscode-strokeThickness, 1px) solid var(--vscode-input-border, transparent);
+    border-radius: var(--vscode-cornerRadius-small, 4px);
+    font: inherit;
+
+    &:focus-visible {
+      outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
+      outline-offset: 0;
+    }
+  }
+
+  input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+  }
+}

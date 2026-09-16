@@ -195,21 +195,34 @@ compact form actions, preserving text labels for the primary save and destructiv
 - Coverage: branch coverage stays at or above 90%, including missing keys, missing formatting
   values, duplicate readiness, and render deferral.
 
-## 9. Risks & Open Questions
+## 9. Risks
 
-- 🟡 Medium — future settings webview — [UI-integration.md](../requirements/UI-integration.md)
-  Section 9 must decide whether settings share this panel. **Treatment**: a dedicated settings
-  webview uses this same catalog protocol and registry; it does not alter this editor-session
-  contract.
-- 🟢 Low — protocol rebase — a future entity-protocol refactor may touch
-  [protocol.ts](../../src/common/protocol.ts). **Treatment**: retain the catalog variant and its
-  ordering test while resolving that refactor's merge conflict.
-- 🟢 Low — codicon package updates — an upstream package asset-path change can break emitted font
-  URLs. **Treatment**: keep the production asset-emission test and update the esbuild loader/import
-  as part of the dependency update.
-- 🟢 Low — locale coverage — some `vscode.env.language` values may be nonstandard or unavailable to
-  `Intl.DateTimeFormat`. **Treatment**: pass the locale directly to `Intl` and fall back to its
-  runtime default if it rejects the requested tag; cover this fallback in the shared formatter test.
-- 🟢 Low — catalog completeness — a webview source message omitted from the default bundle falls
-  back to English at runtime. **Treatment**: test that delivered catalog keys derive from the
-  default bundle and add a lint-style check that every webview `t()` source occurs in it.
+- 🟡 **M-01** — Future settings webview — [UI-integration.md](../requirements/UI-integration.md)
+  Section 9 must decide whether settings share this panel.
+  - Status: **Resolved** — Treatment: a dedicated settings webview uses this same catalog protocol
+    and registry; it does not alter this editor-session contract.
+
+- 🟢 **L-01** — Protocol rebase — a future entity-protocol refactor may touch
+  [protocol.ts](../../src/common/protocol.ts).
+  - Status: **Resolved** — Treatment: retain the catalog variant and its ordering test while
+    resolving that refactor's merge conflict.
+
+- 🟢 **L-02** — Codicon package updates — an upstream package asset-path change can break emitted
+  font URLs.
+  - Status: **Resolved** — Treatment: keep the production asset-emission test and update the esbuild
+    loader/import as part of the dependency update.
+
+- 🟢 **L-03** — Locale coverage — some `vscode.env.language` values may be nonstandard or
+  unavailable to `Intl.DateTimeFormat`.
+  - Status: **Resolved** — Treatment: pass the locale directly to `Intl` and fall back to its
+    runtime default if it rejects the requested tag; cover this fallback in the shared formatter
+    test.
+
+- 🟢 **L-04** — Catalog completeness — a webview source message omitted from the default bundle
+  falls back to English at runtime.
+  - Status: **Resolved** — Treatment: test that delivered catalog keys derive from the default
+    bundle and add a lint-style check that every webview `t()` source occurs in it.
+
+## 10. Open Questions
+
+_No open questions identified._

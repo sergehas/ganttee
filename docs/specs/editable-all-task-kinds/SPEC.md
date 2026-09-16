@@ -235,23 +235,32 @@ Design rationale (values → principles → moves):
     and round-trip serialize/parse stability.
   - Maintain branch coverage at or above 90% repository threshold.
 
-## 9. Risks & Open Questions
+## 9. Risks
 
-- 🔴 High — Risk: Group delete semantics can surprise users; **Decision: Option C** — present a
-  confirmation dialog asking the user to choose between cascade-delete and ungroup/re-parent; no
-  silent default.
-- 🟡 Medium — Risk: protocol migration churn while moving existing task-only edit/select messages to
-  generic entity-discriminated messages; mitigation is exhaustive switch tests on both host and
-  webview.
-- 🟡 Medium — Risk: Validation duplication between webview and host can diverge; mitigation is host
-  as canonical validator plus minimal client-side checks for UX.
-- 🟡 Medium — Risk: Existing users may rely on current sidebar command set; confirm contribution
-  points and context keys remain backward compatible.
-- 🟢 Low — **Resolved:** Milestone dependency editing is supported with the same functional behavior
-  and UI as task dependency editing. Groups are explicitly excluded from dependency editing in this
-  phase.
-- 🔵 Nice to have — Open question: Should timeline support direct group editing affordance, or
-  remain sidebar-only for group edits in this phase?
+- 🔴 **H-01** — Risk: Group delete semantics can surprise users.
+  - Status: **Resolved** — Decision: Option C — present a confirmation dialog asking the user to
+    choose between cascade-delete and ungroup/re-parent; no silent default.
+
+- 🟡 **M-01** — Risk: protocol migration churn while moving existing task-only edit/select messages
+  to generic entity-discriminated messages.
+  - Status: **Resolved** — Mitigation is exhaustive switch tests on both host and webview.
+
+- 🟡 **M-02** — Risk: Validation duplication between webview and host can diverge.
+  - Status: **Resolved** — Mitigation is host as canonical validator plus minimal client-side checks
+    for UX.
+
+- 🟡 **M-03** — Risk: Existing users may rely on current sidebar command set.
+  - Status: **Resolved** — Confirm contribution points and context keys remain backward compatible.
+
+- 🟢 **L-01** — Milestone dependency editing is supported with the same functional behavior and UI
+  as task dependency editing. Groups are explicitly excluded from dependency editing in this phase.
+  - Status: **Resolved**
+
+## 10. Open Questions
+
+- 🔵 **N-01** — Should timeline support direct group editing affordance, or remain sidebar-only for
+  group edits in this phase?
+  - Status: **Open**
 
 ## 10. Review Outcome
 

@@ -1,8 +1,6 @@
-/** Default translation bundle containing the application-wide localization keys. */
-const defaultL10nBundle = require("../../../l10n/bundle.l10n.json") as Readonly<
-  Record<string, string>
->;
+import * as defaultL10nBundle from "../../../l10n/bundle.l10n.json";
 
+/** Default translation bundle containing the application-wide localization keys. */
 /** Builds the webview catalog by resolving each default-bundle source message. */
 export function createWebviewL10nCatalog(
   localize: (source: string) => string,

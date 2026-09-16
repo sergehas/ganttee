@@ -107,33 +107,32 @@ user data · Move: version bump plus deterministic migration with round-trip sta
 - Webview interaction: dependency-type selector emits new keys.
 - Coverage: branch coverage ≥ 90% across migration branches (legacy, current, unknown type).
 
-## 9. Risks & Decisions
+## 9. Risks
 
-### Risk Decisions
+- 🟡 **M-01** — Risk: other branches/PRs still using old names (`finishWith`, `finishAfter`).
+  - Status: **Resolved** — Decision: accept with mitigation. Mitigation: land the rename as one
+    atomic change across model types, parser migration, protocol/webview call sites, and tests. Add
+    a repo-wide grep check in CI to prevent reintroduction of old identifiers.
 
-- 🟡 Medium — Risk: other branches/PRs still using old names (`finishWith`, `finishAfter`).
-  Decision: accept with mitigation. Mitigation: land the rename as one atomic change across model
-  types, parser migration, protocol/webview call sites, and tests. Add a repo-wide grep check in CI
-  to prevent reintroduction of old identifiers.
+- 🟡 **M-02** — Risk: `sourceId`/`targetId` swap could invert meaning if any consumer still assumes
+  source=predecessor.
+  - Status: **Resolved** — Decision: reduce before implementation completes. Mitigation: mandatory
+    audit of all dependency readers/writers (`ganttDocumentService`, `dependencyGraphService`,
+    editor controller, `TaskForm`, `GanttChart`) and regression tests that assert real-world
+    dependency meaning is preserved after migration.
 
-- 🟡 Medium — Risk: `sourceId`/`targetId` swap could invert meaning if any consumer still assumes
-  source=predecessor. Decision: reduce before implementation completes. Mitigation: mandatory audit
-  of all dependency readers/writers (`ganttDocumentService`, `dependencyGraphService`, editor
-  controller, `TaskForm`, `GanttChart`) and regression tests that assert real-world dependency
-  meaning is preserved after migration.
+## 10. Open Questions
 
-### Open Question Resolution
+- 🟢 **L-01** — Question: keep accepting legacy type strings indefinitely, or migrate only from the
+  immediately previous version?
+  - Status: **Resolved** — Resolution: migrate from the immediately previous schema version only
+    (one-version migration window). For this change, support deterministic migration from v1 to v2.
+    Rationale: keeps migration logic explicit and testable while limiting long-term compatibility
+    maintenance.
 
-- 🟢 Low — Question: keep accepting legacy type strings indefinitely, or migrate only from the
-  immediately previous version? Resolution: migrate from the immediately previous schema version
-  only (one-version migration window). For this change, support deterministic migration from v1 to
-  v2. Rationale: keeps migration logic explicit and testable while limiting long-term compatibility
-  maintenance.
-
-### Residual Risk
-
-- 🔵 Nice to have — Future dependency-type renames must repeat the same schema-discipline pattern:
+- 🔵 **N-01** — Future dependency-type renames must repeat the same schema-discipline pattern:
   version bump, deterministic migration, and round-trip stability tests.
+  - Status: **Open**
 
 ## 10. Validation Outcome
 

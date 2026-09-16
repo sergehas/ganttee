@@ -1,5 +1,5 @@
+import type { GanttEditorController } from "@views/editor/ganttEditorController";
 import * as vscode from "vscode";
-import type { GanttEditorController } from "./views/editor/ganttEditorController";
 
 /**
  * Tracks the currently active Gantt editor so the sidebar tree and commands can

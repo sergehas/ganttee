@@ -72,14 +72,14 @@ both.
 
 - Indent with **spaces**. Use **double quotes** (Prettier default, matches the scaffold). See
   [coding-guidelines](instructions/coding-guidelines.instructions.md).
-- **After editing or creating any file, run `npm run format`** (or
-  `npx prettier --write --config .prettierrc.json <file>`) for for a broader pass) before
-  considering the change done — don't rely on manual alignment or on the pre-commit hook to catch
-  it.
+- **After editing or creating any file, run
+  `npx prettier  --log-level warn --write --config .prettierrc.json <file>`** (or `npm run format`
+  for a broader pass) before considering the change done — don't rely on manual alignment or on the
+  pre-commit hook to catch it.
 - **Localization is mandatory:** externalize every user-facing string via the localization framework
   (`vscode.l10n.t()` / `nls.localize()`), using `{0}` placeholders — never string concatenation.
 - **JSDoc is mandatory** on every class, method, and member (public and private).
-- **Branch coverage must stay ≥ 90%.**
+- **Branch coverage must stay ≥ 90% per file or class.**
 - **Code design (DRY/SOLID):** apply the principles in
   [code-design-principles](instructions/code-design-principles.instructions.md) pragmatically — keep
   pure logic in `services/`, inject dependencies, and avoid premature abstraction.

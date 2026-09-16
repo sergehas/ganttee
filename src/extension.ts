@@ -1,13 +1,10 @@
+import { createEmptyDocument, Task } from "@common/documents";
+import { EditableEntityRef } from "@common/protocol";
+import { serializeDocument } from "@services/document/documentService";
+import { GanttEditorProvider } from "@views/editor/ganttEditorProvider";
+import { entityRefOf, GanttExplorerProvider } from "@views/sidebar/ganttExplorerProvider";
 import * as vscode from "vscode";
-import { createEmptyDocument, Task } from "./common/models";
-import { EditableEntityRef } from "./common/protocol";
 import { GanttStore } from "./ganttStore";
-import { serializeDocument } from "./services/ganttDocumentService";
-import { GanttEditorProvider } from "./views/editor/ganttEditorProvider";
-import {
-  entityRefOf,
-  GanttExplorerProvider,
-} from "./views/sidebar/ganttExplorerProvider";
 
 export function activate(context: vscode.ExtensionContext) {
   const store = new GanttStore();
@@ -15,7 +12,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(GanttEditorProvider.register(context, store));
 
-  const explorer = new GanttExplorerProvider(store);
+  const explorer = new GanttExplorerProvider(store, context.extensionUri);
+  context.subscriptions.push(vscode.window.onDidChangeActiveColorTheme(() => explorer.refresh()));
   context.subscriptions.push(
     vscode.window.createTreeView(GanttExplorerProvider.viewId, {
       treeDataProvider: explorer,
@@ -25,20 +23,17 @@ export function activate(context: vscode.ExtensionContext) {
   registerCommands(context, store, explorer);
 }
 
-export function deactivate() {}
+export function deactivate() {
+  /* noop */
+}
 
 function registerCommands(
   context: vscode.ExtensionContext,
   store: GanttStore,
   explorer: GanttExplorerProvider,
 ): void {
-  const register = (
-    command: string,
-    handler: (...args: unknown[]) => unknown,
-  ) =>
-    context.subscriptions.push(
-      vscode.commands.registerCommand(command, handler),
-    );
+  const register = (command: string, handler: (...args: unknown[]) => unknown) =>
+    context.subscriptions.push(vscode.commands.registerCommand(command, handler));
 
   register("ganttee.refreshExplorer", () => explorer.refresh());
 
@@ -51,9 +46,7 @@ function registerCommands(
   register("ganttee.newTask", async () => {
     const controller = store.active;
     if (!controller) {
-      void vscode.window.showInformationMessage(
-        vscode.l10n.t("Open a Gantt chart to add a task."),
-      );
+      void vscode.window.showInformationMessage(vscode.l10n.t("Open a Gantt chart to add a task."));
       return;
     }
     const task = createDefaultTask(vscode.l10n.t("New Task"));
@@ -155,9 +148,7 @@ function isEntityRef(value: unknown): value is EditableEntityRef {
   }
   const candidate = value as { kind?: unknown; id?: unknown };
   return (
-    (candidate.kind === "task" ||
-      candidate.kind === "milestone" ||
-      candidate.kind === "group") &&
+    (candidate.kind === "task" || candidate.kind === "milestone" || candidate.kind === "group") &&
     typeof candidate.id === "string"
   );
 }

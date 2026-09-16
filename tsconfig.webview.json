@@ -10,11 +10,14 @@
     "rootDir": "src",
     "strict": true,
     "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@common/*": ["./src/common/*"],
+      "@services/*": ["./src/services/*"],
+      "@webview/*": ["./src/webview/*"],
+      "@src/*": ["./src/*"]
+    }
   },
-  "include": [
-    "src/webview",
-    "src/common",
-    "src/services/taskConstraintService.ts"
-  ]
+
+  "include": ["src/webview", "src/common", "src/services/taskConstraintService.ts"]
 }

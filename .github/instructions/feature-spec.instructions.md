@@ -31,7 +31,8 @@ using English prose. Use mermaid for diagrams.
    the `design-philosophy` skill), not pixels.
 9. **Test Strategy** — unit (services/models), integration (commands/editor), and webview
    interaction slices. Branch coverage must stay ≥ 90%.
-10. **Risks** — severity-tagged only (🟣🔴🟡🟢, no "nice to have" — a risk is real or untracked).
+10. **Risks** — one bullet per risk, IDed and grouped by severity; no nice-to-have risks (see
+    below).
 11. **Open Questions** — one bullet per question, IDed and grouped by severity (see below).
 
 ## Spec Folder Layout
@@ -42,20 +43,20 @@ Every new spec is a folder: `docs/specs/<slug>/`.
 - Optional spec-specific companion docs (not glossary — project terminology belongs in the root
   `CONTEXT.md`, owned by the `domain-modeling` skill).
 
-ADRs live outside the spec folder, in the repo-wide `docs/adr/` (see Open Question IDs below).
+ADRs live outside the spec folder, in the repo-wide `docs/adr/` (see Risk and Open Question IDs
+below).
 
 This layout applies to specs created from this point forward. Existing single-file specs are not
 migrated.
 
-## Open Question IDs
+## Risk and Open Question IDs
 
-Format `<letter>-<sequence>` (`C`ritical/`H`igh/`M`edium/`L`ow/`N`ice-to-have, zero-padded, sequence
-per letter — e.g. `H-01`, `H-02`, `M-01`). Full convention and entry shape:
-[open-question-ids.md](../skills/feature-spec/assets/open-question-ids.md). When a question is
-resolved, mark it `**Resolved**` with either a one-line inline rationale or, when the decision meets
-the `domain-modeling` skill's [ADR-FORMAT.md](../skills/engineering/domain-modeling/ADR-FORMAT.md)
-bar, a link to the ADR that resolved it (`docs/adr/NNNN-slug.md`). Never delete or renumber a
-question.
+Use the shared ID and entry convention in
+[open-question-ids.md](../skills/feature-spec/assets/open-question-ids.md). When a risk or question
+is resolved, use its `**Resolved**` form with either a one-line inline rationale or, when the
+decision meets the `domain-modeling` skill's
+[ADR-FORMAT.md](../skills/engineering/domain-modeling/ADR-FORMAT.md) bar, a link to the ADR that
+resolved it (`docs/adr/NNNN-slug.md`). Never delete or renumber an item.
 
 ## Acceptance Criteria Format
 
@@ -98,7 +99,7 @@ Then the edit is rejected and an inline validation message is shown
   _Open Questions_ to resolve the mismatch.
 - **ADR write exception:** while a spec is `Implementing`, the Spec Implementer may create a new
   `docs/adr/NNNN-slug.md` file — only when the decision meets the `domain-modeling` skill's
-  ADR-FORMAT.md bar — and flip a resolved Open Question's marker to its `**Resolved**` form. It may
+  ADR-FORMAT.md bar — and update a resolved risk or Open Question to its `**Resolved**` form. It may
   not otherwise edit `SPEC.md` prose (stories, acceptance criteria, business rules, domain/protocol
   impact) — the spec body stays owned by Spec Writer/Reviewer transitions.
 

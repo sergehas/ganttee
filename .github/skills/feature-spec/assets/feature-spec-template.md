@@ -72,12 +72,16 @@ Reason in design terms (values → principles → moves), not pixels.
 
 ## 10. Risks
 
-Severity-tagged only (no "nice to have" — a risk is real or it is not tracked here).
+ID each item per the [risk and open-question ID convention](./open-question-ids.md), grouped by
+severity.
 
-- 🟡 Medium — <risk> — <mitigation or acceptance>
+- 🟡 **M-01** — <risk>
+  - Status: **Open**
 
 ## 11. Open Questions
 
-ID each item per the [open-question ID convention](./open-question-ids.md), grouped by severity.
+ID each item per the [risk and open-question ID convention](./open-question-ids.md), grouped by
+severity.
 
-- **H-01** — <question> Status: Open
+- 🔴 **H-01** — <question>
+  - Status: **Open**

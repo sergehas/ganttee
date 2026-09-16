@@ -57,6 +57,22 @@
       "progress": 0,
       "status": "todo",
       "groupId": "group-UAT"
+    },
+    {
+      "id": "task-v71r1sde",
+      "name": "Warranty",
+      "duration": 90,
+      "progress": 0,
+      "status": "todo",
+      "groupId": "group-support"
+    },
+    {
+      "id": "task-m63h6oat",
+      "name": "L2 Support",
+      "duration": 600,
+      "progress": 0,
+      "status": "todo",
+      "groupId": "group-support"
     }
   ],
   "groups": [
@@ -81,6 +97,10 @@
     {
       "id": "group-UAT",
       "name": "User Acceptance Test"
+    },
+    {
+      "id": "group-support",
+      "name": "Support"
     }
   ],
   "milestones": [
@@ -144,6 +164,18 @@
       "sourceId": "task-4p1xeki1",
       "targetId": "milestone-Release",
       "type": "startAfter"
+    },
+    {
+      "id": "dep-ou6jg4v9",
+      "sourceId": "task-v71r1sde",
+      "targetId": "milestone-launch",
+      "type": "startAfter"
+    },
+    {
+      "id": "dep-1ot5apms",
+      "sourceId": "task-m63h6oat",
+      "targetId": "task-v71r1sde",
+      "type": "startAfter"
     }
   ],
   "settings": {
@@ -153,6 +185,20 @@
         7
       ]
     },
-    "workingDayHours": 7
+    "workingDayHours": 7,
+    "workingDayStart": 9,
+    "holidays": [
+      {
+        "start": "2026-01-12",
+        "end": "2026-01-17"
+      }
+    ]
+  },
+  "view": {
+    "zoomLevel": "quarter",
+    "showDependencies": false,
+    "showOffDays": false,
+    "showHolidays": false,
+    "showCriticalPath": false
   }
 }

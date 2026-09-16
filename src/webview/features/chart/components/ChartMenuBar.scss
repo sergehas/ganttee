@@ -1,0 +1,19 @@
+.ganttee-chart-menu-bar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--vscode-spacing-size120, 12px);
+  padding-bottom: var(--vscode-spacing-size80, 8px);
+  border-bottom: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
+}
+
+.ganttee-chart-menu-bar__group {
+  display: flex;
+  align-items: center;
+  gap: var(--vscode-spacing-size40, 4px);
+
+  & + & {
+    padding-left: var(--vscode-spacing-size120, 12px);
+    border-left: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
+  }
+}

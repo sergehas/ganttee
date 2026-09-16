@@ -1,10 +1,10 @@
+import { CURRENT_DOCUMENT_VERSION } from "@common/documents";
+import { migrateDocument } from "@services/document/documentMigrationService";
+import { parseDocument } from "@services/document/documentService";
+import { FIXTURES_DIR } from "@src/test/testFixtures";
 import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
-import { CURRENT_DOCUMENT_VERSION } from "../../common/models";
-import { migrateDocument } from "../../services/ganttDocumentMigrationService";
-import { parseDocument } from "../../services/ganttDocumentService";
-import { FIXTURES_DIR } from "../testFixtures";
 
 function readFixtureRaw(name: string): unknown {
   return JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, name), "utf-8"));
@@ -19,13 +19,13 @@ suite("migrationFlow integration", () => {
 
     assert.strictEqual(migrated["version"], CURRENT_DOCUMENT_VERSION);
 
-    const tasks = migrated["tasks"] as Array<Record<string, unknown>>;
+    const tasks = migrated["tasks"] as Record<string, unknown>[];
     assert.ok(
       tasks.every((t) => "name" in t && !("title" in t)),
       "title should be renamed to name",
     );
 
-    const groups = migrated["groups"] as Array<Record<string, unknown>>;
+    const groups = migrated["groups"] as Record<string, unknown>[];
     assert.ok(
       groups.every((g) => !("parentId" in g)),
       "parentId should be removed from groups",
@@ -40,12 +40,10 @@ suite("migrationFlow integration", () => {
         { id: "t1", title: "A", start: "2026-01-01", end: "2026-01-02" },
         { id: "t2", title: "B", start: "2026-01-03", end: "2026-01-04" },
       ],
-      dependencies: [
-        { id: "d1", sourceId: "t1", targetId: "t2", type: "finishAfter" },
-      ],
+      dependencies: [{ id: "d1", sourceId: "t1", targetId: "t2", type: "finishAfter" }],
     };
     const migrated = migrateDocument(raw) as Record<string, unknown>;
-    const deps = migrated["dependencies"] as Array<Record<string, unknown>>;
+    const deps = migrated["dependencies"] as Record<string, unknown>[];
 
     // finishAfter is no longer supported; it remains unmigrated as finishAfter
     assert.strictEqual(deps[0]["type"], "finishAfter");
@@ -74,10 +72,7 @@ suite("migrationFlow integration", () => {
   /** `parseDocument` must never expose `migrateDocument` as
    * a required caller concern. */
   test("parseDocument applies migration transparently for v1 fixtures", () => {
-    const raw = fs.readFileSync(
-      path.join(FIXTURES_DIR, "v1-minimal.ganttee"),
-      "utf-8",
-    );
+    const raw = fs.readFileSync(path.join(FIXTURES_DIR, "v1-minimal.ganttee"), "utf-8");
     // parseDocument must not throw even for v1 input
     const doc = parseDocument(raw);
     assert.strictEqual(doc.version, CURRENT_DOCUMENT_VERSION);

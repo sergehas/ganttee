@@ -58,9 +58,9 @@ that row in place — with status `Draft`, the matching Draft badge in the Badge
 6. Identify domain/data-model and host↔webview protocol impact, including any `.ganttee` schema
    `version` bump and migration.
 7. List a test strategy that keeps branch coverage ≥ 90%.
-8. Number every Open Question with the
-   [ID convention](../skills/feature-spec/assets/open-question-ids.md) (`C-01`, `H-01`, …), grouped
-   by severity. Risks stay severity-tagged prose, not IDed.
+8. Number every Risk and Open Question with the
+   [shared ID convention](../skills/feature-spec/assets/open-question-ids.md), grouped by severity.
+   Use the convention's Open and Resolved forms, including an ADR reference when applicable.
 9. Scaffold the spec as `docs/specs/<slug>/SPEC.md` (folder-per-spec); point the roadmap link at
    that path.
 
@@ -68,8 +68,7 @@ that row in place — with status `Draft`, the matching Draft badge in the Badge
 
 A single Markdown spec with the sections from `feature-spec.instructions.md` (Summary,
 Goals/Non-goals, Epic, User Stories & Acceptance Criteria, Business Rules, Domain & Data Model
-Impact, Protocol Impact, UX, Test Strategy, Risks, Open Questions). Note any open questions
-explicitly rather than guessing, and rank each risk/open question with the shared severity scale in
-[reporting-standard.instructions.md](../instructions/reporting-standard.instructions.md) (🟣
-critical → 🔵 nice to have, in that order). 'nice to have' does not apply to risks. A short summary
-of the edits applied and the new status (`Draft`), including the roadmap sync.
+Impact, Protocol Impact, UX, Test Strategy, Risks, Open Questions). Note any unresolved risk or
+question explicitly rather than guessing, and use the
+[shared ID convention](../skills/feature-spec/assets/open-question-ids.md) for each item. A short
+summary of the edits applied and the new status (`Draft`), including the roadmap sync.

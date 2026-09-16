@@ -151,6 +151,21 @@ When building a responsive component:
 3. Use `snap: true` for panels that should snap closed when too small.
 4. Fire `onDidChange` when your constraints change dynamically.
 
+### Extension Webview Layout
+
+- Use CSS Grid or Flexbox in browser webviews.
+- Use media or container queries when the webview needs them.
+- Use `ResizeObserver` or the widget resize API for container-bound widgets such as ECharts.
+- Add `min-width: 0` and the ellipsis pattern to constrained flex or grid text.
+- Do not apply workbench `SplitView`, `Grid`, or no-media-query rules to browser webviews.
+
+### Extension Webview CSS
+
+- Use injected VS Code theme color variables.
+- Use on-scale pixels or feature-local CSS custom properties for size values.
+- Colocate CSS with its feature.
+- Use `.styles.ts` only with an adopted CSS-in-JS pipeline.
+
 ## 9. Text Overflow & Ellipsis
 
 All text labels that can be truncated by a resizable container **must** use the ellipsis pattern.

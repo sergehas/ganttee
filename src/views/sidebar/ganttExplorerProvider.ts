@@ -1,13 +1,14 @@
-import * as vscode from "vscode";
-import { formatShortDate } from "../../common/datePresentation";
-import { Group, Milestone, ScheduledModel, Task } from "../../common/models";
-import { EditableEntityRef } from "../../common/protocol";
-import { GanttStore } from "../../ganttStore";
+import { formatShortDate } from "@common/datePresentation";
+import { Group, Milestone, Task } from "@common/documents";
+import { ProjectSchedule } from "@common/models";
+import { EditableEntityRef } from "@common/protocol";
 import {
   diagnosticsFor,
   ScheduleDiagnostic,
-} from "../../services/scheduleGraphValidationService";
-import { describeDiagnostic } from "../scheduleDiagnosticPresenter";
+} from "@services/schedule/scheduleGraphValidationService";
+import { GanttStore } from "@src/ganttStore";
+import { describeDiagnostic } from "@views/scheduleDiagnosticPresenter";
+import * as vscode from "vscode";
 
 type GanttNode =
   | { kind: "group"; group: Group }
@@ -21,7 +22,10 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-  constructor(private readonly store: GanttStore) {
+  constructor(
+    private readonly store: GanttStore,
+    private readonly extensionUri: vscode.Uri,
+  ) {
     store.onDidChangeActive(() => this._onDidChangeTreeData.fire());
   }
 
@@ -48,7 +52,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   }
 
   getChildren(element?: GanttNode): GanttNode[] {
-    const model = this.store.active?.getGanttDocument();
+    const model = this.store.active?.getProjectDocument();
     if (!model) {
       return [];
     }
@@ -56,9 +60,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
     if (!element) {
       const rootGroups = model.groups.filter((group) => !group.groupId);
       const ungroupedTasks = model.tasks.filter((task) => !task.groupId);
-      const ungroupedMilestones = model.milestones.filter(
-        (milestone) => !milestone.groupId,
-      );
+      const ungroupedMilestones = model.milestones.filter((milestone) => !milestone.groupId);
       return [
         ...rootGroups.map((group): GanttNode => ({ kind: "group", group })),
         ...ungroupedTasks.map((task): GanttNode => ({ kind: "task", task })),
@@ -71,13 +73,9 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
 
     if (element.kind === "group") {
       const groupId = element.group.id;
-      const childGroups = model.groups.filter(
-        (group) => group.groupId === groupId,
-      );
+      const childGroups = model.groups.filter((group) => group.groupId === groupId);
       const tasks = model.tasks.filter((task) => task.groupId === groupId);
-      const milestones = model.milestones.filter(
-        (milestone) => milestone.groupId === groupId,
-      );
+      const milestones = model.milestones.filter((milestone) => milestone.groupId === groupId);
       return [
         ...childGroups.map((group): GanttNode => ({ kind: "group", group })),
         ...tasks.map((task): GanttNode => ({ kind: "task", task })),
@@ -92,12 +90,9 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   }
 
   private groupItem(group: Group): vscode.TreeItem {
-    const item = new vscode.TreeItem(
-      group.name,
-      vscode.TreeItemCollapsibleState.Expanded,
-    );
+    const item = new vscode.TreeItem(group.name, vscode.TreeItemCollapsibleState.Expanded);
     item.contextValue = "ganttee.group";
-    item.iconPath = new vscode.ThemeIcon("folder");
+    item.iconPath = new vscode.ThemeIcon("folder"); // for custome icon, use customIconPath(this.extensionUri, "group");
     item.id = `group:${group.id}`;
     this.applyDiagnosticPresentation(item, group.id);
     const scheduledGroup = this.scheduledModel?.groups.find(
@@ -106,10 +101,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
     if (scheduledGroup) {
       item.description = vscode.l10n.t(
         "{0} ({1}d)",
-        this.formatDateRange(
-          scheduledGroup.effectiveStart,
-          scheduledGroup.effectiveEnd,
-        ),
+        this.formatDateRange(scheduledGroup.effectiveStart, scheduledGroup.effectiveEnd),
         scheduledGroup.effectiveDuration,
       );
     }
@@ -117,25 +109,17 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   }
 
   private taskItem(task: Task): vscode.TreeItem {
-    const item = new vscode.TreeItem(
-      task.name,
-      vscode.TreeItemCollapsibleState.None,
-    );
-    const scheduledTask = this.scheduledModel?.tasks.find(
-      (candidate) => candidate.id === task.id,
-    );
+    const item = new vscode.TreeItem(task.name, vscode.TreeItemCollapsibleState.None);
+    const scheduledTask = this.scheduledModel?.tasks.find((candidate) => candidate.id === task.id);
     if (scheduledTask) {
       item.description = vscode.l10n.t(
         "{0} ({1}d)",
-        this.formatDateRange(
-          scheduledTask.effectiveStart(),
-          scheduledTask.effectiveEnd(),
-        ),
+        this.formatDateRange(scheduledTask.effectiveStart(), scheduledTask.effectiveEnd()),
         scheduledTask.effectiveDuration(),
       );
     }
     item.contextValue = "ganttee.task";
-    item.iconPath = new vscode.ThemeIcon("checklist");
+    item.iconPath = new vscode.ThemeIcon("checklist"); //custome icon : customIconPath(this.extensionUri, "task");
     item.id = `task:${task.id}`;
     item.command = {
       command: "ganttee.revealEntity",
@@ -149,21 +133,15 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   }
 
   private milestoneItem(milestone: Milestone): vscode.TreeItem {
-    const item = new vscode.TreeItem(
-      milestone.name,
-      vscode.TreeItemCollapsibleState.None,
-    );
+    const item = new vscode.TreeItem(milestone.name, vscode.TreeItemCollapsibleState.None);
     const scheduledMilestone = this.scheduledModel?.milestones.find(
       (candidate) => candidate.id === milestone.id,
     );
     if (scheduledMilestone) {
-      item.description = formatShortDate(
-        scheduledMilestone.effectiveStart(),
-        vscode.env.language,
-      );
+      item.description = formatShortDate(scheduledMilestone.effectiveStart(), vscode.env.language);
     }
     item.contextValue = "ganttee.milestone";
-    item.iconPath = new vscode.ThemeIcon("milestone");
+    item.iconPath = new vscode.ThemeIcon("milestone"); //custom icon: customIconPath(this.extensionUri, "milestone");
     item.id = `milestone:${milestone.id}`;
     item.command = {
       command: "ganttee.revealEntity",
@@ -177,7 +155,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   }
 
   /** Returns the current host-computed schedule. */
-  private get scheduledModel(): ScheduledModel | undefined {
+  private get scheduledModel(): ProjectSchedule | undefined {
     return this.store.active?.scheduledModel;
   }
 
@@ -191,10 +169,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
   }
 
   /** Applies the detailed tooltip and severity indicator for an entity. */
-  private applyDiagnosticPresentation(
-    item: vscode.TreeItem,
-    entityId: string,
-  ): void {
+  private applyDiagnosticPresentation(item: vscode.TreeItem, entityId: string): void {
     const diagnostics = diagnosticsFor(this.getDiagnostics(), entityId);
     if (diagnostics.length === 0) {
       return;
@@ -208,9 +183,7 @@ export class GanttExplorerProvider implements vscode.TreeDataProvider<GanttNode>
     item.iconPath = new vscode.ThemeIcon(
       hasBlockingDiagnostic ? "error" : "warning",
       new vscode.ThemeColor(
-        hasBlockingDiagnostic
-          ? "list.errorForeground"
-          : "list.warningForeground",
+        hasBlockingDiagnostic ? "list.errorForeground" : "list.warningForeground",
       ),
     );
   }

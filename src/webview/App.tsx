@@ -1,21 +1,16 @@
+import { Dependency, ProjectDocument, ProjectView } from "@common/documents";
+import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
+import { buildShiftByDaysPatch } from "@services/editing/projectItemSchedulePatchService";
+import "@webview/App.scss";
+import { IconBaseUriProvider } from "@webview/components/Icon";
+import { ChartMenuBar } from "@webview/features/chart/components/ChartMenuBar";
+import { GanttChart } from "@webview/features/chart/components/GanttChart";
+import { EntityEditor } from "@webview/features/entity-editor/components/EntityEditor";
+import { useEntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
+import { translate, WebviewL10n, WebviewL10nContext } from "@webview/l10n";
+import { createGanttViewState, GanttViewState, updateGanttViewDocument } from "@webview/viewState";
+import { onHostMessage, postToHost } from "@webview/vscodeApi";
 import { useEffect, useState } from "react";
-import { Dependency, GanttDocument } from "../common/models";
-import {
-  EditableEntityKind,
-  EditableEntityMap,
-  EditableEntityRef,
-} from "../common/protocol";
-import { buildShiftByDaysPatch } from "../services/entitySchedulePatchService";
-import { GanttChart } from "./GanttChart";
-import { translate, WebviewL10n, WebviewL10nContext } from "./l10n";
-import { TaskForm } from "./TaskForm";
-import { useEntityEditWorkflow } from "./useEntityEditWorkflow";
-import {
-  createGanttViewState,
-  GanttViewState,
-  updateGanttViewDocument,
-} from "./viewState";
-import { onHostMessage, postToHost } from "./vscodeApi";
 
 interface SaveEntityOptions {
   /** Keeps the edit panel open after the host update. */
@@ -26,11 +21,11 @@ interface SaveEntityOptions {
 export function App(): React.JSX.Element {
   const [viewState, setViewState] = useState<GanttViewState | null>(null);
   const [l10n, setL10n] = useState<WebviewL10n | null>(null);
-  const [selectedEntity, setSelectedEntity] =
-    useState<EditableEntityRef | null>(null);
-  const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(
-    null,
-  );
+  const [selectedEntity, setSelectedEntity] = useState<EditableEntityRef | null>(null);
+  const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(null);
+  const [pendingView, setPendingView] = useState<ProjectView | null>(null);
+  const [fitVersion, setFitVersion] = useState(0);
+  const [iconBaseUri, setIconBaseUri] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onHostMessage((message) => {
@@ -39,11 +34,18 @@ export function App(): React.JSX.Element {
           setL10n({ locale: message.locale, strings: message.strings });
           break;
         case "init":
+          setIconBaseUri(message.iconBaseUri);
+          try {
+            setPendingView(null);
+            setViewState(createGanttViewState(message.document, message.revision));
+          } catch {
+            setViewState(null);
+          }
+          break;
         case "documentChanged":
           try {
-            setViewState(
-              createGanttViewState(message.document, message.revision),
-            );
+            setPendingView(null);
+            setViewState(createGanttViewState(message.document, message.revision));
           } catch {
             setViewState(null);
           }
@@ -114,18 +116,34 @@ export function App(): React.JSX.Element {
   });
 
   if (!l10n) {
-    return <div className="ganttee-empty" aria-busy="true" />;
+    return <div className="ganttee-app__empty" aria-busy="true" />;
   }
 
   if (!viewState) {
     return (
-      <div className="ganttee-empty" aria-busy="true">
+      <div className="ganttee-app__empty" aria-busy="true">
         {translate(l10n, "Loading Gantt chart...")}
       </div>
     );
   }
 
   const editingTarget = resolveEntity(viewState.document, editingEntity);
+  const chartView = pendingView ?? viewState.document.view;
+
+  /** Sends a complete chart view proposal through the revision-safe host path. */
+  const updateView = (view: ProjectView) => {
+    setPendingView(view);
+    postToHost({
+      type: "updateView",
+      view,
+      baseRevision: viewState.revision,
+    });
+  };
+
+  /** Requests a temporary chart viewport fit without changing persisted view data. */
+  const fitToWindow = () => {
+    setFitVersion((version) => version + 1);
+  };
 
   /** Applies a chart date shift to an entity through the shared workflow. */
   const nudgeEntityByDays = (entity: EditableEntityRef, days: number) => {
@@ -137,48 +155,50 @@ export function App(): React.JSX.Element {
   };
 
   return (
-    <WebviewL10nContext.Provider value={l10n}>
-      <div className="ganttee-layout">
-        <div className="ganttee-timeline">
-          {viewState.document.tasks.length === 0 &&
-          viewState.document.milestones.length === 0 ? (
-            <div className="ganttee-empty">
-              {translate(
-                l10n,
-                "No tasks yet. Use the Ganttee sidebar to add one.",
-              )}
-            </div>
-          ) : (
-            <GanttChart
-              document={viewState.document}
-              schedule={viewState.scheduledModel}
-              selectedEntity={selectedEntity}
-              onSelectEntity={setSelectedEntity}
-              onEditEntity={setEditingEntity}
-              onNudgeEntityByDays={nudgeEntityByDays}
-            />
+    <IconBaseUriProvider baseUri={iconBaseUri ?? ""}>
+      <WebviewL10nContext.Provider value={l10n}>
+        <div className="ganttee-app">
+          <div className="ganttee-app__timeline">
+            <ChartMenuBar view={chartView} onViewChange={updateView} onFitToWindow={fitToWindow} />
+            {viewState.document.tasks.length === 0 && viewState.document.milestones.length === 0 ? (
+              <div className="ganttee-app__empty">
+                {translate(l10n, "No tasks yet. Use the Ganttee sidebar to add one.")}
+              </div>
+            ) : (
+              <GanttChart
+                document={viewState.document}
+                schedule={viewState.scheduledModel}
+                criticalPath={viewState.criticalPath}
+                view={chartView}
+                fitVersion={fitVersion}
+                selectedEntity={selectedEntity}
+                onSelectEntity={setSelectedEntity}
+                onEditEntity={setEditingEntity}
+                onNudgeEntityByDays={nudgeEntityByDays}
+              />
+            )}
+          </div>
+          {editingTarget && (
+            <aside className="ganttee-app__panel">
+              <EntityEditor
+                editingEntity={editingTarget}
+                document={viewState.document}
+                schedule={viewState.scheduledModel}
+                onSave={workflow.saveEntity}
+                onDelete={workflow.deleteEntity}
+                onClose={() => setEditingEntity(null)}
+                onAddDependency={workflow.addDependency}
+                onRemoveDependency={workflow.removeDependency}
+                onUngroupEntity={(entity, options) =>
+                  workflow.ungroupEntity(viewState.document, entity, options)
+                }
+                onRequestEditEntity={requestEditEntity}
+              />
+            </aside>
           )}
         </div>
-        {editingTarget && (
-          <aside className="ganttee-panel">
-            <TaskForm
-              editingEntity={editingTarget}
-              document={viewState.document}
-              schedule={viewState.scheduledModel}
-              onSave={workflow.saveEntity}
-              onDelete={workflow.deleteEntity}
-              onClose={() => setEditingEntity(null)}
-              onAddDependency={workflow.addDependency}
-              onRemoveDependency={workflow.removeDependency}
-              onUngroupEntity={(entity, options) =>
-                workflow.ungroupEntity(viewState.document, entity, options)
-              }
-              onRequestEditEntity={requestEditEntity}
-            />
-          </aside>
-        )}
-      </div>
-    </WebviewL10nContext.Provider>
+      </WebviewL10nContext.Provider>
+    </IconBaseUriProvider>
   );
 }
 
@@ -191,7 +211,7 @@ interface ResolvedEditingEntity {
 
 /** Resolves an editable entity reference against the current document. */
 function resolveEntity(
-  document: GanttDocument,
+  document: ProjectDocument,
   ref: EditableEntityRef | null,
 ): ResolvedEditingEntity | null {
   if (!ref) {
@@ -203,9 +223,7 @@ function resolveEntity(
       return entity ? { kind: "task", entity } : null;
     }
     case "milestone": {
-      const entity = document.milestones.find(
-        (milestone) => milestone.id === ref.id,
-      );
+      const entity = document.milestones.find((milestone) => milestone.id === ref.id);
       return entity ? { kind: "milestone", entity } : null;
     }
     case "group": {

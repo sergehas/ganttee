@@ -1,0 +1,27 @@
+.ganttee-icon-button {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0 !important;
+  place-items: center;
+  color: var(--vscode-descriptionForeground);
+  background: transparent;
+  border: 0;
+  border-radius: var(--vscode-cornerRadius-small, 4px);
+  cursor: pointer;
+
+  &[aria-pressed="true"] {
+    color: var(--vscode-button-foreground);
+    background-color: var(--vscode-toolbar-activeBackground);
+  }
+
+  &:hover {
+    background-color: var(--vscode-toolbar-hoverBackground);
+  }
+
+  &:focus-visible {
+    outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
+    outline-offset: 0;
+  }
+}

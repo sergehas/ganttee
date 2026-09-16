@@ -249,42 +249,49 @@ is internal); no localization changes.
 - Coverage: branch coverage stays ≥ 90%, covering the duration branches (`duration` set vs derived)
   and the migration prefer-new / fall-back-to-legacy branches.
 
-## 9. Risks & Decisions
+## 9. Risks
 
-### Risk Decisions
+- 🟡 **M-01** — Risk: `Date` cannot cross the webview boundary (`postMessage` /
+  structured-clone-to-JSON strips it) and class methods do not survive serialization.
+  - Status: **Resolved** — Decision: accept with mitigation. Mitigation: the OO/`Date` model is
+    host-in-memory only; the wire and disk stay plain ISO-string JSON, and the webview keeps its
+    existing string-based free functions.
 
-- 🟡 Medium — Risk: `Date` cannot cross the webview boundary (`postMessage` /
-  structured-clone-to-JSON strips it) and class methods do not survive serialization. Decision:
-  accept with mitigation. Mitigation: the OO/`Date` model is host-in-memory only; the wire and disk
-  stay plain ISO-string JSON, and the webview keeps its existing string-based free functions.
-- 🟡 Medium — Risk: renaming without a version bump means both old and new field names can appear on
-  disk. Decision: accept (no version bump) with mitigation. Rationale: unlike the
-  dependency-type-rename (which swapped `sourceId`/`targetId` semantics and so required a versioned,
-  one-shot migration), this is a pure key rename with no meaning change, so an **idempotent
-  always-run pass** is safe and avoids churning the schema version. Mitigation: the always-run
-  rename pass in the migration service accepts both names (prefers new); the serializer writes only
-  new names, so files self-heal on the next save. Covered by both-present and legacy round-trip
-  tests.
-- 🟢 Low — Risk: parsing `YYYY-MM-DD` shifts the day across timezones. Decision: reduced. Rationale:
-  date-only ISO strings are parsed as **UTC midnight** by the default `Date` constructor, and
-  `toISOString().slice(0, 10)` formats back in UTC, so no custom UTC construction is needed; guarded
-  by a timezone round-trip test.
-- 🟢 Low — Risk: `Schedulable.effectiveStart()/effectiveEnd()` are typed `Date` but an
-  under-constrained task has no resolvable endpoint. Decision: accept. Rationale: a well-formed task
-  sets exactly 2 constraints, so the missing endpoint is always derivable (`end − duration` /
-  `start + duration`); under-constrained documents are rejected by the graph-validation spec, not
-  here. Full resolution is deferred to the scheduling-engine spec.
+- 🟡 **M-02** — Risk: renaming without a version bump means both old and new field names can appear
+  on disk.
+  - Status: **Resolved** — Decision: accept (no version bump) with mitigation. Rationale: unlike the
+    dependency-type-rename (which swapped `sourceId`/`targetId` semantics and so required a
+    versioned, one-shot migration), this is a pure key rename with no meaning change, so an
+    **idempotent always-run pass** is safe and avoids churning the schema version. Mitigation: the
+    always-run rename pass in the migration service accepts both names (prefers new); the serializer
+    writes only new names, so files self-heal on the next save. Covered by both-present and legacy
+    round-trip tests.
 
-### Open Question Resolution
+- 🟢 **L-01** — Risk: parsing `YYYY-MM-DD` shifts the day across timezones.
+  - Status: **Resolved** — Decision: reduced. Rationale: date-only ISO strings are parsed as **UTC
+    midnight** by the default `Date` constructor, and `toISOString().slice(0, 10)` formats back in
+    UTC, so no custom UTC construction is needed; guarded by a timezone round-trip test.
 
-- 🟢 Low — Question: should the editor controller switch its in-memory source of truth to
-  `GanttModel`, or keep the plain document as the buffer? Resolution: keep the plain document as the
-  buffer this phase and build `GanttModel` as a **derived view on reparse**. Rationale: minimal
-  wire/disk disruption while establishing the OO model in the load path.
-- 🔵 Nice to have — Question: where should the ISO↔`Date` helpers live? Resolution: **implemented in
-  a shared pure `src/common/dates.ts`** module (`parseIsoDate`, `formatIsoDate`, `addDays`,
-  `diffInDays`, `MS_PER_DAY`), reused by both the entity classes and the hydrator so the
-  calendar-day arithmetic is not duplicated (DRY / DIP). The model files stay pure declarations.
+- 🟢 **L-02** — Risk: `Schedulable.effectiveStart()/effectiveEnd()` are typed `Date` but an
+  under-constrained task has no resolvable endpoint.
+  - Status: **Resolved** — Decision: accept. Rationale: a well-formed task sets exactly 2
+    constraints, so the missing endpoint is always derivable (`end − duration` /
+    `start + duration`); under-constrained documents are rejected by the graph-validation spec, not
+    here. Full resolution is deferred to the scheduling-engine spec.
+
+## 10. Open Questions
+
+- 🟢 **L-03** — Question: should the editor controller switch its in-memory source of truth to
+  `GanttModel`, or keep the plain document as the buffer?
+  - Status: **Resolved** — Resolution: keep the plain document as the buffer this phase and build
+    `GanttModel` as a **derived view on reparse**. Rationale: minimal wire/disk disruption while
+    establishing the OO model in the load path.
+
+- 🔵 **N-01** — Question: where should the ISO↔`Date` helpers live?
+  - Status: **Resolved** — Resolution: **implemented in a shared pure `src/common/dates.ts`** module
+    (`parseIsoDate`, `formatIsoDate`, `addDays`, `diffInDays`, `MS_PER_DAY`), reused by both the
+    entity classes and the hydrator so the calendar-day arithmetic is not duplicated (DRY / DIP).
+    The model files stay pure declarations.
 
 ## 10. Review Outcome
 

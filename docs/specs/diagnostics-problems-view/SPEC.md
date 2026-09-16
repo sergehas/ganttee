@@ -101,11 +101,17 @@ and the tree scannable.
 - UI: empty state, grouped diagnostics, activation navigation, and structural error presentation.
 - Coverage: maintain branch coverage at or above 90%.
 
-## 9. Risks & Open Questions
+## 9. Risks
 
-- 🟡 Medium — Risk: dependency diagnostics may not have a single tree node to select. Treatment:
-  navigate to the source endpoint and show both endpoint ids in the diagnostic details.
-- 🟡 Medium — Open question: should the view be a dedicated activity-bar view, a panel beside the
-  editor, or an adaptation of the existing sidebar tree?
-- 🟢 Low — Open question: should semantic warnings be filterable by category or severity in the
-  first release?
+- 🟡 **M-01** — Risk: dependency diagnostics may not have a single tree node to select.
+  - Status: **Resolved** — Treatment: navigate to the source endpoint and show both endpoint ids in
+    the diagnostic details.
+
+## 10. Open Questions
+
+- 🟡 **M-02** — Should the view be a dedicated activity-bar view, a panel beside the editor, or an
+  adaptation of the existing sidebar tree?
+  - Status: **Open**
+
+- 🟢 **L-01** — Should semantic warnings be filterable by category or severity in the first release?
+  - Status: **Open**

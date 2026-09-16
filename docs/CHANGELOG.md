@@ -29,6 +29,10 @@ file.
   dependency editing and cycle prevention.
 - Groups now display schedule information derived from their member items, including duration
   calculated using calendar days.
+- Chart editor menu bar with persisted view preferences (zoom level, dependency/off-day/holiday/
+  critical-path visibility) stored in the document.
+- Critical-path projection computed from the scheduled dependency graph.
+- Project settings support for calendar, holidays, and view preferences.
 
 ### Changed
 
@@ -50,6 +54,10 @@ file.
 - Dependency updates for npm packages and GitHub Actions are now grouped and proposed weekly by
   Dependabot.
 - bump fast-uri from 3.1.5 to 3.1.7 (fix vulnerability report)
+- Reworked the chart editor around a clearer layer structure (task-list column, two-level timeline
+  header) and a more organized control bar.
+- Refactored the webview into reusable components with a more consistent React/SCSS structure.
+- Improved dependency and group rendering in the chart, including schedule-driven group boundaries.
 
 ### Fixed
 

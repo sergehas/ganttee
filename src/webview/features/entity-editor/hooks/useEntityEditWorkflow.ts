@@ -1,0 +1,137 @@
+import { Dependency, DependencyType, ProjectDocument } from "@common/documents";
+import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
+import { buildDependency, createDependencyId } from "@services/editing/dependencyFactoryService";
+import { buildUngroupUpdate } from "@services/editing/projectItemRemovalService";
+import { buildSaveUpdate, SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
+import {
+  buildDatePatchUpdate,
+  EntityDatePatch,
+} from "@services/editing/projectItemSchedulePatchService";
+import { useCallback } from "react";
+
+/** Host actions consumed by the shared webview edit workflow. */
+interface HostEditActions {
+  /** Sends an entity update to the host. */
+  onSave: (
+    kind: EditableEntityKind,
+    entity: EditableEntityMap[EditableEntityKind],
+    options?: SaveEntityOptions,
+  ) => void;
+  /** Sends an entity deletion to the host. */
+  onDelete: (entity: EditableEntityRef) => void;
+  /** Sends a new dependency to the host. */
+  onAddDependency: (dependency: Dependency) => void;
+  /** Sends a dependency deletion to the host. */
+  onRemoveDependency: (dependencyId: string) => void;
+}
+
+/** Public operations exposed by the shared webview edit workflow. */
+export interface EntityEditWorkflow {
+  /** Saves an entity through the host action boundary. */
+  saveEntity: (
+    kind: EditableEntityKind,
+    entity: EditableEntityMap[EditableEntityKind],
+    options?: SaveEntityOptions,
+    dependencies?: Dependency[],
+  ) => void;
+  /** Deletes an entity through the host action boundary. */
+  deleteEntity: (entity: EditableEntityRef) => void;
+  /** Removes an entity from its group and saves the result. */
+  ungroupEntity: (
+    document: ProjectDocument,
+    entity: EditableEntityRef,
+    options?: SaveEntityOptions,
+  ) => void;
+  /** Creates and sends a dependency. */
+  addDependency: (ownerId: string | undefined, targetId: string, type: DependencyType) => void;
+  /** Removes a dependency by identifier. */
+  removeDependency: (dependencyId: string) => void;
+  /** Applies a chart date patch and saves the result. */
+  patchEntityDatesFromChart: (
+    document: ProjectDocument,
+    entity: EditableEntityRef,
+    patch: EntityDatePatch,
+    options?: SaveEntityOptions,
+  ) => void;
+}
+
+/**
+ * Builds a shared edit-workflow API used by both the form panel and timeline.
+ *
+ * The workflow centralizes save guards and mutation shaping so multiple UI
+ * surfaces apply exactly the same rules.
+ */
+export function useEntityEditWorkflow(actions: HostEditActions): EntityEditWorkflow {
+  const saveEntity = useCallback(
+    (
+      kind: EditableEntityKind,
+      entity: EditableEntityMap[EditableEntityKind],
+      options?: SaveEntityOptions,
+      dependencies: Dependency[] = [],
+    ) => {
+      const update = buildSaveUpdate(kind, entity, options, dependencies);
+      if (update) {
+        actions.onSave(update.kind, update.entity, update.options);
+      }
+    },
+    [actions],
+  );
+
+  const deleteEntity = useCallback(
+    (entity: EditableEntityRef) => {
+      actions.onDelete(entity);
+    },
+    [actions],
+  );
+
+  const ungroupEntity = useCallback(
+    (document: ProjectDocument, entity: EditableEntityRef, options?: SaveEntityOptions) => {
+      const update = buildUngroupUpdate(document, entity, options);
+      if (update) {
+        actions.onSave(update.kind, update.entity, update.options);
+      }
+    },
+    [actions],
+  );
+
+  const addDependency = useCallback(
+    (ownerId: string | undefined, targetId: string, type: DependencyType) => {
+      const dependency = buildDependency(ownerId, targetId, type, createDependencyId);
+      if (dependency) {
+        actions.onAddDependency(dependency);
+      }
+    },
+    [actions],
+  );
+
+  const removeDependency = useCallback(
+    (dependencyId: string) => {
+      actions.onRemoveDependency(dependencyId);
+    },
+    [actions],
+  );
+
+  const patchEntityDatesFromChart = useCallback(
+    (
+      document: ProjectDocument,
+      entity: EditableEntityRef,
+      patch: EntityDatePatch,
+      options?: SaveEntityOptions,
+    ) => {
+      const update = buildDatePatchUpdate(document, entity, patch, options);
+      if (update) {
+        actions.onSave(update.kind, update.entity, update.options);
+      }
+    },
+    [actions],
+  );
+
+  return {
+    saveEntity,
+    deleteEntity,
+    ungroupEntity,
+    addDependency,
+    removeDependency,
+    patchEntityDatesFromChart,
+  };
+}

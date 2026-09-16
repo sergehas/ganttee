@@ -150,28 +150,30 @@ No visual redesign is introduced.
 - Existing webview tests remain unchanged and must continue to pass.
 - Branch coverage remains at or above 90%.
 
-## 9. Risks & Open Questions
+## 9. Risks
 
-🟡 Medium — Structural vs semantic acyclicity boundary — literal dependency-edge cycle rejection is
-in scope here, while normalized-precedence semantic cycle checks are owned by
-[Graph validation](./graph-validation.md). Treatment: document this ownership boundary and test both
-specs against shared fixtures.
+- 🟡 **M-01** — Structural vs semantic acyclicity boundary — literal dependency-edge cycle rejection
+  is in scope here, while normalized-precedence semantic cycle checks are owned by
+  [Graph validation](./graph-validation.md).
+  - Status: **Resolved** — Treatment: document this ownership boundary and test both specs against
+    shared fixtures.
 
-🟢 Low — Transitional duplication risk in graph utilities — the project-facing `DependencyGraph`
-abstraction is the stable caller boundary, while Graphology-backed traversal is the current
-implementation. Treatment: route cycle, ordering, and component queries through `DependencyGraph`
-and preserve its API. Resolved by
-[ADR-0002](../adr/0002-graphology-as-dependency-graph-substrate.md).
+- 🟢 **L-01** — Transitional duplication risk in graph utilities — the project-facing
+  `DependencyGraph` abstraction is the stable caller boundary, while Graphology-backed traversal is
+  the current implementation.
+  - Status: **Resolved** (see [ADR-0002](../adr/0002-graphology-as-dependency-graph-substrate.md))
 
-🟢 Low — Library adoption timing — Graphology is now the dependency-graph substrate used by
-structural validation and scheduling. Treatment: keep Graphology behind `DependencyGraph` so its
-implementation can be replaced without changing callers. Resolved by
-[ADR-0002](../adr/0002-graphology-as-dependency-graph-substrate.md).
+- 🟢 **L-02** — Library adoption timing — Graphology is now the dependency-graph substrate used by
+  structural validation and scheduling.
+  - Status: **Resolved** (see [ADR-0002](../adr/0002-graphology-as-dependency-graph-substrate.md))
 
-🟢 Low — Host and webview authority boundary — derived scheduling state could diverge if both sides
-compute authoritative results. Treatment: keep parsing, hydration, validation, and canonical
-scheduling on the host; send plain projections to the webview and retain the last valid model after
-failed reparses. Resolved by [ADR-0001](../adr/0001-host-owned-hydration-and-scheduling.md).
+- 🟢 **L-03** — Host and webview authority boundary — derived scheduling state could diverge if both
+  sides compute authoritative results.
+  - Status: **Resolved** (see [ADR-0001](../adr/0001-host-owned-hydration-and-scheduling.md))
+
+## 10. Open Questions
+
+_No open questions identified._
 
 ## 10. Review Outcome
 
