@@ -1,4 +1,4 @@
-import { createEmptyDocument, Task } from "@common/documents";
+import { createEmptyDocument, Group, Milestone, Task } from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
 import { serializeDocument } from "@services/document/documentService";
 import { GanttEditorProvider } from "@views/editor/ganttEditorProvider";
@@ -17,6 +17,8 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.createTreeView(GanttExplorerProvider.viewId, {
       treeDataProvider: explorer,
+      dragAndDropController: explorer,
+      canSelectMany: true,
     }),
   );
 
@@ -52,6 +54,88 @@ function registerCommands(
     const task = createDefaultTask(vscode.l10n.t("New Task"));
     await controller.upsertTask(task);
     controller.editEntity({ kind: "task", id: task.id });
+  });
+
+  register("ganttee.newGroup", async () => {
+    const controller = store.active;
+    if (!controller) {
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t("Open a Gantt chart to add a group."),
+      );
+      return;
+    }
+    const group = createDefaultGroup(vscode.l10n.t("New Group"));
+    await controller.upsertGroup(group);
+    controller.editEntity({ kind: "group", id: group.id });
+  });
+
+  register("ganttee.newMilestone", async () => {
+    const controller = store.active;
+    if (!controller) {
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t("Open a Gantt chart to add a milestone."),
+      );
+      return;
+    }
+    const milestone = createDefaultMilestone(vscode.l10n.t("New Milestone"));
+    await controller.upsertMilestone(milestone);
+    controller.editEntity({ kind: "milestone", id: milestone.id });
+  });
+
+  register("ganttee.newProject", async () => {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+      void vscode.window.showErrorMessage(
+        vscode.l10n.t("Open a workspace folder before creating a Gantt project."),
+      );
+      return;
+    }
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.joinPath(workspaceFolder.uri, "untitled.ganttee"),
+      filters: { [vscode.l10n.t("Gantt project")]: ["ganttee"] },
+    });
+    if (uri === undefined) {
+      return;
+    }
+    await vscode.workspace.fs.writeFile(uri, Buffer.from(emptyDocumentText, "utf8"));
+    await vscode.commands.executeCommand("vscode.openWith", uri, "ganttee.chartEditor");
+  });
+
+  register("ganttee.search", async () => {
+    const term = await vscode.window.showInputBox({
+      prompt: vscode.l10n.t("Search project items"),
+      value: explorer.currentSearchTerm,
+    });
+    if (term !== undefined) {
+      explorer.setSearchTerm(term);
+    }
+  });
+
+  register("ganttee.moveUp", async (node) => {
+    const entity = entityRefOf(node);
+    if (entity) {
+      await store.active?.moveEntity(entity, "up");
+    }
+  });
+
+  register("ganttee.moveDown", async (node) => {
+    const entity = entityRefOf(node);
+    if (entity) {
+      await store.active?.moveEntity(entity, "down");
+    }
+  });
+
+  register("ganttee.sort", async () => {
+    const direction = await vscode.window.showQuickPick(
+      [
+        { label: vscode.l10n.t("Ascending"), value: "ascending" as const },
+        { label: vscode.l10n.t("Descending"), value: "descending" as const },
+      ],
+      { placeHolder: vscode.l10n.t("Sort project items") },
+    );
+    if (direction) {
+      await store.active?.sortItems(direction.value);
+    }
   });
 
   register("ganttee.editTask", (node) => {
@@ -115,6 +199,26 @@ function registerCommands(
     await store.active?.deleteEntity(entity);
   });
 
+  register("ganttee.deleteSelection", async (...args) => {
+    const entities = args
+      .flatMap((arg) => (Array.isArray(arg) ? arg.map(entityRefOf) : [entityRefOf(arg)]))
+      .filter(isEntityRef);
+    if (entities.length === 0) {
+      return;
+    }
+    const confirmation = await vscode.window.showWarningMessage(
+      vscode.l10n.t("Delete these items?"),
+      { modal: true },
+      vscode.l10n.t("Delete"),
+    );
+    if (confirmation !== vscode.l10n.t("Delete")) {
+      return;
+    }
+    for (const entity of entities) {
+      await store.active?.deleteEntity(entity, entity.kind === "group" ? "cascade" : undefined);
+    }
+  });
+
   register("ganttee.requestEditEntity", (entity) => {
     if (isEntityRef(entity)) {
       store.active?.editEntity(entity);
@@ -137,6 +241,16 @@ function createDefaultTask(name: string): Task {
     progress: 0,
     status: "todo",
   };
+}
+
+/** Creates a new group template with a localized default name. */
+function createDefaultGroup(name: string): Group {
+  return { id: generateId("group"), name };
+}
+
+/** Creates a new milestone template with today's date. */
+function createDefaultMilestone(name: string): Milestone {
+  return { id: generateId("milestone"), name, date: toIsoDate(new Date()) };
 }
 
 /**

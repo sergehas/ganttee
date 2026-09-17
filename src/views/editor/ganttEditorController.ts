@@ -46,6 +46,14 @@ import {
   ScheduleDiagnostic,
 } from "@services/schedule/scheduleGraphValidationService";
 import { schedule } from "@services/schedule/schedulingService";
+import {
+  assignEntitiesToGroup,
+  EffectiveDateMap,
+  MoveDirection,
+  moveEntity as moveSidebarEntity,
+  SortDirection,
+  sortProjectItems,
+} from "@services/sidebar/treeItemOperations";
 import { createWebviewL10nCatalog } from "@views/editor/webviewL10n";
 import { summarizeBlockingDiagnostics } from "@views/scheduleDiagnosticPresenter";
 import * as vscode from "vscode";
@@ -155,6 +163,41 @@ export class GanttEditorController {
   /** Adds or replaces a task. Used by host-side creation flows. */
   async upsertTask(task: Task): Promise<void> {
     await this.applyModel(upsertEntity(this._document, "task", task));
+  }
+
+  /** Adds or replaces a milestone through the document edit boundary. */
+  async upsertMilestone(milestone: Milestone): Promise<void> {
+    await this.applyModel(upsertEntity(this._document, "milestone", milestone));
+  }
+
+  /** Adds or replaces a group through the document edit boundary. */
+  async upsertGroup(group: Group): Promise<void> {
+    await this.applyModel(upsertEntity(this._document, "group", group));
+  }
+
+  /** Assigns selected entities to a group or project root. */
+  async assignEntitiesToGroup(
+    entities: readonly EditableEntityRef[],
+    targetGroupId: string | undefined,
+  ): Promise<void> {
+    await this.applyModel(assignEntitiesToGroup(this._document, entities, targetGroupId));
+  }
+
+  /** Moves one entity within its current owner scope. */
+  async moveEntity(entity: EditableEntityRef, direction: MoveDirection): Promise<void> {
+    await this.applyModel(moveSidebarEntity(this._document, entity, direction));
+  }
+
+  /** Sorts authored sidebar order using current effective schedule dates. */
+  async sortItems(direction: SortDirection): Promise<boolean> {
+    if (this._scheduledModel === undefined) {
+      void vscode.window.showWarningMessage(
+        vscode.l10n.t("Sort is unavailable without a schedule."),
+      );
+      return false;
+    }
+    await this.applyModel(sortProjectItems(this._document, direction, this.effectiveDateMap()));
+    return true;
   }
 
   /**
@@ -341,6 +384,22 @@ export class GanttEditorController {
       return "reparent";
     }
     return undefined;
+  }
+
+  /** Builds the schedule-derived effective-date map consumed by sidebar sorting. */
+  private effectiveDateMap(): EffectiveDateMap {
+    const dates = new Map<string, { start: Date; end: Date }>();
+    this._scheduledModel?.tasks.forEach((task) =>
+      dates.set(task.id, { start: task.effectiveStart(), end: task.effectiveEnd() }),
+    );
+    this._scheduledModel?.milestones.forEach((milestone) => {
+      const date = milestone.effectiveStart();
+      dates.set(milestone.id, { start: date, end: date });
+    });
+    this._scheduledModel?.groups.forEach((group) =>
+      dates.set(group.id, { start: group.effectiveStart, end: group.effectiveEnd }),
+    );
+    return dates;
   }
 
   /**

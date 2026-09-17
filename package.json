@@ -23,7 +23,8 @@
             "filenamePattern": "*.ganttee"
           }
         ],
-        "priority": "default"
+        "priority": "default",
+        "icon": "media/ganttee-color.svg"
       }
     ],
     "viewsContainers": {
@@ -51,6 +52,54 @@
         "title": "%command.newTask.title%",
         "category": "%extension.displayName%",
         "icon": "$(add)"
+      },
+      {
+        "command": "ganttee.newProject",
+        "title": "%command.newProject.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "ganttee.newGroup",
+        "title": "%command.newGroup.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "ganttee.newMilestone",
+        "title": "%command.newMilestone.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(milestone)"
+      },
+      {
+        "command": "ganttee.search",
+        "title": "%command.search.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(search)"
+      },
+      {
+        "command": "ganttee.sort",
+        "title": "%command.sort.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(sort-precedence)"
+      },
+      {
+        "command": "ganttee.moveUp",
+        "title": "%command.moveUp.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "ganttee.moveDown",
+        "title": "%command.moveDown.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "ganttee.deleteSelection",
+        "title": "%command.deleteSelection.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(trash)"
       },
       {
         "command": "ganttee.editTask",
@@ -105,7 +154,32 @@
         {
           "command": "ganttee.newTask",
           "when": "view == ganttee.explorer",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ganttee.newProject",
+          "when": "view == ganttee.explorer",
           "group": "navigation@1"
+        },
+        {
+          "command": "ganttee.newGroup",
+          "when": "view == ganttee.explorer",
+          "group": "navigation@3"
+        },
+        {
+          "command": "ganttee.newMilestone",
+          "when": "view == ganttee.explorer",
+          "group": "navigation@4"
+        },
+        {
+          "command": "ganttee.sort",
+          "when": "view == ganttee.explorer",
+          "group": "navigation@5"
+        },
+        {
+          "command": "ganttee.search",
+          "when": "view == ganttee.explorer",
+          "group": "navigation@6"
         },
         {
           "command": "ganttee.refreshExplorer",
@@ -115,6 +189,16 @@
       ],
       "view/item/context": [
         {
+          "command": "ganttee.moveUp",
+          "when": "view == ganttee.explorer && (viewItem == ganttee.task || viewItem == ganttee.milestone || viewItem == ganttee.group)",
+          "group": "inline@1"
+        },
+        {
+          "command": "ganttee.moveDown",
+          "when": "view == ganttee.explorer && (viewItem == ganttee.task || viewItem == ganttee.milestone || viewItem == ganttee.group)",
+          "group": "inline@2"
+        },
+        {
           "command": "ganttee.editTask",
           "when": "view == ganttee.explorer && viewItem == ganttee.task",
           "group": "inline@1"
@@ -123,6 +207,11 @@
           "command": "ganttee.deleteTask",
           "when": "view == ganttee.explorer && viewItem == ganttee.task",
           "group": "1_modification@1"
+        },
+        {
+          "command": "ganttee.deleteSelection",
+          "when": "view == ganttee.explorer && (viewItem == ganttee.task || viewItem == ganttee.milestone || viewItem == ganttee.group)",
+          "group": "1_modification@2"
         },
         {
           "command": "ganttee.editMilestone",
