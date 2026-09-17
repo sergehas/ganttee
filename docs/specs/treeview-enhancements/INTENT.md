@@ -1,7 +1,7 @@
 ---
 Status: Intent
 Owner: Copilot
-Last updated: 2026-09-16
+Last updated: 2026-09-17
 ---
 
 # Feature: Treeview Enhancements
@@ -16,8 +16,7 @@ Canonical status-to-badge mapping is defined in
 
 Make the sidebar a complete place to create and organize Ganttee projects. Users can create a
 project or project item, see and act on item status, edit or delete items, delete several items at
-once, and organize items through drag-and-drop. Open Ganttee projects are clearly identified in
-editor tabs.
+once, and organize or sort items. Open Ganttee projects are clearly identified in editor tabs.
 
 ## 2. Goals / Non-goals
 
@@ -31,6 +30,8 @@ editor tabs.
   in a single confirmed action.
 - Move one or more items into a group, or back to the project root, through drag-and-drop.
 - Reorder items within a group or at the project root through drag-and-drop.
+- Sort a scheduled project's items by effective start date, then effective end date, in ascending or
+  descending order.
 - Reject invalid moves without preventing valid items in the same selection from moving.
 - Let the user create a new `.ganttee` document from the sidebar.
 - Use `ganttee-color.svg` as the editor-tab icon for an open `.ganttee` document.
@@ -39,8 +40,10 @@ editor tabs.
 
 - A filter/search box for the tree.
 - Dropping onto a task or milestone.
-- Changes to the timeline beyond reflecting sidebar actions.
+- Direct changes to the editor webview; it only reflects project changes made from the sidebar.
+- Changing the display order of items in the editor webview, including the timeline.
 - Changing the `.ganttee` document structure or version.
+- Persisting the selected sort direction.
 
 ## 3. User Stories
 
@@ -83,6 +86,15 @@ editor tabs.
 - As a project author, I want invalid moves to be clearly rejected while valid items still move, so
   that one invalid item does not block the rest of my selection.
 
+### Epic F — Sort scheduled project items
+
+- As a project author, I want a Sort action to the left of New Task in the sidebar menu, so that I
+  can order scheduled items without moving them individually.
+- As a project author, I want Sort to alternate between ascending and descending effective dates, so
+  that I can view earlier or later work first.
+- As a project author, I want sorting to apply at the project root and within every group, so that
+  the whole project follows the same order.
+
 ## 4. Acceptance Criteria
 
 - Given the sidebar, when the user creates a project, then a new `.ganttee` project opens in the
@@ -107,6 +119,17 @@ editor tabs.
   are removed from their current groups.
 - Given one or more selected items within a group or at the project root, when the user moves them
   to a new position, then they appear in the chosen order.
+- Given a scheduled project, when the sidebar menu is shown, then Sort appears to the left of New
+  Task.
+- Given a project that has just opened, when no sort has been requested, then its item order remains
+  unchanged.
+- Given a scheduled project, when the user invokes Sort, then items are ordered by effective start
+  date and then effective end date, alternating between ascending and descending on each use.
+- Given a sort direction, when items are sorted, then root items are sorted together and each
+  group's items are sorted recursively in the same direction.
+- Given a completed sort, when the project is saved, then the sorted item order is retained without
+  retaining the selected sort direction.
+- Given a project without a schedule, when the sidebar is shown, then Sort is unavailable.
 - Given an item dropped onto itself, when the drop completes, then nothing changes and no error is
   shown.
 - Given a group dropped onto one of its descendants, when the drop completes, then that group does
