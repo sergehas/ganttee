@@ -1,5 +1,5 @@
 ---
-Status: Draft
+Status: Reviewed
 Owner: Copilot
 Last updated: 2026-09-17
 Related ADRs: <none yet>
@@ -7,7 +7,7 @@ Related ADRs: <none yet>
 
 # Feature: Treeview Enhancements
 
-![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)
+![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in
@@ -65,8 +65,10 @@ reparsed and rebroadcast to the tree and editor webview.
     current-version `.ganttee` document opens in the Ganttee editor.
   - Given no workspace folder is available, when the user invokes New Project, then creation is
     rejected with a localized actionable message.
-  - Given the target path already exists, when creation would overwrite it, then the user is asked
-    for a different name or explicit replacement according to the approved filename policy.
+  - Given an available workspace folder, when the user invokes New Project, then the native Save As
+    dialog opens with the first workspace folder as its default location.
+  - Given the target path already exists, when the user completes the native Save As dialog, then
+    the native dialog's overwrite confirmation policy applies.
 - As a project author, I want open `.ganttee` projects to use the Ganttee color icon in editor tabs,
   so that I can identify them quickly.
   - Given an open `.ganttee` custom editor, when its tab is rendered, then the custom editor
@@ -94,16 +96,16 @@ reparsed and rebroadcast to the tree and editor webview.
 - As a project author, I want each row to show its type, label, actions, and status in a consistent
   order, so that the tree is easy to scan.
   - Given a project item row, when it is rendered, then order is type icon, label, right-aligned
-    Move Up, Move Down, Delete, and status controls.
+    Move Up, Move Down, Delete, and status indication.
   - Given the first sibling in its current owner scope, when its row is rendered, then Move Up is
     disabled or hidden.
   - Given the last sibling in its current owner scope, when its row is rendered, then Move Down is
     disabled or hidden.
-  - Given a project item row with no warning or error diagnostics, when it is rendered, then it
-    always shows the default `Valid` status with a pass icon.
-  - Given an item with warning or error diagnostics, when its row is rendered, then it shows the
-    matching status and icon instead of the default `Valid` status, without hiding the item type
-    identity.
+  - Given a project item row with no warning or error diagnostics, when it is rendered, then its
+    type icon uses the predefined VS Code blue semantic color and its status is (implicit) `Valid`.
+  - Given an item with warning or error diagnostics, when its row is rendered, then its type icon
+    uses the matching predefined VS Code warning or error semantic color, without hiding the item
+    type identity.
 - As a project author, I want native tree activation to open item editing, so that interaction
   remains familiar without a duplicate Edit action.
   - Given a task, milestone, or group, when the user activates the row, then the corresponding edit
@@ -154,9 +156,9 @@ reparsed and rebroadcast to the tree and editor webview.
     simple confirmation asks, "Delete these items?"
   - Given the user cancels confirmation, when the dialog closes, then the document remains
     unchanged.
-  - Given confirmation is accepted, when deletion is applied, then one document edit removes the
-    selected items using existing dependency cleanup rules; selected groups are deleted with their
-    contents.
+  - Given confirmation is accepted, when deletion is applied, then the existing delete function is
+    called once for each selected item in sequence, preserving existing dependency cleanup rules;
+    selected groups are deleted with their contents.
   - Given one selected item is stale or invalid, when bulk deletion runs, then valid items are
     processed and the invalid item is reported.
 
@@ -225,6 +227,10 @@ reparsed and rebroadcast to the tree and editor webview.
   separate confirmation per group.
 - A confirmed selected group is deleted with its contents, including descendant groups and their
   items, while existing dependency cleanup rules apply.
+- Bulk deletion reuses the existing delete function for each selected item in sequence; it does not
+  introduce new deletion rules.
+- Grouping and ungrouping reuse existing functions that assign an item or group to a group ID (edit
+  entity functions).
 - Authored entity-array order represents persisted tree order; webview timeline order is unchanged
   (not explicitly changed) by sidebar grouping, manual reordering, or sorting.
 - Sort compares effective start date first, effective end date second, and name third, recursively
@@ -235,9 +241,9 @@ reparsed and rebroadcast to the tree and editor webview.
 - Search input is treated as literal text; regex syntax has no special meaning.
 - Search changes only tree presentation and never changes the `.ganttee` document.
 - An empty search term disables filtering.
-- Every project item displays a status; `Valid` is the default status and uses a pass icon.
-- Warning or error diagnostics replace the default `Valid` status and pass icon with their matching
-  status and icon.
+- Every project item displays a diagnostic status; `Valid` is the default status.
+- The type icon uses a predefined VS Code semantic color: blue for valid, orange for warning, and
+  red for error. No separate status icon is shown.
 - All user-facing command, confirmation, validation, and status text is localized.
 
 ## 6. Domain & Data Model Impact
@@ -270,12 +276,12 @@ reparsed and rebroadcast to the tree and editor webview.
   - place New File/Project, New Task, New Group, New Milestone, Sort, and search access in the
     sidebar toolbar according to availability; retain New Task in its current toolbar location.
   - Place the search field below the toolbar and above the tree. Use progressive disclosure.
-  - Keep labels primary, reveal row actions on intent where the host tree API permits, retain
-    visible status for health comprehension, and preserve keyboard/native tree activation.
+  - Keep labels primary, reveal native inline row actions on intent, retain status through the type
+    icon's semantic color, and preserve keyboard/native tree activation.
   - Search must provide a clear text-entry focus path, preserve the active term during tree
     refreshes, and expose a clear empty-result state.
   - Drag/drop must expose clear grouping targets; impossible moves are rejected silently.
-  - Move Up and Move Down are row actions, immediately to the right of Delete, and are disabled or
+  - Move Up, Move Down, and Delete are native inline row actions in that order and are disabled or
     hidden at scope boundaries. Sort opens a popup with explicit Ascending and Descending actions.
 - Edit form:
   - existing entity edit forms open for create and edit operations.
@@ -314,43 +320,68 @@ reparsed and rebroadcast to the tree and editor webview.
 
 - 🟣 **C-01** — A host-side bulk edit could diverge from existing deletion semantics and leave
   dangling dependencies.
-  - Status: **Open**
+  - Status: **Resolved** — Bulk deletion calls the existing delete function once per selected item
+    in sequence and introduces no new deletion rules.
 - 🔴 **H-01** — Drag/drop changes can create cycles or corrupt group ownership if validation and
   silent partial-success handling are inconsistent.
-  - Status: **Open**
+  - Status: **Resolved** — Grouping reuses existing edit entity / group-assignment functions; cycle
+    validation and valid-item partial success remain required and are covered by tests.
 - 🔴 **H-02** — Custom Delete and status row controls may exceed native `TreeItem` capabilities and
   produce inconsistent keyboard or screen-reader behavior.
-  - Status: **Open**
+  - Status: **Resolved** — Use native inline TreeItem commands with accessible labels, keyboard
+    tests, and native row activation; status uses the type icon semantic color without a separate
+    control.
 - 🟡 **M-01** — Effective-date sorting may produce surprising placement for unscheduled or
   unresolved items.
   - Status: **Resolved** — Sorting uses the natural comparator; no special ordering requirement is
     defined for undefined date values. Sorting is unavailable when the project schedule cannot be
     computed.
 - 🟡 **M-02** — A missing `ganttee-color.svg` asset may delay editor-tab identification work.
-  - Status: **Open**
+  - Status: **Resolved** — Reuse the existing `media/ganttee-color.svg` asset.
 
 ## 11. Open Questions
 
-- 🔴 **H-01** — Which concrete native VS Code tree mechanism provides right-aligned Delete, Move Up,
+- 🔴 **H-04** — Which concrete native VS Code tree mechanism provides right-aligned Delete, Move Up,
   Move Down, and status controls while preserving keyboard and assistive-technology behavior?
-  - Status: **Open**
-- 🔴 **H-02** — What status does the row show: diagnostic health (`valid`, `warning`, `error`), task
+  - Status: **Resolved** — Use native inline TreeItem commands with accessible labels and keyboard
+    tests. Type icon semantic color communicates status; no separate status control is shown.
+- 🔴 **H-05** — What status does the row show: diagnostic health (`valid`, `warning`, `error`), task
   lifecycle status (`todo`, `inProgress`, `done`), or both?
-  - Status: **Resolved** — Rows display diagnostic health; `Valid` with a pass icon is the default,
-    and warning/error diagnostics replace it.
-- 🔴 **H-03** — What filename and overwrite policy applies to New Project, and which workspace
+  - Status: **Resolved** — Rows display diagnostic health. The type icon uses predefined VS Code
+    semantic colors for valid, warning, and error states.
+- 🔴 **H-06** — What filename and overwrite policy applies to New Project, and which workspace
   folder is selected when several are available?
-  - Status: **Open**
-- 🟡 **M-01** — Can mixed selections be reordered as a batch?
+  - Status: **Resolved** — Use the native Save As dialog with the first workspace folder as its
+    default location; the native dialog's overwrite confirmation policy applies.
+- 🟡 **M-03** — Can mixed selections be reordered as a batch?
   - Status: **Resolved** — Multi-selection reorder is out of scope; one row moves only within its
     current owner scope.
-- 🟡 **M-02** — When selected groups contain overlapping descendants, should confirmation show
+- 🟡 **M-04** — When selected groups contain overlapping descendants, should confirmation show
   selected roots, all affected descendants, or both?
   - Status: **Resolved** — The confirmation is always the simple localized "Delete these items?"
     prompt; no item summary is shown.
-- 🟡 **M-03** — Should undefined date values receive special Sort handling?
+- 🟡 **M-05** — Should undefined date values receive special Sort handling?
   - Status: **Resolved** — No special handling is required; the natural comparator determines their
     order. Sorting is unavailable only when the project schedule cannot be computed.
-- 🟡 **M-04** — Where should the approved `ganttee-color.svg` asset live, and is it a new asset or
+- 🟡 **M-06** — Where should the approved `ganttee-color.svg` asset live, and is it a new asset or
   an existing asset renamed for the custom editor contribution?
-  - Status: **Open**
+  - Status: **Resolved** — Reuse the existing `media/ganttee-color.svg` asset.
+
+## 12. Review Outcome
+
+- Resolved duplicate risk and open-question IDs without renumbering existing risk IDs.
+- Defined native Save As project creation, existing deletion/group-assignment reuse, and native
+  TreeItem inline actions.
+- Clarified status presentation: diagnostic health uses predefined VS Code semantic colors on the
+  type icon, with no separate status icon.
+- Made row-action order consistent and added implementation notes for technical decisions.
+
+## 13. Implementation Notes
+
+- Use native VS Code TreeItem inline command groups for Move Up, Move Down, and Delete. Keep
+  accessible labels, native activation, and keyboard behavior.
+- Reuse the existing delete function once per selected item in sequence for bulk deletion.
+- Reuse existing functions that assign items or groups to a group ID for grouping and ungrouping.
+- Use predefined VS Code semantic colors on the type icon: blue for valid, orange for warning, and
+  red for error. Do not add a separate status icon or hard-coded colors.
+- Use the native Save As dialog for New Project, defaulting to the first workspace folder.

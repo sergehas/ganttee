@@ -15,7 +15,7 @@ mirrors each spec's status badge.
 | 8   | [Chart View Functional Organization](./chart-view-functional-organization/SPEC.md)        | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
 | 9   | Graphical rendering of groups and dependencies                                            | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
 | 10  | [l10n bridge & webview codicons adoption](./l10n-bridge/SPEC.md)                          | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
-| 11  | [TreeView enhancements](./treeview-enhancements/SPEC.md)                                  | Draft       | ![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)             |
+| 11  | [TreeView enhancements](./treeview-enhancements/SPEC.md)                                  | Reviewed    | ![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)       |
 | 12  | Project-level working-days / days-off configuration                                       | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
 | 13  | Project-level holidays periods                                                            | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
 | 14  | Rendering off days in graphical view — option to hide off days                            | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
