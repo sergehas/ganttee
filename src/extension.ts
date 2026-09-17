@@ -112,14 +112,14 @@ function registerCommands(
   });
 
   register("ganttee.moveUp", async (node) => {
-    const entity = entityRefOf(node);
+    const entity = resolveEntity(node);
     if (entity) {
       await store.active?.moveEntity(entity, "up");
     }
   });
 
   register("ganttee.moveDown", async (node) => {
-    const entity = entityRefOf(node);
+    const entity = resolveEntity(node);
     if (entity) {
       await store.active?.moveEntity(entity, "down");
     }
@@ -139,28 +139,28 @@ function registerCommands(
   });
 
   register("ganttee.editTask", (node) => {
-    const entity = entityRefOf(node);
+    const entity = resolveEntity(node);
     if (entity?.kind === "task") {
       store.active?.editEntity(entity);
     }
   });
 
   register("ganttee.editMilestone", (node) => {
-    const entity = entityRefOf(node);
+    const entity = resolveEntity(node);
     if (entity?.kind === "milestone") {
       store.active?.editEntity(entity);
     }
   });
 
   register("ganttee.editGroup", (node) => {
-    const entity = entityRefOf(node);
+    const entity = resolveEntity(node);
     if (entity?.kind === "group") {
       store.active?.editEntity(entity);
     }
   });
 
   register("ganttee.deleteTask", async (node) => {
-    const entity = entityRefOf(node);
+    const entity = resolveEntity(node);
     if (entity?.kind !== "task") {
       return;
     }
@@ -176,7 +176,7 @@ function registerCommands(
   });
 
   register("ganttee.deleteMilestone", async (node) => {
-    const entity = entityRefOf(node);
+    const entity = resolveEntity(node);
     if (entity?.kind !== "milestone") {
       return;
     }
@@ -192,7 +192,7 @@ function registerCommands(
   });
 
   register("ganttee.deleteGroup", async (node) => {
-    const entity = entityRefOf(node);
+    const entity = resolveEntity(node);
     if (entity?.kind !== "group") {
       return;
     }
@@ -201,7 +201,7 @@ function registerCommands(
 
   register("ganttee.deleteSelection", async (...args) => {
     const entities = args
-      .flatMap((arg) => (Array.isArray(arg) ? arg.map(entityRefOf) : [entityRefOf(arg)]))
+      .flatMap((arg) => (Array.isArray(arg) ? arg.map(resolveEntity) : [resolveEntity(arg)]))
       .filter(isEntityRef);
     if (entities.length === 0) {
       return;
@@ -265,6 +265,11 @@ function isEntityRef(value: unknown): value is EditableEntityRef {
     (candidate.kind === "task" || candidate.kind === "milestone" || candidate.kind === "group") &&
     typeof candidate.id === "string"
   );
+}
+
+/** Resolves a row command argument that may be a raw entity ref or a tree node. */
+function resolveEntity(value: unknown): EditableEntityRef | undefined {
+  return isEntityRef(value) ? value : entityRefOf(value);
 }
 
 function toIsoDate(date: Date): string {

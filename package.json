@@ -23,8 +23,19 @@
             "filenamePattern": "*.ganttee"
           }
         ],
-        "priority": "default",
-        "icon": "media/ganttee-color.svg"
+        "priority": "default"
+      }
+    ],
+    "languages": [
+      {
+        "id": "ganttee",
+        "extensions": [
+          ".ganttee"
+        ],
+        "icon": {
+          "light": "media/ganttee-color.svg",
+          "dark": "media/ganttee-color.svg"
+        }
       }
     ],
     "viewsContainers": {
@@ -51,7 +62,7 @@
         "command": "ganttee.newTask",
         "title": "%command.newTask.title%",
         "category": "%extension.displayName%",
-        "icon": "$(add)"
+        "icon": "$(checklist)"
       },
       {
         "command": "ganttee.newProject",
@@ -152,17 +163,17 @@
     "menus": {
       "view/title": [
         {
-          "command": "ganttee.newTask",
-          "when": "view == ganttee.explorer",
-          "group": "navigation@2"
-        },
-        {
           "command": "ganttee.newProject",
           "when": "view == ganttee.explorer",
           "group": "navigation@1"
         },
         {
           "command": "ganttee.newGroup",
+          "when": "view == ganttee.explorer",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ganttee.newTask",
           "when": "view == ganttee.explorer",
           "group": "navigation@3"
         },
@@ -177,14 +188,14 @@
           "group": "navigation@5"
         },
         {
-          "command": "ganttee.search",
+          "command": "ganttee.refreshExplorer",
           "when": "view == ganttee.explorer",
           "group": "navigation@6"
         },
         {
-          "command": "ganttee.refreshExplorer",
+          "command": "ganttee.search",
           "when": "view == ganttee.explorer",
-          "group": "navigation@2"
+          "group": "navigation@7"
         }
       ],
       "view/item/context": [

@@ -143,9 +143,8 @@ export class GanttExplorerProvider
   private groupItem(group: Group): vscode.TreeItem {
     const item = new vscode.TreeItem(group.name, vscode.TreeItemCollapsibleState.Expanded);
     item.contextValue = "ganttee.group";
-    item.iconPath = new vscode.ThemeIcon("folder", new vscode.ThemeColor("charts.blue"));
     item.id = `group:${group.id}`;
-    this.applyDiagnosticPresentation(item, group.id);
+    this.applyDiagnosticPresentation(item, group.id, "folder");
     const scheduledGroup = this.scheduledModel?.groups.find(
       (candidate) => candidate.id === group.id,
     );
@@ -170,7 +169,6 @@ export class GanttExplorerProvider
       );
     }
     item.contextValue = "ganttee.task";
-    item.iconPath = new vscode.ThemeIcon("checklist", new vscode.ThemeColor("charts.blue"));
     item.id = `task:${task.id}`;
     item.command = {
       command: "ganttee.editTask",
@@ -178,7 +176,7 @@ export class GanttExplorerProvider
       arguments: [{ kind: "task", id: task.id }],
     };
 
-    this.applyDiagnosticPresentation(item, task.id);
+    this.applyDiagnosticPresentation(item, task.id, "checklist");
 
     return item;
   }
@@ -192,7 +190,6 @@ export class GanttExplorerProvider
       item.description = formatShortDate(scheduledMilestone.effectiveStart(), vscode.env.language);
     }
     item.contextValue = "ganttee.milestone";
-    item.iconPath = new vscode.ThemeIcon("milestone", new vscode.ThemeColor("charts.blue"));
     item.id = `milestone:${milestone.id}`;
     item.command = {
       command: "ganttee.editMilestone",
@@ -200,7 +197,7 @@ export class GanttExplorerProvider
       arguments: [{ kind: "milestone", id: milestone.id }],
     };
 
-    this.applyDiagnosticPresentation(item, milestone.id);
+    this.applyDiagnosticPresentation(item, milestone.id, "milestone");
 
     return item;
   }
@@ -219,10 +216,15 @@ export class GanttExplorerProvider
     );
   }
 
-  /** Applies the detailed tooltip and severity indicator for an entity. */
-  private applyDiagnosticPresentation(item: vscode.TreeItem, entityId: string): void {
+  /** Colors the item-type icon by diagnostic severity and sets the tooltip; the icon identity is never replaced. */
+  private applyDiagnosticPresentation(
+    item: vscode.TreeItem,
+    entityId: string,
+    iconId: string,
+  ): void {
     const diagnostics = diagnosticsFor(this.getDiagnostics(), entityId);
     if (diagnostics.length === 0) {
+      item.iconPath = new vscode.ThemeIcon(iconId, new vscode.ThemeColor("charts.blue"));
       return;
     }
     item.tooltip = diagnostics
@@ -232,7 +234,7 @@ export class GanttExplorerProvider
       (diagnostic) => diagnostic.severity === "blocking",
     );
     item.iconPath = new vscode.ThemeIcon(
-      hasBlockingDiagnostic ? "error" : "warning",
+      iconId,
       new vscode.ThemeColor(
         hasBlockingDiagnostic ? "list.errorForeground" : "list.warningForeground",
       ),
