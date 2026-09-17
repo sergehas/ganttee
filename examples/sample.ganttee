@@ -197,8 +197,8 @@
   "view": {
     "zoomLevel": "quarter",
     "showDependencies": false,
-    "showOffDays": false,
-    "showHolidays": false,
-    "showCriticalPath": false
+    "showOffDays": true,
+    "showHolidays": true,
+    "showCriticalPath": true
   }
 }
