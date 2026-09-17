@@ -12,28 +12,28 @@ have one.
 
 ## ID Format
 
-`<severity-indicator> <letter>-<sequence>`, with the indicator before the ID. The sequence is
-zero-padded to two digits and restarts per letter. The letter follows the severity defined by the
-reporting standard.
+`<severity-indicator> <type-letter>-<sequence>`, with the indicator before the ID. The sequence is
+zero-padded to two digits and restarts per type. The type letter is `R` for risks and `Q` for open
+questions. Severity is represented only by the leading indicator.
 
-Examples: `🟣 C-01`, `🔴 H-01`, `🔴 H-02`, `🟡 M-01`.
+Examples: `🔴 R-01`, `🔴 R-02`, `🟡 Q-01`, `🟣 Q-02`.
 
 ## Entry Shape
 
 ```md
-- 🔴 **H-01** — <question or risk text>
+- 🔴 **R-01** — <risk text>
   - Status: **Open**
 ```
 
 Once resolved, use whichever of the two forms applies:
 
 ```md
-- 🔴 **H-01** — <question or risk text>
+- 🔴 **R-01** — <risk text>
   - Status: **Resolved** — <one-line rationale>
 ```
 
 ```md
-- 🔴 **H-01** — <question or risk text>
+- 🔴 **R-01** — <risk text>
   - Status: **Resolved** (see [docs/adr/0007-slug.md](../../../../docs/adr/0007-slug.md))
 ```
 
@@ -42,11 +42,11 @@ surprising without context, a real trade-off). Otherwise resolve inline — most
 
 ## Rules
 
-- Assign the next unused number for that letter; never reuse a number, even if an item is later
+- Assign the next unused number for that type; never reuse a number, even if an item is later
   dropped.
-- Re-grouping by severity changes only the letter+number of new entries; never renumber existing
-  ones.
-- Keep the severity indicator aligned with the ID letter.
+- Sort entries by severity in descending order: from critical to nice to have, then by sequence
+  number ascending. Sorting changes display order only; never change or renumber existing IDs.
+- If an item's severity changes, update only its leading severity indicator. Keep its type letter
+  and sequence number unchanged.
+- Keep the leading indicator aligned with the item's severity.
 - An ADR may resolve more than one item — link it from every item it resolves.
-- An item can move up or down in severity as understanding improves; when it does, retire the old ID
-  (mark `Superseded by <new-id>`) and open a new one — do not relabel in place.

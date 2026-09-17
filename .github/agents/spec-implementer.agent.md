@@ -6,7 +6,7 @@ description:
   type-check/lint/tests, and when implementation is complete flip the spec and roadmap to
   `Implemented` and add a changelog entry. Delegate spec-implementation tasks here."
 name: "Spec Implementer"
-tools: [read, edit, execute, agent]
+tools: [read, edit, execute, agent, ask-questions, vscode/askQuestions]
 user-invocable: true
 ---
 
