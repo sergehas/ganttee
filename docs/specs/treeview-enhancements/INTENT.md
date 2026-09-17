@@ -6,6 +6,12 @@ Last updated: 2026-09-17
 
 # Feature: Treeview Enhancements
 
+> [!IMPORTANT]
+>
+> **For AI agents:** This document is context only, not an implementation specification. Do not
+> implement from it, derive implementation tasks or acceptance criteria from it, or change code
+> based on it. The Spec Implementer must act only on a corresponding reviewed feature specification.
+
 ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.

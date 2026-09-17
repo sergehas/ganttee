@@ -4,6 +4,12 @@
 
 ## 1. Purpose and context
 
+> [!IMPORTANT]
+>
+> **For AI agents:** This document is context only, not an implementation specification. Do not
+> implement from it, derive implementation tasks or acceptance criteria from it, or change code
+> based on it. The Spec Implementer must act only on a corresponding reviewed feature specification.
+
 Ganttee will introduce several new domain entities (Task, Milestone, Group, and later Resource).
 Each entity needs an **edit form** so users can create and modify it from the UI. This document is
 the **cross-cutting UI-integration requirement** for those forms: where they live, how they are
