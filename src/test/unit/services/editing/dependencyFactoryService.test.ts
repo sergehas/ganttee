@@ -1,4 +1,4 @@
-import { buildDependency, createDependencyId } from "@services/editing/dependencyFactoryService";
+import { buildDependency } from "@services/editing/dependencyFactoryService";
 import * as assert from "assert";
 
 suite("dependencyFactoryService", () => {
@@ -15,10 +15,5 @@ suite("dependencyFactoryService", () => {
     });
     assert.strictEqual(missingOwner, undefined);
     assert.strictEqual(missingTarget, undefined);
-  });
-
-  test("createDependencyId returns a prefixed string", () => {
-    const id = createDependencyId();
-    assert.ok(id.startsWith("dep-"), `Expected dep- prefix, got: ${id}`);
   });
 });

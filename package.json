@@ -115,38 +115,14 @@
         "icon": "$(trash)"
       },
       {
-        "command": "ganttee.editTask",
-        "title": "%command.editTask.title%",
+        "command": "ganttee.editProjectItem",
+        "title": "%command.editProjectItem.title%",
         "category": "%extension.displayName%",
         "icon": "$(edit)"
       },
       {
-        "command": "ganttee.editMilestone",
-        "title": "%command.editMilestone.title%",
-        "category": "%extension.displayName%",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "ganttee.editGroup",
-        "title": "%command.editGroup.title%",
-        "category": "%extension.displayName%",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "ganttee.deleteTask",
-        "title": "%command.deleteTask.title%",
-        "category": "%extension.displayName%",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "ganttee.deleteMilestone",
-        "title": "%command.deleteMilestone.title%",
-        "category": "%extension.displayName%",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "ganttee.deleteGroup",
-        "title": "%command.deleteGroup.title%",
+        "command": "ganttee.deleteProjectItem",
+        "title": "%command.deleteProjectItem.title%",
         "category": "%extension.displayName%",
         "icon": "$(trash)"
       },
@@ -212,39 +188,19 @@
           "group": "inline@2"
         },
         {
-          "command": "ganttee.editTask",
-          "when": "view == ganttee.explorer && viewItem == ganttee.task",
+          "command": "ganttee.editProjectItem",
+          "when": "view == ganttee.explorer && (viewItem == ganttee.task || viewItem == ganttee.milestone || viewItem == ganttee.group)",
           "group": "inline@1"
         },
         {
-          "command": "ganttee.deleteTask",
-          "when": "view == ganttee.explorer && viewItem == ganttee.task",
+          "command": "ganttee.deleteProjectItem",
+          "when": "view == ganttee.explorer && (viewItem == ganttee.task || viewItem == ganttee.milestone || viewItem == ganttee.group)",
           "group": "1_modification@1"
         },
         {
           "command": "ganttee.deleteSelection",
           "when": "view == ganttee.explorer && (viewItem == ganttee.task || viewItem == ganttee.milestone || viewItem == ganttee.group)",
           "group": "1_modification@2"
-        },
-        {
-          "command": "ganttee.editMilestone",
-          "when": "view == ganttee.explorer && viewItem == ganttee.milestone",
-          "group": "inline@1"
-        },
-        {
-          "command": "ganttee.deleteMilestone",
-          "when": "view == ganttee.explorer && viewItem == ganttee.milestone",
-          "group": "1_modification@1"
-        },
-        {
-          "command": "ganttee.editGroup",
-          "when": "view == ganttee.explorer && viewItem == ganttee.group",
-          "group": "inline@1"
-        },
-        {
-          "command": "ganttee.deleteGroup",
-          "when": "view == ganttee.explorer && viewItem == ganttee.group",
-          "group": "1_modification@1"
         }
       ]
     }

@@ -75,41 +75,36 @@ export class GanttExplorerProvider
     }
 
     if (!element) {
-      const rootGroups = model.groups.filter((group) => !group.groupId);
-      const ungroupedTasks = model.tasks.filter((task) => !task.groupId);
-      const ungroupedMilestones = model.milestones.filter((milestone) => !milestone.groupId);
-      return this.filterNodes(
-        [
-          ...rootGroups.map((group): GanttNode => ({ kind: "group", group })),
-          ...ungroupedTasks.map((task): GanttNode => ({ kind: "task", task })),
-          ...ungroupedMilestones.map((milestone): GanttNode => ({
-            kind: "milestone",
-            milestone,
-          })),
-        ],
-        model,
-      );
+      return this.filterNodes(this.childNodes(model), model);
     }
 
     if (element.kind === "group") {
-      const groupId = element.group.id;
-      const childGroups = model.groups.filter((group) => group.groupId === groupId);
-      const tasks = model.tasks.filter((task) => task.groupId === groupId);
-      const milestones = model.milestones.filter((milestone) => milestone.groupId === groupId);
-      return this.filterNodes(
-        [
-          ...childGroups.map((group): GanttNode => ({ kind: "group", group })),
-          ...tasks.map((task): GanttNode => ({ kind: "task", task })),
-          ...milestones.map((milestone): GanttNode => ({
-            kind: "milestone",
-            milestone,
-          })),
-        ],
-        model,
-      );
+      return this.filterNodes(this.childNodes(model, element.group.id), model);
     }
 
     return [];
+  }
+
+  /** Collects the direct children of a group, or the root-level items when no group is provided. */
+  private childNodes(model: ProjectDocument, groupId?: string): GanttNode[] {
+    const childGroups = model.groups.filter((group) =>
+      groupId === undefined ? !group.groupId : group.groupId === groupId,
+    );
+    const tasks = model.tasks.filter((task) =>
+      groupId === undefined ? !task.groupId : task.groupId === groupId,
+    );
+    const milestones = model.milestones.filter((milestone) =>
+      groupId === undefined ? !milestone.groupId : milestone.groupId === groupId,
+    );
+
+    return [
+      ...childGroups.map((group): GanttNode => ({ kind: "group", group })),
+      ...tasks.map((task): GanttNode => ({ kind: "task", task })),
+      ...milestones.map((milestone): GanttNode => ({
+        kind: "milestone",
+        milestone,
+      })),
+    ];
   }
 
   /** Serializes selected tree nodes for a grouping drop. */
@@ -144,7 +139,11 @@ export class GanttExplorerProvider
     const item = new vscode.TreeItem(group.name, vscode.TreeItemCollapsibleState.Expanded);
     item.contextValue = "ganttee.group";
     item.id = `group:${group.id}`;
-    this.applyDiagnosticPresentation(item, group.id, "folder");
+    item.command = {
+      command: "ganttee.editProjectItem",
+      title: vscode.l10n.t("Edit Item"),
+      arguments: [{ kind: "group", id: group.id }],
+    };
     const scheduledGroup = this.scheduledModel?.groups.find(
       (candidate) => candidate.id === group.id,
     );
@@ -155,11 +154,19 @@ export class GanttExplorerProvider
         scheduledGroup.effectiveDuration,
       );
     }
+    this.applyDiagnosticPresentation(item, group.id, "folder");
     return item;
   }
 
   private taskItem(task: Task): vscode.TreeItem {
     const item = new vscode.TreeItem(task.name, vscode.TreeItemCollapsibleState.None);
+    item.contextValue = "ganttee.task";
+    item.id = `task:${task.id}`;
+    item.command = {
+      command: "ganttee.editProjectItem",
+      title: vscode.l10n.t("Edit Item"),
+      arguments: [{ kind: "task", id: task.id }],
+    };
     const scheduledTask = this.scheduledModel?.tasks.find((candidate) => candidate.id === task.id);
     if (scheduledTask) {
       item.description = vscode.l10n.t(
@@ -168,37 +175,26 @@ export class GanttExplorerProvider
         scheduledTask.effectiveDuration(),
       );
     }
-    item.contextValue = "ganttee.task";
-    item.id = `task:${task.id}`;
-    item.command = {
-      command: "ganttee.editTask",
-      title: vscode.l10n.t("Edit Task"),
-      arguments: [{ kind: "task", id: task.id }],
-    };
-
     this.applyDiagnosticPresentation(item, task.id, "checklist");
-
     return item;
   }
 
   private milestoneItem(milestone: Milestone): vscode.TreeItem {
     const item = new vscode.TreeItem(milestone.name, vscode.TreeItemCollapsibleState.None);
+    item.contextValue = "ganttee.milestone";
+    item.id = `milestone:${milestone.id}`;
+    item.command = {
+      command: "ganttee.editProjectItem",
+      title: vscode.l10n.t("Edit Item"),
+      arguments: [{ kind: "milestone", id: milestone.id }],
+    };
     const scheduledMilestone = this.scheduledModel?.milestones.find(
       (candidate) => candidate.id === milestone.id,
     );
     if (scheduledMilestone) {
       item.description = formatShortDate(scheduledMilestone.effectiveStart(), vscode.env.language);
     }
-    item.contextValue = "ganttee.milestone";
-    item.id = `milestone:${milestone.id}`;
-    item.command = {
-      command: "ganttee.editMilestone",
-      title: vscode.l10n.t("Edit Milestone"),
-      arguments: [{ kind: "milestone", id: milestone.id }],
-    };
-
     this.applyDiagnosticPresentation(item, milestone.id, "milestone");
-
     return item;
   }
 
@@ -227,9 +223,11 @@ export class GanttExplorerProvider
       item.iconPath = new vscode.ThemeIcon(iconId, new vscode.ThemeColor("charts.blue"));
       return;
     }
+
     item.tooltip = diagnostics
       .map((diagnostic) => describeDiagnostic(diagnostic, entityId))
       .join("\n");
+
     const hasBlockingDiagnostic = diagnostics.some(
       (diagnostic) => diagnostic.severity === "blocking",
     );
@@ -297,6 +295,7 @@ function isEntityRef(value: unknown): value is EditableEntityRef {
   if (typeof value !== "object" || value === null) {
     return false;
   }
+
   const candidate = value as { kind?: unknown; id?: unknown };
   return (
     (candidate.kind === "task" || candidate.kind === "milestone" || candidate.kind === "group") &&

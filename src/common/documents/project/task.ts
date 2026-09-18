@@ -1,5 +1,6 @@
-import { MS_PER_DAY } from "@common/dates";
+import { formatIsoDate, MS_PER_DAY } from "@common/dates";
 import { ProjectItem } from "@common/documents/project/projectItem";
+import { generateId } from "@common/idFactory";
 
 /** Lifecycle state of a task. */
 export const TASK_STATUSES = ["todo", "inProgress", "done"] as const;
@@ -19,6 +20,22 @@ export interface Task extends ProjectItem {
   progress?: number;
   /** Lifecycle status. */
   status?: TaskStatus;
+}
+
+/** Creates a new task template with a localized default name. */
+export function createDefaultTask(name: string): Task {
+  const today = new Date();
+  const end = new Date(today);
+  end.setDate(end.getDate() + 3);
+
+  return {
+    id: generateId(),
+    name,
+    start: formatIsoDate(today),
+    end: formatIsoDate(end),
+    progress: 0,
+    status: "todo",
+  };
 }
 
 /** Returns the effective start date of a task from authored values. */

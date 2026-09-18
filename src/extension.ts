@@ -1,4 +1,9 @@
-import { createEmptyDocument, Group, Milestone, Task } from "@common/documents";
+import {
+  createDefaultGroup,
+  createDefaultMilestone,
+  createDefaultTask,
+  createEmptyDocument,
+} from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
 import { serializeDocument } from "@services/document/documentService";
 import { GanttEditorProvider } from "@views/editor/ganttEditorProvider";
@@ -138,65 +143,32 @@ function registerCommands(
     }
   });
 
-  register("ganttee.editTask", (node) => {
+  register("ganttee.editProjectItem", (node) => {
     const entity = resolveEntity(node);
-    if (entity?.kind === "task") {
-      store.active?.editEntity(entity);
+    if (!entity) {
+      return;
     }
+    store.active?.editEntity(entity);
   });
 
-  register("ganttee.editMilestone", (node) => {
+  register("ganttee.deleteProjectItem", async (node) => {
     const entity = resolveEntity(node);
-    if (entity?.kind === "milestone") {
-      store.active?.editEntity(entity);
-    }
-  });
-
-  register("ganttee.editGroup", (node) => {
-    const entity = resolveEntity(node);
-    if (entity?.kind === "group") {
-      store.active?.editEntity(entity);
-    }
-  });
-
-  register("ganttee.deleteTask", async (node) => {
-    const entity = resolveEntity(node);
-    if (entity?.kind !== "task") {
+    if (!entity) {
       return;
     }
     const deleteLabel = vscode.l10n.t("Delete");
     const confirmation = await vscode.window.showWarningMessage(
-      vscode.l10n.t("Delete this task?"),
+      entity.kind === "group"
+        ? vscode.l10n.t("Delete this group?")
+        : entity.kind === "task"
+          ? vscode.l10n.t("Delete this task?")
+          : vscode.l10n.t("Delete this milestone?"),
       { modal: true },
       deleteLabel,
     );
     if (confirmation === deleteLabel) {
-      await store.active?.deleteEntity(entity);
+      await store.active?.deleteEntity(entity, entity.kind === "group" ? "cascade" : undefined);
     }
-  });
-
-  register("ganttee.deleteMilestone", async (node) => {
-    const entity = resolveEntity(node);
-    if (entity?.kind !== "milestone") {
-      return;
-    }
-    const deleteLabel = vscode.l10n.t("Delete");
-    const confirmation = await vscode.window.showWarningMessage(
-      vscode.l10n.t("Delete this milestone?"),
-      { modal: true },
-      deleteLabel,
-    );
-    if (confirmation === deleteLabel) {
-      await store.active?.deleteEntity(entity);
-    }
-  });
-
-  register("ganttee.deleteGroup", async (node) => {
-    const entity = resolveEntity(node);
-    if (entity?.kind !== "group") {
-      return;
-    }
-    await store.active?.deleteEntity(entity);
   });
 
   register("ganttee.deleteSelection", async (...args) => {
@@ -227,33 +199,6 @@ function registerCommands(
 }
 
 /**
- * Creates a new task template with a localized default name.
- */
-function createDefaultTask(name: string): Task {
-  const today = new Date();
-  const end = new Date(today);
-  end.setDate(end.getDate() + 3);
-  return {
-    id: generateId("task"),
-    name,
-    start: toIsoDate(today),
-    end: toIsoDate(end),
-    progress: 0,
-    status: "todo",
-  };
-}
-
-/** Creates a new group template with a localized default name. */
-function createDefaultGroup(name: string): Group {
-  return { id: generateId("group"), name };
-}
-
-/** Creates a new milestone template with today's date. */
-function createDefaultMilestone(name: string): Milestone {
-  return { id: generateId("milestone"), name, date: toIsoDate(new Date()) };
-}
-
-/**
  * Returns whether a value is an {@link EditableEntityRef}.
  */
 function isEntityRef(value: unknown): value is EditableEntityRef {
@@ -270,14 +215,6 @@ function isEntityRef(value: unknown): value is EditableEntityRef {
 /** Resolves a row command argument that may be a raw entity ref or a tree node. */
 function resolveEntity(value: unknown): EditableEntityRef | undefined {
   return isEntityRef(value) ? value : entityRefOf(value);
-}
-
-function toIsoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function generateId(prefix: string): string {
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 /** Serialized template used when creating a blank `.ganttee` document. */

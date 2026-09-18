@@ -1,6 +1,7 @@
 import { Dependency, DependencyType, ProjectDocument } from "@common/documents";
+import { generateId } from "@common/idFactory";
 import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
-import { buildDependency, createDependencyId } from "@services/editing/dependencyFactoryService";
+import { buildDependency } from "@services/editing/dependencyFactoryService";
 import { buildUngroupUpdate } from "@services/editing/projectItemRemovalService";
 import { buildSaveUpdate, SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
 import {
@@ -96,7 +97,7 @@ export function useEntityEditWorkflow(actions: HostEditActions): EntityEditWorkf
 
   const addDependency = useCallback(
     (ownerId: string | undefined, targetId: string, type: DependencyType) => {
-      const dependency = buildDependency(ownerId, targetId, type, createDependencyId);
+      const dependency = buildDependency(ownerId, targetId, type, generateId);
       if (dependency) {
         actions.onAddDependency(dependency);
       }

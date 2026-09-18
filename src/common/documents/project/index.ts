@@ -1,3 +1,9 @@
+/** The type of a project item. */
+export const PROJECT_ITEM_TYPES = ["task", "milestone", "group"] as const;
+
+/** The type of a project item. */
+export type ProjectItemType = (typeof PROJECT_ITEM_TYPES)[number];
+
 export * from "@common/documents/project/dependency";
 export * from "@common/documents/project/group";
 export * from "@common/documents/project/milestone";
