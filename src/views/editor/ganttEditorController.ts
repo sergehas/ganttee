@@ -4,6 +4,7 @@ import {
   Group,
   Milestone,
   ProjectDocument,
+  ProjectItemType,
   ProjectView,
   Task,
 } from "@common/documents";
@@ -328,7 +329,10 @@ export class GanttEditorController {
    * Deletes one task or milestone and every edge connected to it. Groups go
    * through {@link deleteGroup} instead, because they need a strategy.
    */
-  private async deleteTaskOrMilestone(kind: "task" | "milestone", entityId: string): Promise<void> {
+  private async deleteTaskOrMilestone(
+    kind: Exclude<ProjectItemType, "group">,
+    entityId: string,
+  ): Promise<void> {
     const nextModel = buildTaskOrMilestoneDeletionDocument(this._document, kind, entityId);
     if (!nextModel) {
       this.showUnknownIdWarning(kind, entityId);

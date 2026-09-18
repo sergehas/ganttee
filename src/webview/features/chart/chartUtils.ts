@@ -6,6 +6,7 @@ import {
   Group,
   Milestone,
   ProjectDocument,
+  ProjectItemType,
   Task,
 } from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
@@ -17,7 +18,7 @@ export interface ChartRow {
   /** Label displayed on the chart axis. */
   label: string;
   /** Entity kind represented by the row. */
-  kind: "task" | "milestone";
+  kind: Exclude<ProjectItemType, "group">;
 }
 
 /** A schedulable entity reduced to the dates needed by dependency links. */
