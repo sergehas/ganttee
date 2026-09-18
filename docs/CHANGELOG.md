@@ -9,6 +9,7 @@ file.
 
 ### Added
 
+- Add GNU Affero General Public License v3 licensing metadata and terms.
 - Localized editor webview strings through the extension l10n bundle, with locale-aware dates and
   native codicon controls for compact form actions.
 - Agent workflow and productivity skills with supporting engineering guidance.
