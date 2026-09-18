@@ -1,4 +1,4 @@
-import { formatShortDate } from "@common/datePresentation";
+import { formatShortDate } from "@common/dates";
 import { Group, Milestone, ProjectDocument, Task } from "@common/documents";
 import { ProjectSchedule } from "@common/models";
 import { EditableEntityRef } from "@common/protocol";

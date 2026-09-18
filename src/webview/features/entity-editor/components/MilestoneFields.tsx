@@ -1,4 +1,4 @@
-import { formatShortDate } from "@common/datePresentation";
+import { formatShortDate } from "@common/dates";
 import { validateMilestoneConstraints } from "@services/schedule/scheduleConstraintService";
 import "@webview/components/Form.scss";
 import { FormField } from "@webview/components/FormField";
