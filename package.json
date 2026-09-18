@@ -3,6 +3,8 @@
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
   "version": "0.0.1",
+  "icon": "media/ganttee-color.png",
+  "license": "AGPL-3.0-or-later",
   "engines": {
     "vscode": "^1.125.0"
   },
