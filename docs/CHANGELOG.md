@@ -15,6 +15,7 @@ file.
   or cyclic moves; a toolbar Sort action with explicit Ascending/Descending choices over effective
   dates and name; and a literal, case-insensitive name search field above the tree.
 - `.ganttee` editor tabs now use the Ganttee color icon for quick identification.
+- Add GNU Affero General Public License v3 licensing metadata and terms.
 - Localized editor webview strings through the extension l10n bundle, with locale-aware dates and
   native codicon controls for compact form actions.
 - Agent workflow and productivity skills with supporting engineering guidance.
