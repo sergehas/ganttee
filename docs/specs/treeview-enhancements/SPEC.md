@@ -1,12 +1,13 @@
 ---
-Status: Intent
+Status: Implemented
 Owner: Copilot
-Last updated: 2026-08-15
+Last updated: 2026-09-18
+Related ADRs: <none yet>
 ---
 
 # Feature: Treeview Enhancements
 
-![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)
+![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in
@@ -14,163 +15,373 @@ Canonical status-to-badge mapping is defined in
 
 ## 1. Summary
 
-The sidebar tree only lets a user create a task at the document root, act on one entity at a time,
-and has no way to reorganize the hierarchy other than editing the raw document. This feature brings
-three structural capabilities to the sidebar tree: creating a group or milestone (not just a task),
-deleting several selected entities of any kind in one confirmed action, and drag-and-drop of one or
-more selected entities onto a group to assign them to it — all while keeping the `.ganttee` document
-as the single source of truth and the timeline webview in sync through the existing change-broadcast
-mechanism.
+The sidebar currently exposes existing Ganttee items but does not provide a complete
+project-management workflow. This feature makes the sidebar a primary place to create, inspect,
+edit, delete, organize, and sort project items while keeping the `.ganttee` TextDocument as the
+source of truth. Users organize items through grouping/ungrouping drops and single-row Move Up/Move
+Down actions, sort through explicit toolbar choices, and receive a recognizable editor-tab icon for
+open Ganttee documents.
 
 ## 2. Goals / Non-goals
 
 ### Goals
 
-- Let the "add" entry point in the sidebar create a Group or a Milestone, in addition to the
-  existing Task creation.
-- Let the user multi-select any mix of tasks, milestones, and groups in the tree and delete them all
-  in a single confirmed action.
-- Let the user drag one or several selected tasks, milestones, and/or groups and drop them onto a
-  group node to assign them as members of that group.
-- Reject structurally invalid drops (an item dropped onto itself, or a group dropped onto one of its
-  own descendants) with a clear, localized message and no document mutation.
+- Create `.ganttee` projects, tasks, groups, and milestones from the sidebar.
+- Present each item with type, label, Delete, Move Up, Move Down, and health/status in a consistent
+  order.
+- Use native tree activation to open item editing.
+- Delete mixed selections in one confirmed action, including clear group-member effects.
+- Group and ungroup tasks, milestones, and groups by drag-and-drop at group or project-root level.
+- Reject invalid grouping moves without blocking valid items in the same selection.
+- Sort scheduled items recursively by effective start date, effective end date, then name.
+- Move one item up or down within its current owner scope through row actions.
+- Filter the sidebar tree by project-item name through a search field below the toolbar.
+- Identify open `.ganttee` documents with `ganttee-color.svg` in editor tabs.
 
 ### Non-goals
 
-- Reordering entities within a group or at the root — display order is unchanged by this feature.
-- A filter/search box for the tree.
-- Dropping onto anything other than a group (e.g., dropping onto a task or milestone, or reordering
-  by drop position) — out of scope for this pass.
-- Any change to the timeline (ECharts) rendering beyond it reflecting the updated document, which it
-  already does today.
-- Any `.ganttee` schema version change — groups and milestones will carry (or reuse) the same
-  group-reference field tasks already use today; no schema version bump is required.
+- Dropping items onto tasks or milestones.
+- Reordering items through drag-and-drop, including drag-position or insertion-index behavior.
+- Reordering multiple selected items.
+- Sorting through drag-and-drop.
+- Direct webview feature changes beyond reflecting document updates.
+- Changing item display order in the ECharts timeline.
+- Changing the `.ganttee` document structure or version.
+- Remembering a selected sort direction between Sort actions or sessions.
 
-## 3. User Stories
+## 3. Epic
 
-### Epic A — Create Group and Milestone from the tree
+Deliver a complete, document-backed sidebar workflow for Ganttee project authoring and organization.
+All sidebar edits are applied by the host through the existing document/controller boundary, then
+reparsed and rebroadcast to the tree and editor webview.
 
-- As a project author, I want to create a new Group from the sidebar, so that I can start organizing
-  my plan without leaving the tree.
-- As a project author, I want to create a new Milestone from the sidebar, so that I have parity with
-  task creation for all entity kinds.
+## 4. User Stories & Acceptance Criteria
 
-### Epic B — Mass delete across selected entities
+### Project creation and identification
 
-- As a project author, I want to select several tasks, milestones, and/or groups together and delete
-  them in one action, so that cleaning up my plan is fast.
-- As a project author, I want a single confirmation that clearly states what and how many entities
-  will be removed (including any effect on a deleted group's members), so that I don't destroy data
-  by accident.
+- As a project author, I want to create a new `.ganttee` project from the sidebar, so that I can
+  start planning without creating a generic file first.
+  - Given an available workspace folder, when the user invokes New Project, then a new
+    current-version `.ganttee` document opens in the Ganttee editor.
+  - Given no workspace folder is available, when the user invokes New Project, then creation is
+    rejected with a localized actionable message.
+  - Given an available workspace folder, when the user invokes New Project, then the native Save As
+    dialog opens with the first workspace folder as its default location.
+  - Given the target path already exists, when the user completes the native Save As dialog, then
+    the native dialog's overwrite confirmation policy applies.
+- As a project author, I want open `.ganttee` projects to use the Ganttee color icon in editor tabs,
+  so that I can identify them quickly.
+  - Given an open `.ganttee` custom editor, when its tab is rendered, then the custom editor
+    contribution uses `ganttee-color.svg`.
+  - Given a non-Ganttee editor, when its tab is rendered, then its existing icon behavior is
+    unchanged.
 
-### Epic C — Drag-and-drop assignment into a group
+### Item creation and row interaction
 
-- As a project author, I want to drag a task, milestone, or group (or several selected at once) and
-  drop them onto a group, so that I can reassign them visually instead of editing each one
-  individually.
-- As a project author, I want an invalid drop (onto itself, or a group onto its own descendant) to
-  be rejected with a clear reason and no change to my document, so that I don't corrupt my plan's
-  structure.
+- As a project author, I want to create a task, group, or milestone from the sidebar, so that I can
+  build my project without leaving the tree.
+  - Given the sidebar toolbar, when the user views it, then it provides icon actions for New Task,
+    New Group, and New Milestone; the existing New Task action remains in the toolbar.
+  - Given an active Ganttee project, when the user invokes New Task, New Group, or New Milestone
+    from its toolbar icon, then the item is added through the document controller and opened for
+    editing.
+  - Given item creation fails validation, when the edit is applied, then the document remains
+    unchanged and the localized validation reason is shown.
+- As a project author, I want to create a new Ganttee file from the sidebar, so that I can start a
+  project from the toolbar.
+  - Given the sidebar toolbar, when the user views it, then it provides a New File/Project icon
+    action alongside the item-creation actions.
+  - Given an available workspace folder, when the user invokes New File/Project from its toolbar
+    icon, then a new `.ganttee` document opens in the Ganttee editor.
+- As a project author, I want each row to show its type, label, actions, and status in a consistent
+  order, so that the tree is easy to scan.
+  - Given a project item row, when it is rendered, then order is type icon, label, right-aligned
+    Move Up, Move Down, Delete, and status indication.
+  - Given the first sibling in its current owner scope, when its row is rendered, then Move Up is
+    disabled or hidden.
+  - Given the last sibling in its current owner scope, when its row is rendered, then Move Down is
+    disabled or hidden.
+  - Given a project item row with no warning or error diagnostics, when it is rendered, then its
+    type icon uses the predefined VS Code blue semantic color and its status is (implicit) `Valid`.
+  - Given an item with warning or error diagnostics, when its row is rendered, then its type icon
+    uses the matching predefined VS Code warning or error semantic color, without hiding the item
+    type identity.
+- As a project author, I want native tree activation to open item editing, so that interaction
+  remains familiar without a duplicate Edit action.
+  - Given a task, milestone, or group, when the user activates the row, then the corresponding edit
+    form opens for that item.
+  - Given an item no longer exists when the row is activated, then no document mutation occurs and
+    the tree refreshes with a localized message.
+- As a project author, I want to move one item up or down within its current owner scope, so that I
+  can manually adjust order without changing its group.
+  - Given an item with a previous sibling, when the user invokes Move Up, then the item exchanges
+    position with that sibling within the same group or project-root scope.
+  - Given an item with a next sibling, when the user invokes Move Down, then the item exchanges
+    position with that sibling within the same group or project-root scope.
+  - Given an item is first or last in its current owner scope, when the user invokes its unavailable
+    move action, then no document change occurs.
+  - Given a Move Up or Move Down action, when it completes, then the item's group ownership is
+    unchanged.
+  - Given multiple items are selected, when the user invokes a move action, then the command applies
+    only to the activated row and does not reorder the selection as a batch.
+- As a project author, I want to delete an item directly from its row, so that common actions are
+  readily available.
+  - Given a task or milestone, when the user invokes Delete, then existing dependency and deletion
+    rules apply.
+  - Given a non-empty group, when the user invokes Delete, then the existing cascade/reparent choice
+    remains available.
 
-## 4. Acceptance Criteria
+### Tree search
 
-- Given the sidebar tree When the user invokes "add" and chooses "Group" Then a new group with a
-  localized default name is created (at the root, or under the currently selected group if the add
-  action is invoked from a group node) and opened for editing, the same way task creation works
-  today.
+- As a project author, I want to search project items by name from the sidebar, so that I can find
+  items quickly in a large project.
+  - Given the sidebar tree, when the user views it, then a search field appears below the sidebar
+    toolbar and above the tree.
+  - Given a search term, when the user types into the search field, then the tree displays only
+    project items whose names contain that term, ignoring letter case.
+  - Given a search term containing regex characters, when the user types it, then those characters
+    are matched as ordinary text and are not interpreted as a regular expression.
+  - Given an empty search field, when the field is cleared, then the complete unfiltered tree is
+    displayed.
+  - Given a search term with no matching item names, when filtering is applied, then the tree shows
+    its existing empty-result state without changing the document.
+  - Given a filtered tree, when the user edits, deletes, moves, or sorts an item, then the search
+    term remains active and the filtered tree refreshes from the updated document.
 
-- Given the sidebar tree When the user invokes "add" and chooses "Milestone" Then a new milestone
-  with a localized default name and a default date is created and opened for editing.
+### Bulk deletion
 
-- Given the sidebar tree When the user invokes "add" and chooses "Task" Then task creation behaves
-  exactly as it does today (no regression).
+- As a project author, I want to delete mixed selected items in one confirmed action, so that
+  cleanup is efficient.
+  - Given one or more selected tasks, milestones, or groups, when the user invokes Delete, then one
+    simple confirmation asks, "Delete these items?"
+  - Given the user cancels confirmation, when the dialog closes, then the document remains
+    unchanged.
+  - Given confirmation is accepted, when deletion is applied, then the existing delete function is
+    called once for each selected item in sequence, preserving existing dependency cleanup rules;
+    selected groups are deleted with their contents.
+  - Given one selected item is stale or invalid, when bulk deletion runs, then valid items are
+    processed and the invalid item is reported.
 
-- Given a multi-selection containing any mix of tasks, milestones, and groups When the user runs
-  "Delete" on that selection Then a single confirmation dialog states the total number of entities
-  that will be removed, including a note when one or more selected groups will also remove their
-  members, and confirming performs the deletion (and dependency cleanup) as one operation.
+### Grouping and ungrouping
 
-- Given a multi-selection that includes a group with members When the deletion is confirmed Then the
-  group and its members are removed together (cascade), consistent with how deleting a single group
-  behaves today.
+- As a project author, I want to group or ungroup items by drag-and-drop, so that I can organize
+  ownership visually without changing sibling order.
+  - Given one or more selected tasks, milestones, or groups and a group target, when the user drops
+    the selection onto that group, then valid items receive that group as their owner.
+  - Given one or more selected tasks, milestones, or groups and the project-root target, when the
+    user drops the selection at root, then valid items lose their group ownership.
+  - Given an item or group dropped onto itself or one of its descendant groups, when the drop
+    completes, then that grouping move is silently rejected with no error or localized reason and no
+    document change.
+  - Given a mixed selection containing valid and invalid grouping moves, when the drop completes,
+    then valid items change owner and invalid items remain in place silently, with no error or
+    localized reason.
+  - Given a task or milestone target, when items are dropped onto it, then the drop is silently
+    rejected because tasks and milestones are not containers, with no error and no document change.
+  - Given any grouping or ungrouping drop, when it completes, then item order within each owner
+    scope is unchanged.
 
-- Given a multi-selection When the user cancels the confirmation dialog Then no entity is deleted
-  and the document is unchanged.
+### Sorting
 
-- Given one or more tasks, milestones, and/or groups selected in the tree When the user drags the
-  selection and drops it onto a group node Then every dropped entity is reassigned to that group,
-  the document is updated in a single edit, and the timeline reflects the change without a manual
-  refresh.
+- As a project author, I want a Sort icon action in the sidebar toolbar beside New Task, so that I
+  can order scheduled items quickly.
+  - Given a scheduled project, when the sidebar toolbar is shown, then the Sort icon appears
+    immediately to the left of New Task.
+  - Given a project without a schedule, when the sidebar menu is shown, then Sort is unavailable.
+  - Given a project has just opened, when no sort is requested, then authored item order remains
+    unchanged.
+- As a project author, I want Sort to offer explicit direction choices, so that I can order work
+  ascending or descending without relying on remembered state.
+  - Given a scheduled project, when the user invokes the Sort toolbar icon, then a popup menu offers
+    explicit Ascending and Descending actions.
+  - Given Ascending is selected, when sorting completes, then root items and every group are sorted
+    recursively by effective start date, effective end date, then name in ascending order.
+  - Given Descending is selected, when sorting completes, then root items and every group are sorted
+    recursively by effective start date, effective end date, then name in descending order.
+  - Given items have equal effective dates and equal names, when items are sorted, then their prior
+    relative order is retained.
+  - Given the project schedule cannot be computed, when the user invokes Sort, then sorting is
+    unavailable and the user receives the defined localized warning.
+  - Given a sort completes, when the project is saved and reopened, then the resulting item order is
+    retained and no sort direction is persisted or remembered.
 
-- Given a selection that includes a group When that group is dropped onto itself or onto one of its
-  own descendant groups Then the drop is rejected for that group with a localized message, and any
-  other entities in the same selection that are valid to move are still reassigned.
+## 5. Business Rules
 
-- Given a single entity dragged and dropped onto itself When the drop completes Then it is a no-op —
-  no error shown, no document change.
+- The `.ganttee` TextDocument is the only persisted source of truth.
+- Every sidebar mutation is applied through a host-side document edit, followed by parse,
+  validation, schedule evaluation, and model refresh.
+- Tasks, milestones, and groups are selectable tree items; only groups are valid drop containers.
+- Drag-and-drop changes only group ownership: dropping onto a group assigns that group as owner;
+  dropping at project root removes group ownership.
+- An item cannot become its own ancestor. Self and descendant-group drops are silently rejected and
+  do not change the document.
+- Drops onto tasks or milestones are silently rejected and do not change the document.
+- A mixed grouping move processes valid selected items independently; invalid items remain in place
+  silently.
+- Grouping and ungrouping never changes item order within an owner scope.
+- Move Up and Move Down operate on one item only, exchange it with its adjacent sibling in the same
+  owner scope, and never change group ownership.
+- Sorting is initiated only through the toolbar Sort popup, which offers explicit Ascending and
+  Descending actions; it is not a drag-and-drop operation.
+- Bulk deletion uses one confirmation for the full selection. It does not show a summary or ask for
+  separate confirmation per group.
+- A confirmed selected group is deleted with its contents, including descendant groups and their
+  items, while existing dependency cleanup rules apply.
+- Bulk deletion reuses the existing delete function for each selected item in sequence; it does not
+  introduce new deletion rules.
+- Grouping and ungrouping reuse existing functions that assign an item or group to a group ID (edit
+  entity functions).
+- Authored entity-array order represents persisted tree order; webview timeline order is unchanged
+  (not explicitly changed) by sidebar grouping, manual reordering, or sorting.
+- Sort compares effective start date first, effective end date second, and name third, recursively
+  across root and all group scopes. The natural comparator handles undefined values. Complete ties
+  preserve prior relative order.
+- Sort direction is selected explicitly from the Sort popup and is not persisted or remembered.
+- Search matches the item `name` using case-insensitive substring comparison.
+- Search input is treated as literal text; regex syntax has no special meaning.
+- Search changes only tree presentation and never changes the `.ganttee` document.
+- An empty search term disables filtering.
+- Every project item displays a diagnostic status; `Valid` is the default status.
+- The type icon uses a predefined VS Code semantic color: blue for valid, orange for warning, and
+  red for error. No separate status icon is shown.
+- All user-facing command, confirmation, validation, and status text is localized.
 
-- Given one or more tasks, milestones, and/or groups selected in the tree When the user drags the
-  selection and drops it at the root of the tree Then every dropped entity has its group reference
-  cleared (ungrouped), the document is updated in a single edit, and the timeline reflects the
-  change without a manual refresh.
+## 6. Domain & Data Model Impact
 
-## 5. Domain & Data Model Impact
+- New/changed types in `src/common/models/`: add no persisted entity fields. Host-side grouping,
+  single-item move, and sort operation models may be introduced in services if needed; they must use
+  existing task, milestone, group, and schedule types.
+- Existing anchors: `ProjectModel`, `Task.effectiveStart/effectiveEnd`,
+  `Milestone.effectiveStart/effectiveEnd`, and scheduled-group rollups provide sort values.
+- `.ganttee` schema change: none. Keep `CURRENT_DOCUMENT_VERSION` at `2`; group ownership and
+  authored array order already persist the required results, while Sort direction is an operation
+  input and is not persisted.
+- Existing document migration behavior remains unchanged.
 
-- Groups and milestones will carry (or reuse) the same group-reference field tasks already use for
-  task-to-group membership; dropping a selection at the root of the tree clears that reference
-  (ungroup).
-- No new entity types.
-- No `.ganttee` schema version bump is required.
+## 7. Protocol Impact
 
-## 6. Protocol Impact
+- No new `HostToWebview` or `WebviewToHost` messages are required. Sidebar edits flow through host
+  document edits; existing `documentChanged` updates the webview.
+- Existing edit and delete entity references remain the shared identity contract.
+- If implementation requires a webview-visible operation status, add a typed protocol message only
+  after proving existing diagnostics and document-change responses cannot express it; such a message
+  must remain non-persistent.
 
-- None expected. Tree actions (create, delete, reassign) are host-side operations that mutate the
-  document directly; the timeline webview is expected to keep receiving updates through the existing
-  document-change broadcast with no new host↔webview message required. To be confirmed during
-  implementation planning.
+## 8. UX
 
-## 7. UX
+- Timeline (ECharts): remain unchanged except for refresh after a successful sidebar document edit.
+  Sidebar grouping, manual Move Up/Move Down, and Sort must not change timeline display order unless
+  existing model semantics independently do so.
+- Sidebar tree:
+  - place New File/Project, New Task, New Group, New Milestone, Sort, and search access in the
+    sidebar toolbar according to availability; retain New Task in its current toolbar location.
+  - Place the search field below the toolbar and above the tree. Use progressive disclosure.
+  - Keep labels primary, reveal native inline row actions on intent, retain status through the type
+    icon's semantic color, and preserve keyboard/native tree activation.
+  - Search must provide a clear text-entry focus path, preserve the active term during tree
+    refreshes, and expose a clear empty-result state.
+  - Drag/drop must expose clear grouping targets; impossible moves are rejected silently.
+  - Move Up, Move Down, and Delete are native inline row actions in that order and are disabled or
+    hidden at scope boundaries. Sort opens a popup with explicit Ascending and Descending actions.
+- Edit form:
+  - existing entity edit forms open for create and edit operations.
+  - Successful form submission follows the existing host-owned reparse path.
+  - No new form fields are required.
+- Design rationale: Calm at rest keeps secondary actions quiet; Focused hierarchy makes label and
+  item type lead; Consistent row grammar gives equivalent item kinds equivalent controls; Delightful
+  feedback confirms successful operations without adding noise for silently rejected moves.
+- New localized strings are required for project creation, group/milestone creation, Sort, the
+  simple bulk-delete confirmation, Move Up, Move Down, status labels, and unavailable-schedule
+  feedback.
 
-- **Add**: the existing "add" entry point gains a choice of entity kind (exact interaction — e.g., a
-  picker vs. split button — is left to implementation planning); the created entity opens for
-  editing immediately, matching today's task-creation behavior.
-- **Mass delete**: multi-select uses the tree's native selection; "Delete" appears once per
-  selection (not once per item) and its confirmation names the total count and flags cascade effects
-  on any selected group.
-- **Drag-and-drop**: uses the tree's native drag affordance and drop indicator; an invalid drop
-  gives an inline, localized reason rather than failing silently.
-- **Timeline / edit form**: unchanged; both continue to reflect whatever the document contains after
-  each operation.
+## 9. Test Strategy
 
-## 8. Test Strategy
+- Unit (models/services): test stable date comparator, ascending/descending sort, date ties, name
+  ties, undated items using the natural comparator without a special placement assertion,
+  unschedulable projects, recursive group sorting, owner changes, root moves, grouping cycle
+  rejection, silent task/milestone drops, silent mixed-selection handling, adjacent Move Up/Move
+  Down behavior, scope boundaries, ownership preservation, one-step bulk-delete confirmation,
+  group-content cascade deletion, and dependency-aware bulk deletion.
+- Integration (commands/editor/tree): test project creation, custom-editor icon contribution,
+  command registration, item creation/edit activation, row action placement and boundaries,
+  multi-selection deletion and cancellation, grouping/ungrouping drag/drop, silent invalid drops,
+  stale edits, document reparse, tree refresh, Sort popup actions, schedule-unavailable Sort state,
+  persisted order without persisted direction state, search-field placement, live filtering, literal
+  regex characters, case-insensitive matching, clearing, no matches, and filtering after document
+  edits.
+- Webview interaction: verify `documentChanged` reflects sidebar-created, moved, deleted, and sorted
+  documents; verify no new protocol message is needed; retain existing edit-form behavior.
+- Fixtures: cover empty, unscheduled, scheduled, nested-group, overlapping-selection, invalid-date,
+  undated-item, dependency, and cycle-rejection documents.
+- Coverage: branch coverage remains at least 90% per file and class; every acceptance-criteria error
+  path has a focused test.
 
-- **Unit**: creating a group/milestone from "add" produces the expected new entity with correct
-  defaults; mass delete correctly expands a selected group into its cascade set and removes dangling
-  dependency references for every removed entity; drag-and-drop assignment updates the group
-  reference for every valid entity in a selection and rejects self-drop and descendant-drop cases
-  without mutating the document.
-- **Integration**: invoking "add" for each kind, running "Delete" on a mixed multi-selection
-  (including a group with members) and confirming/cancelling, and simulating a drag-and-drop
-  reassignment (including a partially-invalid mixed selection) each produce the expected end-to-end
-  document edit.
-- **Coverage**: branch coverage stays ≥ 90%, with explicit tests for the cascade-delete branch, the
-  cancel-confirmation branch, and both rejection branches (self-drop, descendant-drop) of
-  drag-and-drop.
+## 10. Risks
 
-## 9. Risks
+- 🟣 **C-01** — A host-side bulk edit could diverge from existing deletion semantics and leave
+  dangling dependencies.
+  - Status: **Resolved** — Bulk deletion calls the existing delete function once per selected item
+    in sequence and introduces no new deletion rules.
+- 🔴 **H-01** — Drag/drop changes can create cycles or corrupt group ownership if validation and
+  silent partial-success handling are inconsistent.
+  - Status: **Resolved** — Grouping reuses existing edit entity / group-assignment functions; cycle
+    validation and valid-item partial success remain required and are covered by tests.
+- 🔴 **H-02** — Custom Delete and status row controls may exceed native `TreeItem` capabilities and
+  produce inconsistent keyboard or screen-reader behavior.
+  - Status: **Resolved** — Use native inline TreeItem commands with accessible labels, keyboard
+    tests, and native row activation; status uses the type icon semantic color without a separate
+    control.
+- 🟡 **M-01** — Effective-date sorting may produce surprising placement for unscheduled or
+  unresolved items.
+  - Status: **Resolved** — Sorting uses the natural comparator; no special ordering requirement is
+    defined for undefined date values. Sorting is unavailable when the project schedule cannot be
+    computed.
+- 🟡 **M-02** — A missing `ganttee-color.svg` asset may delay editor-tab identification work.
+  - Status: **Resolved** — Reuse the existing `media/ganttee-color.svg` asset.
 
-_No risks identified._
+## 11. Open Questions
 
-## 10. Open Questions
+- 🔴 **H-04** — Which concrete native VS Code tree mechanism provides right-aligned Delete, Move Up,
+  Move Down, and status controls while preserving keyboard and assistive-technology behavior?
+  - Status: **Resolved** — Use native inline TreeItem commands with accessible labels and keyboard
+    tests. Type icon semantic color communicates status; no separate status control is shown.
+- 🔴 **H-05** — What status does the row show: diagnostic health (`valid`, `warning`, `error`), task
+  lifecycle status (`todo`, `inProgress`, `done`), or both?
+  - Status: **Resolved** — Rows display diagnostic health. The type icon uses predefined VS Code
+    semantic colors for valid, warning, and error states.
+- 🔴 **H-06** — What filename and overwrite policy applies to New Project, and which workspace
+  folder is selected when several are available?
+  - Status: **Resolved** — Use the native Save As dialog with the first workspace folder as its
+    default location; the native dialog's overwrite confirmation policy applies.
+- 🟡 **M-03** — Can mixed selections be reordered as a batch?
+  - Status: **Resolved** — Multi-selection reorder is out of scope; one row moves only within its
+    current owner scope.
+- 🟡 **M-04** — When selected groups contain overlapping descendants, should confirmation show
+  selected roots, all affected descendants, or both?
+  - Status: **Resolved** — The confirmation is always the simple localized "Delete these items?"
+    prompt; no item summary is shown.
+- 🟡 **M-05** — Should undefined date values receive special Sort handling?
+  - Status: **Resolved** — No special handling is required; the natural comparator determines their
+    order. Sorting is unavailable only when the project schedule cannot be computed.
+- 🟡 **M-06** — Where should the approved `ganttee-color.svg` asset live, and is it a new asset or
+  an existing asset renamed for the custom editor contribution?
+  - Status: **Resolved** — Reuse the existing `media/ganttee-color.svg` asset.
 
-### 🟢 Low
+## 12. Review Outcome
 
-- 🟢 **L-01** — Exact UI for choosing the entity kind on "add" (picker vs. split button) is left
-  open, to be decided during implementation planning.
-  - Status: **Open**
+- Resolved duplicate risk and open-question IDs without renumbering existing risk IDs.
+- Defined native Save As project creation, existing deletion/group-assignment reuse, and native
+  TreeItem inline actions.
+- Clarified status presentation: diagnostic health uses predefined VS Code semantic colors on the
+  type icon, with no separate status icon.
+- Made row-action order consistent and added implementation notes for technical decisions.
 
-### 🔵 Nice to have
+## 13. Implementation Notes
 
-- 🔵 **N-01** — Sibling reordering and a tree filter were considered but kept out of this spec's
-  scope; they can be proposed as separate follow-up specs if needed.
-  - Status: **Open**
+- Use native VS Code TreeItem inline command groups for Move Up, Move Down, and Delete. Keep
+  accessible labels, native activation, and keyboard behavior.
+- Reuse the existing delete function once per selected item in sequence for bulk deletion.
+- Reuse existing functions that assign items or groups to a group ID for grouping and ungrouping.
+- Use predefined VS Code semantic colors on the type icon: blue for valid, orange for warning, and
+  red for error. Do not add a separate status icon or hard-coded colors.
+- Use the native Save As dialog for New Project, defaulting to the first workspace folder.

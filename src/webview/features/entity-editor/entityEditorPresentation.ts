@@ -1,6 +1,5 @@
-import { formatShortDate } from "@common/datePresentation";
-import { parseIsoDate } from "@common/dates";
-import { DependencyType, ProjectDocument, TaskStatus } from "@common/documents";
+import { formatShortDate, parseIsoDate } from "@common/dates";
+import { DependencyType, ProjectDocument, ProjectItemType, TaskStatus } from "@common/documents";
 import { EditableEntityKind } from "@common/protocol";
 import {
   validateMilestoneConstraints,
@@ -43,7 +42,7 @@ export function dependencyTypeLabel(type: DependencyType): string {
 }
 
 /** Resolves an owned entity kind to the codicon used for it in the host treeview. */
-export function entityKindIcon(kind: "task" | "milestone" | "group"): string {
+export function entityKindIcon(kind: ProjectItemType): string {
   switch (kind) {
     case "task":
       return "checklist";
@@ -144,7 +143,7 @@ export function findEntityName(
 export function findEntityRefById(
   document: ProjectDocument,
   id: string,
-): { id: string; kind: "task" | "milestone"; name: string } | undefined {
+): { id: string; kind: Exclude<ProjectItemType, "group">; name: string } | undefined {
   const task = document.tasks.find((item) => item.id === id);
   if (task) {
     return { id: task.id, kind: "task", name: task.name };

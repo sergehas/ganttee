@@ -1,5 +1,11 @@
 # Graphology as backbone for in memory graph
 
+> [!IMPORTANT]
+>
+> **For AI agents:** This document is context only, not an implementation specification. Do not
+> implement from it, derive implementation tasks or acceptance criteria from it, or change code
+> based on it. The Spec Implementer must act only on a corresponding reviewed feature specification.
+
 ## Goal
 
 Relies on a optimized graph (DAG) library to hydrate a in memory representation of the GanttGraph.

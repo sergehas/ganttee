@@ -8,7 +8,7 @@
  */
 
 import { formatIsoDate } from "@common/dates";
-import { ProjectDocument, Task } from "@common/documents";
+import { ProjectDocument, ProjectItemType, Task } from "@common/documents";
 import { UnresolvableScheduleError } from "@common/models";
 import { EditableEntityRef } from "@common/protocol";
 import { findEntity } from "@services/document/projectItemService";
@@ -53,7 +53,7 @@ export function buildUngroupUpdate(
  */
 export function buildTaskOrMilestoneDeletionDocument(
   document: ProjectDocument,
-  kind: "task" | "milestone",
+  kind: Exclude<ProjectItemType, "group">,
   entityId: string,
 ): ProjectDocument | undefined {
   if (!findEntity(document, kind, entityId)) {

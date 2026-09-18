@@ -15,10 +15,10 @@ mirrors each spec's status badge.
 | 8   | [Chart View Functional Organization](./chart-view-functional-organization/SPEC.md)        | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
 | 9   | Graphical rendering of groups and dependencies                                            | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
 | 10  | [l10n bridge & webview codicons adoption](./l10n-bridge/SPEC.md)                          | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
-| 11  | [TreeView enhancements](./treeview-enhancements/SPEC.md)                                  | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
-| 12  | Project-level working-days / days-off configuration                                       | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
-| 13  | Project-level holidays periods                                                            | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
-| 14  | Rendering off days in graphical view — option to hide off days                            | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
-| 15  | Rendering holidays in graphical view — option to hide holidays                            | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
-| 16  | [Diagnostics and problems view](./diagnostics-problems-view/SPEC.md)                      | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
-| 17  | [Vitest test backbone for pure tests](./vitest-test-backbone/findings.md)                 | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
+| 11  | [TreeView enhancements](./treeview-enhancements/SPEC.md)                                  | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
+| 12  | [Scheduling holidays](./scheduling-holidays/INTENT.md)                                    | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
+| 13  | [Collapsible off-days and holidays][chart-calendar]                                       | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
+| 14  | [Diagnostics and problems view](./diagnostics-problems-view/INTENT.md)                    | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
+| 15  | [Vitest test backbone for pure tests](./vitest-test-backbone/INTENT.md)                   | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
+
+[chart-calendar]: ./chart-view-collapsible-calendar/INTENT.md

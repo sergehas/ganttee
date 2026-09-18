@@ -87,7 +87,6 @@ Use spaces, not tabs. Width is enforced by Prettier.
 
 ## Code Quality
 
-- Include Microsoft copyright header in all files
 - Prefer `async`/`await` over `Promise.then()`
 - For React webview code, keep components declarative and move branching business logic into hooks
   or pure helpers backed by tests.

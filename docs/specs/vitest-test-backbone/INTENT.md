@@ -1,5 +1,11 @@
 # Vitest Test Backbone Findings
 
+> [!IMPORTANT]
+>
+> **For AI agents:** This document is context only, not an implementation specification. Do not
+> implement from it, derive implementation tasks or acceptance criteria from it, or change code
+> based on it. The Spec Implementer must act only on a corresponding reviewed feature specification.
+
 ## Status
 
 Intent. This document supports a future `Draft` feature specification. The `Intent` state remains

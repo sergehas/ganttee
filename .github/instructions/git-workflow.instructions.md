@@ -21,7 +21,8 @@ Every commit message header must match:
 - **scope** — optional, lowercase; the area of the codebase touched.
 - **subject** — required, imperative mood, no trailing period. State the change directly. Drop:
   articles (a/an/the), hedging. Short synonyms (big not extensive, fix not "implement a solution
-  for"). No tool-call narration, no decorative emoji. no file list.
+  for"). No tool-call narration, no decorative emoji. no file list. subject must not end with full
+  stop.
 - **important**: overall commit message title **must be 72 characters or less**.
 - One logical change per commit. Do not bundle unrelated fixes.
 

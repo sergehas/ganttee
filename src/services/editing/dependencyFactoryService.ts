@@ -24,8 +24,3 @@ export function buildDependency(
   }
   return { id: createId(), sourceId: ownerId, targetId, type };
 }
-
-/** Creates an id for a dependency drafted in the webview. */
-export function createDependencyId(): string {
-  return `dep-${Math.random().toString(36).slice(2, 10)}`;
-}

@@ -1,4 +1,4 @@
-import { formatShortDate } from "@common/datePresentation";
+import { formatShortDate } from "@common/dates";
 import { createEmptyDocument, ProjectDocument } from "@common/documents";
 import {
   buildChartRows,

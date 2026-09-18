@@ -4,6 +4,12 @@
 
 ## 1. Purpose and context
 
+> [!IMPORTANT]
+>
+> **For AI agents:** This document is context only, not an implementation specification. Do not
+> implement from it, derive implementation tasks or acceptance criteria from it, or change code
+> based on it. The Spec Implementer must act only on a corresponding reviewed feature specification.
+
 The chart editor webview currently renders only the ECharts timeline and, when an entity is being
 edited, a side edit panel (see [src/webview/App.tsx](../../src/webview/App.tsx)). There is no
 toolbar, no menu, and no documented split of the chart area into functional layers. This document is

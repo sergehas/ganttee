@@ -5,7 +5,7 @@ description:
   decision/treatment, then (only after your confirmation) applies approved fixes and flips the spec
   status to `Reviewed`. Delegate spec-review tasks here."
 name: "Spec Reviewer"
-tools: [read, edit, agent, todo]
+tools: [read, edit, agent, todo, ask-questions, vscode/askQuestions]
 ---
 
 You are a specification reviewer for the Ganttee VS Code extension (an interactive Gantt chart

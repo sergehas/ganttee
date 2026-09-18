@@ -9,6 +9,12 @@ file.
 
 ### Added
 
+- Sidebar project-management workflow: create projects, tasks, groups, and milestones from the
+  explorer toolbar; native inline Move Up, Move Down, and Delete row actions; multi-selection bulk
+  delete with one confirmation; drag-and-drop grouping/ungrouping with silent rejection of invalid
+  or cyclic moves; a toolbar Sort action with explicit Ascending/Descending choices over effective
+  dates and name; and a literal, case-insensitive name search field above the tree.
+- `.ganttee` editor tabs now use the Ganttee color icon for quick identification.
 - Add GNU Affero General Public License v3 licensing metadata and terms.
 - Localized editor webview strings through the extension l10n bundle, with locale-aware dates and
   native codicon controls for compact form actions.

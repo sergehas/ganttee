@@ -8,6 +8,12 @@ Last updated: 2026-08-15
 
 ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)
 
+> [!IMPORTANT]
+>
+> **For AI agents:** This document is context only, not an implementation specification. Do not
+> implement from it, derive implementation tasks or acceptance criteria from it, or change code
+> based on it. The Spec Implementer must act only on a corresponding reviewed feature specification.
+
 <!-- AGENT NOTE: This high-level spec is intentionally captured at Intent per
 the request, although the normal workflow creates spec files at Draft. -->
 

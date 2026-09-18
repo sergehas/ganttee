@@ -3,6 +3,7 @@ import {
   Group,
   Milestone,
   ProjectDocument,
+  ProjectItemType,
   ProjectView,
   Task,
 } from "@common/documents";
@@ -32,7 +33,7 @@ export type HostToWebviewMessage =
   | { type: "editEntity"; entity: EditableEntityRef };
 
 /** Supported editable entity kinds. */
-export type EditableEntityKind = "task" | "milestone" | "group";
+export type EditableEntityKind = ProjectItemType;
 
 /** Lightweight identity reference used by routing messages. */
 export interface EditableEntityRef {

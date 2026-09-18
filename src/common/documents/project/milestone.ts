@@ -1,4 +1,6 @@
+import { formatIsoDate } from "@common/dates";
 import { ProjectItem } from "@common/documents/project/projectItem";
+import { generateId } from "@common/idFactory";
 
 /** The fixed duration, in working days, of every milestone. */
 export const MILESTONE_DURATION = 0;
@@ -9,12 +11,17 @@ export interface Milestone extends ProjectItem {
   date?: string;
 }
 
-/** Returns the effective start date of a milestone. */
+/** Creates a new milestone template with today's date. */
+export function createDefaultMilestone(name: string): Milestone {
+  return { id: generateId(), name, date: formatIsoDate(new Date()) };
+}
+
+/** Returns the start date of a milestone. */
 export function milestoneStart(milestone: Milestone): string | undefined {
   return milestone.date;
 }
 
-/** Returns the effective end date of a milestone. */
+/** Returns the  end date of a milestone. */
 export function milestoneEnd(milestone: Milestone): string | undefined {
   return milestone.date;
 }
