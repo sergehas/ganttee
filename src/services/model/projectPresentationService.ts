@@ -1,6 +1,6 @@
 import { formatIsoTimestamp } from "@common/dates";
 import { ProjectSnapshot } from "@common/models";
-import { EffectiveSchedulePresentation, ProjectPresentation } from "@common/presentation";
+import { EffectiveSchedulePresentation, ProjectPresentation } from "@common/presentation/project";
 import { projectCriticalPath } from "@services/dependency-graph/criticalPathService";
 import { toDocument } from "@services/model/projectModelService";
 

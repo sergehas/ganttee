@@ -14,7 +14,7 @@ import {
   ProjectSnapshot,
   SelfLoopDependencyError,
 } from "@common/models";
-import { ProjectPresentation } from "@common/presentation";
+import { ProjectPresentation } from "@common/presentation/project";
 import {
   EditableEntityKind,
   EditableEntityRef,

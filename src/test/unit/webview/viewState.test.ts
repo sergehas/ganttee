@@ -1,5 +1,5 @@
 import { createEmptyDocument } from "@common/documents";
-import { ProjectPresentation } from "@common/presentation";
+import { ProjectPresentation } from "@common/presentation/project";
 import { createGanttViewState } from "@webview/viewState";
 import * as assert from "assert";
 

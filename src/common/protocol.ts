@@ -6,7 +6,7 @@ import {
   ProjectView,
   Task,
 } from "@common/documents";
-import { ProjectPresentation } from "@common/presentation";
+import { ProjectPresentation } from "@common/presentation/project";
 
 /**
  * Message protocol between the extension host and the editor webview.

@@ -1,4 +1,4 @@
-import { ProjectPresentation } from "@common/presentation";
+import { ProjectPresentation } from "@common/presentation/project";
 
 /** Webview state associating a host document revision with its host-computed schedule. */
 export interface GanttViewState {
