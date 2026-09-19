@@ -19,7 +19,7 @@ function schedulingDocument(): ProjectDocument {
 /** Schedules a document through the public hydration and scheduling boundary. */
 function scheduleDocument(document: ProjectDocument) {
   const model = hydrateDocument(document);
-  return schedule(model, model.graph);
+  return schedule(model);
 }
 
 /** Finds a scheduled task or fails the current test. */
@@ -392,7 +392,7 @@ suite("schedulingService", () => {
       },
     ];
     const model = hydrateDocument(document);
-    const scheduled = schedule(model, model.graph);
+    const scheduled = schedule(model);
 
     const groups = scheduled.groups;
 

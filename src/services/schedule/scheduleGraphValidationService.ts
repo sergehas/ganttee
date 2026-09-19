@@ -7,12 +7,12 @@
  */
 
 import { Dependency, ProjectDocument } from "@common/documents";
-import { ProjectDependencyGraph } from "@common/models";
 import {
   anchoredEntityIds,
   schedulableEntityIds,
   unanchoredComponents,
 } from "@services/dependency-graph/componentAnchoringService";
+import { createSchedulableGraph } from "@services/dependency-graph/dependencyGraphService";
 import {
   ConstraintVerdict,
   validateMilestoneConstraints,
@@ -65,7 +65,21 @@ export type ScheduleDiagnostic =
  * @param projectDoc The document to evaluate.
  * @returns Every diagnostic found, in entity then dependency then component order.
  */
-export function evaluateScheduleGraph(projectDoc: ProjectDocument): readonly ScheduleDiagnostic[] {
+export function evaluateScheduleDiagnostics(
+  projectDoc: ProjectDocument,
+): readonly ScheduleDiagnostic[] {
+  return [...evaluateScheduleConstraints(projectDoc), ...evaluateScheduleAnchoring(projectDoc)];
+}
+
+/**
+ * Evaluates determinacy and dependency endpoint rules without component anchoring.
+ *
+ * @param projectDoc The document to evaluate.
+ * @returns Constraint and endpoint diagnostics in entity then dependency order.
+ */
+export function evaluateScheduleConstraints(
+  projectDoc: ProjectDocument,
+): readonly ScheduleDiagnostic[] {
   const entityIds = new Set([
     ...projectDoc.tasks.map((task) => task.id),
     ...projectDoc.milestones.map((milestone) => milestone.id),
@@ -89,9 +103,21 @@ export function evaluateScheduleGraph(projectDoc: ProjectDocument): readonly Sch
     .map((dependency) => diagnoseEndpoints(dependency, entityIds, groupIds))
     .filter((diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined);
 
-  const graph = new ProjectDependencyGraph([...entityIds], projectDoc.dependencies);
+  return [...determinacy, ...endpoints];
+}
+
+/**
+ * Evaluates whether every schedulable dependency component has an absolute date anchor.
+ *
+ * @param projectDoc The document to evaluate.
+ * @returns One diagnostic per unanchored component.
+ */
+export function evaluateScheduleAnchoring(
+  projectDoc: ProjectDocument,
+): readonly ScheduleDiagnostic[] {
+  const graph = createSchedulableGraph(projectDoc);
   const schedulable = schedulableEntityIds(projectDoc);
-  const anchoring: ScheduleDiagnostic[] = unanchoredComponents(
+  return unanchoredComponents(
     graph.connectedComponents(),
     anchoredEntityIds(projectDoc),
     schedulable,
@@ -100,8 +126,6 @@ export function evaluateScheduleGraph(projectDoc: ProjectDocument): readonly Sch
     severity: "blocking",
     entityIds: component.filter((id) => schedulable.has(id)),
   }));
-
-  return [...determinacy, ...endpoints, ...anchoring];
 }
 
 /** Returns the diagnostics that must stop the document from being persisted. */

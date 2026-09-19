@@ -110,7 +110,7 @@ function nodeIdsOf(projectDoc: ProjectDocument): ReadonlySet<string> {
 }
 
 /** Builds the normalized Graphology graph over tasks and milestones only. */
-function createSchedulableGraph(projectDoc: ProjectDocument): ProjectDependencyGraph {
+export function createSchedulableGraph(projectDoc: ProjectDocument): ProjectDependencyGraph {
   const nodeIds = [
     ...projectDoc.tasks.map((task) => task.id),
     ...projectDoc.milestones.map((milestone) => milestone.id),

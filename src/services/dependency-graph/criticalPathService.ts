@@ -51,7 +51,7 @@ export function projectCriticalPath(
   const nodeIds = paths.get(terminal[0]) ?? [];
   const dependencyIds = nodeIds.slice(1).map((nodeId, index) => {
     const edge = graph.edge(nodeIds[index], nodeId);
-    return edge === undefined ? "" : graph.getEdgeAttribute(edge, "dependency").id;
+    return edge === undefined ? "" : graph.getEdgeAttribute(edge, "id");
   });
   return { nodeIds, dependencyIds };
 }

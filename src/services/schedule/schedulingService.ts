@@ -9,7 +9,6 @@ import { Dependency } from "@common/documents";
 import {
   Group,
   Milestone,
-  ProjectDependencyGraph,
   ProjectModel,
   ProjectSchedule,
   Schedulable,
@@ -50,11 +49,11 @@ interface DateSpan {
  * Computes every task and milestone in one topological graph pass.
  *
  * @param model The hydrated authoring model.
- * @param graph The normalized Graphology dependency graph from the model.
  * @returns A complete immutable schedule.
  * @throws {SchedulingError} When any entity or calendar setting is invalid.
  */
-export function schedule(model: ProjectModel, graph: ProjectDependencyGraph): ProjectSchedule {
+export function schedule(model: ProjectModel): ProjectSchedule {
+  const graph = model.graph;
   const settings = workingTimeSettings(model);
   const entities = new Map<string, Task | Milestone>([
     ...model.tasks.map((task) => [task.id, task] as const),

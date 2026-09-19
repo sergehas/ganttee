@@ -12,7 +12,7 @@ suite("scheduledDocumentService", () => {
     const document = createEmptyDocument();
     document.tasks = [{ id: "task", name: "Task", start: "2026-09-08", duration: 1 }];
     const model = hydrateDocument(document);
-    const scheduledModel = schedule(model, model.graph);
+    const scheduledModel = schedule(model);
 
     assert.deepStrictEqual(toScheduledDocument(scheduledModel), {
       tasks: [
@@ -42,7 +42,7 @@ suite("scheduledDocumentService", () => {
       },
     ];
     const model = hydrateDocument(document);
-    const scheduledModel = schedule(model, model.graph);
+    const scheduledModel = schedule(model);
 
     assert.deepStrictEqual(toScheduledDocument(scheduledModel), {
       tasks: [

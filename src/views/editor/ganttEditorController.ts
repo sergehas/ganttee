@@ -43,7 +43,8 @@ import {
 } from "@services/schedule/scheduleGraphSanitizationService";
 import {
   blockingDiagnostics,
-  evaluateScheduleGraph,
+  evaluateScheduleConstraints,
+  evaluateScheduleDiagnostics,
   ScheduleDiagnostic,
 } from "@services/schedule/scheduleGraphValidationService";
 import { schedule } from "@services/schedule/schedulingService";
@@ -425,12 +426,12 @@ export class GanttEditorController {
       }
       const document = sanitization.document;
       const hydratedModel = hydrateDocument(document);
-      const diagnostics = evaluateScheduleGraph(document);
+      const diagnostics = evaluateScheduleConstraints(document);
       let scheduledModel: ProjectSchedule | undefined;
       let schedulingError: SchedulingError | undefined;
       if (blockingDiagnostics(diagnostics).length === 0) {
         try {
-          scheduledModel = schedule(hydratedModel, hydratedModel.graph);
+          scheduledModel = schedule(hydratedModel);
         } catch (error) {
           if (!(error instanceof SchedulingError)) {
             throw error;
@@ -518,7 +519,7 @@ export class GanttEditorController {
     }
     try {
       const parsed = parseDocument(serializeDocument(next));
-      const blocking = blockingDiagnostics(evaluateScheduleGraph(parsed));
+      const blocking = blockingDiagnostics(evaluateScheduleDiagnostics(parsed));
       if (blocking.length > 0) {
         void vscode.window.showErrorMessage(
           vscode.l10n.t("Cannot apply update: {0}", summarizeBlockingDiagnostics(blocking)),

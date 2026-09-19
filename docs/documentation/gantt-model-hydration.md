@@ -16,20 +16,23 @@ config:
 flowchart LR
     F[".ganttee\nraw file"]
     P["parseDocument\nread validate"]
+    Z["sanitizeScheduleGraph\nrepair invalid scheduling structures"]
     H["hydrateDocument\ndate hydrate"]
     A["assertAcyclicGraph\ngraph validate"]
-    E["evaluateScheduleGraph\ndiag check"]
+    E["evaluateScheduleConstraints\ndiag check"]
     S["schedule\ncompute dates"]
     U["serializeDocument\nwrite json"]
     HOST["GanttEditorController\nhost document coordinator"]
     WV["Webview\nApp.tsx"]
     SB["Sidebar\nTreeview"]
 
-    F -->|ProjectDocument| P
-    P -->|ProjectDocument| H
-    H -->|ProjectModel| A
-    A -->|ProjectDependencyGraph| E
+    F --> P
+    P -->|ProjectDocument| Z
+    Z -->|sanitized ProjectDocument| H
+    Z -->|sanitized ProjectDocument| E
+    H --> A
     H -->|ProjectModel| S
+    E -->|no blocking diagnostics| S
     S -->|ProjectSchedule| WV
     P -->|ProjectDocument| U
     U -->|ProjectDocument| HOST
@@ -81,6 +84,7 @@ from it on each reparse.
 - Checks for cycles and invalid graph structure.
 - Supplies the algorithms used during validation and scheduling.
 - Is host-owned and reusable for model-level logic, schedule evaluation, and graph sanitization.
+- Stores dependency ids and types as edge attributes; endpoints are represented by graph topology.
 
 This is not a separate document format. It is the graph algorithm substrate beneath the hydrated
 model.
@@ -134,7 +138,7 @@ sequenceDiagram
     participant Parse as parseDocument
     participant Hydrate as hydrateDocument
     participant Sanitize as sanitizeScheduleGraph
-    participant Eval as evaluateScheduleGraph
+    participant Eval as evaluateScheduleConstraints
     participant Scheduler as schedule
     participant App as App.tsx
 
@@ -143,23 +147,30 @@ sequenceDiagram
     Parse-->>Ctrl: ProjectDocument
     Ctrl->>Sanitize: sanitizeScheduleGraph(document)
     Sanitize-->>Ctrl: sanitized document
-    Ctrl->>Hydrate: hydrateDocument(document)
-    Hydrate-->>Ctrl: ProjectModel
-    Ctrl->>Eval: evaluateScheduleGraph(document)
-    Eval-->>Ctrl: diagnostics
-    alt no blocking diagnostics
-        Ctrl->>Scheduler: schedule(model, model.graph)
-        Scheduler-->>Ctrl: ProjectSchedule
-    else scheduling blocked
-        Ctrl-->>Ctrl: keep schedule undefined
+    alt structures removed
+        Ctrl->>VSC: apply sanitized document
+        VSC-->>Ctrl: reparse changed text
+    else document unchanged
+        Ctrl->>Hydrate: hydrateDocument(document)
+        Hydrate-->>Ctrl: ProjectModel with graph
+        Ctrl->>Eval: evaluateScheduleConstraints(document)
+        Eval-->>Ctrl: diagnostics
+        alt no blocking diagnostics
+            Ctrl->>Scheduler: schedule(model)
+            Scheduler-->>Ctrl: ProjectSchedule
+        else scheduling blocked
+            Ctrl-->>Ctrl: keep schedule undefined
+        end
     end
     Ctrl-->>App: postMessage({ type: "init", document, revision })
     App->>App: createGanttViewState(document)
     App->>App: render timeline + chart
 ```
 
-The host recomputes schedule state on every successful reparse and sends the latest plain document
-to the webview with its `revision` so the UI can render the most recent state.
+Sanitization owns component-anchoring checks on reparse. Once sanitization reports no removals, the
+controller evaluates only determinacy and endpoint constraints, avoiding a second component scan.
+The host then recomputes schedule state and sends the latest plain document to the webview with its
+`revision`.
 
 ---
 
@@ -185,7 +196,8 @@ sequenceDiagram
     else dependency mutation
         Host->>Host: addDependency / removeDependency
     end
-    Host->>Host: applyModel(nextDocument)
+    Host->>Host: applyDocument(nextDocument)
+    Host->>Host: evaluateScheduleDiagnostics(nextDocument)
     Host->>Write: WorkspaceEdit.replace(document range, serializeDocument(nextDocument))
     Write->>VSC: applyEdit()
     VSC-->>Host: onDidChangeTextDocument
@@ -222,7 +234,8 @@ sequenceDiagram
     else group assignment
         Tree->>Ctrl: assignEntitiesToGroup
     end
-    Ctrl->>Ctrl: applyModel(nextDocument)
+    Ctrl->>Ctrl: applyDocument(nextDocument)
+    Ctrl->>Ctrl: evaluateScheduleDiagnostics(nextDocument)
     Ctrl->>Write: WorkspaceEdit.replace(document range, serializeDocument(nextDocument))
     Write->>VSC: applyEdit()
     VSC-->>Ctrl: onDidChangeTextDocument
@@ -234,7 +247,7 @@ sequenceDiagram
 ```
 
 The sidebar and the chart share the same host edit boundary. Both paths converge on
-`GanttEditorController.applyModel`, which means there is still one persisted document and one
+`GanttEditorController.applyDocument`, which means there is still one persisted document and one
 reparse cycle, no matter which UI surface initiated the mutation.
 
 ---
@@ -290,6 +303,10 @@ classDiagram
     ProjectModel *-- ProjectDependencyGraph
 ```
 
+`ProjectDependencyGraph` stores only dependency id and type on each edge. Source and target ids are
+derived from the edge topology. `schedule(model)` consumes `model.graph`; callers do not pass a
+second graph that could disagree with the model.
+
 ---
 
 ## Why the document and model are separate
@@ -316,7 +333,7 @@ src/services/document/          ← parse, migrate, and validate the raw .gantte
 src/services/editing/           ← authoring edits and mutation helpers for project items.
 src/services/groups/            ← group-specific delete/reparent logic and behaviors.
 src/services/model/             ← hydrate/serialize between plain document and real model objects.
-src/services/schedule/          ← scheduling evaluation, graph sanitization, and schedule derivation.
+src/services/schedule/          ← diagnostics, graph sanitization, and schedule derivation.
 src/services/sidebar/           ← tree actions such as move, sort, and group assignment.
 
 src/views/editor/               ← GanttEditorController and VS Code integration.
@@ -328,6 +345,10 @@ src/webview/                    ← React chart/editor UI.
 The plain document crosses host/webview boundaries. The hydrated model remains host-only and should
 never be posted across the `postMessage` boundary. The webview receives `ProjectDocument` plus the
 current `revision`, and it sends back authoring updates through the host protocol.
+
+`evaluateScheduleDiagnostics` combines constraint and component-anchoring diagnostics for proposed
+edits before persistence. Reparse uses `evaluateScheduleConstraints` because `sanitizeScheduleGraph`
+has already checked and removed unanchored components.
 
 ## Failure behavior
 
