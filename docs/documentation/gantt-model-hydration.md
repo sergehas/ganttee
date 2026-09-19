@@ -14,36 +14,14 @@ config:
   layout: elk
 ---
 flowchart LR
-    F[".ganttee\nraw file"]
-    P["parseDocument\nread validate"]
-    Z["sanitizeScheduleGraph\nrepair invalid scheduling structures"]
-    H["hydrateDocument\ndate hydrate"]
-    A["assertAcyclicGraph\ngraph validate"]
-    E["evaluateScheduleConstraints\ndiag check"]
-    S["schedule\ncompute dates"]
-    SNAP["ProjectSnapshot\nmodel + schedule + diagnostics"]
-    PRES["ProjectPresentation\nUI-ready transport"]
-    U["serializeDocument\nwrite json"]
-    HOST["GanttEditorController\nhost document coordinator"]
-    WV["Webview\nApp.tsx"]
-    SB["Sidebar\nTreeview"]
-
-    F --> P
-    P -->|ProjectDocument| Z
-    Z -->|sanitized ProjectDocument| H
-    Z -->|sanitized ProjectDocument| E
-    H --> A
-    H -->|ProjectModel| S
-    E -->|no blocking diagnostics| S
-    H --> SNAP
-    E --> SNAP
-    S -->|ProjectSchedule| SNAP
-    SNAP --> PRES
-    PRES --> WV
-    SNAP --> SB
-    P -->|ProjectDocument| U
-    U -->|ProjectDocument| HOST
-    HOST -->|ProjectPresentation\npostMessage| WV
+    FILE[".ganttee file"] -->|parseDocument| DOCUMENT["ProjectDocument"]
+    DOCUMENT -->|hydrateDocument| MODEL["ProjectModel"]
+    MODEL -->|schedule| SCHEDULE["ProjectSchedule"]
+    MODEL -->|createProjectSnapshot| SNAPSHOT["ProjectSnapshot"]
+    SCHEDULE -->|createProjectSnapshot| SNAPSHOT
+    SNAPSHOT -->|toProjectPresentation| PRESENTATION["ProjectPresentation"]
+    PRESENTATION -->|postMessage| WEBVIEW["Webview"]
+    SNAPSHOT -->|snapshot| SIDEBAR["Sidebar"]
 ```
 
 `ProjectDocument` is the persisted format and source of truth. `ProjectModel` is its hydrated
@@ -314,8 +292,8 @@ classDiagram
     ProjectDocument ..> ProjectModel : hydrateDocument()
     ProjectModel ..> ProjectDocument : toDocument()
     ProjectModel ..> ProjectSchedule : schedule()
-    ProjectModel --> ProjectSnapshot
-    ProjectSchedule --> ProjectSnapshot
+    ProjectSnapshot *-- ProjectModel
+    ProjectSnapshot *-- ProjectSchedule
     ProjectSnapshot ..> ProjectPresentation : toProjectPresentation()
     ProjectModel *-- ProjectDependencyGraph
 ```
