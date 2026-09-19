@@ -134,7 +134,7 @@ export class GanttEditorController {
     return this._diagnostics;
   }
 
-  /** Reveals the editor panel and posts the initial model to the webview. */
+  /** Reveals the editor panel and posts the initial document to the webview. */
   sendInit(): void {
     this.post({
       type: "init",
@@ -163,17 +163,17 @@ export class GanttEditorController {
 
   /** Adds or replaces a task. Used by host-side creation flows. */
   async upsertTask(task: Task): Promise<void> {
-    await this.applyModel(upsertEntity(this._document, "task", task));
+    await this.applyDocument(upsertEntity(this._document, "task", task));
   }
 
   /** Adds or replaces a milestone through the document edit boundary. */
   async upsertMilestone(milestone: Milestone): Promise<void> {
-    await this.applyModel(upsertEntity(this._document, "milestone", milestone));
+    await this.applyDocument(upsertEntity(this._document, "milestone", milestone));
   }
 
   /** Adds or replaces a group through the document edit boundary. */
   async upsertGroup(group: Group): Promise<void> {
-    await this.applyModel(upsertEntity(this._document, "group", group));
+    await this.applyDocument(upsertEntity(this._document, "group", group));
   }
 
   /** Assigns selected entities to a group or project root. */
@@ -181,12 +181,12 @@ export class GanttEditorController {
     entities: readonly EditableEntityRef[],
     targetGroupId: string | undefined,
   ): Promise<void> {
-    await this.applyModel(assignEntitiesToGroup(this._document, entities, targetGroupId));
+    await this.applyDocument(assignEntitiesToGroup(this._document, entities, targetGroupId));
   }
 
   /** Moves one entity within its current owner scope. */
   async moveEntity(entity: EditableEntityRef, direction: MoveDirection): Promise<void> {
-    await this.applyModel(moveSidebarEntity(this._document, entity, direction));
+    await this.applyDocument(moveSidebarEntity(this._document, entity, direction));
   }
 
   /** Sorts authored sidebar order using current effective schedule dates. */
@@ -197,7 +197,7 @@ export class GanttEditorController {
       );
       return false;
     }
-    await this.applyModel(sortProjectItems(this._document, direction, this.effectiveDateMap()));
+    await this.applyDocument(sortProjectItems(this._document, direction, this.effectiveDateMap()));
     return true;
   }
 
@@ -227,7 +227,7 @@ export class GanttEditorController {
       return false;
     }
     const dependencies = replaceById(this._document.dependencies, dependency);
-    await this.applyModel({ ...this._document, dependencies });
+    await this.applyDocument({ ...this._document, dependencies });
     return true;
   }
 
@@ -236,7 +236,7 @@ export class GanttEditorController {
    */
   async removeDependency(dependencyId: string): Promise<void> {
     const dependencies = this._document.dependencies.filter((dep) => dep.id !== dependencyId);
-    await this.applyModel({ ...this._document, dependencies });
+    await this.applyDocument({ ...this._document, dependencies });
   }
 
   /** Disposes event subscriptions owned by this controller. */
@@ -293,7 +293,7 @@ export class GanttEditorController {
       this.showUnknownIdWarning(kind, entity.id);
       return;
     }
-    await this.applyModel(next);
+    await this.applyDocument(next);
   }
 
   /** Applies an authoring document from the webview unless its base is stale. */
@@ -309,7 +309,7 @@ export class GanttEditorController {
       });
       return;
     }
-    await this.applyModel(updatedDocument);
+    await this.applyDocument(updatedDocument);
   }
 
   /** Applies a persisted view proposal through the same revision-safe edit path. */
@@ -322,7 +322,7 @@ export class GanttEditorController {
       });
       return;
     }
-    await this.applyModel({ ...this._document, view });
+    await this.applyDocument({ ...this._document, view });
   }
 
   /**
@@ -333,12 +333,12 @@ export class GanttEditorController {
     kind: Exclude<ProjectItemType, "group">,
     entityId: string,
   ): Promise<void> {
-    const nextModel = buildTaskOrMilestoneDeletionDocument(this._document, kind, entityId);
-    if (!nextModel) {
+    const nextDocument = buildTaskOrMilestoneDeletionDocument(this._document, kind, entityId);
+    if (!nextDocument) {
       this.showUnknownIdWarning(kind, entityId);
       return;
     }
-    await this.applyModel(nextModel);
+    await this.applyDocument(nextDocument);
   }
 
   /**
@@ -365,7 +365,7 @@ export class GanttEditorController {
 
     const next = buildGroupDeletionDocument(this._document, groupId, resolvedStrategy);
     if (next) {
-      await this.applyModel(next);
+      await this.applyDocument(next);
     }
   }
 
@@ -512,7 +512,7 @@ export class GanttEditorController {
   /**
    * Validates and applies a full-document replacement through WorkspaceEdit.
    */
-  private async applyModel(next: ProjectDocument): Promise<void> {
+  private async applyDocument(next: ProjectDocument): Promise<void> {
     if (this._isDisposed) {
       return;
     }
@@ -554,7 +554,7 @@ export class GanttEditorController {
     void this.webviewPanel.webview.postMessage(message);
   }
 
-  /** Sends the localized catalog and initial model once for this webview session. */
+  /** Sends the localized catalog and initial document once for this webview session. */
   private sendL10nCatalogAndInit(): void {
     if (this._hasInitializedWebview) {
       return;

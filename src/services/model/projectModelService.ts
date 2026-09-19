@@ -22,18 +22,18 @@ import { assertAcyclicGraph } from "@services/dependency-graph/dependencyGraphSe
  * ISO date string into a `Date` and asserting that the dependency set forms a
  * directed acyclic graph.
  *
- * @param document The plain document to hydrate.
+ * @param projectDoc The plain document to hydrate.
  * @returns The hydrated in-memory model.
  * @throws {SelfLoopDependencyError} When a dependency links an entity to itself.
  * @throws {ParallelEdgeDependencyError} When two dependencies share the same
  * source/target pair.
  * @throws {CyclicDependencyError} When the dependencies close a directed cycle.
  */
-export function hydrateDocument(document: ProjectDocument): ProjectModel {
-  const tasks = document.tasks.map(toTask);
-  const milestones = document.milestones.map(toMilestone);
-  const groups = document.groups.map(toGroup);
-  const dependencies = document.dependencies.map((dependency) => ({
+export function hydrateDocument(projectDoc: ProjectDocument): ProjectModel {
+  const tasks = projectDoc.tasks.map(toTask);
+  const milestones = projectDoc.milestones.map(toMilestone);
+  const groups = projectDoc.groups.map(toGroup);
+  const dependencies = projectDoc.dependencies.map((dependency) => ({
     ...dependency,
   }));
   return new ProjectModel(
@@ -41,10 +41,10 @@ export function hydrateDocument(document: ProjectDocument): ProjectModel {
     milestones,
     groups,
     dependencies,
-    document.version,
-    assertAcyclicGraph(document),
-    document.settings,
-    document.view,
+    projectDoc.version,
+    assertAcyclicGraph(projectDoc),
+    projectDoc.settings,
+    projectDoc.view,
   );
 }
 
@@ -57,7 +57,7 @@ export function hydrateDocument(document: ProjectDocument): ProjectModel {
  * @returns The plain, serializable document.
  */
 export function toDocument(model: ProjectModel): ProjectDocument {
-  const document: ProjectDocument = {
+  const projectDoc: ProjectDocument = {
     version: model.version,
     tasks: model.tasks.map(fromTask),
     groups: model.groups.map(fromGroup),
@@ -66,7 +66,7 @@ export function toDocument(model: ProjectModel): ProjectDocument {
     settings: model.settings,
     view: model.view,
   };
-  return document;
+  return projectDoc;
 }
 
 /** Maps a plain task record to a {@link Task}. */

@@ -38,13 +38,13 @@ export function toScheduledDocument(scheduledModel: ProjectSchedule): ProjectSch
 /** Rehydrates a serialized schedule against an already hydrated document model. */
 export function fromScheduledDocument(
   model: ProjectModel,
-  document: ProjectScheduleDocument,
+  scheduleDoc: ProjectScheduleDocument,
 ): ProjectSchedule {
   // Index model entities once to avoid a linear scan for every schedule entry.
   const tasksById = new Map(model.tasks.map((task) => [task.id, task]));
   const milestonesById = new Map(model.milestones.map((milestone) => [milestone.id, milestone]));
   const groupsById = new Map(model.groups.map((group) => [group.id, group]));
-  const tasks = document.tasks.map((scheduledTask) => {
+  const tasks = scheduleDoc.tasks.map((scheduledTask) => {
     const task = tasksById.get(scheduledTask.id);
     if (task === undefined) {
       throw new SchedulingError(`Unknown scheduled task "${scheduledTask.id}".`);
@@ -56,14 +56,14 @@ export function fromScheduledDocument(
       scheduledTask.effectiveDuration,
     );
   });
-  const milestones = document.milestones.map((scheduledMilestone) => {
+  const milestones = scheduleDoc.milestones.map((scheduledMilestone) => {
     const milestone = milestonesById.get(scheduledMilestone.id);
     if (milestone === undefined) {
       throw new SchedulingError(`Unknown scheduled milestone "${scheduledMilestone.id}".`);
     }
     return new ScheduledMilestone(milestone, parseIsoTimestamp(scheduledMilestone.effectiveStart));
   });
-  const groups: ScheduledGroup[] = document.groups.map((scheduledGroup) => {
+  const groups: ScheduledGroup[] = scheduleDoc.groups.map((scheduledGroup) => {
     const group = groupsById.get(scheduledGroup.id);
     if (group === undefined) {
       throw new SchedulingError(`Unknown scheduled group "${scheduledGroup.id}".`);

@@ -43,7 +43,7 @@ export function validateDocumentShape(raw: unknown): ProjectDocument {
     throw new GanttParseError("Document root must be an object.");
   }
 
-  const document: ProjectDocument = {
+  const projectDoc: ProjectDocument = {
     version: typeof raw.version === "number" ? raw.version : CURRENT_DOCUMENT_VERSION,
     tasks: asArray(raw.tasks, "tasks").map(validateTask),
     groups: asArray(raw.groups, "groups").map(validateGroup),
@@ -52,7 +52,7 @@ export function validateDocumentShape(raw: unknown): ProjectDocument {
     settings: validateSettings(raw.settings),
     view: validateView(raw.view),
   };
-  return document;
+  return projectDoc;
 }
 
 /**

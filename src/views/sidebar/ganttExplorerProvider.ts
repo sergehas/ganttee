@@ -69,31 +69,31 @@ export class GanttExplorerProvider
   }
 
   getChildren(element?: GanttNode): GanttNode[] {
-    const model = this.store.active?.getProjectDocument();
-    if (!model) {
+    const projectDoc = this.store.active?.getProjectDocument();
+    if (!projectDoc) {
       return [];
     }
 
     if (!element) {
-      return this.filterNodes(this.childNodes(model), model);
+      return this.filterNodes(this.childNodes(projectDoc), projectDoc);
     }
 
     if (element.kind === "group") {
-      return this.filterNodes(this.childNodes(model, element.group.id), model);
+      return this.filterNodes(this.childNodes(projectDoc, element.group.id), projectDoc);
     }
 
     return [];
   }
 
   /** Collects the direct children of a group, or the root-level items when no group is provided. */
-  private childNodes(model: ProjectDocument, groupId?: string): GanttNode[] {
-    const childGroups = model.groups.filter((group) =>
+  private childNodes(doc: ProjectDocument, groupId?: string): GanttNode[] {
+    const childGroups = doc.groups.filter((group) =>
       groupId === undefined ? !group.groupId : group.groupId === groupId,
     );
-    const tasks = model.tasks.filter((task) =>
+    const tasks = doc.tasks.filter((task) =>
       groupId === undefined ? !task.groupId : task.groupId === groupId,
     );
-    const milestones = model.milestones.filter((milestone) =>
+    const milestones = doc.milestones.filter((milestone) =>
       groupId === undefined ? !milestone.groupId : milestone.groupId === groupId,
     );
 
@@ -240,35 +240,35 @@ export class GanttExplorerProvider
   }
 
   /** Filters nodes while retaining groups needed to reach matching descendants. */
-  private filterNodes(nodes: readonly GanttNode[], model: ProjectDocument): GanttNode[] {
+  private filterNodes(nodes: readonly GanttNode[], doc: ProjectDocument): GanttNode[] {
     if (this.searchTerm.length === 0) {
       return [...nodes];
     }
-    const matchingIds = filterProjectItemIds(model, this.searchTerm);
+    const matchingIds = filterProjectItemIds(doc, this.searchTerm);
     return nodes.filter((node) => {
       const entityId = entityRefOf(node)?.id;
       if (entityId !== undefined && matchingIds.has(entityId)) {
         return true;
       }
-      return node.kind === "group" && hasMatchingDescendant(model, node.group.id, matchingIds);
+      return node.kind === "group" && hasMatchingDescendant(doc, node.group.id, matchingIds);
     });
   }
 }
 
 function hasMatchingDescendant(
-  model: ProjectDocument,
+  doc: ProjectDocument,
   groupId: string,
   matchingIds: ReadonlySet<string>,
 ): boolean {
   return (
-    model.tasks.some((task) => task.groupId === groupId && matchingIds.has(task.id)) ||
-    model.milestones.some(
+    doc.tasks.some((task) => task.groupId === groupId && matchingIds.has(task.id)) ||
+    doc.milestones.some(
       (milestone) => milestone.groupId === groupId && matchingIds.has(milestone.id),
     ) ||
-    model.groups.some(
+    doc.groups.some(
       (group) =>
         group.groupId === groupId &&
-        (matchingIds.has(group.id) || hasMatchingDescendant(model, group.id, matchingIds)),
+        (matchingIds.has(group.id) || hasMatchingDescendant(doc, group.id, matchingIds)),
     )
   );
 }

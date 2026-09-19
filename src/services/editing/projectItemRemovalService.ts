@@ -21,17 +21,17 @@ import { hydrateDocument } from "@services/model/projectModelService";
 /**
  * Detaches an entity from its group.
  *
- * @param document The document holding the entity.
+ * @param projectDoc The document holding the entity.
  * @param ref The entity to detach.
  * @param options Behavior flags for the save.
  * @returns The update payload, or `undefined` when the entity is absent.
  */
 export function buildUngroupUpdate(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   ref: EditableEntityRef,
   options?: SaveEntityOptions,
 ): EditableEntityUpdate | undefined {
-  const entity = findEntity(document, ref.kind, ref.id);
+  const entity = findEntity(projectDoc, ref.kind, ref.id);
   if (!entity) {
     return undefined;
   }
@@ -45,22 +45,22 @@ export function buildUngroupUpdate(
 /**
  * Removes a task or milestone along with every dependency that touched it.
  *
- * @param document The current document.
+ * @param projectDoc The current document.
  * @param kind The kind of schedulable entity to delete.
  * @param entityId The id of the task or milestone to delete.
  * @returns The document after deletion, or `undefined` when the entity is
  * absent or a survivor's schedule cannot be resolved.
  */
 export function buildTaskOrMilestoneDeletionDocument(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   kind: Exclude<ProjectItemType, "group">,
   entityId: string,
 ): ProjectDocument | undefined {
-  if (!findEntity(document, kind, entityId)) {
+  if (!findEntity(projectDoc, kind, entityId)) {
     return undefined;
   }
 
-  const model = hydrateDocument(document);
+  const model = hydrateDocument(projectDoc);
   const deleted =
     kind === "task"
       ? model.tasks.find((task) => task.id === entityId)
@@ -69,20 +69,20 @@ export function buildTaskOrMilestoneDeletionDocument(
     return undefined;
   }
 
-  const survivorDates = materializeSurvivorDates(document, model, deleted, entityId);
+  const survivorDates = materializeSurvivorDates(projectDoc, model, deleted, entityId);
   if (!survivorDates) {
     return undefined;
   }
 
   return {
-    ...document,
-    tasks: document.tasks
+    ...projectDoc,
+    tasks: projectDoc.tasks
       .filter((task) => kind !== "task" || task.id !== entityId)
       .map((task) => ({ ...task, ...survivorDates.get(task.id) })),
-    milestones: document.milestones.filter(
+    milestones: projectDoc.milestones.filter(
       (milestone) => kind !== "milestone" || milestone.id !== entityId,
     ),
-    dependencies: document.dependencies.filter(
+    dependencies: projectDoc.dependencies.filter(
       (dependency) => dependency.sourceId !== entityId && dependency.targetId !== entityId,
     ),
   };
@@ -96,14 +96,14 @@ type SurvivorDates = ReadonlyMap<string, Partial<Pick<Task, "start" | "end">>>;
  * Returns `undefined` when the deleted entity's own schedule is unresolvable.
  */
 function materializeSurvivorDates(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   model: ReturnType<typeof hydrateDocument>,
   deleted: { effectiveStart: () => Date; effectiveEnd: () => Date },
   entityId: string,
 ): SurvivorDates | undefined {
   const dates = new Map<string, Partial<Pick<Task, "start" | "end">>>();
 
-  for (const dependency of document.dependencies) {
+  for (const dependency of projectDoc.dependencies) {
     if (
       dependency.targetId !== entityId ||
       !model.tasks.some((task) => task.id === dependency.sourceId)

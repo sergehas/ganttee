@@ -19,14 +19,14 @@ import {
  * Asserts that every edge is well formed: no entity depends on itself and no
  * ordered pair is connected twice. Missing endpoints and cycles are tolerated.
  *
- * @param document The document whose dependency edges are checked.
+ * @param projectDoc The document whose dependency edges are checked.
  * @returns The dependency graph built from the document.
  * @throws {SelfLoopDependencyError} When a dependency links an entity to itself.
  * @throws {ParallelEdgeDependencyError} When an ordered pair has two edges.
  */
-export function assertGraphIntegrity(document: ProjectDocument): ProjectDependencyGraph {
+export function assertGraphIntegrity(projectDoc: ProjectDocument): ProjectDependencyGraph {
   const seenPairs = new Set<string>();
-  for (const dependency of document.dependencies) {
+  for (const dependency of projectDoc.dependencies) {
     if (dependency.sourceId === dependency.targetId) {
       throw new SelfLoopDependencyError(dependency.id);
     }
@@ -36,19 +36,19 @@ export function assertGraphIntegrity(document: ProjectDocument): ProjectDependen
     }
     seenPairs.add(pair);
   }
-  return createSchedulableGraph(document);
+  return createSchedulableGraph(projectDoc);
 }
 
 /**
  * Asserts graph integrity and that the edges can be ordered. Missing endpoints
  * are tolerated.
  *
- * @param document The document whose dependency edges are checked.
+ * @param projectDoc The document whose dependency edges are checked.
  * @returns The dependency graph built from the document.
  * @throws {CyclicDependencyError} When the dependency set contains a cycle.
  */
-export function assertAcyclicGraph(document: ProjectDocument): ProjectDependencyGraph {
-  const graph = assertGraphIntegrity(document);
+export function assertAcyclicGraph(projectDoc: ProjectDocument): ProjectDependencyGraph {
+  const graph = assertGraphIntegrity(projectDoc);
   const cycle = graph.findCycle();
   if (cycle.length > 0) {
     throw new CyclicDependencyError(cycle);
@@ -60,65 +60,65 @@ export function assertAcyclicGraph(document: ProjectDocument): ProjectDependency
  * Asserts that the graph is acyclic and that every endpoint resolves to an
  * entity in the document.
  *
- * @param document The document whose dependency edges are checked.
+ * @param projectDoc The document whose dependency edges are checked.
  * @returns The dependency graph built from the document.
  * @throws {DanglingDependencyError} When an endpoint is not an entity id.
  */
-export function assertResolvableGraph(document: ProjectDocument): ProjectDependencyGraph {
-  const nodeIds = nodeIdsOf(document);
-  for (const dependency of document.dependencies) {
+export function assertResolvableGraph(projectDoc: ProjectDocument): ProjectDependencyGraph {
+  const nodeIds = nodeIdsOf(projectDoc);
+  for (const dependency of projectDoc.dependencies) {
     for (const endpointId of [dependency.sourceId, dependency.targetId]) {
       if (!nodeIds.has(endpointId)) {
         throw new DanglingDependencyError(dependency.id, endpointId);
       }
     }
   }
-  return assertAcyclicGraph(document);
+  return assertAcyclicGraph(projectDoc);
 }
 
 /**
  * Returns whether adding `candidate` to a document would close a cycle. The
  * document is not modified.
  *
- * @param document The document the dependency would be added to.
+ * @param projectDoc The document the dependency would be added to.
  * @param candidate The dependency being considered.
  */
-export function wouldCreateCycle(document: ProjectDocument, candidate: Dependency): boolean {
-  return createSchedulableGraph(document).wouldCreateCycle(candidate);
+export function wouldCreateCycle(projectDoc: ProjectDocument, candidate: Dependency): boolean {
+  return createSchedulableGraph(projectDoc).wouldCreateCycle(candidate);
 }
 
 /**
  * Returns task and milestone ids in an order where every entity follows the
  * entities it depends on. Groups are excluded: they carry no dependencies.
  *
- * @param document The document to order.
+ * @param projectDoc The document to order.
  * @returns The ordered entity ids.
  * @throws {CyclicDependencyError} When the graph contains a cycle.
  * @throws {DanglingDependencyError} When an endpoint is not an entity id.
  */
-export function topologicalOrder(document: ProjectDocument): string[] {
-  return [...assertResolvableGraph(document).topologicalSort()];
+export function topologicalOrder(projectDoc: ProjectDocument): string[] {
+  return [...assertResolvableGraph(projectDoc).topologicalSort()];
 }
 
 /** Returns the id of every entity that can take part in the dependency graph. */
-function nodeIdsOf(document: ProjectDocument): ReadonlySet<string> {
+function nodeIdsOf(projectDoc: ProjectDocument): ReadonlySet<string> {
   return new Set([
-    ...document.tasks.map((task) => task.id),
-    ...document.milestones.map((milestone) => milestone.id),
-    ...document.groups.map((group) => group.id),
+    ...projectDoc.tasks.map((task) => task.id),
+    ...projectDoc.milestones.map((milestone) => milestone.id),
+    ...projectDoc.groups.map((group) => group.id),
   ]);
 }
 
 /** Builds the normalized Graphology graph over tasks and milestones only. */
-function createSchedulableGraph(document: ProjectDocument): ProjectDependencyGraph {
+function createSchedulableGraph(projectDoc: ProjectDocument): ProjectDependencyGraph {
   const nodeIds = [
-    ...document.tasks.map((task) => task.id),
-    ...document.milestones.map((milestone) => milestone.id),
+    ...projectDoc.tasks.map((task) => task.id),
+    ...projectDoc.milestones.map((milestone) => milestone.id),
   ];
   const schedulableIds = new Set(nodeIds);
   return new ProjectDependencyGraph(
     nodeIds,
-    document.dependencies.filter(
+    projectDoc.dependencies.filter(
       (dependency) =>
         schedulableIds.has(dependency.sourceId) && schedulableIds.has(dependency.targetId),
     ),

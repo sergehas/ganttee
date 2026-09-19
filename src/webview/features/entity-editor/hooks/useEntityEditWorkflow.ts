@@ -39,7 +39,7 @@ export interface EntityEditWorkflow {
   deleteEntity: (entity: EditableEntityRef) => void;
   /** Removes an entity from its group and saves the result. */
   ungroupEntity: (
-    document: ProjectDocument,
+    projectDoc: ProjectDocument,
     entity: EditableEntityRef,
     options?: SaveEntityOptions,
   ) => void;
@@ -86,8 +86,8 @@ export function useEntityEditWorkflow(actions: HostEditActions): EntityEditWorkf
   );
 
   const ungroupEntity = useCallback(
-    (document: ProjectDocument, entity: EditableEntityRef, options?: SaveEntityOptions) => {
-      const update = buildUngroupUpdate(document, entity, options);
+    (projectDoc: ProjectDocument, entity: EditableEntityRef, options?: SaveEntityOptions) => {
+      const update = buildUngroupUpdate(projectDoc, entity, options);
       if (update) {
         actions.onSave(update.kind, update.entity, update.options);
       }
@@ -114,12 +114,12 @@ export function useEntityEditWorkflow(actions: HostEditActions): EntityEditWorkf
 
   const patchEntityDatesFromChart = useCallback(
     (
-      document: ProjectDocument,
+      projectDoc: ProjectDocument,
       entity: EditableEntityRef,
       patch: EntityDatePatch,
       options?: SaveEntityOptions,
     ) => {
-      const update = buildDatePatchUpdate(document, entity, patch, options);
+      const update = buildDatePatchUpdate(projectDoc, entity, patch, options);
       if (update) {
         actions.onSave(update.kind, update.entity, update.options);
       }

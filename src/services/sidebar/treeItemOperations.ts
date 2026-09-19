@@ -22,43 +22,46 @@ export type EffectiveDateMap = ReadonlyMap<string, EffectiveDates>;
 
 /** Assigns valid selected entities to a group, or to project root when absent. */
 export function assignEntitiesToGroup(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   entities: readonly EditableEntityRef[],
   targetGroupId: string | undefined,
 ): ProjectDocument {
-  if (targetGroupId !== undefined && !document.groups.some((group) => group.id === targetGroupId)) {
-    return document;
+  if (
+    targetGroupId !== undefined &&
+    !projectDoc.groups.some((group) => group.id === targetGroupId)
+  ) {
+    return projectDoc;
   }
 
   const valid = entities.filter((entity) => {
-    if (!hasEntity(document, entity)) {
+    if (!hasEntity(projectDoc, entity)) {
       return false;
     }
     if (entity.kind !== "group" || targetGroupId === undefined) {
       return true;
     }
     // Reject self drops and drops onto one of the group's own descendants.
-    return !collectDescendantGroupIds(document.groups, entity.id).has(targetGroupId);
+    return !collectDescendantGroupIds(projectDoc.groups, entity.id).has(targetGroupId);
   });
 
   return {
-    ...document,
-    groups: updateOwnership(document.groups, valid, targetGroupId, "group"),
-    tasks: updateOwnership(document.tasks, valid, targetGroupId, "task"),
-    milestones: updateOwnership(document.milestones, valid, targetGroupId, "milestone"),
+    ...projectDoc,
+    groups: updateOwnership(projectDoc.groups, valid, targetGroupId, "group"),
+    tasks: updateOwnership(projectDoc.tasks, valid, targetGroupId, "task"),
+    milestones: updateOwnership(projectDoc.milestones, valid, targetGroupId, "milestone"),
   };
 }
 
 /** Moves one entity across the adjacent sibling in its current owner scope. */
 export function moveEntity(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   entity: EditableEntityRef,
   direction: MoveDirection,
 ): ProjectDocument {
-  const entities = entitiesOf(document, entity.kind);
+  const entities = entitiesOf(projectDoc, entity.kind);
   const index = entities.findIndex((candidate) => candidate.id === entity.id);
   if (index < 0) {
-    return document;
+    return projectDoc;
   }
 
   const owner = entities[index].groupId;
@@ -72,31 +75,31 @@ export function moveEntity(
     nextSiblingPosition < 0 ||
     nextSiblingPosition >= siblingIndexes.length
   ) {
-    return document;
+    return projectDoc;
   }
 
   const nextIndex = siblingIndexes[nextSiblingPosition];
   const reordered = [...entities];
   [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
-  return withEntities(document, entity.kind, reordered);
+  return withEntities(projectDoc, entity.kind, reordered);
 }
 
 /** Sorts every owner scope recursively by effective dates and name. */
 export function sortProjectItems(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   direction: SortDirection,
   effectiveDates: EffectiveDateMap = new Map(),
 ): ProjectDocument {
   return {
-    ...document,
-    groups: sortEntities(document.groups, direction, effectiveDates),
-    tasks: sortEntities(document.tasks, direction, effectiveDates),
-    milestones: sortEntities(document.milestones, direction, effectiveDates),
+    ...projectDoc,
+    groups: sortEntities(projectDoc.groups, direction, effectiveDates),
+    tasks: sortEntities(projectDoc.tasks, direction, effectiveDates),
+    milestones: sortEntities(projectDoc.milestones, direction, effectiveDates),
   };
 }
 
-function hasEntity(document: ProjectDocument, entity: EditableEntityRef): boolean {
-  return entitiesOf(document, entity.kind).some((candidate) => candidate.id === entity.id);
+function hasEntity(projectDoc: ProjectDocument, entity: EditableEntityRef): boolean {
+  return entitiesOf(projectDoc, entity.kind).some((candidate) => candidate.id === entity.id);
 }
 
 function updateOwnership<T extends Group | Task | Milestone>(
@@ -114,17 +117,17 @@ function updateOwnership<T extends Group | Task | Milestone>(
 }
 
 function withEntities(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   kind: EditableEntityRef["kind"],
   entities: readonly ProjectItem[],
 ): ProjectDocument {
   switch (kind) {
     case "group":
-      return { ...document, groups: entities as Group[] };
+      return { ...projectDoc, groups: entities as Group[] };
     case "task":
-      return { ...document, tasks: entities as Task[] };
+      return { ...projectDoc, tasks: entities as Task[] };
     case "milestone":
-      return { ...document, milestones: entities as Milestone[] };
+      return { ...projectDoc, milestones: entities as Milestone[] };
   }
 }
 

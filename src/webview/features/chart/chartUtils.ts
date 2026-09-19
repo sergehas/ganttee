@@ -35,22 +35,22 @@ export interface SchedulableRef {
 export const DAY = 24 * 60 * 60 * 1000;
 
 /** Counts task and milestone rows needed by the chart. */
-export function countChartRows(document: ProjectDocument): number {
-  return document.tasks.length + document.milestones.length;
+export function countChartRows(projectDoc: ProjectDocument): number {
+  return projectDoc.tasks.length + projectDoc.milestones.length;
 }
 
 /** Builds chart rows and their entity-to-row index lookup. */
-export function buildChartRows(document: ProjectDocument): {
+export function buildChartRows(projectDoc: ProjectDocument): {
   rows: ChartRow[];
   indexById: Map<string, number>;
 } {
   const rows: ChartRow[] = [
-    ...document.tasks.map((task): ChartRow => ({
+    ...projectDoc.tasks.map((task): ChartRow => ({
       id: task.id,
       label: task.name,
       kind: "task",
     })),
-    ...document.milestones.map((milestone): ChartRow => ({
+    ...projectDoc.milestones.map((milestone): ChartRow => ({
       id: milestone.id,
       label: milestone.name,
       kind: "milestone",
@@ -62,12 +62,12 @@ export function buildChartRows(document: ProjectDocument): {
 }
 
 /** Computes the visible time range around all scheduled entities. */
-export function chartDateRange(document: ProjectDocument): {
+export function chartDateRange(projectDoc: ProjectDocument): {
   min: number;
   max: number;
 } {
   const values: number[] = [];
-  for (const task of document.tasks) {
+  for (const task of projectDoc.tasks) {
     const start = effectiveStart(task);
     const end = effectiveEnd(task);
     if (start !== undefined) {
@@ -77,7 +77,7 @@ export function chartDateRange(document: ProjectDocument): {
       values.push(toChartMs(end));
     }
   }
-  for (const milestone of document.milestones) {
+  for (const milestone of projectDoc.milestones) {
     if (milestone.date === undefined) {
       continue;
     }
@@ -109,8 +109,11 @@ export function dependencyLinkEndpoints(
 }
 
 /** Resolves a task or milestone into dependency scheduling coordinates. */
-export function schedulableById(document: ProjectDocument, id: string): SchedulableRef | undefined {
-  const task = document.tasks.find((current) => current.id === id);
+export function schedulableById(
+  projectDoc: ProjectDocument,
+  id: string,
+): SchedulableRef | undefined {
+  const task = projectDoc.tasks.find((current) => current.id === id);
   if (task) {
     return {
       id: task.id,
@@ -118,7 +121,7 @@ export function schedulableById(document: ProjectDocument, id: string): Schedula
       end: effectiveEnd(task),
     };
   }
-  const milestone = document.milestones.find((current) => current.id === id);
+  const milestone = projectDoc.milestones.find((current) => current.id === id);
   if (!milestone) {
     return undefined;
   }

@@ -54,10 +54,10 @@ export function updateGanttViewDocument<K extends EditableEntityKind>(
   kind: K,
   entity: EditableEntityMap[K],
 ): ProjectDocument | undefined {
-  const document = replaceEntity(current.document, kind, entity);
-  if (document === undefined) {
+  const projectDoc = replaceEntity(current.document, kind, entity);
+  if (projectDoc === undefined) {
     return undefined;
   }
-  const { schedule: _schedule, ...authoredDocument } = document;
+  const { schedule: _schedule, ...authoredDocument } = projectDoc;
   return authoredDocument;
 }

@@ -13,17 +13,17 @@ import { GanttParseError } from "@services/document/documentShapeValidationServi
  * Asserts every cross-entity rule: unique ids, ordered task dates, a sound
  * group hierarchy, resolvable group references, and well-formed edges.
  *
- * @param document The document to check.
+ * @param projectDoc The document to check.
  * @throws {GanttParseError} When a rule is broken.
  */
-export function assertDocumentRelations(document: ProjectDocument): void {
-  assertUniqueEntityIds(document);
-  assertUniqueDependencyIds(document.dependencies);
-  assertTaskDateOrder(document.tasks);
-  assertGroupHierarchy(document.groups);
-  assertGroupReferences(document);
+export function assertDocumentRelations(projectDoc: ProjectDocument): void {
+  assertUniqueEntityIds(projectDoc);
+  assertUniqueDependencyIds(projectDoc.dependencies);
+  assertTaskDateOrder(projectDoc.tasks);
+  assertGroupHierarchy(projectDoc.groups);
+  assertGroupReferences(projectDoc);
   try {
-    assertGraphIntegrity(document);
+    assertGraphIntegrity(projectDoc);
   } catch (error) {
     if (error instanceof Error) {
       throw new GanttParseError(error.message);
@@ -44,9 +44,9 @@ function assertUniqueDependencyIds(dependencies: ProjectDocument["dependencies"]
 }
 
 /** Asserts that every entity id is unique across all entity kinds. */
-function assertUniqueEntityIds(document: ProjectDocument): void {
+function assertUniqueEntityIds(projectDoc: ProjectDocument): void {
   const seen = new Set<string>();
-  const entities = [...document.tasks, ...document.groups, ...document.milestones];
+  const entities = [...projectDoc.tasks, ...projectDoc.groups, ...projectDoc.milestones];
   for (const entity of entities) {
     if (seen.has(entity.id)) {
       throw new GanttParseError(
@@ -95,14 +95,14 @@ function assertGroupHierarchy(groups: Group[]): void {
 }
 
 /** Asserts that every group reference points to an existing group id. */
-function assertGroupReferences(document: ProjectDocument): void {
-  const groupIds = new Set(document.groups.map((group) => group.id));
-  document.tasks.forEach((task, index) => {
+function assertGroupReferences(projectDoc: ProjectDocument): void {
+  const groupIds = new Set(projectDoc.groups.map((group) => group.id));
+  projectDoc.tasks.forEach((task, index) => {
     if (task.groupId !== undefined && !groupIds.has(task.groupId)) {
       throw new GanttParseError(`tasks[${index}].groupId references an unknown group id.`);
     }
   });
-  document.milestones.forEach((milestone, index) => {
+  projectDoc.milestones.forEach((milestone, index) => {
     if (milestone.groupId !== undefined && !groupIds.has(milestone.groupId)) {
       throw new GanttParseError(`milestones[${index}].groupId references an unknown group id.`);
     }

@@ -28,23 +28,23 @@ export interface ScheduleGraphSanitization {
  * Removes dependencies with missing or group endpoints, then removes any
  * component left with no absolute date to anchor it.
  *
- * @param document The document to sanitize.
+ * @param projectDoc The document to sanitize.
  * @returns The sanitized document and the ids of everything removed.
  */
-export function sanitizeScheduleGraph(document: ProjectDocument): ScheduleGraphSanitization {
+export function sanitizeScheduleGraph(projectDoc: ProjectDocument): ScheduleGraphSanitization {
   const entityIds = new Set([
-    ...document.tasks.map((task) => task.id),
-    ...document.milestones.map((milestone) => milestone.id),
-    ...document.groups.map((group) => group.id),
+    ...projectDoc.tasks.map((task) => task.id),
+    ...projectDoc.milestones.map((milestone) => milestone.id),
+    ...projectDoc.groups.map((group) => group.id),
   ]);
-  const groupIds = new Set(document.groups.map((group) => group.id));
+  const groupIds = new Set(projectDoc.groups.map((group) => group.id));
 
-  const supportedDependencies = document.dependencies.filter(
+  const supportedDependencies = projectDoc.dependencies.filter(
     (dependency) => !hasUnusableEndpoint(dependency, entityIds, groupIds),
   );
-  const removedEntityIds = collectUnanchoredEntityIds(document, entityIds, supportedDependencies);
+  const removedEntityIds = collectUnanchoredEntityIds(projectDoc, entityIds, supportedDependencies);
 
-  const removedDependencyIds = document.dependencies
+  const removedDependencyIds = projectDoc.dependencies
     .filter(
       (dependency) =>
         hasUnusableEndpoint(dependency, entityIds, groupIds) ||
@@ -54,10 +54,10 @@ export function sanitizeScheduleGraph(document: ProjectDocument): ScheduleGraphS
 
   return {
     document: {
-      ...document,
-      tasks: document.tasks.filter((task) => !removedEntityIds.has(task.id)),
-      milestones: document.milestones.filter((milestone) => !removedEntityIds.has(milestone.id)),
-      groups: document.groups.filter((group) => !removedEntityIds.has(group.id)),
+      ...projectDoc,
+      tasks: projectDoc.tasks.filter((task) => !removedEntityIds.has(task.id)),
+      milestones: projectDoc.milestones.filter((milestone) => !removedEntityIds.has(milestone.id)),
+      groups: projectDoc.groups.filter((group) => !removedEntityIds.has(group.id)),
       dependencies: supportedDependencies.filter(
         (dependency) => !touchesAny(dependency, removedEntityIds),
       ),
@@ -69,7 +69,7 @@ export function sanitizeScheduleGraph(document: ProjectDocument): ScheduleGraphS
 
 /** Returns the ids of every entity in a component that has no date anchor. */
 function collectUnanchoredEntityIds(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   entityIds: ReadonlySet<string>,
   dependencies: readonly Dependency[],
 ): ReadonlySet<string> {
@@ -77,8 +77,8 @@ function collectUnanchoredEntityIds(
   return new Set(
     unanchoredComponents(
       graph.connectedComponents(),
-      anchoredEntityIds(document),
-      schedulableEntityIds(document),
+      anchoredEntityIds(projectDoc),
+      schedulableEntityIds(projectDoc),
     ).flat(),
   );
 }

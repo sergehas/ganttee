@@ -62,38 +62,38 @@ export type ScheduleDiagnostic =
  * Evaluates the semantic rules a structurally valid document must also satisfy:
  * per-entity determinacy, dependency endpoints, and component anchoring.
  *
- * @param document The document to evaluate.
+ * @param projectDoc The document to evaluate.
  * @returns Every diagnostic found, in entity then dependency then component order.
  */
-export function evaluateScheduleGraph(document: ProjectDocument): readonly ScheduleDiagnostic[] {
+export function evaluateScheduleGraph(projectDoc: ProjectDocument): readonly ScheduleDiagnostic[] {
   const entityIds = new Set([
-    ...document.tasks.map((task) => task.id),
-    ...document.milestones.map((milestone) => milestone.id),
-    ...document.groups.map((group) => group.id),
+    ...projectDoc.tasks.map((task) => task.id),
+    ...projectDoc.milestones.map((milestone) => milestone.id),
+    ...projectDoc.groups.map((group) => group.id),
   ]);
-  const groupIds = new Set(document.groups.map((group) => group.id));
+  const groupIds = new Set(projectDoc.groups.map((group) => group.id));
 
   const determinacy = [
-    ...document.tasks.map((task) =>
-      diagnoseDeterminacy(task.id, validateTaskConstraints(task, document.dependencies)),
+    ...projectDoc.tasks.map((task) =>
+      diagnoseDeterminacy(task.id, validateTaskConstraints(task, projectDoc.dependencies)),
     ),
-    ...document.milestones.map((milestone) =>
+    ...projectDoc.milestones.map((milestone) =>
       diagnoseDeterminacy(
         milestone.id,
-        validateMilestoneConstraints(milestone, document.dependencies),
+        validateMilestoneConstraints(milestone, projectDoc.dependencies),
       ),
     ),
   ].filter((diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined);
 
-  const endpoints = document.dependencies
+  const endpoints = projectDoc.dependencies
     .map((dependency) => diagnoseEndpoints(dependency, entityIds, groupIds))
     .filter((diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined);
 
-  const graph = new ProjectDependencyGraph([...entityIds], document.dependencies);
-  const schedulable = schedulableEntityIds(document);
+  const graph = new ProjectDependencyGraph([...entityIds], projectDoc.dependencies);
+  const schedulable = schedulableEntityIds(projectDoc);
   const anchoring: ScheduleDiagnostic[] = unanchoredComponents(
     graph.connectedComponents(),
-    anchoredEntityIds(document),
+    anchoredEntityIds(projectDoc),
     schedulable,
   ).map((component) => ({
     kind: "unanchoredComponent",

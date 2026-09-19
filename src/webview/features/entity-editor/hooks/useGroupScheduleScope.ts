@@ -13,12 +13,12 @@ export interface GroupScheduleScopeView {
 
 /** Computes memoized schedule and direct member rows for a group edit form. */
 export function useGroupScheduleScope(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   groupId: string,
 ): GroupScheduleScopeView {
   const directMemberRows = useMemo(
-    () => buildDirectGroupMemberRows(document, groupId),
-    [document, groupId],
+    () => buildDirectGroupMemberRows(projectDoc, groupId),
+    [projectDoc, groupId],
   );
 
   return { directMemberRows };

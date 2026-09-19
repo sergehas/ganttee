@@ -45,19 +45,19 @@ export function collectDescendantGroupIds(
 /**
  * Selects every entity owned by a group hierarchy.
  *
- * @param document The document to select from.
+ * @param projectDoc The document to select from.
  * @param rootGroupId The group at the top of the hierarchy.
  * @returns The groups, tasks, and milestones in the hierarchy.
  */
 export function selectGroupScheduleScope(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   rootGroupId: string,
 ): GroupScheduleScope {
-  const groupIds = collectDescendantGroupIds(document.groups, rootGroupId);
+  const groupIds = collectDescendantGroupIds(projectDoc.groups, rootGroupId);
   return {
     groupIds,
-    tasks: document.tasks.filter((task) => isOwnedBy(task.groupId, groupIds)),
-    milestones: document.milestones.filter((milestone) => isOwnedBy(milestone.groupId, groupIds)),
+    tasks: projectDoc.tasks.filter((task) => isOwnedBy(task.groupId, groupIds)),
+    milestones: projectDoc.milestones.filter((milestone) => isOwnedBy(milestone.groupId, groupIds)),
   };
 }
 
