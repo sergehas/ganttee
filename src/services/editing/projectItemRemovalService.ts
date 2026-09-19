@@ -8,7 +8,7 @@
  */
 
 import { formatIsoDate } from "@common/dates";
-import { ProjectDocument, ProjectItemType, Task } from "@common/documents";
+import { ProjectContent, ProjectDocument, ProjectItemType, Task } from "@common/documents";
 import { UnresolvableScheduleError } from "@common/models";
 import { EditableEntityRef } from "@common/protocol";
 import { findEntity } from "@services/document/projectItemService";
@@ -27,7 +27,7 @@ import { hydrateDocument } from "@services/model/projectModelService";
  * @returns The update payload, or `undefined` when the entity is absent.
  */
 export function buildUngroupUpdate(
-  projectDoc: ProjectDocument,
+  projectDoc: ProjectContent,
   ref: EditableEntityRef,
   options?: SaveEntityOptions,
 ): EditableEntityUpdate | undefined {

@@ -2,11 +2,11 @@ import {
   Dependency,
   Group,
   Milestone,
-  ProjectDocument,
   ProjectItemType,
   ProjectView,
   Task,
 } from "@common/documents";
+import { ProjectPresentation } from "@common/presentation";
 
 /**
  * Message protocol between the extension host and the editor webview.
@@ -24,11 +24,11 @@ export type HostToWebviewMessage =
     }
   | {
       type: "init";
-      document: ProjectDocument;
+      project: ProjectPresentation;
       revision: number;
       iconBaseUri: string;
     }
-  | { type: "documentChanged"; document: ProjectDocument; revision: number }
+  | { type: "documentChanged"; project: ProjectPresentation; revision: number }
   | { type: "selectEntity"; entity: EditableEntityRef }
   | { type: "editEntity"; entity: EditableEntityRef };
 
@@ -61,6 +61,7 @@ export type UpdateEntityMessage = {
     type: "updateEntity";
     kind: K;
     entity: EditableEntityMap[K];
+    baseRevision: number;
   };
 }[EditableEntityKind];
 
@@ -68,11 +69,6 @@ export type UpdateEntityMessage = {
 export type WebviewToHostMessage =
   | { type: "ready" }
   | UpdateEntityMessage
-  | {
-      type: "entityUpdated";
-      updatedDocument: ProjectDocument;
-      baseRevision: number;
-    }
   | { type: "updateView"; view: ProjectView; baseRevision: number }
   | { type: "addDependency"; dependency: Dependency }
   | { type: "removeDependency"; dependencyId: string }

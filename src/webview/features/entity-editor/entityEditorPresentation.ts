@@ -1,5 +1,5 @@
 import { formatShortDate, parseIsoDate } from "@common/dates";
-import { DependencyType, ProjectDocument, ProjectItemType, TaskStatus } from "@common/documents";
+import { DependencyType, ProjectContent, ProjectItemType, TaskStatus } from "@common/documents";
 import { EditableEntityKind } from "@common/protocol";
 import {
   validateMilestoneConstraints,
@@ -128,7 +128,7 @@ export function titleOf(kind: EditableEntityKind, t: WebviewTranslator): string 
 
 /** Resolves a task or milestone ID to its display name, returning "?" when not found. */
 export function findEntityName(
-  projectDoc: ProjectDocument,
+  projectDoc: ProjectContent,
   id: string,
   t: WebviewTranslator,
 ): string {
@@ -141,7 +141,7 @@ export function findEntityName(
  * @returns `undefined` when no matching entity exists.
  */
 export function findEntityRefById(
-  projectDoc: ProjectDocument,
+  projectDoc: ProjectContent,
   id: string,
 ): { id: string; kind: Exclude<ProjectItemType, "group">; name: string } | undefined {
   const task = projectDoc.tasks.find((item) => item.id === id);

@@ -1,4 +1,4 @@
-import { Dependency, DependencyType, ProjectDocument } from "@common/documents";
+import { Dependency, DependencyType, ProjectContent } from "@common/documents";
 import { generateId } from "@common/idFactory";
 import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
 import { buildDependency } from "@services/editing/dependencyFactoryService";
@@ -39,7 +39,7 @@ export interface EntityEditWorkflow {
   deleteEntity: (entity: EditableEntityRef) => void;
   /** Removes an entity from its group and saves the result. */
   ungroupEntity: (
-    projectDoc: ProjectDocument,
+    projectDoc: ProjectContent,
     entity: EditableEntityRef,
     options?: SaveEntityOptions,
   ) => void;
@@ -49,7 +49,7 @@ export interface EntityEditWorkflow {
   removeDependency: (dependencyId: string) => void;
   /** Applies a chart date patch and saves the result. */
   patchEntityDatesFromChart: (
-    document: ProjectDocument,
+    document: ProjectContent,
     entity: EditableEntityRef,
     patch: EntityDatePatch,
     options?: SaveEntityOptions,
@@ -86,7 +86,7 @@ export function useEntityEditWorkflow(actions: HostEditActions): EntityEditWorkf
   );
 
   const ungroupEntity = useCallback(
-    (projectDoc: ProjectDocument, entity: EditableEntityRef, options?: SaveEntityOptions) => {
+    (projectDoc: ProjectContent, entity: EditableEntityRef, options?: SaveEntityOptions) => {
       const update = buildUngroupUpdate(projectDoc, entity, options);
       if (update) {
         actions.onSave(update.kind, update.entity, update.options);
@@ -114,7 +114,7 @@ export function useEntityEditWorkflow(actions: HostEditActions): EntityEditWorkf
 
   const patchEntityDatesFromChart = useCallback(
     (
-      projectDoc: ProjectDocument,
+      projectDoc: ProjectContent,
       entity: EditableEntityRef,
       patch: EntityDatePatch,
       options?: SaveEntityOptions,

@@ -48,6 +48,5 @@ export function parseDocument(text: string): ProjectDocument {
  * @param projectDoc The document to write.
  */
 export function serializeDocument(projectDoc: ProjectDocument): string {
-  const { schedule: _schedule, ...persistedDocument } = projectDoc;
-  return `${JSON.stringify(persistedDocument, undefined, 2)}\n`;
+  return `${JSON.stringify(projectDoc, undefined, 2)}\n`;
 }

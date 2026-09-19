@@ -1,6 +1,11 @@
 import { formatShortDate } from "@common/dates";
-import { Group, Milestone, ProjectDocument, Task } from "@common/documents";
-import { ProjectSchedule } from "@common/models";
+import {
+  ProjectGroupSnapshot,
+  ProjectMilestoneSnapshot,
+  ProjectModel,
+  ProjectSnapshot,
+  ProjectTaskSnapshot,
+} from "@common/models";
 import { EditableEntityRef } from "@common/protocol";
 import {
   diagnosticsFor,
@@ -11,10 +16,7 @@ import { GanttStore } from "@src/ganttStore";
 import { describeDiagnostic } from "@views/scheduleDiagnosticPresenter";
 import * as vscode from "vscode";
 
-type GanttNode =
-  | { kind: "group"; group: Group }
-  | { kind: "task"; task: Task }
-  | { kind: "milestone"; milestone: Milestone };
+type GanttNode = ProjectGroupSnapshot | ProjectTaskSnapshot | ProjectMilestoneSnapshot;
 
 /** Sidebar tree of groups, tasks, and milestones for the active Gantt editor. */
 export class GanttExplorerProvider
@@ -53,11 +55,11 @@ export class GanttExplorerProvider
   getTreeItem(node: GanttNode): vscode.TreeItem {
     switch (node.kind) {
       case "group":
-        return this.groupItem(node.group);
+        return this.groupItem(node);
       case "task":
-        return this.taskItem(node.task);
+        return this.taskItem(node);
       case "milestone":
-        return this.milestoneItem(node.milestone);
+        return this.milestoneItem(node);
     }
   }
 
@@ -65,46 +67,39 @@ export class GanttExplorerProvider
    * Returns the diagnostics from the active editor, if any.
    */
   private getDiagnostics(): readonly ScheduleDiagnostic[] {
-    return this.store.active?.validation ?? [];
+    return this.store.active?.snapshot.diagnostics ?? [];
   }
 
   getChildren(element?: GanttNode): GanttNode[] {
-    const projectDoc = this.store.active?.getProjectDocument();
-    if (!projectDoc) {
+    const snapshot = this.store.active?.snapshot;
+    if (!snapshot) {
       return [];
     }
 
     if (!element) {
-      return this.filterNodes(this.childNodes(projectDoc), projectDoc);
+      return this.filterNodes(this.childNodes(snapshot), snapshot.model);
     }
 
     if (element.kind === "group") {
-      return this.filterNodes(this.childNodes(projectDoc, element.group.id), projectDoc);
+      return this.filterNodes(this.childNodes(snapshot, element.item.id), snapshot.model);
     }
 
     return [];
   }
 
   /** Collects the direct children of a group, or the root-level items when no group is provided. */
-  private childNodes(doc: ProjectDocument, groupId?: string): GanttNode[] {
-    const childGroups = doc.groups.filter((group) =>
-      groupId === undefined ? !group.groupId : group.groupId === groupId,
+  private childNodes(snapshot: ProjectSnapshot, groupId?: string): GanttNode[] {
+    const childGroups = snapshot.groups.filter(({ item }) =>
+      groupId === undefined ? !item.groupId : item.groupId === groupId,
     );
-    const tasks = doc.tasks.filter((task) =>
-      groupId === undefined ? !task.groupId : task.groupId === groupId,
+    const tasks = snapshot.tasks.filter(({ item }) =>
+      groupId === undefined ? !item.groupId : item.groupId === groupId,
     );
-    const milestones = doc.milestones.filter((milestone) =>
-      groupId === undefined ? !milestone.groupId : milestone.groupId === groupId,
+    const milestones = snapshot.milestones.filter(({ item }) =>
+      groupId === undefined ? !item.groupId : item.groupId === groupId,
     );
 
-    return [
-      ...childGroups.map((group): GanttNode => ({ kind: "group", group })),
-      ...tasks.map((task): GanttNode => ({ kind: "task", task })),
-      ...milestones.map((milestone): GanttNode => ({
-        kind: "milestone",
-        milestone,
-      })),
-    ];
+    return [...childGroups, ...tasks, ...milestones];
   }
 
   /** Serializes selected tree nodes for a grouping drop. */
@@ -131,11 +126,12 @@ export class GanttExplorerProvider
     }
     await this.store.active?.assignEntitiesToGroup(
       entities,
-      target?.kind === "group" ? target.group.id : undefined,
+      target?.kind === "group" ? target.item.id : undefined,
     );
   }
 
-  private groupItem(group: Group): vscode.TreeItem {
+  private groupItem(snapshot: ProjectGroupSnapshot): vscode.TreeItem {
+    const group = snapshot.item;
     const item = new vscode.TreeItem(group.name, vscode.TreeItemCollapsibleState.Expanded);
     item.contextValue = "ganttee.group";
     item.id = `group:${group.id}`;
@@ -144,21 +140,19 @@ export class GanttExplorerProvider
       title: vscode.l10n.t("Edit Item"),
       arguments: [{ kind: "group", id: group.id }],
     };
-    const scheduledGroup = this.scheduledModel?.groups.find(
-      (candidate) => candidate.id === group.id,
-    );
-    if (scheduledGroup) {
+    if (snapshot.effective) {
       item.description = vscode.l10n.t(
         "{0} ({1}d)",
-        this.formatDateRange(scheduledGroup.effectiveStart, scheduledGroup.effectiveEnd),
-        scheduledGroup.effectiveDuration,
+        this.formatDateRange(snapshot.effective.start, snapshot.effective.end),
+        snapshot.effective.duration,
       );
     }
     this.applyDiagnosticPresentation(item, group.id, "folder");
     return item;
   }
 
-  private taskItem(task: Task): vscode.TreeItem {
+  private taskItem(snapshot: ProjectTaskSnapshot): vscode.TreeItem {
+    const task = snapshot.item;
     const item = new vscode.TreeItem(task.name, vscode.TreeItemCollapsibleState.None);
     item.contextValue = "ganttee.task";
     item.id = `task:${task.id}`;
@@ -167,19 +161,19 @@ export class GanttExplorerProvider
       title: vscode.l10n.t("Edit Item"),
       arguments: [{ kind: "task", id: task.id }],
     };
-    const scheduledTask = this.scheduledModel?.tasks.find((candidate) => candidate.id === task.id);
-    if (scheduledTask) {
+    if (snapshot.effective) {
       item.description = vscode.l10n.t(
         "{0} ({1}d)",
-        this.formatDateRange(scheduledTask.effectiveStart(), scheduledTask.effectiveEnd()),
-        scheduledTask.effectiveDuration(),
+        this.formatDateRange(snapshot.effective.start, snapshot.effective.end),
+        snapshot.effective.duration,
       );
     }
     this.applyDiagnosticPresentation(item, task.id, "checklist");
     return item;
   }
 
-  private milestoneItem(milestone: Milestone): vscode.TreeItem {
+  private milestoneItem(snapshot: ProjectMilestoneSnapshot): vscode.TreeItem {
+    const milestone = snapshot.item;
     const item = new vscode.TreeItem(milestone.name, vscode.TreeItemCollapsibleState.None);
     item.contextValue = "ganttee.milestone";
     item.id = `milestone:${milestone.id}`;
@@ -188,19 +182,11 @@ export class GanttExplorerProvider
       title: vscode.l10n.t("Edit Item"),
       arguments: [{ kind: "milestone", id: milestone.id }],
     };
-    const scheduledMilestone = this.scheduledModel?.milestones.find(
-      (candidate) => candidate.id === milestone.id,
-    );
-    if (scheduledMilestone) {
-      item.description = formatShortDate(scheduledMilestone.effectiveStart(), vscode.env.language);
+    if (snapshot.effective) {
+      item.description = formatShortDate(snapshot.effective.start, vscode.env.language);
     }
     this.applyDiagnosticPresentation(item, milestone.id, "milestone");
     return item;
-  }
-
-  /** Returns the current host-computed schedule. */
-  private get scheduledModel(): ProjectSchedule | undefined {
-    return this.store.active?.scheduledModel;
   }
 
   /** Formats a pair of effective dates for a tree item description. */
@@ -240,35 +226,35 @@ export class GanttExplorerProvider
   }
 
   /** Filters nodes while retaining groups needed to reach matching descendants. */
-  private filterNodes(nodes: readonly GanttNode[], doc: ProjectDocument): GanttNode[] {
+  private filterNodes(nodes: readonly GanttNode[], model: ProjectModel): GanttNode[] {
     if (this.searchTerm.length === 0) {
       return [...nodes];
     }
-    const matchingIds = filterProjectItemIds(doc, this.searchTerm);
+    const matchingIds = filterProjectItemIds(model, this.searchTerm);
     return nodes.filter((node) => {
       const entityId = entityRefOf(node)?.id;
       if (entityId !== undefined && matchingIds.has(entityId)) {
         return true;
       }
-      return node.kind === "group" && hasMatchingDescendant(doc, node.group.id, matchingIds);
+      return node.kind === "group" && hasMatchingDescendant(model, node.item.id, matchingIds);
     });
   }
 }
 
 function hasMatchingDescendant(
-  doc: ProjectDocument,
+  model: ProjectModel,
   groupId: string,
   matchingIds: ReadonlySet<string>,
 ): boolean {
   return (
-    doc.tasks.some((task) => task.groupId === groupId && matchingIds.has(task.id)) ||
-    doc.milestones.some(
+    model.tasks.some((task) => task.groupId === groupId && matchingIds.has(task.id)) ||
+    model.milestones.some(
       (milestone) => milestone.groupId === groupId && matchingIds.has(milestone.id),
     ) ||
-    doc.groups.some(
+    model.groups.some(
       (group) =>
         group.groupId === groupId &&
-        (matchingIds.has(group.id) || hasMatchingDescendant(doc, group.id, matchingIds)),
+        (matchingIds.has(group.id) || hasMatchingDescendant(model, group.id, matchingIds)),
     )
   );
 }
@@ -283,11 +269,11 @@ export function entityRefOf(node: unknown): EditableEntityRef | undefined {
   const candidate = node as GanttNode;
   switch (candidate.kind) {
     case "task":
-      return { kind: "task", id: candidate.task.id };
+      return { kind: "task", id: candidate.item.id };
     case "milestone":
-      return { kind: "milestone", id: candidate.milestone.id };
+      return { kind: "milestone", id: candidate.item.id };
     case "group":
-      return { kind: "group", id: candidate.group.id };
+      return { kind: "group", id: candidate.item.id };
   }
 }
 

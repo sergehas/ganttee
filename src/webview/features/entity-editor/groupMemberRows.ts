@@ -1,4 +1,4 @@
-import { ProjectDocument } from "@common/documents";
+import { ProjectContent } from "@common/documents";
 import { EditableEntityKind, EditableEntityRef } from "@common/protocol";
 
 /** A direct member row shown in the group-owned-entities list. */
@@ -18,7 +18,7 @@ export interface DirectGroupMemberRow {
  * Includes only entities with `groupId === ownerGroupId` (no transitive descendants).
  */
 export function buildDirectGroupMemberRows(
-  projectDoc: ProjectDocument,
+  projectDoc: ProjectContent,
   ownerGroupId: string,
 ): DirectGroupMemberRow[] {
   const groupRows: DirectGroupMemberRow[] = projectDoc.groups

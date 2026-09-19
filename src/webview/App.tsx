@@ -1,4 +1,5 @@
-import { Dependency, ProjectDocument, ProjectView } from "@common/documents";
+import { Dependency, Group, Milestone, ProjectView, Task } from "@common/documents";
+import { ProjectPresentation } from "@common/presentation";
 import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
 import { buildShiftByDaysPatch } from "@services/editing/projectItemSchedulePatchService";
 import "@webview/App.scss";
@@ -8,7 +9,7 @@ import { GanttChart } from "@webview/features/chart/components/GanttChart";
 import { EntityEditor } from "@webview/features/entity-editor/components/EntityEditor";
 import { useEntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
 import { translate, WebviewL10n, WebviewL10nContext } from "@webview/l10n";
-import { createGanttViewState, GanttViewState, updateGanttViewDocument } from "@webview/viewState";
+import { createGanttViewState, GanttViewState } from "@webview/viewState";
 import { onHostMessage, postToHost } from "@webview/vscodeApi";
 import { useEffect, useState } from "react";
 
@@ -37,7 +38,7 @@ export function App(): React.JSX.Element {
           setIconBaseUri(message.iconBaseUri);
           try {
             setPendingView(null);
-            setViewState(createGanttViewState(message.document, message.revision));
+            setViewState(createGanttViewState(message.project, message.revision));
           } catch {
             setViewState(null);
           }
@@ -45,7 +46,7 @@ export function App(): React.JSX.Element {
         case "documentChanged":
           try {
             setPendingView(null);
-            setViewState(createGanttViewState(message.document, message.revision));
+            setViewState(createGanttViewState(message.project, message.revision));
           } catch {
             setViewState(null);
           }
@@ -72,14 +73,11 @@ export function App(): React.JSX.Element {
     if (!viewState) {
       return;
     }
-    const updatedDocument = updateGanttViewDocument(viewState, kind, entity);
-    if (!updatedDocument) {
-      return;
-    }
     setViewState(null);
     postToHost({
-      type: "entityUpdated",
-      updatedDocument,
+      type: "updateEntity",
+      kind,
+      entity,
       baseRevision: viewState.revision,
     });
     if (kind === "group" && !options?.keepEditorOpen) {
@@ -127,8 +125,8 @@ export function App(): React.JSX.Element {
     );
   }
 
-  const editingTarget = resolveEntity(viewState.document, editingEntity);
-  const chartView = pendingView ?? viewState.document.view;
+  const editingTarget = resolveEntity(viewState.project, editingEntity);
+  const chartView = pendingView ?? viewState.project.view;
 
   /** Sends a complete chart view proposal through the revision-safe host path. */
   const updateView = (view: ProjectView) => {
@@ -147,11 +145,11 @@ export function App(): React.JSX.Element {
 
   /** Applies a chart date shift to an entity through the shared workflow. */
   const nudgeEntityByDays = (entity: EditableEntityRef, days: number) => {
-    const patch = buildShiftByDaysPatch(viewState.document, entity, days);
+    const patch = buildShiftByDaysPatch(viewState.project, entity, days);
     if (!patch) {
       return;
     }
-    workflow.patchEntityDatesFromChart(viewState.document, entity, patch);
+    workflow.patchEntityDatesFromChart(viewState.project, entity, patch);
   };
 
   return (
@@ -160,15 +158,13 @@ export function App(): React.JSX.Element {
         <div className="ganttee-app">
           <div className="ganttee-app__timeline">
             <ChartMenuBar view={chartView} onViewChange={updateView} onFitToWindow={fitToWindow} />
-            {viewState.document.tasks.length === 0 && viewState.document.milestones.length === 0 ? (
+            {viewState.project.tasks.length === 0 && viewState.project.milestones.length === 0 ? (
               <div className="ganttee-app__empty">
                 {translate(l10n, "No tasks yet. Use the Ganttee sidebar to add one.")}
               </div>
             ) : (
               <GanttChart
-                document={viewState.document}
-                schedule={viewState.scheduledModel}
-                criticalPath={viewState.criticalPath}
+                project={viewState.project}
                 view={chartView}
                 fitVersion={fitVersion}
                 selectedEntity={selectedEntity}
@@ -182,15 +178,14 @@ export function App(): React.JSX.Element {
             <aside className="ganttee-app__panel">
               <EntityEditor
                 editingEntity={editingTarget}
-                document={viewState.document}
-                schedule={viewState.scheduledModel}
+                document={viewState.project}
                 onSave={workflow.saveEntity}
                 onDelete={workflow.deleteEntity}
                 onClose={() => setEditingEntity(null)}
                 onAddDependency={workflow.addDependency}
                 onRemoveDependency={workflow.removeDependency}
                 onUngroupEntity={(entity, options) =>
-                  workflow.ungroupEntity(viewState.document, entity, options)
+                  workflow.ungroupEntity(viewState.project, entity, options)
                 }
                 onRequestEditEntity={requestEditEntity}
               />
@@ -211,7 +206,7 @@ interface ResolvedEditingEntity {
 
 /** Resolves an editable entity reference against the current document. */
 function resolveEntity(
-  document: ProjectDocument,
+  project: ProjectPresentation,
   ref: EditableEntityRef | null,
 ): ResolvedEditingEntity | null {
   if (!ref) {
@@ -219,16 +214,34 @@ function resolveEntity(
   }
   switch (ref.kind) {
     case "task": {
-      const entity = document.tasks.find((task) => task.id === ref.id);
-      return entity ? { kind: "task", entity } : null;
+      const entity = project.tasks.find((task) => task.id === ref.id);
+      return entity ? { kind: "task", entity: authoredTask(entity) } : null;
     }
     case "milestone": {
-      const entity = document.milestones.find((milestone) => milestone.id === ref.id);
-      return entity ? { kind: "milestone", entity } : null;
+      const entity = project.milestones.find((milestone) => milestone.id === ref.id);
+      return entity ? { kind: "milestone", entity: authoredMilestone(entity) } : null;
     }
     case "group": {
-      const entity = document.groups.find((group) => group.id === ref.id);
-      return entity ? { kind: "group", entity } : null;
+      const entity = project.groups.find((group) => group.id === ref.id);
+      return entity ? { kind: "group", entity: authoredGroup(entity) } : null;
     }
   }
+}
+
+/** Removes computed fields before a task enters the authoring workflow. */
+function authoredTask(task: ProjectPresentation["tasks"][number]): Task {
+  const { effectiveStart, effectiveEnd, effectiveDuration, ...authored } = task;
+  return authored;
+}
+
+/** Removes computed fields before a milestone enters the authoring workflow. */
+function authoredMilestone(milestone: ProjectPresentation["milestones"][number]): Milestone {
+  const { effectiveStart, effectiveEnd, effectiveDuration, ...authored } = milestone;
+  return authored;
+}
+
+/** Removes computed fields before a group enters the authoring workflow. */
+function authoredGroup(group: ProjectPresentation["groups"][number]): Group {
+  const { effectiveStart, effectiveEnd, effectiveDuration, ...authored } = group;
+  return authored;
 }

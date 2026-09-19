@@ -1,4 +1,4 @@
-import { formatShortDate } from "@common/dates";
+import { formatShortDate, parseIsoTimestamp } from "@common/dates";
 import { validateMilestoneConstraints } from "@services/schedule/scheduleConstraintService";
 import "@webview/components/Form.scss";
 import { FormField } from "@webview/components/FormField";
@@ -38,8 +38,10 @@ export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element 
           value={milestone.date ?? ""}
           onChange={(event) => update("date", event.target.value || undefined)}
         />
-        {scheduledMilestone && (
-          <output>{formatShortDate(scheduledMilestone.effectiveStart(), locale)}</output>
+        {scheduledMilestone?.effectiveStart && (
+          <output>
+            {formatShortDate(parseIsoTimestamp(scheduledMilestone.effectiveStart), locale)}
+          </output>
         )}
       </FormField>
 

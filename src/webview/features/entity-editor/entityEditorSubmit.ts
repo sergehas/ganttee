@@ -1,4 +1,4 @@
-import { Group, Milestone, ProjectDocument, Task } from "@common/documents";
+import { Group, Milestone, ProjectContent, Task } from "@common/documents";
 import { EditableEntityKind, EditableEntityMap } from "@common/protocol";
 import { TaskFormProps } from "@webview/features/entity-editor/entityEditor.types";
 import { SyntheticEvent } from "react";
@@ -6,7 +6,7 @@ import { SyntheticEvent } from "react";
 /** Inputs required to route an entity editor form submission. */
 export interface EntityEditorSubmitOptions {
   /** Current parsed document that supplies dependencies. */
-  readonly document: ProjectDocument;
+  readonly document: ProjectContent;
   /** Current task draft, when present. */
   readonly taskDraft: Task | null;
   /** Current milestone draft, when present. */

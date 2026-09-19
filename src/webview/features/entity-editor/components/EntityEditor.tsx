@@ -48,7 +48,7 @@ export function EntityEditor(props: TaskFormProps): React.JSX.Element {
       {taskDraft && (
         <TaskFields
           task={taskDraft}
-          scheduledTask={props.schedule.tasks.find((task) => task.id === taskDraft.id)}
+          scheduledTask={document.tasks.find((task) => task.id === taskDraft.id)}
           onChange={setTaskDraft}
           {...depEditor}
         />
@@ -57,7 +57,7 @@ export function EntityEditor(props: TaskFormProps): React.JSX.Element {
       {milestoneDraft && (
         <MilestoneFields
           milestone={milestoneDraft}
-          scheduledMilestone={props.schedule.milestones.find(
+          scheduledMilestone={document.milestones.find(
             (milestone) => milestone.id === milestoneDraft.id,
           )}
           onChange={setMilestoneDraft}
@@ -69,7 +69,6 @@ export function EntityEditor(props: TaskFormProps): React.JSX.Element {
         <GroupFields
           group={groupDraft}
           document={document}
-          schedule={props.schedule}
           onChange={setGroupDraft}
           onRequestEditEntity={props.onRequestEditEntity}
           onUngroupEntity={(ref) => {

@@ -1,7 +1,6 @@
-import { ProjectDocument, ProjectView } from "@common/documents";
-import { ProjectSchedule } from "@common/models";
+import { ProjectView } from "@common/documents";
+import { EffectiveSchedulePresentation, ProjectPresentation } from "@common/presentation";
 import { EditableEntityRef } from "@common/protocol";
-import { CriticalPathProjection } from "@services/dependency-graph/criticalPathService";
 import { CHART_ROW_HEIGHT, CRITICAL_ITEM_STYLE } from "@webview/features/chart/chart.constants";
 import { CalendarArea, TimelineTickData } from "@webview/features/chart/chart.types";
 import { isDirectEditGesture } from "@webview/features/chart/chartInteractions";
@@ -51,12 +50,8 @@ echarts.use([
 ]);
 
 interface GanttChartProps {
-  /** Current authoring document. */
-  document: ProjectDocument;
-  /** Current host-computed schedule. */
-  schedule: ProjectSchedule;
-  /** Derived critical path for the current schedule. */
-  criticalPath: CriticalPathProjection;
+  /** Current authored and computed project presentation. */
+  project: ProjectPresentation;
   /** Persisted chart view preferences. */
   view: ProjectView;
   /** Changes whenever the chart should fit its current entities. */
@@ -125,9 +120,7 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
     }
     chart.setOption(
       buildOption(
-        props.document,
-        props.schedule,
-        props.criticalPath,
+        props.project,
         props.view,
         props.selectedEntity,
         l10n.locale,
@@ -138,31 +131,29 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
     );
     if (containerRef.current) {
       const rows =
-        props.schedule.tasks.length +
-        props.schedule.milestones.length +
-        props.schedule.groups.length;
+        props.project.tasks.length + props.project.milestones.length + props.project.groups.length;
       containerRef.current.style.height = `${Math.max(rows, 1) * CHART_ROW_HEIGHT + 80}px`;
       chart.resize();
     }
-  }, [l10n, props.document, props.schedule, props.criticalPath, props.view, props.selectedEntity]);
+  }, [l10n, props.project, props.view, props.selectedEntity]);
 
   return <div className="ganttee-gantt-chart" ref={containerRef} />;
 }
 
 /** Builds the ECharts option from the current document and selection. */
 function buildOption(
-  document: ProjectDocument,
-  scheduledModel: ProjectSchedule,
-  criticalPath: CriticalPathProjection,
+  project: ProjectPresentation,
   view: ProjectView,
   selectedEntity: EditableEntityRef | null,
   locale: string,
   unavailable: string,
   formatRange: (start: string, end: string) => string,
 ): echarts.EChartsCoreOption {
-  const { tasks, milestones, groups } = scheduledModel;
-  const criticalNodeIds = new Set(criticalPath.nodeIds);
-  const criticalDependencyIds = new Set(criticalPath.dependencyIds);
+  const tasks = project.tasks.filter(hasEffectiveSchedule);
+  const milestones = project.milestones.filter(hasEffectiveSchedule);
+  const groups = project.groups.filter(hasEffectiveSchedule);
+  const criticalNodeIds = new Set(project.criticalPath.nodeIds);
+  const criticalDependencyIds = new Set(project.criticalPath.dependencyIds);
   const rows = [
     ...tasks.map((task) => ({ id: task.id, label: task.name })),
     ...milestones.map((milestone) => ({
@@ -173,27 +164,30 @@ function buildOption(
   ];
   const indexById = new Map(rows.map((row, index) => [row.id, index]));
   const timestamps = [
-    ...tasks.flatMap((task) => [task.effectiveStart().getTime(), task.effectiveEnd().getTime()]),
-    ...milestones.map((milestone) => milestone.effectiveStart().getTime()),
-    ...groups.flatMap((group) => [group.effectiveStart.getTime(), group.effectiveEnd.getTime()]),
+    ...tasks.flatMap((task) => [toChartMs(task.effectiveStart), toChartMs(task.effectiveEnd)]),
+    ...milestones.map((milestone) => toChartMs(milestone.effectiveStart)),
+    ...groups.flatMap((group) => [toChartMs(group.effectiveStart), toChartMs(group.effectiveEnd)]),
   ];
-  const range = {
-    min: Math.min(...timestamps) - 2 * 24 * 60 * 60 * 1000,
-    max: Math.max(...timestamps) + 2 * 24 * 60 * 60 * 1000,
-  };
+  const now = Date.now();
+  const range =
+    timestamps.length === 0
+      ? { min: now - 2 * DAY, max: now + 14 * DAY }
+      : {
+          min: Math.min(...timestamps) - 2 * DAY,
+          max: Math.max(...timestamps) + 2 * DAY,
+        };
 
   const taskData = tasks
     .map((task) => {
-      const authoringTask = document.tasks.find((candidate) => candidate.id === task.id)!;
       return {
         value: [
           indexById.get(task.id) ?? 0,
-          task.effectiveStart().getTime(),
-          task.effectiveEnd().getTime(),
+          toChartMs(task.effectiveStart),
+          toChartMs(task.effectiveEnd),
         ],
-        task: authoringTask,
-        effectiveStart: task.effectiveStart().toISOString(),
-        effectiveEnd: task.effectiveEnd().toISOString(),
+        task,
+        effectiveStart: task.effectiveStart,
+        effectiveEnd: task.effectiveEnd,
         selected: selectedEntity?.kind === "task" && selectedEntity.id === task.id,
         itemStyle:
           view.showCriticalPath && criticalNodeIds.has(task.id) ? CRITICAL_ITEM_STYLE : undefined,
@@ -202,9 +196,9 @@ function buildOption(
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
   const milestoneData = milestones.map((milestone) => ({
-    value: [indexById.get(milestone.id) ?? 0, milestone.effectiveStart().getTime()],
-    milestone: document.milestones.find((candidate) => candidate.id === milestone.id)!,
-    effectiveDate: milestone.effectiveStart().toISOString(),
+    value: [indexById.get(milestone.id) ?? 0, toChartMs(milestone.effectiveStart)],
+    milestone,
+    effectiveDate: milestone.effectiveStart,
     selected: selectedEntity?.kind === "milestone" && selectedEntity.id === milestone.id,
     itemStyle:
       view.showCriticalPath && criticalNodeIds.has(milestone.id) ? CRITICAL_ITEM_STYLE : undefined,
@@ -213,10 +207,10 @@ function buildOption(
   const groupData = groups.map((group) => ({
     value: [
       indexById.get(group.id) ?? 0,
-      group.effectiveStart.getTime(),
-      group.effectiveEnd.getTime(),
+      toChartMs(group.effectiveStart),
+      toChartMs(group.effectiveEnd),
     ],
-    group: document.groups.find((candidate) => candidate.id === group.id)!,
+    group,
   }));
 
   const scheduledById = new Map(
@@ -224,13 +218,13 @@ function buildOption(
       entity.id,
       {
         id: entity.id,
-        start: entity.effectiveStart().toISOString(),
-        end: entity.effectiveEnd().toISOString(),
+        start: entity.effectiveStart,
+        end: entity.effectiveEnd,
       },
     ]),
   );
 
-  const linkData = document.dependencies
+  const linkData = project.dependencies
     .map((dep) => {
       const source = scheduledById.get(dep.sourceId);
       const target = scheduledById.get(dep.targetId);
@@ -250,7 +244,7 @@ function buildOption(
       };
     })
     .filter((item): item is { id: string; value: number[] } => item !== undefined);
-  const calendarAreas = buildCalendarAreas(document, range, view);
+  const calendarAreas = buildCalendarAreas(project, range, view);
   const timelineAxis = createTimelineAxisModel(view.zoomLevel, locale);
   const axisRange = {
     min: alignTimelineStart(view.zoomLevel, range.min),
@@ -361,13 +355,13 @@ function buildOption(
 
 /** Builds off-day and holiday shading ranges for the visible chart interval. */
 function buildCalendarAreas(
-  document: ProjectDocument,
+  project: ProjectPresentation,
   range: { min: number; max: number },
   view: ProjectView,
 ): CalendarArea[] {
   const areas: CalendarArea[] = [];
   if (view.showOffDays) {
-    const daysOff = document.settings.workingCalendar.daysOff;
+    const daysOff = project.settings.workingCalendar.daysOff;
     for (let start = startOfDay(range.min); start < range.max; start += DAY) {
       const weekday = new Date(start).getDay() || 7;
       if (daysOff.includes(weekday)) {
@@ -382,7 +376,7 @@ function buildCalendarAreas(
     }
   }
   if (view.showHolidays) {
-    for (const holiday of document.settings.holidays) {
+    for (const holiday of project.settings.holidays) {
       const start = startOfDay(toChartMs(holiday.start));
       const end = startOfDay(toChartMs(holiday.end)) + DAY;
       if (end >= range.min && start <= range.max) {
@@ -397,6 +391,17 @@ function buildCalendarAreas(
     }
   }
   return areas;
+}
+
+/** Narrows a presented item to one carrying a complete effective schedule. */
+function hasEffectiveSchedule<T extends EffectiveSchedulePresentation>(
+  item: T,
+): item is T & Required<EffectiveSchedulePresentation> {
+  return (
+    item.effectiveStart !== undefined &&
+    item.effectiveEnd !== undefined &&
+    item.effectiveDuration !== undefined
+  );
 }
 
 /** Creates the hidden continuous scale used by custom calendar ticks. */

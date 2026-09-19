@@ -1,4 +1,4 @@
-import { DependencyType, ProjectDocument } from "@common/documents";
+import { DependencyType, ProjectContent } from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
 import { DependencyEditorProps } from "@webview/features/entity-editor/entityEditor.types";
 import { EntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
@@ -7,7 +7,7 @@ import { useCallback, useMemo, useState } from "react";
 /** Manages dependency-editor state for a task or milestone draft. */
 export function useDependencyEditorState(
   ownerId: string | undefined,
-  projectDoc: ProjectDocument,
+  projectDoc: ProjectContent,
   workflow: Pick<EntityEditWorkflow, "addDependency" | "removeDependency">,
   onRequestEditEntity: (entity: EditableEntityRef) => void,
 ): DependencyEditorProps {

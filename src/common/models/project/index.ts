@@ -3,6 +3,8 @@ export * from "@common/models/project/milestone";
 export * from "@common/models/project/projectItem";
 export * from "@common/models/project/projectModel";
 export * from "@common/models/project/projectSchedule";
+export * from "@common/models/project/projectSnapshot";
+export * from "@common/models/project/scheduleDiagnostic";
 export * from "@common/models/project/scheduledMilestone";
 export * from "@common/models/project/scheduledTask";
 export * from "@common/models/project/task";

@@ -1,4 +1,3 @@
-import { ProjectScheduleDocument } from "@common/documents/project-schedule/projectScheduleDocument";
 import { Dependency } from "@common/documents/project/dependency";
 import { Group } from "@common/documents/project/group";
 import { Milestone } from "@common/documents/project/milestone";
@@ -9,10 +8,8 @@ import { Task } from "@common/documents/project/task";
 /** Current on-disk schema version for `.ganttee` documents. */
 export const CURRENT_DOCUMENT_VERSION = 2;
 
-/** The serialized shape of a `.ganttee` project. */
-export interface ProjectDocument {
-  /** Schema version. */
-  version: number;
+/** Authored project content shared by persisted and presentation shapes. */
+export interface ProjectContent {
   /** Authored tasks. */
   tasks: Task[];
   /** Authored groups. */
@@ -21,12 +18,16 @@ export interface ProjectDocument {
   milestones: Milestone[];
   /** Authored dependencies. */
   dependencies: Dependency[];
-  /** Transient schedule projection used only by host/webview messages. */
-  schedule?: ProjectScheduleDocument;
   /** Resolved project-level scheduling settings. */
   settings: ProjectSettings;
   /** Resolved chart view preferences. */
   view: ProjectView;
+}
+
+/** The serialized shape of a `.ganttee` project. */
+export interface ProjectDocument extends ProjectContent {
+  /** Schema version. */
+  version: number;
 }
 
 /** Creates an empty project document at the current schema version. */

@@ -6,7 +6,7 @@
  * three-way branch. This module provides that branch once, without casts.
  */
 
-import { ProjectDocument } from "@common/documents";
+import { ProjectContent, ProjectDocument } from "@common/documents";
 import { EditableEntityKind, EditableEntityMap } from "@common/protocol";
 
 /**
@@ -16,7 +16,7 @@ import { EditableEntityKind, EditableEntityMap } from "@common/protocol";
  * @param kind The entity kind to select.
  */
 export function entitiesOf<K extends EditableEntityKind>(
-  projectDoc: ProjectDocument,
+  projectDoc: ProjectContent,
   kind: K,
 ): readonly EditableEntityMap[K][] {
   switch (kind) {
@@ -38,7 +38,7 @@ export function entitiesOf<K extends EditableEntityKind>(
  * @returns The entity, or `undefined` when no entity has that id.
  */
 export function findEntity<K extends EditableEntityKind>(
-  projectDoc: ProjectDocument,
+  projectDoc: ProjectContent,
   kind: K,
   entityId: string,
 ): EditableEntityMap[K] | undefined {

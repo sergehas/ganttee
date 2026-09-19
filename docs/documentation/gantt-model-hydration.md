@@ -4,9 +4,9 @@ Target audience: contributors working on the host-side data pipeline.
 
 ## Overview
 
-A `.ganttee` file is plain JSON on disk. The host reads that text, validates it, and turns it into
-an in-memory model before it can be rendered or mutated. In the current codebase, the persisted
-shape is `ProjectDocument`, and the host-only hydrated shape is `ProjectModel`.
+A `.ganttee` file is plain JSON on disk. The host parses it into `ProjectDocument`, hydrates a
+`ProjectModel`, computes a `ProjectSchedule`, and exposes both through an immutable
+`ProjectSnapshot`. UI boundaries receive a versionless `ProjectPresentation`.
 
 ```mermaid
 ---
@@ -21,6 +21,8 @@ flowchart LR
     A["assertAcyclicGraph\ngraph validate"]
     E["evaluateScheduleConstraints\ndiag check"]
     S["schedule\ncompute dates"]
+    SNAP["ProjectSnapshot\nmodel + schedule + diagnostics"]
+    PRES["ProjectPresentation\nUI-ready transport"]
     U["serializeDocument\nwrite json"]
     HOST["GanttEditorController\nhost document coordinator"]
     WV["Webview\nApp.tsx"]
@@ -33,16 +35,21 @@ flowchart LR
     H --> A
     H -->|ProjectModel| S
     E -->|no blocking diagnostics| S
-    S -->|ProjectSchedule| WV
+    H --> SNAP
+    E --> SNAP
+    S -->|ProjectSchedule| SNAP
+    SNAP --> PRES
+    PRES --> WV
+    SNAP --> SB
     P -->|ProjectDocument| U
     U -->|ProjectDocument| HOST
-    HOST -->|ProjectDocument\npostMessage| WV
-    HOST -->|ProjectDocument\nexpose| SB
+    HOST -->|ProjectPresentation\npostMessage| WV
 ```
 
-The `ProjectDocument` object is the persisted wire format. It is written to disk, sent to the
-webview, and used as the source of truth for the host. The `ProjectModel` is a host-only computed
-view built from that plain document and never serialized to the webview with `postMessage`.
+`ProjectDocument` is the persisted format and source of truth. `ProjectModel` is its hydrated
+computational form. `ProjectSnapshot` hides model/schedule joining from host consumers.
+`ProjectPresentation` is the JSON-compatible webview transport; it contains authored fields plus
+optional effective schedule fields, but no disk schema version.
 
 ---
 
@@ -72,8 +79,8 @@ This module is the boundary between raw file text and the persisted JSON shape. 
 - Returns a `ProjectModel` whose `.graph` is the host-side dependency graph.
 - Also owns the reverse conversion through `toDocument(model)`.
 
-The plain document is still the persisted object. The hydrated model is an in-memory host view built
-from it on each reparse.
+The plain document remains the persisted object. The hydrated model is rebuilt on each reparse and
+is shared by host scheduling and presentation projection.
 
 ### 3. `DependencyGraph` — graph algorithms
 
@@ -101,7 +108,7 @@ sequenceDiagram
     participant Ctrl as GanttEditorController
     participant Parse as parseDocument
     participant Hydrate as hydrateDocument
-    participant Model as ProjectModel
+    participant Snapshot as ProjectSnapshot
     participant Store as GanttStore
     participant Tree as GanttExplorerProvider
     participant App as App.tsx
@@ -113,19 +120,20 @@ sequenceDiagram
     Parse-->>Ctrl: ProjectDocument
     Ctrl->>Hydrate: hydrateDocument(document)
     Hydrate-->>Ctrl: ProjectModel
-    Ctrl-->>Model: cache _document + _model + _scheduledModel
+    Ctrl->>Snapshot: createProjectSnapshot(model, diagnostics)
+    Snapshot-->>Ctrl: model + schedule + diagnostics
     Provider->>Store: setActive(controller)
     Store-->>Tree: active editor changed
 
     App->>Ctrl: ready
-    Ctrl-->>App: init { document, revision, iconBaseUri }
-    App->>App: createGanttViewState(document)
+    Ctrl-->>App: init { project, revision, iconBaseUri }
+    App->>App: createGanttViewState(project)
     Store-->>Tree: refresh tree
-    Tree->>Ctrl: getProjectDocument()
+    Tree->>Ctrl: snapshot
 ```
 
-This is the top-level lifecycle: file text becomes `ProjectDocument`, then `ProjectModel`, then the
-webview receives the plain document payload and the sidebar reads the same active document.
+This is the top-level lifecycle: file text becomes `ProjectDocument`, `ProjectModel`, and
+`ProjectSnapshot`. Sidebar reads the snapshot; webview receives its `ProjectPresentation`.
 
 ---
 
@@ -139,7 +147,8 @@ sequenceDiagram
     participant Hydrate as hydrateDocument
     participant Sanitize as sanitizeScheduleGraph
     participant Eval as evaluateScheduleConstraints
-    participant Scheduler as schedule
+    participant Snapshot as createProjectSnapshot
+    participant Present as toProjectPresentation
     participant App as App.tsx
 
     VSC->>Ctrl: on editor open / text changed
@@ -155,22 +164,20 @@ sequenceDiagram
         Hydrate-->>Ctrl: ProjectModel with graph
         Ctrl->>Eval: evaluateScheduleConstraints(document)
         Eval-->>Ctrl: diagnostics
-        alt no blocking diagnostics
-            Ctrl->>Scheduler: schedule(model)
-            Scheduler-->>Ctrl: ProjectSchedule
-        else scheduling blocked
-            Ctrl-->>Ctrl: keep schedule undefined
-        end
+        Ctrl->>Snapshot: createProjectSnapshot(model, diagnostics)
+        Snapshot-->>Ctrl: ProjectSnapshot
+        Ctrl->>Present: toProjectPresentation(snapshot)
+        Present-->>Ctrl: ProjectPresentation
     end
-    Ctrl-->>App: postMessage({ type: "init", document, revision })
-    App->>App: createGanttViewState(document)
+    Ctrl-->>App: postMessage({ type: "init", project, revision })
+    App->>App: createGanttViewState(project)
     App->>App: render timeline + chart
 ```
 
 Sanitization owns component-anchoring checks on reparse. Once sanitization reports no removals, the
 controller evaluates only determinacy and endpoint constraints, avoiding a second component scan.
-The host then recomputes schedule state and sends the latest plain document to the webview with its
-`revision`.
+Snapshot creation schedules only when diagnostics permit it. The host sends a flattened presentation
+with its `revision`; the webview performs no model hydration or graph computation.
 
 ---
 
@@ -186,11 +193,10 @@ sequenceDiagram
     participant VSC as VS Code TextDocument
 
     User->>App: edit task / milestone / group / dependency / view
-    App->>App: updateGanttViewDocument(...) or updateView(...)
-    App-->>Host: postMessage({ type: "entityUpdated" | "updateView" | "addDependency" | "removeDependency" })
+    App-->>Host: postMessage({ type: "updateEntity" | "updateView" | "addDependency" | "removeDependency" })
     Host->>Host: handleMessage(message)
-    alt entity update or full document update
-        Host->>Host: updateDocument(updatedDocument, baseRevision)
+    alt entity update
+        Host->>Host: updateEntity(kind, entity, baseRevision)
     else view update
         Host->>Host: updateView(view, baseRevision)
     else dependency mutation
@@ -203,12 +209,12 @@ sequenceDiagram
     VSC-->>Host: onDidChangeTextDocument
     Host->>Parse: parseDocument(new text)
     Parse-->>Host: ProjectDocument
-    Host-->>App: postMessage({ type: "documentChanged", document, revision })
-    App->>App: replace viewState with latest document
+    Host-->>App: postMessage({ type: "documentChanged", project, revision })
+    App->>App: replace viewState with latest presentation
 ```
 
-The webview never writes the file directly. It sends a revision-safe payload to the host, and the
-host validates and applies the document mutation through `WorkspaceEdit`.
+The webview never writes the file or returns a complete project payload. It sends revision-safe
+intent messages; the host applies them to the current document through `WorkspaceEdit`.
 
 ---
 
@@ -241,7 +247,7 @@ sequenceDiagram
     VSC-->>Ctrl: onDidChangeTextDocument
     Ctrl->>Parse: parseDocument(updated text)
     Parse-->>Ctrl: ProjectDocument
-    Ctrl-->>App: postMessage({ type: "documentChanged", document, revision })
+    Ctrl-->>App: postMessage({ type: "documentChanged", project, revision })
     App->>App: refresh timeline + selected entity view
     Tree-->>Tree: refresh tree data
 ```
@@ -268,7 +274,6 @@ classDiagram
         +dependencies: Dependency[]
         +settings: ProjectSettings
         +view: ProjectView
-        +schedule?: ProjectScheduleDocument
     }
 
     class ProjectModel {
@@ -288,10 +293,20 @@ classDiagram
         +groups: ScheduledGroup[]
     }
 
-    class ProjectScheduleDocument {
-        +tasks: ScheduledTask[]
-        +milestones: ScheduledMilestone[]
-        +groups: ScheduledGroup[]
+    class ProjectSnapshot {
+        +model: ProjectModel
+        +schedule?: ProjectSchedule
+        +diagnostics: ScheduleDiagnostic[]
+    }
+
+    class ProjectPresentation {
+        +tasks: TaskPresentation[]
+        +milestones: MilestonePresentation[]
+        +groups: GroupPresentation[]
+        +dependencies: Dependency[]
+        +settings: ProjectSettings
+        +view: ProjectView
+        +criticalPath: CriticalPathPresentation
     }
 
     class ProjectDependencyGraph
@@ -299,7 +314,9 @@ classDiagram
     ProjectDocument ..> ProjectModel : hydrateDocument()
     ProjectModel ..> ProjectDocument : toDocument()
     ProjectModel ..> ProjectSchedule : schedule()
-    ProjectSchedule ..> ProjectScheduleDocument : transport payload
+    ProjectModel --> ProjectSnapshot
+    ProjectSchedule --> ProjectSnapshot
+    ProjectSnapshot ..> ProjectPresentation : toProjectPresentation()
     ProjectModel *-- ProjectDependencyGraph
 ```
 
@@ -316,9 +333,8 @@ what passes through the protocol. `ProjectModel` is the rich object graph used b
 and by scheduling. The document is the source of truth; the model is a computed view rebuilt on
 every successful reparse.
 
-The host also keeps a `ProjectSchedule` in `GanttEditorController` for the effective-date rendering,
-which is why the controller sends a `schedule` payload along with the document during transport to
-the webview.
+The controller stores one `ProjectSnapshot`. Sidebar reads its merged item records. The webview
+receives a `ProjectPresentation` where each item carries optional `effective*` fields.
 
 ---
 
@@ -327,6 +343,7 @@ the webview.
 ```text
 src/common/documents/           ← persisted document types and plain JSON shapes.
 src/common/models/              ← hydrated model classes and graph logic.
+src/common/presentation/        ← versionless JSON-safe UI projections.
 
 src/services/dependency-graph/  ← dependency validation, cycle checks, and graph primitives.
 src/services/document/          ← parse, migrate, and validate the raw .ganttee document.
@@ -342,9 +359,9 @@ src/views/sidebar/              ← GanttExplorerProvider and tree commands.
 src/webview/                    ← React chart/editor UI.
 ```
 
-The plain document crosses host/webview boundaries. The hydrated model remains host-only and should
-never be posted across the `postMessage` boundary. The webview receives `ProjectDocument` plus the
-current `revision`, and it sends back authoring updates through the host protocol.
+The plain document stays at the persistence boundary. Neither hydrated classes nor graph objects
+cross `postMessage`. The webview receives `ProjectPresentation` plus the current protocol
+`revision`, then sends authoring intents back to the host.
 
 `evaluateScheduleDiagnostics` combines constraint and component-anchoring diagnostics for proposed
 edits before persistence. Reparse uses `evaluateScheduleConstraints` because `sanitizeScheduleGraph`

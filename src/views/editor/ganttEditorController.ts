@@ -11,11 +11,10 @@ import {
 import {
   CyclicDependencyError,
   ParallelEdgeDependencyError,
-  ProjectModel,
-  ProjectSchedule,
-  SchedulingError,
+  ProjectSnapshot,
   SelfLoopDependencyError,
 } from "@common/models";
+import { ProjectPresentation } from "@common/presentation";
 import {
   EditableEntityKind,
   EditableEntityRef,
@@ -36,7 +35,8 @@ import {
   hasGroupContents,
 } from "@services/groups/groupDeletionService";
 import { hydrateDocument } from "@services/model/projectModelService";
-import { toScheduledDocument } from "@services/schedule/scheduledDocumentService";
+import { toProjectPresentation } from "@services/model/projectPresentationService";
+import { createProjectSnapshot } from "@services/model/projectSnapshotService";
 import {
   sanitizeScheduleGraph,
   ScheduleGraphSanitization,
@@ -45,9 +45,7 @@ import {
   blockingDiagnostics,
   evaluateScheduleConstraints,
   evaluateScheduleDiagnostics,
-  ScheduleDiagnostic,
 } from "@services/schedule/scheduleGraphValidationService";
-import { schedule } from "@services/schedule/schedulingService";
 import {
   assignEntitiesToGroup,
   EffectiveDateMap,
@@ -67,9 +65,7 @@ import * as vscode from "vscode";
  */
 export class GanttEditorController {
   private _document: ProjectDocument = createEmptyDocument();
-  private _model: ProjectModel = hydrateDocument(this._document);
-  private _scheduledModel: ProjectSchedule | undefined;
-  private _diagnostics: readonly ScheduleDiagnostic[] = [];
+  private _snapshot = createProjectSnapshot(hydrateDocument(this._document), []).snapshot;
   private _isDisposed = false;
   private _hasInitializedWebview = false;
   private readonly _disposables: vscode.Disposable[] = [];
@@ -91,7 +87,7 @@ export class GanttEditorController {
           this.reparse();
           this.post({
             type: "documentChanged",
-            document: this.transportDocument(),
+            project: this.projectPresentation(),
             revision: this.document.version,
           });
         }
@@ -109,37 +105,16 @@ export class GanttEditorController {
     return this.document.uri;
   }
 
-  /** Returns the current plain document for host consumers and webview messages. */
-  getProjectDocument(): ProjectDocument {
-    return this._document;
-  }
-
-  /**
-   * The hydrated, `Date`-typed in-memory model derived from {@link model} on
-   * every reparse. Host-only; never sent over the webview protocol.
-   */
-  get hydratedModel(): ProjectModel {
-    return this._model;
-  }
-
-  /** Returns the current host-computed schedule, when the document is schedulable. */
-  get scheduledModel(): ProjectSchedule | undefined {
-    return this._scheduledModel;
-  }
-
-  /**
-   * The semantic validation result for the current model.
-   * Updated on every successful reparse.
-   */
-  get validation(): readonly ScheduleDiagnostic[] {
-    return this._diagnostics;
+  /** Returns the current immutable hydrated, scheduled, and diagnostic state. */
+  get snapshot(): ProjectSnapshot {
+    return this._snapshot;
   }
 
   /** Reveals the editor panel and posts the initial document to the webview. */
   sendInit(): void {
     this.post({
       type: "init",
-      document: this.transportDocument(),
+      project: this.projectPresentation(),
       revision: this.document.version,
       iconBaseUri: this.iconBaseUri,
     });
@@ -192,7 +167,7 @@ export class GanttEditorController {
 
   /** Sorts authored sidebar order using current effective schedule dates. */
   async sortItems(direction: SortDirection): Promise<boolean> {
-    if (this._scheduledModel === undefined) {
+    if (this._snapshot.schedule === undefined) {
       void vscode.window.showWarningMessage(
         vscode.l10n.t("Sort is unavailable without a schedule."),
       );
@@ -258,10 +233,7 @@ export class GanttEditorController {
         this.sendL10nCatalogAndInit();
         break;
       case "updateEntity":
-        await this.updateEntity(message.kind, message.entity);
-        break;
-      case "entityUpdated":
-        await this.updateDocument(message.updatedDocument, message.baseRevision);
+        await this.updateEntity(message.kind, message.entity, message.baseRevision);
         break;
       case "updateView":
         await this.updateView(message.view, message.baseRevision);
@@ -288,7 +260,12 @@ export class GanttEditorController {
   private async updateEntity(
     kind: EditableEntityKind,
     entity: Task | Milestone | Group,
+    baseRevision: number,
   ): Promise<void> {
+    if (baseRevision !== this.document.version) {
+      this.postCurrentProject();
+      return;
+    }
     const next = replaceEntity(this._document, kind, entity);
     if (!next) {
       this.showUnknownIdWarning(kind, entity.id);
@@ -297,30 +274,10 @@ export class GanttEditorController {
     await this.applyDocument(next);
   }
 
-  /** Applies an authoring document from the webview unless its base is stale. */
-  private async updateDocument(
-    updatedDocument: ProjectDocument,
-    baseRevision: number,
-  ): Promise<void> {
-    if (baseRevision !== this.document.version) {
-      this.post({
-        type: "documentChanged",
-        document: this.transportDocument(),
-        revision: this.document.version,
-      });
-      return;
-    }
-    await this.applyDocument(updatedDocument);
-  }
-
   /** Applies a persisted view proposal through the same revision-safe edit path. */
   private async updateView(view: ProjectView, baseRevision: number): Promise<void> {
     if (baseRevision !== this.document.version) {
-      this.post({
-        type: "documentChanged",
-        document: this.transportDocument(),
-        revision: this.document.version,
-      });
+      this.postCurrentProject();
       return;
     }
     await this.applyDocument({ ...this._document, view });
@@ -394,16 +351,18 @@ export class GanttEditorController {
   /** Builds the schedule-derived effective-date map consumed by sidebar sorting. */
   private effectiveDateMap(): EffectiveDateMap {
     const dates = new Map<string, { start: Date; end: Date }>();
-    this._scheduledModel?.tasks.forEach((task) =>
-      dates.set(task.id, { start: task.effectiveStart(), end: task.effectiveEnd() }),
-    );
-    this._scheduledModel?.milestones.forEach((milestone) => {
-      const date = milestone.effectiveStart();
-      dates.set(milestone.id, { start: date, end: date });
-    });
-    this._scheduledModel?.groups.forEach((group) =>
-      dates.set(group.id, { start: group.effectiveStart, end: group.effectiveEnd }),
-    );
+    for (const snapshot of [
+      ...this._snapshot.tasks,
+      ...this._snapshot.milestones,
+      ...this._snapshot.groups,
+    ]) {
+      if (snapshot.effective !== undefined) {
+        dates.set(snapshot.item.id, {
+          start: snapshot.effective.start,
+          end: snapshot.effective.end,
+        });
+      }
+    }
     return dates;
   }
 
@@ -427,22 +386,9 @@ export class GanttEditorController {
       const document = sanitization.document;
       const hydratedModel = hydrateDocument(document);
       const diagnostics = evaluateScheduleConstraints(document);
-      let scheduledModel: ProjectSchedule | undefined;
-      let schedulingError: SchedulingError | undefined;
-      if (blockingDiagnostics(diagnostics).length === 0) {
-        try {
-          scheduledModel = schedule(hydratedModel);
-        } catch (error) {
-          if (!(error instanceof SchedulingError)) {
-            throw error;
-          }
-          schedulingError = error;
-        }
-      }
+      const { snapshot, schedulingError } = createProjectSnapshot(hydratedModel, diagnostics);
       this._document = document;
-      this._model = hydratedModel;
-      this._scheduledModel = scheduledModel;
-      this._diagnostics = diagnostics;
+      this._snapshot = snapshot;
       this._onDidChangeModel.fire();
       if (schedulingError !== undefined) {
         void vscode.window.showErrorMessage(vscode.l10n.t("Ganttee: {0}", schedulingError.message));
@@ -460,10 +406,6 @@ export class GanttEditorController {
         void vscode.window.showErrorMessage(
           vscode.l10n.t("Ganttee: invalid dependency graph. {0}", error.message),
         );
-        return;
-      }
-      if (error instanceof SchedulingError) {
-        this._scheduledModel = undefined;
         return;
       }
       throw error;
@@ -569,15 +511,18 @@ export class GanttEditorController {
     this.sendInit();
   }
 
-  /** Creates the protocol document with its transient serialized schedule. */
-  private transportDocument(): ProjectDocument {
-    if (this._scheduledModel === undefined) {
-      return { ...this._document };
-    }
-    return {
-      ...this._document,
-      schedule: toScheduledDocument(this._scheduledModel),
-    };
+  /** Creates the versionless UI projection for the current snapshot. */
+  private projectPresentation(): ProjectPresentation {
+    return toProjectPresentation(this._snapshot);
+  }
+
+  /** Sends the current project after rejecting a stale webview mutation. */
+  private postCurrentProject(): void {
+    this.post({
+      type: "documentChanged",
+      project: this.projectPresentation(),
+      revision: this.document.version,
+    });
   }
 
   /**

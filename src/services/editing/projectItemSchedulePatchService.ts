@@ -6,7 +6,7 @@
  */
 
 import { addDays, formatIsoDate, parseIsoDate } from "@common/dates";
-import { Milestone, ProjectDocument, Task } from "@common/documents";
+import { Milestone, ProjectContent, Task } from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
 import { findEntity } from "@services/document/projectItemService";
 import {
@@ -35,7 +35,7 @@ export interface EntityDatePatch {
  * @returns The update payload, or `undefined` when the edit cannot be applied.
  */
 export function buildDatePatchUpdate(
-  projectDoc: ProjectDocument,
+  projectDoc: ProjectContent,
   ref: EditableEntityRef,
   patch: EntityDatePatch,
   options?: SaveEntityOptions,
@@ -77,7 +77,7 @@ export function buildDatePatchUpdate(
  * @returns The resulting dates, or `undefined` when there is nothing to shift.
  */
 export function buildShiftByDaysPatch(
-  projectDoc: ProjectDocument,
+  projectDoc: ProjectContent,
   ref: EditableEntityRef,
   days: number,
 ): EntityDatePatch | undefined {
