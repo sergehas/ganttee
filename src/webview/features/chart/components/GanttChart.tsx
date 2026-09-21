@@ -86,12 +86,6 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
     chart.on("click", (params) => {
       const entity = entityFromChartEvent(params);
       if (entity) {
-        propsRef.current.onSelectEntity(entity);
-      }
-    });
-    chart.on("dblclick", (params) => {
-      const entity = entityFromChartEvent(params);
-      if (entity) {
         if (isDirectEditGesture(params)) {
           propsRef.current.onNudgeEntityByDays?.(entity, 1);
           return;
@@ -154,14 +148,12 @@ function buildOption(
   const groups = project.groups.filter(hasEffectiveSchedule);
   const criticalNodeIds = new Set(project.criticalPath.nodeIds);
   const criticalDependencyIds = new Set(project.criticalPath.dependencyIds);
-  const rows = [
-    ...tasks.map((task) => ({ id: task.id, label: task.name })),
-    ...milestones.map((milestone) => ({
-      id: milestone.id,
-      label: milestone.name,
-    })),
-    ...groups.map((group) => ({ id: group.id, label: group.name })),
-  ];
+  const indexableIds = new Set([
+    ...tasks.map((task) => task.id),
+    ...milestones.map((milestone) => milestone.id),
+    ...groups.map((group) => group.id),
+  ]);
+  const rows = orderedRows(project).filter((row) => indexableIds.has(row.id));
   const indexById = new Map(rows.map((row, index) => [row.id, index]));
   const timestamps = [
     ...tasks.flatMap((task) => [toChartMs(task.effectiveStart), toChartMs(task.effectiveEnd)]),
@@ -402,6 +394,37 @@ function hasEffectiveSchedule<T extends EffectiveSchedulePresentation>(
     item.effectiveEnd !== undefined &&
     item.effectiveDuration !== undefined
   );
+}
+
+/** Flattens the project's authored sequence (root, then each group's own sequence) into row order. */
+function orderedRows(project: ProjectPresentation): { id: string; label: string }[] {
+  const byId = new Map<string, { id: string; label: string }>();
+  for (const task of project.tasks) {
+    byId.set(task.id, { id: task.id, label: task.name });
+  }
+  for (const milestone of project.milestones) {
+    byId.set(milestone.id, { id: milestone.id, label: milestone.name });
+  }
+  for (const group of project.groups) {
+    byId.set(group.id, { id: group.id, label: group.name });
+  }
+  const groupsById = new Map(project.groups.map((group) => [group.id, group]));
+
+  const rows: { id: string; label: string }[] = [];
+  const visit = (sequence: readonly string[]) => {
+    for (const id of sequence) {
+      const row = byId.get(id);
+      if (row) {
+        rows.push(row);
+      }
+      const group = groupsById.get(id);
+      if (group) {
+        visit(group.sequence ?? []);
+      }
+    }
+  };
+  visit(project.sequence ?? []);
+  return rows;
 }
 
 /** Creates the hidden continuous scale used by custom calendar ticks. */
