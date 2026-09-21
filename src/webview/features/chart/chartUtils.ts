@@ -10,6 +10,7 @@ import {
   Task,
 } from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
+import { depthFirstOrder } from "@services/ordering/sequenceOrderingService";
 
 /** A task or milestone row displayed on the chart axis. */
 export interface ChartRow {
@@ -39,23 +40,29 @@ export function countChartRows(projectDoc: ProjectDocument): number {
   return projectDoc.tasks.length + projectDoc.milestones.length;
 }
 
-/** Builds chart rows and their entity-to-row index lookup. */
+/** Builds chart rows and their entity-to-row index lookup, in sequence-defined depth-first order. */
 export function buildChartRows(projectDoc: ProjectDocument): {
   rows: ChartRow[];
   indexById: Map<string, number>;
 } {
-  const rows: ChartRow[] = [
-    ...projectDoc.tasks.map((task): ChartRow => ({
-      id: task.id,
-      label: task.name,
-      kind: "task",
-    })),
-    ...projectDoc.milestones.map((milestone): ChartRow => ({
-      id: milestone.id,
-      label: milestone.name,
-      kind: "milestone",
-    })),
-  ];
+  const tasksById = new Map(projectDoc.tasks.map((task) => [task.id, task]));
+  const milestonesById = new Map(
+    projectDoc.milestones.map((milestone) => [milestone.id, milestone]),
+  );
+
+  const rows: ChartRow[] = [];
+  for (const id of depthFirstOrder(projectDoc)) {
+    const task = tasksById.get(id);
+    if (task) {
+      rows.push({ id: task.id, label: task.name, kind: "task" });
+      continue;
+    }
+    const milestone = milestonesById.get(id);
+    if (milestone) {
+      rows.push({ id: milestone.id, label: milestone.name, kind: "milestone" });
+    }
+  }
+
   const indexById = new Map<string, number>();
   rows.forEach((row, index) => indexById.set(row.id, index));
   return { rows, indexById };

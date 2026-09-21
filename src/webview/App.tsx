@@ -1,5 +1,5 @@
 import { Dependency, Group, Milestone, ProjectView, Task } from "@common/documents";
-import { ProjectPresentation } from "@common/presentation";
+import { ProjectPresentation } from "@common/presentation/project";
 import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
 import { buildShiftByDaysPatch } from "@services/editing/projectItemSchedulePatchService";
 import "@webview/App.scss";

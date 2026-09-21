@@ -9,6 +9,11 @@
 import { ProjectDocument } from "@common/documents";
 import { GroupDeleteStrategy } from "@common/protocol";
 import { selectGroupScheduleScope } from "@services/groups/groupHierarchyService";
+import {
+  insertIdsIntoOwnerSequence,
+  removeIdsFromEverySequence,
+  sequenceOf,
+} from "@services/ordering/sequenceOrderingService";
 
 /**
  * Removes a group from a document using the requested strategy.
@@ -48,11 +53,12 @@ export function hasGroupContents(projectDoc: ProjectDocument, groupId: string): 
 function deleteGroupSubtree(projectDoc: ProjectDocument, groupId: string): ProjectDocument {
   const scope = selectGroupScheduleScope(projectDoc, groupId);
   const deletedIds = new Set([
+    ...scope.groupIds,
     ...scope.tasks.map((task) => task.id),
     ...scope.milestones.map((milestone) => milestone.id),
   ]);
 
-  return {
+  const next: ProjectDocument = {
     ...projectDoc,
     groups: projectDoc.groups.filter((group) => !scope.groupIds.has(group.id)),
     tasks: projectDoc.tasks.filter((task) => !deletedIds.has(task.id)),
@@ -61,9 +67,10 @@ function deleteGroupSubtree(projectDoc: ProjectDocument, groupId: string): Proje
       (dependency) => !deletedIds.has(dependency.sourceId) && !deletedIds.has(dependency.targetId),
     ),
   };
+  return removeIdsFromEverySequence(next, deletedIds);
 }
 
-/** Removes the group and reassigns its direct members to the group's parent. */
+/** Removes the group and reassigns its direct members to the group's parent, at the group's former sequence position. */
 function promoteGroupContents(
   projectDoc: ProjectDocument,
   groupId: string,
@@ -72,10 +79,21 @@ function promoteGroupContents(
   const reparent = <T extends { groupId?: string }>(entity: T): T =>
     entity.groupId === groupId ? { ...entity, groupId: parentGroupId } : entity;
 
-  return {
+  const promotedGroup = projectDoc.groups.find((group) => group.id === groupId);
+  const promotedIds = promotedGroup?.sequence ?? [];
+  const parentSequence = sequenceOf(projectDoc, parentGroupId);
+  const groupIndex = parentSequence.indexOf(groupId);
+  const beforeId =
+    groupIndex >= 0 && groupIndex + 1 < parentSequence.length
+      ? parentSequence[groupIndex + 1]
+      : undefined;
+
+  const next: ProjectDocument = {
     ...projectDoc,
     groups: projectDoc.groups.filter((group) => group.id !== groupId).map(reparent),
     tasks: projectDoc.tasks.map(reparent),
     milestones: projectDoc.milestones.map(reparent),
   };
+  const withoutDeleted = removeIdsFromEverySequence(next, new Set([groupId, ...promotedIds]));
+  return insertIdsIntoOwnerSequence(withoutDeleted, parentGroupId, promotedIds, beforeId);
 }

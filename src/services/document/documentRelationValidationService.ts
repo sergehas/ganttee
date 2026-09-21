@@ -22,6 +22,7 @@ export function assertDocumentRelations(projectDoc: ProjectDocument): void {
   assertTaskDateOrder(projectDoc.tasks);
   assertGroupHierarchy(projectDoc.groups);
   assertGroupReferences(projectDoc);
+  assertSequenceIntegrity(projectDoc);
   try {
     assertGraphIntegrity(projectDoc);
   } catch (error) {
@@ -107,4 +108,56 @@ function assertGroupReferences(projectDoc: ProjectDocument): void {
       throw new GanttParseError(`milestones[${index}].groupId references an unknown group id.`);
     }
   });
+}
+
+/**
+ * Asserts that the root sequence and every group's sequence contain exactly
+ * their direct children, each exactly once. Sequence repair normally
+ * guarantees this before validation runs; this is the defensive backstop.
+ */
+function assertSequenceIntegrity(projectDoc: ProjectDocument): void {
+  assertOwnerSequence(
+    projectDoc.sequence ?? [],
+    directChildrenOf(projectDoc, undefined),
+    "sequence",
+  );
+  for (const group of projectDoc.groups) {
+    assertOwnerSequence(
+      group.sequence ?? [],
+      directChildrenOf(projectDoc, group.id),
+      `groups["${group.id}"].sequence`,
+    );
+  }
+}
+
+/** Direct child ids of one owner scope across all three item kinds. */
+function directChildrenOf(projectDoc: ProjectDocument, ownerId: string | undefined): Set<string> {
+  const owned = (entities: readonly { id: string; groupId?: string }[]): string[] =>
+    entities.filter((entity) => entity.groupId === ownerId).map((entity) => entity.id);
+  return new Set([
+    ...owned(projectDoc.groups),
+    ...owned(projectDoc.tasks),
+    ...owned(projectDoc.milestones),
+  ]);
+}
+
+/** Asserts one owner's sequence covers exactly its direct children, each once. */
+function assertOwnerSequence(
+  sequence: readonly string[],
+  directChildren: ReadonlySet<string>,
+  label: string,
+): void {
+  const seen = new Set<string>();
+  for (const id of sequence) {
+    if (!directChildren.has(id)) {
+      throw new GanttParseError(`${label} contains an id that is not a direct child.`);
+    }
+    if (seen.has(id)) {
+      throw new GanttParseError(`${label} contains a duplicate id.`);
+    }
+    seen.add(id);
+  }
+  if (seen.size !== directChildren.size) {
+    throw new GanttParseError(`${label} is missing a direct child id.`);
+  }
 }

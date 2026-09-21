@@ -28,8 +28,12 @@ import {
   parseDocument,
   serializeDocument,
 } from "@services/document/documentService";
-import { findEntity, replaceEntity, upsertEntity } from "@services/document/projectItemService";
+import { findEntity, replaceEntity } from "@services/document/projectItemService";
 import { buildTaskOrMilestoneDeletionDocument } from "@services/editing/projectItemRemovalService";
+import {
+  createEntityAtPlacement,
+  resolveCreationPlacement,
+} from "@services/editing/entityCreationService";
 import {
   buildGroupDeletionDocument,
   hasGroupContents,
@@ -137,27 +141,32 @@ export class GanttEditorController {
     this.post({ type: "editEntity", entity });
   }
 
-  /** Adds or replaces a task. Used by host-side creation flows. */
-  async upsertTask(task: Task): Promise<void> {
-    await this.applyDocument(upsertEntity(this._document, "task", task));
+  /** Adds a task, positioned per the current sidebar selection. Used by host-side creation flows. */
+  async upsertTask(task: Task, positionRef?: EditableEntityRef): Promise<void> {
+    const placement = resolveCreationPlacement(this._document, positionRef);
+    await this.applyDocument(createEntityAtPlacement(this._document, "task", task, placement));
   }
 
-  /** Adds or replaces a milestone through the document edit boundary. */
-  async upsertMilestone(milestone: Milestone): Promise<void> {
-    await this.applyDocument(upsertEntity(this._document, "milestone", milestone));
+  /** Adds a milestone, positioned per the current sidebar selection, through the document edit boundary. */
+  async upsertMilestone(milestone: Milestone, positionRef?: EditableEntityRef): Promise<void> {
+    const placement = resolveCreationPlacement(this._document, positionRef);
+    await this.applyDocument(
+      createEntityAtPlacement(this._document, "milestone", milestone, placement),
+    );
   }
 
-  /** Adds or replaces a group through the document edit boundary. */
-  async upsertGroup(group: Group): Promise<void> {
-    await this.applyDocument(upsertEntity(this._document, "group", group));
+  /** Adds a group, positioned per the current sidebar selection, through the document edit boundary. */
+  async upsertGroup(group: Group, positionRef?: EditableEntityRef): Promise<void> {
+    const placement = resolveCreationPlacement(this._document, positionRef);
+    await this.applyDocument(createEntityAtPlacement(this._document, "group", group, placement));
   }
 
-  /** Assigns selected entities to a group or project root. */
+  /** Reparents and repositions selected entities relative to a drop target. */
   async assignEntitiesToGroup(
     entities: readonly EditableEntityRef[],
-    targetGroupId: string | undefined,
+    target: EditableEntityRef | undefined,
   ): Promise<void> {
-    await this.applyDocument(assignEntitiesToGroup(this._document, entities, targetGroupId));
+    await this.applyDocument(assignEntitiesToGroup(this._document, entities, target));
   }
 
   /** Moves one entity within its current owner scope. */

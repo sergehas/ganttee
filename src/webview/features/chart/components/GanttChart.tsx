@@ -1,5 +1,5 @@
 import { ProjectView } from "@common/documents";
-import { EffectiveSchedulePresentation, ProjectPresentation } from "@common/presentation";
+import { EffectiveSchedulePresentation, ProjectPresentation } from "@common/presentation/project";
 import { EditableEntityRef } from "@common/protocol";
 import { CHART_ROW_HEIGHT, CRITICAL_ITEM_STYLE } from "@webview/features/chart/chart.constants";
 import { CalendarArea, TimelineTickData } from "@webview/features/chart/chart.types";

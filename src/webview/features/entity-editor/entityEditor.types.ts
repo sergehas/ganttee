@@ -6,7 +6,11 @@ import {
   ProjectContent,
   Task,
 } from "@common/documents";
-import { MilestonePresentation, ProjectPresentation, TaskPresentation } from "@common/presentation";
+import {
+  MilestonePresentation,
+  ProjectPresentation,
+  TaskPresentation,
+} from "@common/presentation/project";
 import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
 import { SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
 

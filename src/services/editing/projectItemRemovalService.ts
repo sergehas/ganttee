@@ -17,6 +17,7 @@ import {
   SaveEntityOptions,
 } from "@services/editing/projectItemSaveGuardService";
 import { hydrateDocument } from "@services/model/projectModelService";
+import { removeIdsFromEverySequence } from "@services/ordering/sequenceOrderingService";
 
 /**
  * Detaches an entity from its group.
@@ -74,18 +75,21 @@ export function buildTaskOrMilestoneDeletionDocument(
     return undefined;
   }
 
-  return {
-    ...projectDoc,
-    tasks: projectDoc.tasks
-      .filter((task) => kind !== "task" || task.id !== entityId)
-      .map((task) => ({ ...task, ...survivorDates.get(task.id) })),
-    milestones: projectDoc.milestones.filter(
-      (milestone) => kind !== "milestone" || milestone.id !== entityId,
-    ),
-    dependencies: projectDoc.dependencies.filter(
-      (dependency) => dependency.sourceId !== entityId && dependency.targetId !== entityId,
-    ),
-  };
+  return removeIdsFromEverySequence(
+    {
+      ...projectDoc,
+      tasks: projectDoc.tasks
+        .filter((task) => kind !== "task" || task.id !== entityId)
+        .map((task) => ({ ...task, ...survivorDates.get(task.id) })),
+      milestones: projectDoc.milestones.filter(
+        (milestone) => kind !== "milestone" || milestone.id !== entityId,
+      ),
+      dependencies: projectDoc.dependencies.filter(
+        (dependency) => dependency.sourceId !== entityId && dependency.targetId !== entityId,
+      ),
+    },
+    new Set([entityId]),
+  );
 }
 
 /** Endpoints a survivor must keep once its alignment constraint is removed. */

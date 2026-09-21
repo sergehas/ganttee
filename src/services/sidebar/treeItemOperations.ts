@@ -1,101 +1,156 @@
+/**
+ * Sidebar-facing mutation entry points: group assignment (drag-and-drop
+ * reparent/reposition), single-item move, and recursive mixed-kind sort.
+ *
+ * Ownership (`groupId`) and order (`sequence`) are updated together so the
+ * sidebar and chart never see a valid ownership change with a stale order.
+ */
+
 import { Group, Milestone, ProjectDocument, Task } from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
 import { entitiesOf } from "@services/document/projectItemService";
 import { collectDescendantGroupIds } from "@services/groups/groupHierarchyService";
+import {
+  bySourceOrder,
+  insertIdsIntoOwnerSequence,
+  removeIdsFromEverySequence,
+  sequenceOf,
+  sortSequence,
+  withOwnerSequence,
+} from "@services/ordering/sequenceOrderingService";
+import type {
+  EffectiveDateMap,
+  EffectiveDates,
+  MoveDirection,
+  SortDirection,
+} from "@services/ordering/sequenceOrderingService";
 
-/** Direction for a single-item authored-order move. */
-export type MoveDirection = "up" | "down";
+export type { EffectiveDateMap, EffectiveDates, MoveDirection, SortDirection };
 
-/** Direction for a recursive authored-order sort. */
-export type SortDirection = "ascending" | "descending";
-
-/** Effective dates used by sidebar sorting. */
-export interface EffectiveDates {
-  /** Effective start date. */
-  readonly start?: Date;
-  /** Effective end date. */
-  readonly end?: Date;
-}
-
-/** Maps project item ids to schedule-derived effective dates. */
-export type EffectiveDateMap = ReadonlyMap<string, EffectiveDates>;
-
-/** Assigns valid selected entities to a group, or to project root when absent. */
+/**
+ * Reparents and repositions valid selected entities relative to a drop
+ * target.
+ *
+ * A group target nests the selection into it (list-drop rule: appended at
+ * the end of the group's own sequence). A task or milestone target is an
+ * item-target drop: the selection receives the target's owner and is
+ * inserted immediately before the target. `undefined` (background) targets
+ * the project root the same way as a group target. Self-relative inserts,
+ * self/descendant group cycles, and stale ids are rejected per-item; the
+ * remaining valid items are still applied in one edit.
+ *
+ * @param projectDoc The document to update.
+ * @param entities The dragged (or otherwise selected) entities.
+ * @param target The drop target, or `undefined` for the project root.
+ */
 export function assignEntitiesToGroup(
   projectDoc: ProjectDocument,
   entities: readonly EditableEntityRef[],
-  targetGroupId: string | undefined,
+  target: EditableEntityRef | undefined,
 ): ProjectDocument {
-  if (
-    targetGroupId !== undefined &&
-    !projectDoc.groups.some((group) => group.id === targetGroupId)
-  ) {
+  const { ownerId, beforeId } = resolveDropTarget(projectDoc, target);
+
+  const valid = entities.filter((entity) => isValidDrop(projectDoc, entity, target, ownerId));
+  if (valid.length === 0) {
     return projectDoc;
   }
 
-  const valid = entities.filter((entity) => {
-    if (!hasEntity(projectDoc, entity)) {
-      return false;
-    }
-    if (entity.kind !== "group" || targetGroupId === undefined) {
-      return true;
-    }
-    // Reject self drops and drops onto one of the group's own descendants.
-    return !collectDescendantGroupIds(projectDoc.groups, entity.id).has(targetGroupId);
-  });
+  const droppedIds = new Set(valid.map((entity) => entity.id));
+  const orderedIds = bySourceOrder(projectDoc, [...droppedIds]);
 
-  return {
+  let next: ProjectDocument = {
     ...projectDoc,
-    groups: updateOwnership(projectDoc.groups, valid, targetGroupId, "group"),
-    tasks: updateOwnership(projectDoc.tasks, valid, targetGroupId, "task"),
-    milestones: updateOwnership(projectDoc.milestones, valid, targetGroupId, "milestone"),
+    groups: updateOwnership(projectDoc.groups, valid, ownerId, "group"),
+    tasks: updateOwnership(projectDoc.tasks, valid, ownerId, "task"),
+    milestones: updateOwnership(projectDoc.milestones, valid, ownerId, "milestone"),
   };
+  next = removeIdsFromEverySequence(next, droppedIds);
+  next = insertIdsIntoOwnerSequence(next, ownerId, orderedIds, beforeId);
+  return next;
 }
 
-/** Moves one entity across the adjacent sibling in its current owner scope. */
+/** Moves one entity across the adjacent sibling within its owner's sequence. */
 export function moveEntity(
   projectDoc: ProjectDocument,
   entity: EditableEntityRef,
   direction: MoveDirection,
 ): ProjectDocument {
-  const entities = entitiesOf(projectDoc, entity.kind);
-  const index = entities.findIndex((candidate) => candidate.id === entity.id);
-  if (index < 0) {
+  const current = entitiesOf(projectDoc, entity.kind).find(
+    (candidate) => candidate.id === entity.id,
+  );
+  if (!current) {
+    return projectDoc;
+  }
+  const ownerId = current.groupId;
+  const sequence = sequenceOf(projectDoc, ownerId);
+  const index = sequence.indexOf(entity.id);
+  const nextIndex = direction === "up" ? index - 1 : index + 1;
+  if (index < 0 || nextIndex < 0 || nextIndex >= sequence.length) {
     return projectDoc;
   }
 
-  const owner = entities[index].groupId;
-  const siblingIndexes = entities
-    .map((candidate, candidateIndex) => (candidate.groupId === owner ? candidateIndex : -1))
-    .filter((candidateIndex) => candidateIndex >= 0);
-  const siblingPosition = siblingIndexes.indexOf(index);
-  const nextSiblingPosition = direction === "up" ? siblingPosition - 1 : siblingPosition + 1;
-  if (
-    siblingPosition < 0 ||
-    nextSiblingPosition < 0 ||
-    nextSiblingPosition >= siblingIndexes.length
-  ) {
-    return projectDoc;
-  }
-
-  const nextIndex = siblingIndexes[nextSiblingPosition];
-  const reordered = [...entities];
+  const reordered = [...sequence];
   [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
-  return withEntities(projectDoc, entity.kind, reordered);
+  return withOwnerSequence(projectDoc, ownerId, reordered);
 }
 
-/** Sorts every owner scope recursively by effective dates and name. */
+/** Sorts every owner scope's sequence recursively, interleaving groups, tasks, and milestones. */
 export function sortProjectItems(
   projectDoc: ProjectDocument,
   direction: SortDirection,
   effectiveDates: EffectiveDateMap = new Map(),
 ): ProjectDocument {
+  const itemsById = new Map<string, Group | Task | Milestone>();
+  for (const item of [...projectDoc.groups, ...projectDoc.tasks, ...projectDoc.milestones]) {
+    itemsById.set(item.id, item);
+  }
+  const sortOwner = (sequence: readonly string[]): string[] =>
+    sortSequence(sequence, itemsById, direction, effectiveDates);
+
   return {
     ...projectDoc,
-    groups: sortEntities(projectDoc.groups, direction, effectiveDates),
-    tasks: sortEntities(projectDoc.tasks, direction, effectiveDates),
-    milestones: sortEntities(projectDoc.milestones, direction, effectiveDates),
+    sequence: sortOwner(projectDoc.sequence ?? []),
+    groups: projectDoc.groups.map((group) => ({
+      ...group,
+      sequence: sortOwner(group.sequence ?? []),
+    })),
   };
+}
+
+/** Resolves a drop target into an owner id and, for item targets, the id to insert before. */
+function resolveDropTarget(
+  projectDoc: ProjectDocument,
+  target: EditableEntityRef | undefined,
+): { ownerId: string | undefined; beforeId: string | undefined } {
+  if (target === undefined || !hasEntity(projectDoc, target)) {
+    return { ownerId: undefined, beforeId: undefined };
+  }
+  if (target.kind === "group") {
+    return { ownerId: target.id, beforeId: undefined };
+  }
+  const owner = entitiesOf(projectDoc, target.kind).find(
+    (entity) => entity.id === target.id,
+  )?.groupId;
+  return { ownerId: owner, beforeId: target.id };
+}
+
+function isValidDrop(
+  projectDoc: ProjectDocument,
+  entity: EditableEntityRef,
+  target: EditableEntityRef | undefined,
+  ownerId: string | undefined,
+): boolean {
+  if (!hasEntity(projectDoc, entity)) {
+    return false;
+  }
+  if (target !== undefined && target.kind === entity.kind && target.id === entity.id) {
+    // The drop target is also in the dragged selection: no item is inserted relative to itself.
+    return false;
+  }
+  if (entity.kind !== "group" || ownerId === undefined) {
+    return true;
+  }
+  return !collectDescendantGroupIds(projectDoc.groups, entity.id).has(ownerId);
 }
 
 function hasEntity(projectDoc: ProjectDocument, entity: EditableEntityRef): boolean {
@@ -115,85 +170,3 @@ function updateOwnership<T extends Group | Task | Milestone>(
     selectedIds.has(entity.id) ? { ...entity, groupId: targetGroupId } : entity,
   );
 }
-
-function withEntities(
-  projectDoc: ProjectDocument,
-  kind: EditableEntityRef["kind"],
-  entities: readonly ProjectItem[],
-): ProjectDocument {
-  switch (kind) {
-    case "group":
-      return { ...projectDoc, groups: entities as Group[] };
-    case "task":
-      return { ...projectDoc, tasks: entities as Task[] };
-    case "milestone":
-      return { ...projectDoc, milestones: entities as Milestone[] };
-  }
-}
-
-function sortEntities<T extends Group | Task | Milestone>(
-  entities: readonly T[],
-  direction: SortDirection,
-  effectiveDates: EffectiveDateMap,
-): T[] {
-  const positions = new Map<string, number>();
-  entities.forEach((entity, index) => positions.set(entity.id, index));
-  const sortedByOwner = new Map<string | undefined, T[]>();
-  entities.forEach((entity) => {
-    const ownerItems = sortedByOwner.get(entity.groupId) ?? [];
-    ownerItems.push(entity);
-    sortedByOwner.set(entity.groupId, ownerItems);
-  });
-  for (const ownerItems of sortedByOwner.values()) {
-    ownerItems.sort((left, right) => {
-      const comparison = compareItems(left, right, effectiveDates, positions);
-      return direction === "ascending" ? comparison : -comparison;
-    });
-  }
-
-  const result = [...entities];
-  for (const [owner, ownerItems] of sortedByOwner) {
-    const ownerIndexes = entities
-      .map((entity, index) => (entity.groupId === owner ? index : -1))
-      .filter((index) => index >= 0);
-    ownerIndexes.forEach((index, position) => {
-      result[index] = ownerItems[position];
-    });
-  }
-  return result;
-}
-
-function compareItems(
-  left: Group | Task | Milestone,
-  right: Group | Task | Milestone,
-  effectiveDates: EffectiveDateMap,
-  positions: ReadonlyMap<string, number>,
-): number {
-  const leftDates = effectiveDates.get(left.id);
-  const rightDates = effectiveDates.get(right.id);
-  const start = compareDates(leftDates?.start, rightDates?.start);
-  if (start !== 0) {
-    return start;
-  }
-  const end = compareDates(leftDates?.end, rightDates?.end);
-  if (end !== 0) {
-    return end;
-  }
-  const name = left.name.localeCompare(right.name);
-  return name === 0 ? (positions.get(left.id) ?? 0) - (positions.get(right.id) ?? 0) : name;
-}
-
-function compareDates(left: Date | undefined, right: Date | undefined): number {
-  if (left === undefined && right === undefined) {
-    return 0;
-  }
-  if (left === undefined) {
-    return 1;
-  }
-  if (right === undefined) {
-    return -1;
-  }
-  return left.getTime() - right.getTime();
-}
-
-type ProjectItem = Group | Task | Milestone;

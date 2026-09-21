@@ -49,6 +49,7 @@ export function validateDocumentShape(raw: unknown): ProjectDocument {
     groups: asArray(raw.groups, "groups").map(validateGroup),
     milestones: asArray(raw.milestones, "milestones").map(validateMilestone),
     dependencies: asArray(raw.dependencies, "dependencies").map(validateDependency),
+    sequence: requireStringArray(raw.sequence, "sequence"),
     settings: validateSettings(raw.settings),
     view: validateView(raw.view),
   };
@@ -221,6 +222,7 @@ function validateGroup(raw: unknown, index: number): Group {
   const group: Group = {
     id: requireString(raw.id, `groups[${index}].id`),
     name: requireString(raw.name, `groups[${index}].name`),
+    sequence: requireStringArray(raw.sequence, `groups[${index}].sequence`),
   };
   if (raw.groupId !== undefined) {
     group.groupId = requireString(raw.groupId, `groups[${index}].groupId`);
@@ -301,6 +303,20 @@ function asArray(value: unknown, field: string): unknown[] {
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new GanttParseError(`${field} must be a non-empty string.`);
+  }
+  return value;
+}
+
+/**
+ * Requires an array of strings, defaulting to an empty array when the field
+ * is absent (sequence repair normally fills it before this runs).
+ */
+function requireStringArray(value: unknown, field: string): string[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value) || !value.every((entry) => typeof entry === "string")) {
+    throw new GanttParseError(`${field} must be an array of strings.`);
   }
   return value;
 }

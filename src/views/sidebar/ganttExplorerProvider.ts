@@ -89,17 +89,25 @@ export class GanttExplorerProvider
 
   /** Collects the direct children of a group, or the root-level items when no group is provided. */
   private childNodes(snapshot: ProjectSnapshot, groupId?: string): GanttNode[] {
-    const childGroups = snapshot.groups.filter(({ item }) =>
-      groupId === undefined ? !item.groupId : item.groupId === groupId,
-    );
-    const tasks = snapshot.tasks.filter(({ item }) =>
-      groupId === undefined ? !item.groupId : item.groupId === groupId,
-    );
-    const milestones = snapshot.milestones.filter(({ item }) =>
-      groupId === undefined ? !item.groupId : item.groupId === groupId,
-    );
+    const sequence =
+      groupId === undefined
+        ? snapshot.model.sequence
+        : (snapshot.model.groups.find((group) => group.id === groupId)?.sequence ?? []);
 
-    return [...childGroups, ...tasks, ...milestones];
+    const byId = new Map<string, GanttNode>();
+    for (const group of snapshot.groups) {
+      byId.set(group.item.id, group);
+    }
+    for (const task of snapshot.tasks) {
+      byId.set(task.item.id, task);
+    }
+    for (const milestone of snapshot.milestones) {
+      byId.set(milestone.item.id, milestone);
+    }
+
+    return sequence
+      .map((id) => byId.get(id))
+      .filter((node): node is GanttNode => node !== undefined);
   }
 
   /** Serializes selected tree nodes for a grouping drop. */
@@ -111,7 +119,7 @@ export class GanttExplorerProvider
     dataTransfer.set("application/vnd.code.tree.ganttee", new vscode.DataTransferItem(entities));
   }
 
-  /** Applies valid grouping drops while silently ignoring invalid targets. */
+  /** Applies valid drops while silently ignoring stale entries; a group target nests the drop, any other target positions it as a sibling before that item. */
   async handleDrop(
     target: GanttNode | undefined,
     dataTransfer: vscode.DataTransfer,
@@ -121,13 +129,7 @@ export class GanttExplorerProvider
     if (!Array.isArray(entities) || !entities.every(isEntityRef)) {
       return;
     }
-    if (target !== undefined && target.kind !== "group") {
-      return;
-    }
-    await this.store.active?.assignEntitiesToGroup(
-      entities,
-      target?.kind === "group" ? target.item.id : undefined,
-    );
+    await this.store.active?.assignEntitiesToGroup(entities, entityRefOf(target));
   }
 
   private groupItem(snapshot: ProjectGroupSnapshot): vscode.TreeItem {

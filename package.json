@@ -59,6 +59,13 @@
         }
       ]
     },
+    "submenus": [
+      {
+        "id": "ganttee.newItemsMenu",
+        "label": "%menu.newItems.label%",
+        "icon": "$(add)"
+      }
+    ],
     "commands": [
       {
         "command": "ganttee.newTask",
@@ -88,7 +95,7 @@
         "command": "ganttee.search",
         "title": "%command.search.title%",
         "category": "%extension.displayName%",
-        "icon": "$(search)"
+        "icon": "$(filter)"
       },
       {
         "command": "ganttee.sort",
@@ -146,34 +153,38 @@
           "group": "navigation@1"
         },
         {
-          "command": "ganttee.newGroup",
+          "submenu": "ganttee.newItemsMenu",
           "when": "view == ganttee.explorer",
           "group": "navigation@2"
         },
         {
-          "command": "ganttee.newTask",
+          "command": "ganttee.sort",
           "when": "view == ganttee.explorer",
           "group": "navigation@3"
         },
         {
-          "command": "ganttee.newMilestone",
+          "command": "ganttee.refreshExplorer",
           "when": "view == ganttee.explorer",
           "group": "navigation@4"
         },
         {
-          "command": "ganttee.sort",
-          "when": "view == ganttee.explorer",
-          "group": "navigation@5"
-        },
-        {
-          "command": "ganttee.refreshExplorer",
-          "when": "view == ganttee.explorer",
-          "group": "navigation@6"
-        },
-        {
           "command": "ganttee.search",
           "when": "view == ganttee.explorer",
-          "group": "navigation@7"
+          "group": "navigation@5"
+        }
+      ],
+      "ganttee.newItemsMenu": [
+        {
+          "command": "ganttee.newGroup",
+          "group": "1_newItems@1"
+        },
+        {
+          "command": "ganttee.newTask",
+          "group": "1_newItems@2"
+        },
+        {
+          "command": "ganttee.newMilestone",
+          "group": "1_newItems@3"
         }
       ],
       "view/item/context": [

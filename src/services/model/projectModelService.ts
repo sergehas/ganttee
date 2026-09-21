@@ -45,6 +45,7 @@ export function hydrateDocument(projectDoc: ProjectDocument): ProjectModel {
     assertAcyclicGraph(projectDoc),
     projectDoc.settings,
     projectDoc.view,
+    projectDoc.sequence ?? [],
   );
 }
 
@@ -63,6 +64,7 @@ export function toDocument(model: ProjectModel): ProjectDocument {
     groups: model.groups.map(fromGroup),
     milestones: model.milestones.map(fromMilestone),
     dependencies: model.dependencies.map((dependency) => ({ ...dependency })),
+    sequence: [...model.sequence],
     settings: model.settings,
     view: model.view,
   };
@@ -103,6 +105,7 @@ function toGroup(group: GroupDocument): Group {
     description: group.description,
     groupId: group.groupId,
     collapsed: group.collapsed,
+    sequence: group.sequence ?? [],
   });
 }
 
@@ -135,7 +138,7 @@ function fromTask(task: Task): TaskDocument {
 
 /** Projects a {@link Group} back to a plain group record. */
 function fromGroup(group: Group): GroupDocument {
-  const plain: GroupDocument = { id: group.id, name: group.name };
+  const plain: GroupDocument = { id: group.id, name: group.name, sequence: [...group.sequence] };
   if (group.groupId !== undefined) {
     plain.groupId = group.groupId;
   }

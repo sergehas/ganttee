@@ -1,19 +1,21 @@
 import { CURRENT_DOCUMENT_VERSION, DependencyType } from "@common/documents";
+import { repairSequences } from "@services/ordering/sequenceRepairService";
 
 const LEGACY_DOCUMENT_VERSION = 1;
 
 /**
  * Migrates raw parsed JSON into the latest schema shape before validation.
  *
- * Runs an always-on, idempotent field-rename pass (independent of the document
- * version) followed by the versioned v1 → current migration.
+ * Runs always-on, idempotent passes (field renames, then sequence repair)
+ * independent of the document version, followed by the versioned v1 →
+ * current migration.
  */
 export function migrateDocument(raw: unknown): unknown {
   if (!isRecord(raw)) {
     return raw;
   }
 
-  return migrateVersion(hoistSettings(renameLegacyFields(raw)));
+  return migrateVersion(hoistSettings(repairSequences(renameLegacyFields(raw))));
 }
 
 /**

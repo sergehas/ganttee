@@ -4,12 +4,13 @@ import { Milestone } from "@common/documents/project/milestone";
 import { ProjectSettings, resolveProjectSettings } from "@common/documents/project/projectSettings";
 import { ProjectView, resolveProjectView } from "@common/documents/project/projectView";
 import { Task } from "@common/documents/project/task";
+import { Sortable } from "@common/documents/sortable";
 
 /** Current on-disk schema version for `.ganttee` documents. */
 export const CURRENT_DOCUMENT_VERSION = 2;
 
 /** Authored project content shared by persisted and presentation shapes. */
-export interface ProjectContent {
+export interface ProjectContent extends Sortable {
   /** Authored tasks. */
   tasks: Task[];
   /** Authored groups. */
@@ -38,6 +39,7 @@ export function createEmptyDocument(): ProjectDocument {
     groups: [],
     milestones: [],
     dependencies: [],
+    sequence: [],
     settings: resolveProjectSettings(),
     view: resolveProjectView(),
   };

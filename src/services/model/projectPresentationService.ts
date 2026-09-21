@@ -31,6 +31,7 @@ export function toProjectPresentation(snapshot: ProjectSnapshot): ProjectPresent
       ...presentEffectiveSchedule(groupSchedules.get(group.id)),
     })),
     dependencies: document.dependencies,
+    sequence: document.sequence,
     settings: document.settings,
     view: document.view,
     criticalPath,
