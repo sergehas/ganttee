@@ -16,7 +16,7 @@ mirrors each spec's status badge.
 | 9   | Graphical rendering of groups and dependencies                                            | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
 | 10  | [l10n bridge & webview codicons adoption](./l10n-bridge/SPEC.md)                          | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
 | 11  | [TreeView enhancements](./treeview-enhancements/SPEC.md)                                  | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
-| 12  | [Global sort](./global-sort/SPEC.md)                                                      | Draft       | ![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)             |
+| 12  | [Global sort](./global-sort/SPEC.md)                                                      | Reviewed    | ![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)       |
 | 13  | [Scheduling holidays](./scheduling-holidays/INTENT.md)                                    | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
 | 14  | [Collapsible off-days and holidays][chart-calendar]                                       | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
 | 15  | [Diagnostics and problems view](./diagnostics-problems-view/INTENT.md)                    | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |

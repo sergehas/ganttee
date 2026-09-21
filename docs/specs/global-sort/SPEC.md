@@ -1,13 +1,13 @@
 ---
-Status: Draft
+Status: Reviewed
 Owner: Copilot
-Last updated: 2026-09-19
+Last updated: 2026-09-21
 Related ADRs: <none yet>
 ---
 
 # Feature: Global Sort
 
-![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)
+![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in
@@ -242,9 +242,9 @@ owner-scoped sequence after the host applies, reparses, and rebroadcasts the doc
   they are unrelated to the persisted schema version.
 - Drag-and-drop remains host-owned. The sidebar submits item and target identities, and the host
   applies the resulting ownership and sequence edit through the active editor controller.
-- New Items commands read the sidebar's current selection at invocation time and pass it to the host
-  alongside the create request; no new protocol message is required since selection already flows
-  through the existing tree view API.
+- New Items command handlers run in the same extension-host process as the sidebar `TreeView` and
+  read its `selection` property directly at invocation time; no host/webview crossing or new
+  protocol message is involved.
 
 ## 8. UX
 
@@ -271,8 +271,8 @@ owner-scoped sequence after the host applies, reparses, and rebroadcasts the doc
   drops, source-order preservation, stale IDs, selected targets, and cycle rejection.
 - **Integration, document/editor:** load legacy and stale fixtures, save repaired output, verify one
   `WorkspaceEdit` per successful operation, and verify rejected operations leave text unchanged.
-- **Integration, sidebar:** verify sequence-defined child order, menu command exposure, and
-  item/list drop outcomes.
+- **Integration, sidebar:** verify sequence-defined child order, menu command exposure, item/list
+  drop outcomes, and that New Items commands read the active `TreeView` selection at invocation.
 - **Webview interaction:** verify depth-first mixed-kind rows, scheduled-row visibility, group
   placement, and dependency coordinates after reorder.
 - **Coverage:** branch coverage remains at least 90% for every changed file or class.
@@ -281,10 +281,12 @@ owner-scoped sequence after the host applies, reparses, and rebroadcasts the doc
 
 ### 🟡 Medium Risks
 
-- 🟡 **R-02** — Sequence invariants span create, delete, promote, reparent, move, and sort
-  workflows; centralize updates in one pure ordering service and test every mutation path.
-  - Status: **Open**
-- 🟡 **R-03** — Auto-repair can hide stale authored IDs; limit repair to sequence metadata and keep
+- 🟡 **R-01** — Sequence invariants span create, delete, promote, reparent, move, and sort
+  workflows.
+  - Status: **Resolved** — All sequence-affecting mutations route through one pure ordering service
+    in `src/services/`; no call site mutates `sequence` directly, and every mutation path is covered
+    by the ordering-service unit tests in § 9.
+- 🟡 **R-02** — Auto-repair can hide stale authored IDs; limit repair to sequence metadata and keep
   ownership, cycle, dependency, and date errors under existing validation.
   - Status: **Resolved** — Repair never changes ownership or suppresses non-sequence validation.
 
@@ -294,15 +296,35 @@ owner-scoped sequence after the host applies, reparses, and rebroadcasts the doc
 
 - 🔴 **Q-01** — What deterministic mixed-kind fallback order initializes a missing sequence when
   existing files only provide separate task, group, and milestone arrays?
-  - Status: **Open**
+  - Status: **Resolved** — Groups, then tasks, then milestones, each preserving its existing array
+    order.
 
 ### 🟡 Medium Questions
 
 - 🟡 **Q-02** — What exact position does a drop on list background use: start, end, or a native
   insertion location supplied by the tree API?
-  - Status: **Open**
+  - Status: **Resolved** — Append at the end of the target list's sequence, matching the
+    no-selection creation fallback.
 - 🟡 **Q-03** — Should multi-item drops preserve source sequence order instead of drag-selection
   order?
   - Status: **Resolved** — Preserve source sequence order.
 - 🟡 **Q-04** — Does sequence persistence require a schema version bump?
   - Status: **Resolved** — No. Missing or stale sequences self-repair during every load.
+
+## 12. Review Outcome
+
+Spec Reviewer pass on 2026-09-21 found no missing required sections and no internal contradictions.
+Three issues were raised and fixed:
+
+- 🟡 The Risks section skipped `R-01` (numbered `R-02`/`R-03` only, unique to this spec) — fixed by
+  renumbering to `R-01`/`R-02`.
+- 🟡 § 7 Protocol Impact implied a host/webview handoff for New Items selection when the command
+  handler and sidebar `TreeView` both run in the extension host — reworded to clarify no crossing
+  occurs.
+- 🟢 § 9 Test Strategy didn't cover verifying the New Items command reads the live `TreeView`
+  selection — added an integration-test clause.
+
+All previously open Risks and Open Questions were resolved inline (no decision met the ADR bar):
+`R-01` (ordering centralized in one pure service, tested per mutation path), `Q-01` (fallback order
+is groups, then tasks, then milestones, each in existing array order), and `Q-02` (list-background
+drop appends at the end, matching the no-selection creation fallback).
