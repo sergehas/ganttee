@@ -11,7 +11,7 @@ import { useEntityEditWorkflow } from "@webview/features/entity-editor/hooks/use
 import { translate, WebviewL10n, WebviewL10nContext } from "@webview/l10n";
 import { createGanttViewState, GanttViewState } from "@webview/viewState";
 import { onHostMessage, postToHost } from "@webview/vscodeApi";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface SaveEntityOptions {
   /** Keeps the edit panel open after the host update. */
@@ -24,9 +24,14 @@ export function App(): React.JSX.Element {
   const [l10n, setL10n] = useState<WebviewL10n | null>(null);
   const [selectedEntity, setSelectedEntity] = useState<EditableEntityRef | null>(null);
   const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(null);
+  const [closingEditingTarget, setClosingEditingTarget] = useState<ResolvedEditingEntity | null>(
+    null,
+  );
   const [pendingView, setPendingView] = useState<ProjectView | null>(null);
   const [fitVersion, setFitVersion] = useState(0);
   const [iconBaseUri, setIconBaseUri] = useState<string | null>(null);
+  const projectRef = useRef<ProjectPresentation | null>(null);
+  const editingEntityRef = useRef<EditableEntityRef | null>(null);
 
   useEffect(() => {
     const unsubscribe = onHostMessage((message) => {
@@ -37,16 +42,20 @@ export function App(): React.JSX.Element {
         case "init":
           setIconBaseUri(message.iconBaseUri);
           try {
+            const nextViewState = createGanttViewState(message.project, message.revision);
             setPendingView(null);
-            setViewState(createGanttViewState(message.project, message.revision));
+            projectRef.current = nextViewState.project;
+            setViewState(nextViewState);
           } catch {
             setViewState(null);
           }
           break;
         case "documentChanged":
           try {
+            const nextViewState = createGanttViewState(message.project, message.revision);
             setPendingView(null);
-            setViewState(createGanttViewState(message.project, message.revision));
+            projectRef.current = nextViewState.project;
+            setViewState(nextViewState);
           } catch {
             setViewState(null);
           }
@@ -55,8 +64,7 @@ export function App(): React.JSX.Element {
           setSelectedEntity(message.entity);
           break;
         case "editEntity":
-          setSelectedEntity(message.entity);
-          setEditingEntity(message.entity);
+          toggleEntityEditor(message.entity);
           break;
       }
     });
@@ -81,22 +89,46 @@ export function App(): React.JSX.Element {
       baseRevision: viewState.revision,
     });
     if (kind === "group" && !options?.keepEditorOpen) {
-      setEditingEntity(null);
+      closeEntityEditor();
     }
   };
 
   /** Sends an entity deletion to the extension host and closes the editor. */
   const deleteEntityToHost = (entity: EditableEntityRef) => {
     postToHost({ type: "deleteEntity", entity });
-    setEditingEntity(null);
+    closeEntityEditor();
   };
 
   /** Selects an entity and asks the host to open it for editing. */
   const requestEditEntity = (entity: EditableEntityRef) => {
-    setSelectedEntity(entity);
-    setEditingEntity(entity);
     postToHost({ type: "requestEditEntity", entity });
   };
+
+  /** Toggles the requested entity editor against the current editor identity. */
+  function toggleEntityEditor(entity: EditableEntityRef): void {
+    const currentEntity = editingEntityRef.current;
+    setSelectedEntity(entity);
+    if (currentEntity?.kind === entity.kind && currentEntity.id === entity.id) {
+      closeEntityEditor();
+      return;
+    }
+    setClosingEditingTarget(null);
+    updateEditingEntity(entity);
+  }
+
+  /** Closes the entity editor after preserving its content for the exit animation. */
+  function closeEntityEditor(): void {
+    setClosingEditingTarget(
+      resolveEntity(projectRef.current ?? undefined, editingEntityRef.current),
+    );
+    updateEditingEntity(null);
+  }
+
+  /** Updates the rendered editor identity and its host-listener reference together. */
+  function updateEditingEntity(entity: EditableEntityRef | null): void {
+    editingEntityRef.current = entity;
+    setEditingEntity(entity);
+  }
 
   /** Sends a new dependency to the extension host. */
   const addDependency = (dependency: Dependency) =>
@@ -126,6 +158,7 @@ export function App(): React.JSX.Element {
   }
 
   const editingTarget = resolveEntity(viewState.project, editingEntity);
+  const displayedEditingTarget = editingTarget ?? closingEditingTarget;
   const chartView = pendingView ?? viewState.project.view;
 
   /** Sends a complete chart view proposal through the revision-safe host path. */
@@ -169,19 +202,26 @@ export function App(): React.JSX.Element {
                 fitVersion={fitVersion}
                 selectedEntity={selectedEntity}
                 onSelectEntity={setSelectedEntity}
-                onEditEntity={setEditingEntity}
+                onEditEntity={toggleEntityEditor}
                 onNudgeEntityByDays={nudgeEntityByDays}
               />
             )}
           </div>
-          {editingTarget && (
-            <aside className="ganttee-app__panel">
+          {displayedEditingTarget && (
+            <aside
+              className={`ganttee-app__panel ${editingTarget ? "is-open" : "is-closing"}`}
+              onAnimationEnd={(event) => {
+                if (event.target === event.currentTarget && !editingTarget) {
+                  setClosingEditingTarget(null);
+                }
+              }}
+            >
               <EntityEditor
-                editingEntity={editingTarget}
+                editingEntity={displayedEditingTarget}
                 document={viewState.project}
                 onSave={workflow.saveEntity}
                 onDelete={workflow.deleteEntity}
-                onClose={() => setEditingEntity(null)}
+                onClose={closeEntityEditor}
                 onAddDependency={workflow.addDependency}
                 onRemoveDependency={workflow.removeDependency}
                 onUngroupEntity={(entity, options) =>
@@ -206,10 +246,10 @@ interface ResolvedEditingEntity {
 
 /** Resolves an editable entity reference against the current document. */
 function resolveEntity(
-  project: ProjectPresentation,
+  project: ProjectPresentation | undefined,
   ref: EditableEntityRef | null,
 ): ResolvedEditingEntity | null {
-  if (!ref) {
+  if (!project || !ref) {
     return null;
   }
   switch (ref.kind) {

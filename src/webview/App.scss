@@ -1,4 +1,5 @@
 .ganttee-app {
+  position: relative;
   display: flex;
   height: 100vh;
   overflow: hidden;
@@ -6,18 +7,62 @@
 
 .ganttee-app__timeline {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 0 100%;
+  width: 100%;
   min-width: 0;
   min-height: 0;
+  box-sizing: border-box;
   flex-direction: column;
   padding: var(--vscode-spacing-size120, 12px);
 }
 
 .ganttee-app__panel {
-  flex: 0 0 400px;
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(400px, 100%);
   overflow: auto;
   border-left: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
   background-color: var(--vscode-sideBar-background);
+  box-shadow: 0 0 var(--vscode-spacing-size80, 8px) var(--vscode-widget-shadow);
+}
+
+.ganttee-app__panel.is-open {
+  animation: ganttee-drawer-in 180ms ease-out;
+}
+
+.ganttee-app__panel.is-closing {
+  animation: ganttee-drawer-out 140ms ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes ganttee-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes ganttee-drawer-out {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ganttee-app__panel.is-open,
+  .ganttee-app__panel.is-closing {
+    animation-duration: 1ms;
+  }
 }
 
 .ganttee-app__empty,
