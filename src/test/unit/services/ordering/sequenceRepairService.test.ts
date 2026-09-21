@@ -96,4 +96,17 @@ suite("sequenceRepairService", () => {
 
     assert.deepStrictEqual(repaired.sequence, ["t1", "t2", "t3"]);
   });
+
+  test("preserves malformed groups and ignores invalid collections", () => {
+    const malformedGroup = { name: "Unidentified", sequence: ["stale"] };
+    const repaired = repairSequences({
+      groups: [malformedGroup, null, "invalid"],
+      tasks: "invalid",
+      milestones: { id: "invalid" },
+      sequence: "invalid",
+    });
+
+    assert.deepStrictEqual(repaired.groups, [malformedGroup]);
+    assert.deepStrictEqual(repaired.sequence, []);
+  });
 });

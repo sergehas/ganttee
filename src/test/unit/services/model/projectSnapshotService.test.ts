@@ -40,4 +40,16 @@ suite("projectSnapshotService", () => {
     assert.strictEqual(result.snapshot.schedule, undefined);
     assert.match(result.schedulingError?.message ?? "", /Invalid working-time settings/);
   });
+
+  test("rethrows unexpected scheduling errors", () => {
+    const model = hydrateDocument(createEmptyDocument());
+    const unexpectedError = new Error("Unexpected scheduler failure");
+    Object.defineProperty(model.graph, "topologicalSort", {
+      value: () => {
+        throw unexpectedError;
+      },
+    });
+
+    assert.throws(() => createProjectSnapshot(model, []), unexpectedError);
+  });
 });

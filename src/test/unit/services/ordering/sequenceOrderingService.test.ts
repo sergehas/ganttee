@@ -49,6 +49,10 @@ suite("sequenceOrderingService", () => {
     assert.deepStrictEqual(sequenceOf(projectDoc, undefined), ["a"]);
     assert.deepStrictEqual(sequenceOf(projectDoc, "g1"), ["b"]);
     assert.deepStrictEqual(sequenceOf(projectDoc, "missing"), []);
+    assert.deepStrictEqual(
+      sequenceOf({ ...createEmptyDocument(), sequence: undefined }, undefined),
+      [],
+    );
   });
 
   test("withOwnerSequence replaces root or one group's sequence", () => {
@@ -56,6 +60,14 @@ suite("sequenceOrderingService", () => {
 
     assert.deepStrictEqual(withOwnerSequence(projectDoc, undefined, ["z"]).sequence, ["z"]);
     assert.deepStrictEqual(withOwnerSequence(projectDoc, "g1", ["z"]).groups[0].sequence, ["z"]);
+    assert.deepStrictEqual(
+      withOwnerSequence(
+        { ...projectDoc, groups: [...projectDoc.groups, { id: "g2", name: "G2" }] },
+        "g1",
+        ["z"],
+      ).groups[1].sequence,
+      undefined,
+    );
   });
 
   test("removeIdsFromEverySequence strips ids from root and every group", () => {
@@ -98,12 +110,23 @@ suite("sequenceOrderingService", () => {
     const projectDoc = withGroup(["g1", "t1"], ["t2"]);
 
     assert.deepStrictEqual(depthFirstOrder(projectDoc), ["g1", "t2", "t1"]);
+    assert.deepStrictEqual(
+      depthFirstOrder({
+        ...createEmptyDocument(),
+        sequence: ["g1"],
+        groups: [{ id: "g1", name: "G1" }],
+      }),
+      ["g1"],
+    );
+    assert.deepStrictEqual(depthFirstOrder({ ...createEmptyDocument(), sequence: undefined }), []);
   });
 
   test("bySourceOrder orders ids by their depth-first rank", () => {
     const projectDoc = withGroup(["g1", "t1"], ["t2"]);
 
     assert.deepStrictEqual(bySourceOrder(projectDoc, ["t1", "t2", "g1"]), ["g1", "t2", "t1"]);
+    assert.deepStrictEqual(bySourceOrder(projectDoc, ["missing", "t1"]), ["missing", "t1"]);
+    assert.deepStrictEqual(bySourceOrder(projectDoc, ["t1", "missing"]), ["missing", "t1"]);
   });
 
   test("sortSequence orders by effective start, then end, then name, then stable position", () => {
@@ -127,5 +150,21 @@ suite("sequenceOrderingService", () => {
       "a",
       "b",
     ]);
+    assert.deepStrictEqual(sortSequence(["a", "missing"], itemsById, "ascending", new Map()), [
+      "missing",
+      "a",
+    ]);
+    assert.deepStrictEqual(
+      sortSequence(
+        ["second", "first"],
+        new Map([
+          ["first", { id: "first", name: "Same", sequence: [] }],
+          ["second", { id: "second", name: "Same", sequence: [] }],
+        ]),
+        "ascending",
+        new Map(),
+      ),
+      ["second", "first"],
+    );
   });
 });

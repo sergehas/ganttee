@@ -3,8 +3,12 @@ import {
   diffInWorkingDays,
   diffIsoDates,
   formatIsoTimestamp,
+  formatShortDate,
+  isoWeekNumber,
+  isoWeekday,
   normalizeToWorkingTime,
   parseIsoTimestamp,
+  quarter,
   subtractWorkingDays,
 } from "@common/dates";
 import * as assert from "assert";
@@ -50,6 +54,30 @@ suite("dates", () => {
     assert.strictEqual(date.toISOString(), iso);
     assert.strictEqual(formatIsoTimestamp(date), iso);
     assert.throws(() => parseIsoTimestamp("nope"), RangeError);
+  });
+
+  test("falls back to the default locale for an invalid locale", () => {
+    const formatted = formatShortDate(new Date("2026-01-05T12:34:56.789Z"), "-");
+
+    assert.match(formatted, /2026/);
+  });
+
+  test("returns ISO weekdays and week numbers", () => {
+    const sunday = Date.UTC(2027, 0, 3);
+    const monday = Date.UTC(2027, 0, 4);
+
+    assert.strictEqual(isoWeekday(sunday), 7);
+    assert.strictEqual(isoWeekday(monday), 1);
+    assert.strictEqual(isoWeekNumber(Date.UTC(2025, 11, 29)), 1);
+    assert.strictEqual(isoWeekNumber(Date.UTC(2026, 0, 4)), 1);
+    assert.strictEqual(isoWeekNumber(Date.UTC(2026, 0, 5)), 2);
+  });
+
+  test("returns calendar quarters", () => {
+    assert.strictEqual(quarter(Date.UTC(2026, 0, 1)), 1);
+    assert.strictEqual(quarter(Date.UTC(2026, 3, 1)), 2);
+    assert.strictEqual(quarter(Date.UTC(2026, 6, 1)), 3);
+    assert.strictEqual(quarter(Date.UTC(2026, 9, 1)), 4);
   });
 
   test("normalizes timestamps to active working intervals", () => {
