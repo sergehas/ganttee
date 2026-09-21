@@ -30,7 +30,16 @@ export type HostToWebviewMessage =
     }
   | { type: "documentChanged"; project: ProjectPresentation; revision: number }
   | { type: "selectEntity"; entity: EditableEntityRef }
-  | { type: "editEntity"; entity: EditableEntityRef };
+  | { type: "editEntity"; entity: EditableEntityRef }
+  | {
+      //  Authoritative outcome of one correlated webview entity-update proposal.
+      //  This acknowledgment is independent of `documentChanged`; either message may arrive first.
+      type: "updateEntityResult";
+      requestId: number;
+      entity: EditableEntityRef;
+      updated: boolean;
+    }
+  | { type: "deleteEntityResult"; entity: EditableEntityRef; deleted: boolean };
 
 /** Supported editable entity kinds. */
 export type EditableEntityKind = ProjectItemType;
@@ -54,11 +63,14 @@ export interface EditableEntityMap {
 export type GroupDeleteStrategy = "cascade" | "reparent";
 
 /**
- * Message posted by the webview to save an edited entity.
+ * Message posted by the webview to propose an entity update against a document revision.
+ * The host returns an `updateEntityResult` with the same request id after validation and apply.
  */
 export type UpdateEntityMessage = {
   [K in EditableEntityKind]: {
     type: "updateEntity";
+    /** Correlates this proposal with its authoritative host result. */
+    requestId: number;
     kind: K;
     entity: EditableEntityMap[K];
     baseRevision: number;
@@ -70,11 +82,12 @@ export type WebviewToHostMessage =
   | { type: "ready" }
   | UpdateEntityMessage
   | { type: "updateView"; view: ProjectView; baseRevision: number }
-  | { type: "addDependency"; dependency: Dependency }
-  | { type: "removeDependency"; dependencyId: string }
+  | { type: "addDependency"; dependency: Dependency; baseRevision: number }
+  | { type: "removeDependency"; dependencyId: string; baseRevision: number }
   | {
       type: "deleteEntity";
       entity: EditableEntityRef;
       strategy?: GroupDeleteStrategy;
+      baseRevision: number;
     }
   | { type: "requestEditEntity"; entity: EditableEntityRef };

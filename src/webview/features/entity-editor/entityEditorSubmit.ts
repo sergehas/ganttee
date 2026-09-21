@@ -17,7 +17,11 @@ export interface EntityEditorSubmitOptions {
   readonly onSave: TaskFormProps["onSave"];
 }
 
-/** Creates the form submit handler for the active entity draft. */
+/**
+ * Creates the form submit handler for the active entity draft.
+ * Form submissions omit `keepEditorOpen`, so App closes the originating editor session only after
+ * the host acknowledges successful persistence.
+ */
 export function createEntityEditorSubmit(
   options: EntityEditorSubmitOptions,
 ): (event: SyntheticEvent<HTMLFormElement>) => void {

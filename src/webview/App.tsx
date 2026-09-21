@@ -1,6 +1,7 @@
 import { Dependency, Group, Milestone, ProjectView, Task } from "@common/documents";
 import { ProjectPresentation } from "@common/presentation/project";
 import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
+import { SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
 import { buildShiftByDaysPatch } from "@services/editing/projectItemSchedulePatchService";
 import "@webview/App.scss";
 import { IconBaseUriProvider } from "@webview/components/Icon";
@@ -13,9 +14,12 @@ import { createGanttViewState, GanttViewState } from "@webview/viewState";
 import { onHostMessage, postToHost } from "@webview/vscodeApi";
 import { useEffect, useRef, useState } from "react";
 
-interface SaveEntityOptions {
-  /** Keeps the edit panel open after the host update. */
-  keepEditorOpen?: boolean;
+/** Webview-only behavior retained until the host acknowledges an entity update. */
+interface PendingEntityUpdate {
+  /** Editor session that originated the update. */
+  editorSessionVersion: number;
+  /** Whether successful persistence should leave the editor open. */
+  keepEditorOpen: boolean;
 }
 
 /** Root editor UI: the ECharts timeline and the entity edit panel. */
@@ -32,6 +36,9 @@ export function App(): React.JSX.Element {
   const [iconBaseUri, setIconBaseUri] = useState<string | null>(null);
   const projectRef = useRef<ProjectPresentation | null>(null);
   const editingEntityRef = useRef<EditableEntityRef | null>(null);
+  const editorSessionVersionRef = useRef(0);
+  const nextUpdateRequestIdRef = useRef(0);
+  const pendingEntityUpdatesRef = useRef(new Map<number, PendingEntityUpdate>());
 
   useEffect(() => {
     const unsubscribe = onHostMessage((message) => {
@@ -53,7 +60,17 @@ export function App(): React.JSX.Element {
         case "documentChanged":
           try {
             const nextViewState = createGanttViewState(message.project, message.revision);
+            const currentEditingEntity = editingEntityRef.current;
             setPendingView(null);
+            if (
+              currentEditingEntity &&
+              !resolveEntity(nextViewState.project, currentEditingEntity)
+            ) {
+              setClosingEditingTarget(
+                resolveEntity(projectRef.current ?? undefined, currentEditingEntity),
+              );
+              updateEditingEntity(null);
+            }
             projectRef.current = nextViewState.project;
             setViewState(nextViewState);
           } catch {
@@ -66,13 +83,35 @@ export function App(): React.JSX.Element {
         case "editEntity":
           toggleEntityEditor(message.entity);
           break;
+        case "updateEntityResult": {
+          const pendingUpdate = pendingEntityUpdatesRef.current.get(message.requestId);
+          pendingEntityUpdatesRef.current.delete(message.requestId);
+          if (
+            message.updated &&
+            pendingUpdate &&
+            !pendingUpdate.keepEditorOpen &&
+            pendingUpdate.editorSessionVersion === editorSessionVersionRef.current &&
+            isSameEntity(editingEntityRef.current, message.entity)
+          ) {
+            closeEntityEditor();
+          }
+          break;
+        }
+        case "deleteEntityResult":
+          if (message.deleted && isSameEntity(editingEntityRef.current, message.entity)) {
+            closeEntityEditor();
+          }
+          break;
       }
     });
     postToHost({ type: "ready" });
     return unsubscribe;
   }, []);
 
-  /** Sends an entity update to the extension host. */
+  /**
+   * Sends a revision-bound entity proposal and records its editor behavior by request id.
+   * The current UI remains mounted until the host reports whether persistence succeeded.
+   */
   const saveEntityToHost = (
     kind: EditableEntityKind,
     entity: EditableEntityMap[EditableEntityKind],
@@ -81,25 +120,30 @@ export function App(): React.JSX.Element {
     if (!viewState) {
       return;
     }
-    setViewState(null);
+    const requestId = nextUpdateRequestIdRef.current;
+    nextUpdateRequestIdRef.current += 1;
+    pendingEntityUpdatesRef.current.set(requestId, {
+      editorSessionVersion: editorSessionVersionRef.current,
+      keepEditorOpen: options?.keepEditorOpen === true,
+    });
     postToHost({
       type: "updateEntity",
+      requestId,
       kind,
       entity,
       baseRevision: viewState.revision,
     });
-    if (kind === "group" && !options?.keepEditorOpen) {
-      closeEntityEditor();
-    }
   };
 
-  /** Sends an entity deletion to the extension host and closes the editor. */
+  /** Requests deletion; a successful host result closes the matching editor session. */
   const deleteEntityToHost = (entity: EditableEntityRef) => {
-    postToHost({ type: "deleteEntity", entity });
-    closeEntityEditor();
+    if (!viewState) {
+      return;
+    }
+    postToHost({ type: "deleteEntity", entity, baseRevision: viewState.revision });
   };
 
-  /** Selects an entity and asks the host to open it for editing. */
+  /** Asks the host to route an entity edit command back through the shared toggle path. */
   const requestEditEntity = (entity: EditableEntityRef) => {
     postToHost({ type: "requestEditEntity", entity });
   };
@@ -124,19 +168,30 @@ export function App(): React.JSX.Element {
     updateEditingEntity(null);
   }
 
-  /** Updates the rendered editor identity and its host-listener reference together. */
+  /**
+   * Updates the rendered editor identity and advances the session used to reject late save results.
+   */
   function updateEditingEntity(entity: EditableEntityRef | null): void {
+    editorSessionVersionRef.current += 1;
     editingEntityRef.current = entity;
     setEditingEntity(entity);
   }
 
   /** Sends a new dependency to the extension host. */
-  const addDependency = (dependency: Dependency) =>
-    postToHost({ type: "addDependency", dependency });
+  const addDependency = (dependency: Dependency) => {
+    if (!viewState) {
+      return;
+    }
+    postToHost({ type: "addDependency", dependency, baseRevision: viewState.revision });
+  };
 
   /** Sends a dependency deletion to the extension host. */
-  const removeDependency = (dependencyId: string) =>
-    postToHost({ type: "removeDependency", dependencyId });
+  const removeDependency = (dependencyId: string) => {
+    if (!viewState) {
+      return;
+    }
+    postToHost({ type: "removeDependency", dependencyId, baseRevision: viewState.revision });
+  };
 
   const workflow = useEntityEditWorkflow({
     onSave: saveEntityToHost,
@@ -176,13 +231,15 @@ export function App(): React.JSX.Element {
     setFitVersion((version) => version + 1);
   };
 
-  /** Applies a chart date shift to an entity through the shared workflow. */
+  /** Applies a chart date shift without closing an editor that is already showing the entity. */
   const nudgeEntityByDays = (entity: EditableEntityRef, days: number) => {
     const patch = buildShiftByDaysPatch(viewState.project, entity, days);
     if (!patch) {
       return;
     }
-    workflow.patchEntityDatesFromChart(viewState.project, entity, patch);
+    workflow.patchEntityDatesFromChart(viewState.project, entity, patch, {
+      keepEditorOpen: true,
+    });
   };
 
   return (
@@ -201,7 +258,6 @@ export function App(): React.JSX.Element {
                 view={chartView}
                 fitVersion={fitVersion}
                 selectedEntity={selectedEntity}
-                onSelectEntity={setSelectedEntity}
                 onEditEntity={toggleEntityEditor}
                 onNudgeEntityByDays={nudgeEntityByDays}
               />
@@ -242,6 +298,11 @@ interface ResolvedEditingEntity {
   kind: EditableEntityKind;
   /** Current entity data resolved from the document. */
   entity: EditableEntityMap[EditableEntityKind];
+}
+
+/** Returns whether two entity references identify the same project item. */
+function isSameEntity(left: EditableEntityRef | null, right: EditableEntityRef): boolean {
+  return left?.kind === right.kind && left.id === right.id;
 }
 
 /** Resolves an editable entity reference against the current document. */

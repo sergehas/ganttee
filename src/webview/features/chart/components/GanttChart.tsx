@@ -58,8 +58,6 @@ interface GanttChartProps {
   fitVersion: number;
   /** Entity currently selected in the editor. */
   selectedEntity: EditableEntityRef | null;
-  /** Handles selection of an entity from the chart. */
-  onSelectEntity: (entity: EditableEntityRef) => void;
   /** Opens an entity in the edit form. */
   onEditEntity: (entity: EditableEntityRef) => void;
   /** Applies an optional direct date shift to an entity. */

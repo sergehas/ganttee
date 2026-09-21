@@ -14,6 +14,7 @@ import {
 
 /** Optional behavior flags for save actions initiated by the webview. */
 export interface SaveEntityOptions {
+  /** Leaves the current editor session open after the host confirms persistence. */
   keepEditorOpen?: boolean;
 }
 

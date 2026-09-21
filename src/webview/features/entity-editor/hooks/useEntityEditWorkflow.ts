@@ -28,7 +28,7 @@ interface HostEditActions {
 
 /** Public operations exposed by the shared webview edit workflow. */
 export interface EntityEditWorkflow {
-  /** Saves an entity through the host action boundary. */
+  /** Saves an entity through the host boundary while preserving its requested editor behavior. */
   saveEntity: (
     kind: EditableEntityKind,
     entity: EditableEntityMap[EditableEntityKind],
@@ -60,7 +60,8 @@ export interface EntityEditWorkflow {
  * Builds a shared edit-workflow API used by both the form panel and timeline.
  *
  * The workflow centralizes save guards and mutation shaping so multiple UI
- * surfaces apply exactly the same rules.
+ * surfaces apply exactly the same rules. It forwards `keepEditorOpen` to App,
+ * which retains that UI intent until the host acknowledges the update.
  */
 export function useEntityEditWorkflow(actions: HostEditActions): EntityEditWorkflow {
   const saveEntity = useCallback(

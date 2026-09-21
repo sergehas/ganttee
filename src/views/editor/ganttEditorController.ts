@@ -29,11 +29,11 @@ import {
   serializeDocument,
 } from "@services/document/documentService";
 import { findEntity, replaceEntity } from "@services/document/projectItemService";
-import { buildTaskOrMilestoneDeletionDocument } from "@services/editing/projectItemRemovalService";
 import {
   createEntityAtPlacement,
   resolveCreationPlacement,
 } from "@services/editing/entityCreationService";
+import { buildTaskOrMilestoneDeletionDocument } from "@services/editing/projectItemRemovalService";
 import {
   buildGroupDeletionDocument,
   hasGroupContents,
@@ -190,12 +190,11 @@ export class GanttEditorController {
    * Deletes any entity kind (task, milestone, or group).
    * Handles type-specific deletion logic via mutation strategies and group strategies.
    */
-  async deleteEntity(entity: EditableEntityRef, strategy?: GroupDeleteStrategy): Promise<void> {
+  async deleteEntity(entity: EditableEntityRef, strategy?: GroupDeleteStrategy): Promise<boolean> {
     if (entity.kind === "group") {
-      await this.deleteGroup(entity.id, strategy);
-    } else {
-      await this.deleteTaskOrMilestone(entity.kind, entity.id);
+      return this.deleteGroup(entity.id, strategy);
     }
+    return this.deleteTaskOrMilestone(entity.kind, entity.id);
   }
 
   /**
@@ -234,28 +233,49 @@ export class GanttEditorController {
   }
 
   /**
-   * Handles inbound webview messages and routes them to host operations.
+   * Routes webview proposals through host-owned validation and document mutation.
+   * Entity updates always receive a correlated result; the document change event is a separate
+   * authoritative state broadcast and can be observed before that result.
    */
   private async handleMessage(message: WebviewToHostMessage): Promise<void> {
     switch (message.type) {
       case "ready":
         this.sendL10nCatalogAndInit();
         break;
-      case "updateEntity":
-        await this.updateEntity(message.kind, message.entity, message.baseRevision);
+      case "updateEntity": {
+        let updated = false;
+        try {
+          updated = await this.updateEntity(message.kind, message.entity, message.baseRevision);
+        } finally {
+          this.post({
+            type: "updateEntityResult",
+            requestId: message.requestId,
+            entity: { kind: message.kind, id: message.entity.id },
+            updated,
+          });
+        }
         break;
+      }
       case "updateView":
         await this.updateView(message.view, message.baseRevision);
         break;
       case "addDependency":
-        await this.addDependency(message.dependency);
+        if (this.acceptWebviewRevision(message.baseRevision)) {
+          await this.addDependency(message.dependency);
+        }
         break;
       case "removeDependency":
-        await this.removeDependency(message.dependencyId);
+        if (this.acceptWebviewRevision(message.baseRevision)) {
+          await this.removeDependency(message.dependencyId);
+        }
         break;
-      case "deleteEntity":
-        await this.deleteEntity(message.entity, message.strategy);
+      case "deleteEntity": {
+        const deleted =
+          this.acceptWebviewRevision(message.baseRevision) &&
+          (await this.deleteEntity(message.entity, message.strategy));
+        this.post({ type: "deleteEntityResult", entity: message.entity, deleted });
         break;
+      }
       case "requestEditEntity":
         this.editEntity(message.entity);
         break;
@@ -263,24 +283,24 @@ export class GanttEditorController {
   }
 
   /**
-   * Updates one existing entity. Shows a warning and no-ops when the id is
-   * not found.
+   * Validates and applies one revision-bound entity proposal from the webview.
+   * The boolean result drives the correlated `updateEntityResult` acknowledgment.
    */
   private async updateEntity(
     kind: EditableEntityKind,
     entity: Task | Milestone | Group,
     baseRevision: number,
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (baseRevision !== this.document.version) {
       this.postCurrentProject();
-      return;
+      return false;
     }
     const next = replaceEntity(this._document, kind, entity);
     if (!next) {
       this.showUnknownIdWarning(kind, entity.id);
-      return;
+      return false;
     }
-    await this.applyDocument(next);
+    return this.applyDocument(next);
   }
 
   /** Applies a persisted view proposal through the same revision-safe edit path. */
@@ -299,41 +319,39 @@ export class GanttEditorController {
   private async deleteTaskOrMilestone(
     kind: Exclude<ProjectItemType, "group">,
     entityId: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const nextDocument = buildTaskOrMilestoneDeletionDocument(this._document, kind, entityId);
     if (!nextDocument) {
       this.showUnknownIdWarning(kind, entityId);
-      return;
+      return false;
     }
-    await this.applyDocument(nextDocument);
+    return this.applyDocument(nextDocument);
   }
 
   /**
    * Deletes a group using either cascade or reparent strategy.
    * Prompts the user to choose a strategy if the group has contents and no strategy is provided.
    */
-  private async deleteGroup(groupId: string, strategy?: GroupDeleteStrategy): Promise<void> {
+  private async deleteGroup(groupId: string, strategy?: GroupDeleteStrategy): Promise<boolean> {
     if (this._isDisposed) {
-      return;
+      return false;
     }
     if (!findEntity(this._document, "group", groupId)) {
       void vscode.window.showWarningMessage(
         vscode.l10n.t("Cannot delete group '{0}': no matching id.", groupId),
       );
-      return;
+      return false;
     }
 
     const resolvedStrategy =
       strategy ??
       (hasGroupContents(this._document, groupId) ? await this.askGroupDeleteStrategy() : "cascade");
     if (!resolvedStrategy) {
-      return;
+      return false;
     }
 
     const next = buildGroupDeletionDocument(this._document, groupId, resolvedStrategy);
-    if (next) {
-      await this.applyDocument(next);
-    }
+    return next ? this.applyDocument(next) : false;
   }
 
   /**
@@ -463,10 +481,11 @@ export class GanttEditorController {
 
   /**
    * Validates and applies a full-document replacement through WorkspaceEdit.
+   * Returns whether VS Code accepted the edit so callers can acknowledge authoritative success.
    */
-  private async applyDocument(next: ProjectDocument): Promise<void> {
+  private async applyDocument(next: ProjectDocument): Promise<boolean> {
     if (this._isDisposed) {
-      return;
+      return false;
     }
     try {
       const parsed = parseDocument(serializeDocument(next));
@@ -475,14 +494,14 @@ export class GanttEditorController {
         void vscode.window.showErrorMessage(
           vscode.l10n.t("Cannot apply update: {0}", summarizeBlockingDiagnostics(blocking)),
         );
-        return;
+        return false;
       }
     } catch (error) {
       if (error instanceof GanttParseError) {
         void vscode.window.showErrorMessage(
           vscode.l10n.t("Cannot apply update: {0}", error.message),
         );
-        return;
+        return false;
       }
       throw error;
     }
@@ -493,7 +512,7 @@ export class GanttEditorController {
       this.document.positionAt(this.document.getText().length),
     );
     edit.replace(this.document.uri, fullRange, serializeDocument(next));
-    await vscode.workspace.applyEdit(edit);
+    return vscode.workspace.applyEdit(edit);
   }
 
   /**
@@ -532,6 +551,15 @@ export class GanttEditorController {
       project: this.projectPresentation(),
       revision: this.document.version,
     });
+  }
+
+  /** Accepts a webview mutation only when it targets the current document revision. */
+  private acceptWebviewRevision(baseRevision: number): boolean {
+    if (baseRevision === this.document.version) {
+      return true;
+    }
+    this.postCurrentProject();
+    return false;
   }
 
   /**
