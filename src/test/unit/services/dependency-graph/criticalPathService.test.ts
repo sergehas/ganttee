@@ -8,7 +8,7 @@ import * as assert from "assert";
 /** Builds a scheduled graph for a critical-path projection test. */
 function project(document: ProjectDocument) {
   const model = hydrateDocument(document);
-  const scheduled = schedule(model, model.graph);
+  const scheduled = schedule(model);
   return projectCriticalPath(model.graph, scheduled);
 }
 

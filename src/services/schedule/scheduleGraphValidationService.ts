@@ -7,101 +7,89 @@
  */
 
 import { Dependency, ProjectDocument } from "@common/documents";
-import { ProjectDependencyGraph } from "@common/models";
+import { ScheduleDiagnostic, ScheduleDiagnosticSeverity, ScheduleEndpoint } from "@common/models";
 import {
   anchoredEntityIds,
   schedulableEntityIds,
   unanchoredComponents,
 } from "@services/dependency-graph/componentAnchoringService";
+import { createSchedulableGraph } from "@services/dependency-graph/dependencyGraphService";
 import {
   ConstraintVerdict,
   validateMilestoneConstraints,
   validateTaskConstraints,
 } from "@services/schedule/scheduleConstraintService";
 
-/** Whether a diagnostic prevents persistence or only warrants a warning. */
-export type ScheduleDiagnosticSeverity = "blocking" | "warning";
-
-/** A schedulable endpoint that a diagnostic refers to. */
-export type ScheduleEndpoint = "start" | "end";
-
-/** A single semantic problem found in a schedule graph. */
-export type ScheduleDiagnostic =
-  | {
-      kind: "underConstrained";
-      severity: "blocking";
-      entityIds: readonly string[];
-      count: number;
-    }
-  | {
-      kind: "overConstrained";
-      severity: ScheduleDiagnosticSeverity;
-      entityIds: readonly string[];
-      count: number;
-      duplicateEndpoints: readonly ScheduleEndpoint[];
-    }
-  | {
-      kind: "danglingDependency";
-      severity: "blocking";
-      entityIds: readonly string[];
-      dependencyId: string;
-    }
-  | {
-      kind: "groupDependency";
-      severity: "blocking";
-      entityIds: readonly string[];
-      dependencyId: string;
-    }
-  | {
-      kind: "unanchoredComponent";
-      severity: "blocking";
-      entityIds: readonly string[];
-    };
+export type { ScheduleDiagnostic, ScheduleDiagnosticSeverity, ScheduleEndpoint };
 
 /**
  * Evaluates the semantic rules a structurally valid document must also satisfy:
  * per-entity determinacy, dependency endpoints, and component anchoring.
  *
- * @param document The document to evaluate.
+ * @param projectDoc The document to evaluate.
  * @returns Every diagnostic found, in entity then dependency then component order.
  */
-export function evaluateScheduleGraph(document: ProjectDocument): readonly ScheduleDiagnostic[] {
+export function evaluateScheduleDiagnostics(
+  projectDoc: ProjectDocument,
+): readonly ScheduleDiagnostic[] {
+  return [...evaluateScheduleConstraints(projectDoc), ...evaluateScheduleAnchoring(projectDoc)];
+}
+
+/**
+ * Evaluates determinacy and dependency endpoint rules without component anchoring.
+ *
+ * @param projectDoc The document to evaluate.
+ * @returns Constraint and endpoint diagnostics in entity then dependency order.
+ */
+export function evaluateScheduleConstraints(
+  projectDoc: ProjectDocument,
+): readonly ScheduleDiagnostic[] {
   const entityIds = new Set([
-    ...document.tasks.map((task) => task.id),
-    ...document.milestones.map((milestone) => milestone.id),
-    ...document.groups.map((group) => group.id),
+    ...projectDoc.tasks.map((task) => task.id),
+    ...projectDoc.milestones.map((milestone) => milestone.id),
+    ...projectDoc.groups.map((group) => group.id),
   ]);
-  const groupIds = new Set(document.groups.map((group) => group.id));
+  const groupIds = new Set(projectDoc.groups.map((group) => group.id));
 
   const determinacy = [
-    ...document.tasks.map((task) =>
-      diagnoseDeterminacy(task.id, validateTaskConstraints(task, document.dependencies)),
+    ...projectDoc.tasks.map((task) =>
+      diagnoseDeterminacy(task.id, validateTaskConstraints(task, projectDoc.dependencies)),
     ),
-    ...document.milestones.map((milestone) =>
+    ...projectDoc.milestones.map((milestone) =>
       diagnoseDeterminacy(
         milestone.id,
-        validateMilestoneConstraints(milestone, document.dependencies),
+        validateMilestoneConstraints(milestone, projectDoc.dependencies),
       ),
     ),
   ].filter((diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined);
 
-  const endpoints = document.dependencies
+  const endpoints = projectDoc.dependencies
     .map((dependency) => diagnoseEndpoints(dependency, entityIds, groupIds))
     .filter((diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined);
 
-  const graph = new ProjectDependencyGraph([...entityIds], document.dependencies);
-  const schedulable = schedulableEntityIds(document);
-  const anchoring: ScheduleDiagnostic[] = unanchoredComponents(
+  return [...determinacy, ...endpoints];
+}
+
+/**
+ * Evaluates whether every schedulable dependency component has an absolute date anchor.
+ *
+ * @param projectDoc The document to evaluate.
+ * @returns One diagnostic per unanchored component.
+ */
+export function evaluateScheduleAnchoring(
+  projectDoc: ProjectDocument,
+): readonly ScheduleDiagnostic[] {
+  const graph = createSchedulableGraph(projectDoc);
+  const schedulable = schedulableEntityIds(projectDoc);
+  return unanchoredComponents(
     graph.connectedComponents(),
-    anchoredEntityIds(document),
+    anchoredEntityIds(projectDoc),
     schedulable,
   ).map((component) => ({
     kind: "unanchoredComponent",
     severity: "blocking",
     entityIds: component.filter((id) => schedulable.has(id)),
   }));
-
-  return [...determinacy, ...endpoints, ...anchoring];
 }
 
 /** Returns the diagnostics that must stop the document from being persisted. */

@@ -1,8 +1,8 @@
 import { ProjectView } from "@common/documents";
+import { IconAction } from "@webview/components/IconAction";
 import { Select } from "@webview/components/Select";
 import { createChartMenuPresentation } from "@webview/features/chart/chartMenuPresentation";
 import "@webview/features/chart/components/ChartMenuBar.scss";
-import { IconAction } from "@webview/features/chart/components/IconAction";
 import { useTranslate } from "@webview/l10n";
 
 interface ChartMenuBarProps {

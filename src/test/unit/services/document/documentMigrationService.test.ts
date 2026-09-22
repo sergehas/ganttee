@@ -66,6 +66,8 @@ suite("documentMigrationService", () => {
         { id: "d3", sourceId: "t2", targetId: "t1", type: "startAfter" },
         { id: "d4", sourceId: "t2", targetId: "t1", type: "startWith" },
       ],
+      groups: [],
+      sequence: ["t1", "t2"],
     });
   });
 
@@ -75,7 +77,7 @@ suite("documentMigrationService", () => {
       dependencies: [{ id: "d1", sourceId: "t1", targetId: "t2", type: "endWith" }],
     };
 
-    assert.deepStrictEqual(migrateDocument(raw), raw);
+    assert.deepStrictEqual(migrateDocument(raw), { ...raw, groups: [], sequence: [] });
   });
 
   test("returns non-record input unchanged", () => {
@@ -94,6 +96,8 @@ suite("documentMigrationService", () => {
       version: CURRENT_DOCUMENT_VERSION,
       tasks: ["not an object", { id: "t1", name: "T" }],
       dependencies: [42],
+      groups: [],
+      sequence: ["t1"],
     });
   });
 
@@ -114,10 +118,11 @@ suite("documentMigrationService", () => {
       tasks: [{ id: "t1", name: "Task 1", start: "2026-01-01" }],
       milestones: [{ id: "m1", name: "Kickoff", date: "2026-01-01" }],
       groups: [
-        { id: "g1", name: "Root" },
-        { id: "g2", name: "Child", groupId: "g1" },
+        { id: "g1", name: "Root", sequence: ["g2"] },
+        { id: "g2", name: "Child", groupId: "g1", sequence: [] },
       ],
       dependencies: [],
+      sequence: ["g1", "t1", "m1"],
     });
   });
 
@@ -132,8 +137,9 @@ suite("documentMigrationService", () => {
     assert.deepStrictEqual(migrated, {
       version: CURRENT_DOCUMENT_VERSION,
       tasks: [{ id: "t1", name: "Current" }],
-      groups: [{ id: "g1", name: "G", groupId: "new" }],
+      groups: [{ id: "g1", name: "G", groupId: "new", sequence: [] }],
       dependencies: [],
+      sequence: ["t1"],
     });
   });
 
@@ -146,7 +152,11 @@ suite("documentMigrationService", () => {
     };
 
     const migrated = migrateDocument(raw) as { version: number };
-    assert.deepStrictEqual(migrated, raw);
+    assert.deepStrictEqual(migrated, {
+      ...raw,
+      groups: [{ ...raw.groups[0], sequence: [] }],
+      sequence: ["t1"],
+    });
     assert.strictEqual(migrated.version, 2);
   });
 
@@ -159,6 +169,8 @@ suite("documentMigrationService", () => {
     assert.deepStrictEqual(migrated, {
       version: CURRENT_DOCUMENT_VERSION,
       dependencies: [{ id: "d1", sourceId: "t1", targetId: "t2", type: "legacyType" }],
+      groups: [],
+      sequence: [],
     });
   });
 
@@ -214,6 +226,8 @@ suite("documentMigrationService", () => {
     assert.deepStrictEqual(migrated, {
       version: CURRENT_DOCUMENT_VERSION,
       dependencies: [],
+      groups: [],
+      sequence: [],
       settings: { workingCalendar: { daysOff: [6, 7] }, workingDayHours: 8 },
     });
   });
@@ -225,7 +239,7 @@ suite("documentMigrationService", () => {
       settings: { workingCalendar: { daysOff: [6, 7] }, workingDayHours: 8 },
     };
 
-    assert.deepStrictEqual(migrateDocument(raw), raw);
+    assert.deepStrictEqual(migrateDocument(raw), { ...raw, groups: [], sequence: [] });
   });
 
   test("prefers nested settings over legacy top-level working config", () => {
@@ -240,6 +254,8 @@ suite("documentMigrationService", () => {
     assert.deepStrictEqual(migrated, {
       version: CURRENT_DOCUMENT_VERSION,
       dependencies: [],
+      groups: [],
+      sequence: [],
       settings: { workingCalendar: { daysOff: [6, 7] }, workingDayHours: 8 },
     });
   });
@@ -254,6 +270,8 @@ suite("documentMigrationService", () => {
     assert.deepStrictEqual(migrated, {
       version: CURRENT_DOCUMENT_VERSION,
       dependencies: [],
+      groups: [],
+      sequence: [],
       settings: { workingDayHours: 8 },
     });
   });

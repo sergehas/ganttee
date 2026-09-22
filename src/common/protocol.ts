@@ -2,11 +2,11 @@ import {
   Dependency,
   Group,
   Milestone,
-  ProjectDocument,
   ProjectItemType,
   ProjectView,
   Task,
 } from "@common/documents";
+import { ProjectPresentation } from "@common/presentation/project";
 
 /**
  * Message protocol between the extension host and the editor webview.
@@ -24,13 +24,22 @@ export type HostToWebviewMessage =
     }
   | {
       type: "init";
-      document: ProjectDocument;
+      project: ProjectPresentation;
       revision: number;
       iconBaseUri: string;
     }
-  | { type: "documentChanged"; document: ProjectDocument; revision: number }
+  | { type: "documentChanged"; project: ProjectPresentation; revision: number }
   | { type: "selectEntity"; entity: EditableEntityRef }
-  | { type: "editEntity"; entity: EditableEntityRef };
+  | { type: "editEntity"; entity: EditableEntityRef }
+  | {
+      //  Authoritative outcome of one correlated webview entity-update proposal.
+      //  This acknowledgment is independent of `documentChanged`; either message may arrive first.
+      type: "updateEntityResult";
+      requestId: number;
+      entity: EditableEntityRef;
+      updated: boolean;
+    }
+  | { type: "deleteEntityResult"; entity: EditableEntityRef; deleted: boolean };
 
 /** Supported editable entity kinds. */
 export type EditableEntityKind = ProjectItemType;
@@ -54,13 +63,17 @@ export interface EditableEntityMap {
 export type GroupDeleteStrategy = "cascade" | "reparent";
 
 /**
- * Message posted by the webview to save an edited entity.
+ * Message posted by the webview to propose an entity update against a document revision.
+ * The host returns an `updateEntityResult` with the same request id after validation and apply.
  */
 export type UpdateEntityMessage = {
   [K in EditableEntityKind]: {
     type: "updateEntity";
+    /** Correlates this proposal with its authoritative host result. */
+    requestId: number;
     kind: K;
     entity: EditableEntityMap[K];
+    baseRevision: number;
   };
 }[EditableEntityKind];
 
@@ -68,17 +81,13 @@ export type UpdateEntityMessage = {
 export type WebviewToHostMessage =
   | { type: "ready" }
   | UpdateEntityMessage
-  | {
-      type: "entityUpdated";
-      updatedDocument: ProjectDocument;
-      baseRevision: number;
-    }
   | { type: "updateView"; view: ProjectView; baseRevision: number }
-  | { type: "addDependency"; dependency: Dependency }
-  | { type: "removeDependency"; dependencyId: string }
+  | { type: "addDependency"; dependency: Dependency; baseRevision: number }
+  | { type: "removeDependency"; dependencyId: string; baseRevision: number }
   | {
       type: "deleteEntity";
       entity: EditableEntityRef;
       strategy?: GroupDeleteStrategy;
+      baseRevision: number;
     }
   | { type: "requestEditEntity"; entity: EditableEntityRef };

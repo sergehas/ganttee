@@ -1,4 +1,4 @@
-import { ProjectDocument } from "@common/documents";
+import { ProjectContent } from "@common/documents";
 import { EditableEntityKind, EditableEntityRef } from "@common/protocol";
 
 /** A direct member row shown in the group-owned-entities list. */
@@ -18,10 +18,10 @@ export interface DirectGroupMemberRow {
  * Includes only entities with `groupId === ownerGroupId` (no transitive descendants).
  */
 export function buildDirectGroupMemberRows(
-  document: ProjectDocument,
+  projectDoc: ProjectContent,
   ownerGroupId: string,
 ): DirectGroupMemberRow[] {
-  const groupRows: DirectGroupMemberRow[] = document.groups
+  const groupRows: DirectGroupMemberRow[] = projectDoc.groups
     .filter((item) => item.groupId === ownerGroupId)
     .map((item) => ({
       id: `group:${item.id}`,
@@ -30,7 +30,7 @@ export function buildDirectGroupMemberRows(
       entity: { kind: "group", id: item.id },
     }));
 
-  const taskRows: DirectGroupMemberRow[] = document.tasks
+  const taskRows: DirectGroupMemberRow[] = projectDoc.tasks
     .filter((item) => item.groupId === ownerGroupId)
     .map((item) => ({
       id: `task:${item.id}`,
@@ -39,7 +39,7 @@ export function buildDirectGroupMemberRows(
       entity: { kind: "task", id: item.id },
     }));
 
-  const milestoneRows: DirectGroupMemberRow[] = document.milestones
+  const milestoneRows: DirectGroupMemberRow[] = projectDoc.milestones
     .filter((item) => item.groupId === ownerGroupId)
     .map((item) => ({
       id: `milestone:${item.id}`,

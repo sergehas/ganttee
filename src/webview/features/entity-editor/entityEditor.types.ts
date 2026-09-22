@@ -3,10 +3,14 @@ import {
   DependencyType,
   Group,
   Milestone,
-  ProjectDocument,
+  ProjectContent,
   Task,
 } from "@common/documents";
-import { ProjectSchedule, ScheduledMilestone, ScheduledTask } from "@common/models";
+import {
+  MilestonePresentation,
+  ProjectPresentation,
+  TaskPresentation,
+} from "@common/presentation/project";
 import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
 import { SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
 
@@ -23,9 +27,7 @@ export interface TaskFormProps {
   /** Entity selected for editing. */
   editingEntity: TaskFormEditingEntity;
   /** Current parsed Gantt document. */
-  document: ProjectDocument;
-  /** Current host-computed schedule. */
-  schedule: ProjectSchedule;
+  document: ProjectPresentation;
   /** Saves an edited entity and its dependencies. */
   onSave: (
     kind: EditableEntityKind,
@@ -74,7 +76,7 @@ export interface TaskFieldsProps extends DependencyEditorProps {
   /** Replaces the task draft. */
   onChange: (task: Task) => void;
   /** Current computed schedule for the task. */
-  scheduledTask?: ScheduledTask;
+  scheduledTask?: TaskPresentation;
 }
 
 /** Props for the milestone-specific fields section. */
@@ -84,7 +86,7 @@ export interface MilestoneFieldsProps extends DependencyEditorProps {
   /** Replaces the milestone draft. */
   onChange: (milestone: Milestone) => void;
   /** Current computed schedule for the milestone. */
-  scheduledMilestone?: ScheduledMilestone;
+  scheduledMilestone?: MilestonePresentation;
 }
 
 /** Props for the group-specific fields section. */
@@ -92,9 +94,7 @@ export interface GroupFieldsProps {
   /** Group draft displayed by the fields. */
   group: Group;
   /** Current parsed Gantt document. */
-  document: ProjectDocument;
-  /** Current host-computed schedule. */
-  schedule: ProjectSchedule;
+  document: ProjectPresentation;
   /** Replaces the group draft. */
   onChange: (group: Group) => void;
   /** Opens a member entity in the edit form. */
@@ -106,7 +106,7 @@ export interface GroupFieldsProps {
 /** Shared dependency-editor props for task and milestone field components. */
 export interface DependencyEditorProps {
   /** Current parsed Gantt document. */
-  document: ProjectDocument;
+  document: ProjectContent;
   /** Identifier of the entity currently being edited. */
   ownerId: string | undefined;
   /** Dependencies involving the current owner. */

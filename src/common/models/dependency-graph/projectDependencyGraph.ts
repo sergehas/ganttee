@@ -11,7 +11,7 @@
  * dependency target before the constrained source.
  */
 
-import { Dependency } from "@common/documents/project/dependency";
+import { Dependency, DependencyType } from "@common/documents/project/dependency";
 import { DirectedGraph } from "graphology";
 import { connectedComponents as graphologyConnectedComponents } from "graphology-components";
 import {
@@ -80,9 +80,10 @@ export class DanglingDependencyError extends Error {
  */
 export class ProjectDependencyGraph extends DirectedGraph<
   Record<string, never>,
-  { dependency: Dependency }
+  { id: string; type: DependencyType }
 > {
   /**
+   * Create a Directed graph over a set of node ids and typed dependency edges.
    * @param nodeIds All schedulable entity ids.
    * @param dependencies The dependency records forming the edges.
    */
@@ -98,7 +99,8 @@ export class ProjectDependencyGraph extends DirectedGraph<
     }
     for (const dependency of dependencies) {
       this.addDirectedEdgeWithKey(dependency.id, dependency.targetId, dependency.sourceId, {
-        dependency,
+        id: dependency.id,
+        type: dependency.type,
       });
     }
   }
@@ -188,7 +190,13 @@ export class ProjectDependencyGraph extends DirectedGraph<
     if (!this.hasNode(sourceId)) {
       return [];
     }
-    return this.inEdges(sourceId).map((edge) => this.getEdgeAttribute(edge, "dependency"));
+    // Only the type is stored on the edge; the endpoints are the edge itself.
+    return this.inEdges(sourceId).map((edge) => ({
+      id: this.getEdgeAttribute(edge, "id"),
+      sourceId,
+      targetId: this.source(edge),
+      type: this.getEdgeAttribute(edge, "type"),
+    }));
   }
 }
 

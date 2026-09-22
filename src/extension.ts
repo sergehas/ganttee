@@ -19,15 +19,14 @@ export function activate(context: vscode.ExtensionContext) {
 
   const explorer = new GanttExplorerProvider(store, context.extensionUri);
   context.subscriptions.push(vscode.window.onDidChangeActiveColorTheme(() => explorer.refresh()));
-  context.subscriptions.push(
-    vscode.window.createTreeView(GanttExplorerProvider.viewId, {
-      treeDataProvider: explorer,
-      dragAndDropController: explorer,
-      canSelectMany: true,
-    }),
-  );
+  const treeView = vscode.window.createTreeView(GanttExplorerProvider.viewId, {
+    treeDataProvider: explorer,
+    dragAndDropController: explorer,
+    canSelectMany: true,
+  });
+  context.subscriptions.push(treeView);
 
-  registerCommands(context, store, explorer);
+  registerCommands(context, store, explorer, treeView);
 }
 
 export function deactivate() {
@@ -38,6 +37,7 @@ function registerCommands(
   context: vscode.ExtensionContext,
   store: GanttStore,
   explorer: GanttExplorerProvider,
+  treeView: vscode.TreeView<unknown>,
 ): void {
   const register = (command: string, handler: (...args: unknown[]) => unknown) =>
     context.subscriptions.push(vscode.commands.registerCommand(command, handler));
@@ -57,7 +57,7 @@ function registerCommands(
       return;
     }
     const task = createDefaultTask(vscode.l10n.t("New Task"));
-    await controller.upsertTask(task);
+    await controller.upsertTask(task, currentSelection(treeView));
     controller.editEntity({ kind: "task", id: task.id });
   });
 
@@ -70,7 +70,7 @@ function registerCommands(
       return;
     }
     const group = createDefaultGroup(vscode.l10n.t("New Group"));
-    await controller.upsertGroup(group);
+    await controller.upsertGroup(group, currentSelection(treeView));
     controller.editEntity({ kind: "group", id: group.id });
   });
 
@@ -83,7 +83,7 @@ function registerCommands(
       return;
     }
     const milestone = createDefaultMilestone(vscode.l10n.t("New Milestone"));
-    await controller.upsertMilestone(milestone);
+    await controller.upsertMilestone(milestone, currentSelection(treeView));
     controller.editEntity({ kind: "milestone", id: milestone.id });
   });
 
@@ -215,6 +215,11 @@ function isEntityRef(value: unknown): value is EditableEntityRef {
 /** Resolves a row command argument that may be a raw entity ref or a tree node. */
 function resolveEntity(value: unknown): EditableEntityRef | undefined {
   return isEntityRef(value) ? value : entityRefOf(value);
+}
+
+/** Reads the sidebar's currently selected entity, if any, at invocation time. */
+function currentSelection(treeView: vscode.TreeView<unknown>): EditableEntityRef | undefined {
+  return entityRefOf(treeView.selection[0]);
 }
 
 /** Serialized template used when creating a blank `.ganttee` document. */

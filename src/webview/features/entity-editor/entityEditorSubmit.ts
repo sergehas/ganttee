@@ -1,4 +1,4 @@
-import { Group, Milestone, ProjectDocument, Task } from "@common/documents";
+import { Group, Milestone, ProjectContent, Task } from "@common/documents";
 import { EditableEntityKind, EditableEntityMap } from "@common/protocol";
 import { TaskFormProps } from "@webview/features/entity-editor/entityEditor.types";
 import { SyntheticEvent } from "react";
@@ -6,7 +6,7 @@ import { SyntheticEvent } from "react";
 /** Inputs required to route an entity editor form submission. */
 export interface EntityEditorSubmitOptions {
   /** Current parsed document that supplies dependencies. */
-  readonly document: ProjectDocument;
+  readonly document: ProjectContent;
   /** Current task draft, when present. */
   readonly taskDraft: Task | null;
   /** Current milestone draft, when present. */
@@ -17,7 +17,11 @@ export interface EntityEditorSubmitOptions {
   readonly onSave: TaskFormProps["onSave"];
 }
 
-/** Creates the form submit handler for the active entity draft. */
+/**
+ * Creates the form submit handler for the active entity draft.
+ * Form submissions omit `keepEditorOpen`, so App closes the originating editor session only after
+ * the host acknowledges successful persistence.
+ */
 export function createEntityEditorSubmit(
   options: EntityEditorSubmitOptions,
 ): (event: SyntheticEvent<HTMLFormElement>) => void {

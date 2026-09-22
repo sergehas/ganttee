@@ -130,4 +130,24 @@ suite("timelineAxis", () => {
       ],
     );
   });
+
+  test("advances month and year ticks across calendar boundaries", () => {
+    const monthTicks = buildTimelineTicks("month", "en-US", {
+      min: Date.UTC(2026, 10, 15),
+      max: Date.UTC(2027, 1, 15),
+    });
+    const yearTicks = buildTimelineTicks("year", "en-US", {
+      min: Date.UTC(2025, 5, 1),
+      max: Date.UTC(2027, 5, 1),
+    });
+
+    assert.deepStrictEqual(
+      monthTicks.map((tick) => tick.value),
+      [Date.UTC(2026, 10, 1), Date.UTC(2026, 11, 1), Date.UTC(2027, 0, 1), Date.UTC(2027, 1, 1)],
+    );
+    assert.deepStrictEqual(
+      yearTicks.map((tick) => tick.value),
+      [Date.UTC(2025, 0, 1), Date.UTC(2026, 0, 1), Date.UTC(2027, 0, 1)],
+    );
+  });
 });

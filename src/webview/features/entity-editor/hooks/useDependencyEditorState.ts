@@ -1,4 +1,4 @@
-import { DependencyType, ProjectDocument } from "@common/documents";
+import { DependencyType, ProjectContent } from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
 import { DependencyEditorProps } from "@webview/features/entity-editor/entityEditor.types";
 import { EntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
@@ -7,7 +7,7 @@ import { useCallback, useMemo, useState } from "react";
 /** Manages dependency-editor state for a task or milestone draft. */
 export function useDependencyEditorState(
   ownerId: string | undefined,
-  document: ProjectDocument,
+  projectDoc: ProjectContent,
   workflow: Pick<EntityEditWorkflow, "addDependency" | "removeDependency">,
   onRequestEditEntity: (entity: EditableEntityRef) => void,
 ): DependencyEditorProps {
@@ -17,11 +17,11 @@ export function useDependencyEditorState(
   const dependencies = useMemo(
     () =>
       ownerId
-        ? document.dependencies.filter(
+        ? projectDoc.dependencies.filter(
             (dependency) => dependency.sourceId === ownerId || dependency.targetId === ownerId,
           )
         : [],
-    [ownerId, document.dependencies],
+    [ownerId, projectDoc.dependencies],
   );
 
   const dependencyCandidates = useMemo(() => {
@@ -29,13 +29,13 @@ export function useDependencyEditorState(
       return [];
     }
     return [
-      ...document.tasks.map((task) => ({ id: task.id, name: task.name })),
-      ...document.milestones.map((milestone) => ({
+      ...projectDoc.tasks.map((task) => ({ id: task.id, name: task.name })),
+      ...projectDoc.milestones.map((milestone) => ({
         id: milestone.id,
         name: milestone.name,
       })),
     ].filter((entity) => entity.id !== ownerId);
-  }, [ownerId, document.tasks, document.milestones]);
+  }, [ownerId, projectDoc.tasks, projectDoc.milestones]);
 
   const addDependency = useCallback(() => {
     workflow.addDependency(ownerId, dependencyTarget, dependencyType);
@@ -43,7 +43,7 @@ export function useDependencyEditorState(
   }, [workflow, ownerId, dependencyTarget, dependencyType]);
 
   return {
-    document,
+    document: projectDoc,
     ownerId,
     dependencies,
     dependencyType,

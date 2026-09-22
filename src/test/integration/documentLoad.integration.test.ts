@@ -72,11 +72,10 @@ suite("documentLoad integration", () => {
     assert.deepStrictEqual(reparsed, original);
   });
 
-  /** Guards against accidental removal of fields the host sends in the `{ type: "init", document }` message. */
-  test("webview init payload shape: parsed document has required protocol fields", () => {
+  /** Guards against accidental removal of required persisted document fields. */
+  test("parsed document has required persisted fields", () => {
     const doc = parseDocument(readFixture("v2-simple.ganttee"));
 
-    // These are the exact fields the host sends in { type: "init", document }
     assert.ok("version" in doc);
     assert.ok(Array.isArray(doc.tasks));
     assert.ok(Array.isArray(doc.groups));

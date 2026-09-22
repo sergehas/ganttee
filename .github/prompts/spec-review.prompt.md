@@ -13,4 +13,5 @@ Review the Draft feature specification identified by `$ARGUMENTS` using the Spec
 - Do not promote the spec until the user explicitly confirms the proposed resolutions.
 - On confirmation, let the Spec Reviewer apply only its approved spec, ADR, and roadmap updates and
   transition the spec to `Reviewed`.
+- Do not implement code.
 - For any other lifecycle status, stop and route to the command that owns it.

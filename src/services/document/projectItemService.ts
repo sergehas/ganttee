@@ -6,64 +6,64 @@
  * three-way branch. This module provides that branch once, without casts.
  */
 
-import { ProjectDocument } from "@common/documents";
+import { ProjectContent, ProjectDocument } from "@common/documents";
 import { EditableEntityKind, EditableEntityMap } from "@common/protocol";
 
 /**
  * Returns the entities of one kind.
  *
- * @param document The document to read from.
+ * @param projectDoc The document to read from.
  * @param kind The entity kind to select.
  */
 export function entitiesOf<K extends EditableEntityKind>(
-  document: ProjectDocument,
+  projectDoc: ProjectContent,
   kind: K,
 ): readonly EditableEntityMap[K][] {
   switch (kind) {
     case "task":
-      return document.tasks as readonly EditableEntityMap[K][];
+      return projectDoc.tasks as readonly EditableEntityMap[K][];
     case "milestone":
-      return document.milestones as readonly EditableEntityMap[K][];
+      return projectDoc.milestones as readonly EditableEntityMap[K][];
     default:
-      return document.groups as readonly EditableEntityMap[K][];
+      return projectDoc.groups as readonly EditableEntityMap[K][];
   }
 }
 
 /**
  * Finds one entity by kind and id.
  *
- * @param document The document to read from.
+ * @param projectDoc The document to read from.
  * @param kind The entity kind to search.
  * @param entityId The id to look for.
  * @returns The entity, or `undefined` when no entity has that id.
  */
 export function findEntity<K extends EditableEntityKind>(
-  document: ProjectDocument,
+  projectDoc: ProjectContent,
   kind: K,
   entityId: string,
 ): EditableEntityMap[K] | undefined {
-  return entitiesOf(document, kind).find((entity) => entity.id === entityId);
+  return entitiesOf(projectDoc, kind).find((entity) => entity.id === entityId);
 }
 
 /**
  * Replaces an existing entity, keeping its position in the collection.
  *
- * @param document The document to update.
+ * @param projectDoc The document to update.
  * @param kind The entity kind to replace within.
  * @param entity The replacement, matched by id.
  * @returns The updated document, or `undefined` when no entity has that id.
  */
 export function replaceEntity<K extends EditableEntityKind>(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   kind: K,
   entity: EditableEntityMap[K],
 ): ProjectDocument | undefined {
-  const entities = entitiesOf(document, kind);
+  const entities = entitiesOf(projectDoc, kind);
   if (!entities.some((candidate) => candidate.id === entity.id)) {
     return undefined;
   }
   return withEntities(
-    document,
+    projectDoc,
     kind,
     entities.map((candidate) => (candidate.id === entity.id ? entity : candidate)),
   );
@@ -72,43 +72,43 @@ export function replaceEntity<K extends EditableEntityKind>(
 /**
  * Replaces an existing entity or appends it when its id is new.
  *
- * @param document The document to update.
+ * @param projectDoc The document to update.
  * @param kind The entity kind to write to.
  * @param entity The entity to store.
  * @returns The updated document.
  */
 export function upsertEntity<K extends EditableEntityKind>(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   kind: K,
   entity: EditableEntityMap[K],
 ): ProjectDocument {
-  return replaceEntity(document, kind, entity) ?? appendEntity(document, kind, entity);
+  return replaceEntity(projectDoc, kind, entity) ?? appendEntity(projectDoc, kind, entity);
 }
 
 /** Returns a document with one kind's collection replaced wholesale. */
 function withEntities<K extends EditableEntityKind>(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   kind: K,
   entities: readonly EditableEntityMap[K][],
 ): ProjectDocument {
   switch (kind) {
     case "task":
-      return { ...document, tasks: entities as ProjectDocument["tasks"] };
+      return { ...projectDoc, tasks: entities as ProjectDocument["tasks"] };
     case "milestone":
       return {
-        ...document,
+        ...projectDoc,
         milestones: entities as ProjectDocument["milestones"],
       };
     default:
-      return { ...document, groups: entities as ProjectDocument["groups"] };
+      return { ...projectDoc, groups: entities as ProjectDocument["groups"] };
   }
 }
 
 /** Returns a document with one entity added to the end of its collection. */
 function appendEntity<K extends EditableEntityKind>(
-  document: ProjectDocument,
+  projectDoc: ProjectDocument,
   kind: K,
   entity: EditableEntityMap[K],
 ): ProjectDocument {
-  return withEntities(document, kind, [...entitiesOf(document, kind), entity]);
+  return withEntities(projectDoc, kind, [...entitiesOf(projectDoc, kind), entity]);
 }

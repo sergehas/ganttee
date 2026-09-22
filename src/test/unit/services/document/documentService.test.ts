@@ -38,15 +38,6 @@ suite("documentService", () => {
     assert.deepStrictEqual(reparsed, document);
   });
 
-  test("omits the transient schedule when serializing to disk", () => {
-    const document = createDocumentWithSchedule();
-
-    const persisted = parseDocument(serializeDocument(document));
-
-    assert.strictEqual(persisted.schedule, undefined);
-    assert.deepStrictEqual(persisted.tasks, document.tasks);
-  });
-
   test("throws GanttParseError on invalid JSON", () => {
     assert.throws(() => parseDocument("{ not json"), GanttParseError);
   });
@@ -417,25 +408,3 @@ suite("documentService", () => {
     });
   });
 });
-
-/** Creates a document containing a transient serialized schedule. */
-function createDocumentWithSchedule() {
-  const document = parseDocument(
-    JSON.stringify({
-      tasks: [{ id: "task", name: "Task", start: "2026-09-08", duration: 1 }],
-    }),
-  );
-  document.schedule = {
-    tasks: [
-      {
-        id: "task",
-        effectiveStart: "2026-09-08T09:00:00.000Z",
-        effectiveEnd: "2026-09-09T09:00:00.000Z",
-        effectiveDuration: 1,
-      },
-    ],
-    milestones: [],
-    groups: [],
-  };
-  return document;
-}

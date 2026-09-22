@@ -1,4 +1,4 @@
-import { ProjectDocument } from "@common/documents";
+import { ProjectContent } from "@common/documents";
 import {
   buildDirectGroupMemberRows,
   DirectGroupMemberRow,
@@ -13,12 +13,12 @@ export interface GroupScheduleScopeView {
 
 /** Computes memoized schedule and direct member rows for a group edit form. */
 export function useGroupScheduleScope(
-  document: ProjectDocument,
+  projectDoc: ProjectContent,
   groupId: string,
 ): GroupScheduleScopeView {
   const directMemberRows = useMemo(
-    () => buildDirectGroupMemberRows(document, groupId),
-    [document, groupId],
+    () => buildDirectGroupMemberRows(projectDoc, groupId),
+    [projectDoc, groupId],
   );
 
   return { directMemberRows };

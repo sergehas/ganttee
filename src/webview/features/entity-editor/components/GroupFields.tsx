@@ -1,4 +1,4 @@
-import { formatShortDate } from "@common/dates";
+import { formatShortDate, parseIsoTimestamp } from "@common/dates";
 import "@webview/components/Form.scss";
 import { FormField } from "@webview/components/FormField";
 import { IconButton } from "@webview/components/IconButton";
@@ -17,7 +17,7 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
   const { locale } = useWebviewL10n();
   const t = useTranslate();
   const update = makeUpdater(group, props.onChange);
-  const scheduledGroup = props.schedule.groups.find((candidate) => candidate.id === group.id);
+  const scheduledGroup = document.groups.find((candidate) => candidate.id === group.id);
   const { directMemberRows } = useGroupScheduleScope(document, group.id);
 
   return (
@@ -37,14 +37,22 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
         <FormField label={t("Start")}>
           <input
             type="text"
-            value={scheduledGroup ? formatShortDate(scheduledGroup.effectiveStart, locale) : ""}
+            value={
+              scheduledGroup?.effectiveStart
+                ? formatShortDate(parseIsoTimestamp(scheduledGroup.effectiveStart), locale)
+                : ""
+            }
             readOnly
           />
         </FormField>
         <FormField label={t("End")}>
           <input
             type="text"
-            value={scheduledGroup ? formatShortDate(scheduledGroup.effectiveEnd, locale) : ""}
+            value={
+              scheduledGroup?.effectiveEnd
+                ? formatShortDate(parseIsoTimestamp(scheduledGroup.effectiveEnd), locale)
+                : ""
+            }
             readOnly
           />
         </FormField>
@@ -52,7 +60,7 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
 
       <div className="ganttee-form__row">
         <FormField label={t("Duration")}>
-          <input type="text" value={scheduledGroup?.effectiveDuration.toString() ?? ""} readOnly />
+          <input type="text" value={scheduledGroup?.effectiveDuration?.toString() ?? ""} readOnly />
         </FormField>
 
         <FormField checkbox label={t("Collapsed")}>

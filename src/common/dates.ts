@@ -247,9 +247,23 @@ function utcDayStart(epochMilliseconds: number): number {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
 }
 
-/** Returns the ISO weekday number for a UTC day boundary. */
-function isoWeekday(day: number): number {
-  return new Date(day).getUTCDay() || 7;
+/** Returns the ISO-8601 weekday number for a timestamp. */
+export function isoWeekday(value: number): number {
+  return new Date(value).getUTCDay() || 7;
+}
+
+/** Returns the ISO-8601 week number for a timestamp. */
+export function isoWeekNumber(value: number): number {
+  const date = new Date(value);
+  const thursday = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  thursday.setUTCDate(thursday.getUTCDate() + 4 - isoWeekday(thursday.getTime()));
+  const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
+  return Math.ceil((thursday.getTime() - yearStart.getTime() + MS_PER_DAY) / (7 * MS_PER_DAY));
+}
+
+/** Returns the calendar quarter for a timestamp. */
+export function quarter(value: number): number {
+  return Math.floor(new Date(value).getUTCMonth() / 3) + 1;
 }
 
 /** Returns the working interval on a UTC day, or undefined for a day off. */

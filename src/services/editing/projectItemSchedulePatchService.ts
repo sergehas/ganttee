@@ -6,7 +6,7 @@
  */
 
 import { addDays, formatIsoDate, parseIsoDate } from "@common/dates";
-import { Milestone, ProjectDocument, Task } from "@common/documents";
+import { Milestone, ProjectContent, Task } from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
 import { findEntity } from "@services/document/projectItemService";
 import {
@@ -28,20 +28,20 @@ export interface EntityDatePatch {
  * Tasks consume `start`/`end`; milestones consume `date`, falling back to
  * `start`/`end` for gestures that supply only one of them.
  *
- * @param document The document holding the entity.
+ * @param projectDoc The document holding the entity.
  * @param ref The entity being edited.
  * @param patch The dates the gesture produced.
  * @param options Behavior flags for the save.
  * @returns The update payload, or `undefined` when the edit cannot be applied.
  */
 export function buildDatePatchUpdate(
-  document: ProjectDocument,
+  projectDoc: ProjectContent,
   ref: EditableEntityRef,
   patch: EntityDatePatch,
   options?: SaveEntityOptions,
 ): EditableEntityUpdate | undefined {
   if (ref.kind === "task") {
-    const task = findEntity(document, "task", ref.id);
+    const task = findEntity(projectDoc, "task", ref.id);
     if (!task) {
       return undefined;
     }
@@ -50,17 +50,17 @@ export function buildDatePatchUpdate(
       start: patch.start ?? task.start,
       end: patch.end ?? task.end,
     };
-    return buildSaveUpdate("task", updated, options, document.dependencies);
+    return buildSaveUpdate("task", updated, options, projectDoc.dependencies);
   }
 
   if (ref.kind === "milestone") {
-    const milestone = findEntity(document, "milestone", ref.id);
+    const milestone = findEntity(projectDoc, "milestone", ref.id);
     const date = patch.date ?? patch.start ?? patch.end;
     if (!milestone || milestone.date === undefined || !date) {
       return undefined;
     }
     const updated: Milestone = { ...milestone, date };
-    return buildSaveUpdate("milestone", updated, options, document.dependencies);
+    return buildSaveUpdate("milestone", updated, options, projectDoc.dependencies);
   }
 
   return undefined;
@@ -71,18 +71,18 @@ export function buildDatePatchUpdate(
  *
  * Tasks shift whichever endpoints they define; milestones shift their date.
  *
- * @param document The document holding the entity.
+ * @param projectDoc The document holding the entity.
  * @param ref The entity being shifted.
  * @param days The offset in calendar days; may be negative.
  * @returns The resulting dates, or `undefined` when there is nothing to shift.
  */
 export function buildShiftByDaysPatch(
-  document: ProjectDocument,
+  projectDoc: ProjectContent,
   ref: EditableEntityRef,
   days: number,
 ): EntityDatePatch | undefined {
   if (ref.kind === "task") {
-    const task = findEntity(document, "task", ref.id);
+    const task = findEntity(projectDoc, "task", ref.id);
     if (!task) {
       return undefined;
     }
@@ -92,7 +92,7 @@ export function buildShiftByDaysPatch(
   }
 
   if (ref.kind === "milestone") {
-    const milestone = findEntity(document, "milestone", ref.id);
+    const milestone = findEntity(projectDoc, "milestone", ref.id);
     if (!milestone || milestone.date === undefined) {
       return undefined;
     }

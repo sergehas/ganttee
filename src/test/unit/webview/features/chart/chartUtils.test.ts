@@ -210,6 +210,7 @@ suite("chartUtils", () => {
   test("omits an undated milestone from rows and range", () => {
     const document = createDocument();
     document.milestones.push({ id: "m-undated", name: "Undated" });
+    document.sequence?.push("m-undated");
 
     const rows = buildChartRows(document);
     const range = chartDateRange(document);
@@ -241,5 +242,6 @@ function createDocument(): ProjectDocument {
     milestones: [{ id: "m1", name: "Milestone One", date: "2026-01-06" }],
     groups: [],
     dependencies: [],
+    sequence: ["t1", "t2", "m1"],
   };
 }

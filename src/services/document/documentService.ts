@@ -37,17 +37,16 @@ export function parseDocument(text: string): ProjectDocument {
     throw new GanttParseError(`Invalid JSON in .ganttee file: ${(error as Error).message}`);
   }
 
-  const document = validateDocumentShape(migrateDocument(raw));
-  assertDocumentRelations(document);
-  return document;
+  const projectDoc = validateDocumentShape(migrateDocument(raw));
+  assertDocumentRelations(projectDoc);
+  return projectDoc;
 }
 
 /**
  * Serializes a document to pretty-printed JSON suitable for on-disk storage.
  *
- * @param document The document to write.
+ * @param projectDoc The document to write.
  */
-export function serializeDocument(document: ProjectDocument): string {
-  const { schedule: _schedule, ...persistedDocument } = document;
-  return `${JSON.stringify(persistedDocument, undefined, 2)}\n`;
+export function serializeDocument(projectDoc: ProjectDocument): string {
+  return `${JSON.stringify(projectDoc, undefined, 2)}\n`;
 }

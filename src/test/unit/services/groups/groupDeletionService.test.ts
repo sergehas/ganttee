@@ -8,10 +8,11 @@ import * as assert from "assert";
 /** Root group `g1` owns task `t1` and nested group `g2`, which owns `t2`. */
 function createDocument(): ProjectDocument {
   const document = createEmptyDocument();
+  document.sequence = ["g1", "g3", "outside"];
   document.groups = [
-    { id: "g1", name: "Root" },
-    { id: "g2", name: "Child", groupId: "g1" },
-    { id: "g3", name: "Empty" },
+    { id: "g1", name: "Root", sequence: ["t1", "g2"] },
+    { id: "g2", name: "Child", groupId: "g1", sequence: ["t2", "m1"] },
+    { id: "g3", name: "Empty", sequence: [] },
   ];
   document.tasks = [
     { id: "t1", name: "T1", groupId: "g1", start: "2026-01-01" },
@@ -91,6 +92,28 @@ suite("groupDeletionService", () => {
       buildGroupDeletionDocument(createDocument(), "missing", "cascade"),
       undefined,
     );
+  });
+
+  test("cascade strips the deleted group and its descendants from every sequence", () => {
+    const next = buildGroupDeletionDocument(createDocument(), "g1", "cascade");
+
+    assert.deepStrictEqual(next?.sequence, ["g3", "outside"]);
+  });
+
+  test("reparent inserts promoted children at the deleted group's former sequence position", () => {
+    const next = buildGroupDeletionDocument(createDocument(), "g2", "reparent");
+
+    assert.deepStrictEqual(next?.groups.find((group) => group.id === "g1")?.sequence, [
+      "t1",
+      "t2",
+      "m1",
+    ]);
+  });
+
+  test("reparent from a root group inserts promoted children into the root sequence", () => {
+    const next = buildGroupDeletionDocument(createDocument(), "g1", "reparent");
+
+    assert.deepStrictEqual(next?.sequence, ["t1", "g2", "g3", "outside"]);
   });
 
   test("does not mutate the input document", () => {

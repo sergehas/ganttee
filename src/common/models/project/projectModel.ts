@@ -20,6 +20,7 @@ export class ProjectModel {
    * @param graph The normalized structural dependency graph.
    * @param settings Resolved project-level scheduling settings.
    * @param view Resolved chart view preferences.
+   * @param sequence Ordered root direct-child ids.
    */
   constructor(
     readonly tasks: readonly Task[],
@@ -30,5 +31,6 @@ export class ProjectModel {
     readonly graph: ProjectDependencyGraph,
     readonly settings: ProjectSettings,
     readonly view: ProjectView,
+    readonly sequence: readonly string[],
   ) {}
 }

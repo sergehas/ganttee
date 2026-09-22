@@ -2,7 +2,9 @@ import { createEmptyDocument, Dependency, ProjectDocument } from "@common/docume
 import {
   blockingDiagnostics,
   diagnosticsFor,
-  evaluateScheduleGraph,
+  evaluateScheduleAnchoring,
+  evaluateScheduleConstraints,
+  evaluateScheduleDiagnostics,
   hasBlockingScheduleDiagnostic,
   ScheduleDiagnostic,
 } from "@services/schedule/scheduleGraphValidationService";
@@ -60,7 +62,7 @@ suite("scheduleGraphValidationService", () => {
     ];
     document.dependencies = [dep("over", "under")];
 
-    const diagnostics = evaluateScheduleGraph(document);
+    const diagnostics = evaluateScheduleDiagnostics(document);
 
     assert.deepStrictEqual(summarize(diagnostics), [
       "underConstrained:under",
@@ -93,7 +95,7 @@ suite("scheduleGraphValidationService", () => {
       },
     ];
 
-    const diagnostics = evaluateScheduleGraph(document);
+    const diagnostics = evaluateScheduleDiagnostics(document);
 
     assert.deepStrictEqual(summarize(diagnostics), [
       "underConstrained:under",
@@ -110,7 +112,7 @@ suite("scheduleGraphValidationService", () => {
     ];
     document.dependencies = [dep("duplicate", "anchor")];
 
-    const diagnostics = evaluateScheduleGraph(document);
+    const diagnostics = evaluateScheduleDiagnostics(document);
     const [duplicate] = diagnosticsFor(diagnostics, "duplicate");
 
     assert.strictEqual(duplicate.kind, "overConstrained");
@@ -134,7 +136,7 @@ suite("scheduleGraphValidationService", () => {
       },
     ];
 
-    const diagnostics = evaluateScheduleGraph(document);
+    const diagnostics = evaluateScheduleDiagnostics(document);
 
     assert.strictEqual(hasBlockingScheduleDiagnostic(diagnostics), true);
     assert.strictEqual(blockingDiagnostics(diagnostics).length, 1);
@@ -144,7 +146,7 @@ suite("scheduleGraphValidationService", () => {
     const document = anchoredTaskDocument();
     document.dependencies = [dep("missing", "task")];
 
-    const diagnostics = evaluateScheduleGraph(document);
+    const diagnostics = evaluateScheduleDiagnostics(document);
 
     assert.deepStrictEqual(summarize(diagnostics), ["danglingDependency:missing-task"]);
     assert.strictEqual(diagnosticsFor(diagnostics, "task").length, 1);
@@ -156,13 +158,13 @@ suite("scheduleGraphValidationService", () => {
     document.groups = [{ id: "group", name: "Group" }];
     document.dependencies = [dep("group", "task")];
 
-    const diagnostics = evaluateScheduleGraph(document);
+    const diagnostics = evaluateScheduleDiagnostics(document);
 
     assert.deepStrictEqual(summarize(diagnostics), ["groupDependency:group-task"]);
   });
 
   test("accepts a determinate anchored task", () => {
-    const diagnostics = evaluateScheduleGraph(anchoredTaskDocument());
+    const diagnostics = evaluateScheduleDiagnostics(anchoredTaskDocument());
 
     assert.deepStrictEqual(diagnostics, []);
   });
@@ -172,10 +174,22 @@ suite("scheduleGraphValidationService", () => {
     document.tasks = [{ id: "task", name: "Task", duration: 1 }];
     document.groups = [{ id: "group", name: "Group" }];
 
-    const diagnostics = evaluateScheduleGraph(document);
+    const diagnostics = evaluateScheduleDiagnostics(document);
 
     assert.deepStrictEqual(summarize(diagnostics), [
       "underConstrained:task",
+      "unanchoredComponent:task",
+    ]);
+  });
+
+  test("evaluates constraints and anchoring independently", () => {
+    const document = createEmptyDocument();
+    document.tasks = [{ id: "task", name: "Task", duration: 1 }];
+
+    assert.deepStrictEqual(summarize(evaluateScheduleConstraints(document)), [
+      "underConstrained:task",
+    ]);
+    assert.deepStrictEqual(summarize(evaluateScheduleAnchoring(document)), [
       "unanchoredComponent:task",
     ]);
   });
@@ -188,7 +202,7 @@ suite("scheduleGraphValidationService", () => {
     ];
     document.dependencies = [dep("a", "b")];
 
-    const diagnostics = evaluateScheduleGraph(document);
+    const diagnostics = evaluateScheduleDiagnostics(document);
     const [unanchored] = diagnostics.filter(
       (diagnostic) => diagnostic.kind === "unanchoredComponent",
     );
@@ -200,7 +214,7 @@ suite("scheduleGraphValidationService", () => {
     const document = createEmptyDocument();
     document.milestones = [{ id: "milestone", name: "Milestone", date: "2026-01-01" }];
 
-    const diagnostics = evaluateScheduleGraph(document);
+    const diagnostics = evaluateScheduleDiagnostics(document);
 
     assert.deepStrictEqual(diagnostics, []);
   });
@@ -217,7 +231,7 @@ suite("scheduleGraphValidationService", () => {
       },
     ];
 
-    const diagnostics = evaluateScheduleGraph(document);
+    const diagnostics = evaluateScheduleDiagnostics(document);
 
     assert.strictEqual(hasBlockingScheduleDiagnostic(diagnostics), false);
     assert.deepStrictEqual(summarize(diagnostics), ["overConstrained:milestone"]);
@@ -235,14 +249,14 @@ suite("scheduleGraphValidationService", () => {
       { id: "end", sourceId: "task", targetId: "with", type: "endWith" },
     ];
 
-    const diagnostics = evaluateScheduleGraph(document);
+    const diagnostics = evaluateScheduleDiagnostics(document);
 
     assert.strictEqual(countFor(diagnostics, "task"), 3);
   });
 
   test("returns no diagnostics for an entity that has none", () => {
     assert.deepStrictEqual(
-      diagnosticsFor(evaluateScheduleGraph(anchoredTaskDocument()), "task"),
+      diagnosticsFor(evaluateScheduleDiagnostics(anchoredTaskDocument()), "task"),
       [],
     );
   });

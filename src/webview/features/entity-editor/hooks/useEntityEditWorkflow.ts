@@ -1,4 +1,4 @@
-import { Dependency, DependencyType, ProjectDocument } from "@common/documents";
+import { Dependency, DependencyType, ProjectContent } from "@common/documents";
 import { generateId } from "@common/idFactory";
 import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
 import { buildDependency } from "@services/editing/dependencyFactoryService";
@@ -28,7 +28,7 @@ interface HostEditActions {
 
 /** Public operations exposed by the shared webview edit workflow. */
 export interface EntityEditWorkflow {
-  /** Saves an entity through the host action boundary. */
+  /** Saves an entity through the host boundary while preserving its requested editor behavior. */
   saveEntity: (
     kind: EditableEntityKind,
     entity: EditableEntityMap[EditableEntityKind],
@@ -39,7 +39,7 @@ export interface EntityEditWorkflow {
   deleteEntity: (entity: EditableEntityRef) => void;
   /** Removes an entity from its group and saves the result. */
   ungroupEntity: (
-    document: ProjectDocument,
+    projectDoc: ProjectContent,
     entity: EditableEntityRef,
     options?: SaveEntityOptions,
   ) => void;
@@ -49,7 +49,7 @@ export interface EntityEditWorkflow {
   removeDependency: (dependencyId: string) => void;
   /** Applies a chart date patch and saves the result. */
   patchEntityDatesFromChart: (
-    document: ProjectDocument,
+    document: ProjectContent,
     entity: EditableEntityRef,
     patch: EntityDatePatch,
     options?: SaveEntityOptions,
@@ -60,7 +60,8 @@ export interface EntityEditWorkflow {
  * Builds a shared edit-workflow API used by both the form panel and timeline.
  *
  * The workflow centralizes save guards and mutation shaping so multiple UI
- * surfaces apply exactly the same rules.
+ * surfaces apply exactly the same rules. It forwards `keepEditorOpen` to App,
+ * which retains that UI intent until the host acknowledges the update.
  */
 export function useEntityEditWorkflow(actions: HostEditActions): EntityEditWorkflow {
   const saveEntity = useCallback(
@@ -86,8 +87,8 @@ export function useEntityEditWorkflow(actions: HostEditActions): EntityEditWorkf
   );
 
   const ungroupEntity = useCallback(
-    (document: ProjectDocument, entity: EditableEntityRef, options?: SaveEntityOptions) => {
-      const update = buildUngroupUpdate(document, entity, options);
+    (projectDoc: ProjectContent, entity: EditableEntityRef, options?: SaveEntityOptions) => {
+      const update = buildUngroupUpdate(projectDoc, entity, options);
       if (update) {
         actions.onSave(update.kind, update.entity, update.options);
       }
@@ -114,12 +115,12 @@ export function useEntityEditWorkflow(actions: HostEditActions): EntityEditWorkf
 
   const patchEntityDatesFromChart = useCallback(
     (
-      document: ProjectDocument,
+      projectDoc: ProjectContent,
       entity: EditableEntityRef,
       patch: EntityDatePatch,
       options?: SaveEntityOptions,
     ) => {
-      const update = buildDatePatchUpdate(document, entity, patch, options);
+      const update = buildDatePatchUpdate(projectDoc, entity, patch, options);
       if (update) {
         actions.onSave(update.kind, update.entity, update.options);
       }

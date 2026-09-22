@@ -1,6 +1,6 @@
+import { ScheduledMilestone } from "@common/models/project-schedule/scheduledMilestone";
+import { ScheduledTask } from "@common/models/project-schedule/scheduledTask";
 import { ScheduledGroup } from "@common/models/project/group";
-import { ScheduledMilestone } from "@common/models/project/scheduledMilestone";
-import { ScheduledTask } from "@common/models/project/scheduledTask";
 
 /** Complete in-memory scheduling result for a project. */
 export class ProjectSchedule {

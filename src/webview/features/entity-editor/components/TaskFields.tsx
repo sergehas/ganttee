@@ -1,4 +1,4 @@
-import { formatShortDate } from "@common/dates";
+import { formatShortDate, parseIsoTimestamp } from "@common/dates";
 import { TaskStatus } from "@common/documents";
 import { validateTaskConstraints } from "@services/schedule/scheduleConstraintService";
 import "@webview/components/Form.scss";
@@ -46,8 +46,10 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
             value={task.start ?? ""}
             onChange={(event) => update("start", event.target.value || undefined)}
           />
-          {scheduledTask && (
-            <output>{formatShortDate(scheduledTask.effectiveStart(), locale)}</output>
+          {scheduledTask?.effectiveStart && (
+            <output>
+              {formatShortDate(parseIsoTimestamp(scheduledTask.effectiveStart), locale)}
+            </output>
           )}
         </FormField>
         <FormField label={t("End")}>
@@ -57,8 +59,10 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
             value={task.end ?? ""}
             onChange={(event) => update("end", event.target.value || undefined)}
           />
-          {scheduledTask && (
-            <output>{formatShortDate(scheduledTask.effectiveEnd(), locale)}</output>
+          {scheduledTask?.effectiveEnd && (
+            <output>
+              {formatShortDate(parseIsoTimestamp(scheduledTask.effectiveEnd), locale)}
+            </output>
           )}
         </FormField>
       </div>
@@ -74,7 +78,9 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
               update("duration", event.target.value === "" ? undefined : Number(event.target.value))
             }
           />
-          {scheduledTask && <output>{scheduledTask.effectiveDuration()}</output>}
+          {scheduledTask?.effectiveDuration !== undefined && (
+            <output>{scheduledTask.effectiveDuration}</output>
+          )}
         </FormField>
         <FormField label={t("Progress")}>
           <input

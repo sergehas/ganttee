@@ -1,4 +1,4 @@
-import { MS_PER_DAY } from "@common/dates";
+import { isoWeekday, isoWeekNumber, MS_PER_DAY, quarter } from "@common/dates";
 import { ZoomLevel } from "@common/documents";
 
 /** Display configuration for the selected and parent timeline axes. */
@@ -127,25 +127,6 @@ function nextTimelineTick(zoomLevel: ZoomLevel, value: number): number {
     case "year":
       return Date.UTC(date.getUTCFullYear() + 1, 0, 1);
   }
-}
-
-/** Returns the ISO-8601 weekday number for a timestamp. */
-function isoWeekday(value: number): number {
-  return new Date(value).getUTCDay() || 7;
-}
-
-/** Returns the ISO-8601 week number for a timestamp. */
-function isoWeekNumber(value: number): number {
-  const date = new Date(value);
-  const thursday = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  thursday.setUTCDate(thursday.getUTCDate() + 4 - (thursday.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
-  return Math.ceil((thursday.getTime() - yearStart.getTime() + MS_PER_DAY) / (7 * MS_PER_DAY));
-}
-
-/** Returns the calendar quarter for a timestamp. */
-function quarter(value: number): number {
-  return Math.floor(new Date(value).getUTCMonth() / 3) + 1;
 }
 
 /** Formats a positive integer with two digits. */

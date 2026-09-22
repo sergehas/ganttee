@@ -129,7 +129,7 @@ suite("Milestone", () => {
 
 suite("Group", () => {
   test("contains authoring fields without a placeholder schedule", () => {
-    const group = new Group({ id: "g", name: "G" });
+    const group = new Group({ id: "g", name: "G", sequence: [] });
     assert.deepStrictEqual(
       { id: group.id, name: group.name, groupId: group.groupId },
       { id: "g", name: "G", groupId: undefined },

@@ -11,11 +11,10 @@ import {
 import {
   CyclicDependencyError,
   ParallelEdgeDependencyError,
-  ProjectModel,
-  ProjectSchedule,
-  SchedulingError,
+  ProjectSnapshot,
   SelfLoopDependencyError,
 } from "@common/models";
+import { ProjectPresentation } from "@common/presentation/project";
 import {
   EditableEntityKind,
   EditableEntityRef,
@@ -29,24 +28,28 @@ import {
   parseDocument,
   serializeDocument,
 } from "@services/document/documentService";
-import { findEntity, replaceEntity, upsertEntity } from "@services/document/projectItemService";
+import { findEntity, replaceEntity } from "@services/document/projectItemService";
+import {
+  createEntityAtPlacement,
+  resolveCreationPlacement,
+} from "@services/editing/entityCreationService";
 import { buildTaskOrMilestoneDeletionDocument } from "@services/editing/projectItemRemovalService";
 import {
   buildGroupDeletionDocument,
   hasGroupContents,
 } from "@services/groups/groupDeletionService";
 import { hydrateDocument } from "@services/model/projectModelService";
-import { toScheduledDocument } from "@services/schedule/scheduledDocumentService";
+import { toProjectPresentation } from "@services/model/projectPresentationService";
+import { createProjectSnapshot } from "@services/model/projectSnapshotService";
 import {
   sanitizeScheduleGraph,
   ScheduleGraphSanitization,
 } from "@services/schedule/scheduleGraphSanitizationService";
 import {
   blockingDiagnostics,
-  evaluateScheduleGraph,
-  ScheduleDiagnostic,
+  evaluateScheduleConstraints,
+  evaluateScheduleDiagnostics,
 } from "@services/schedule/scheduleGraphValidationService";
-import { schedule } from "@services/schedule/schedulingService";
 import {
   assignEntitiesToGroup,
   EffectiveDateMap,
@@ -66,11 +69,10 @@ import * as vscode from "vscode";
  */
 export class GanttEditorController {
   private _document: ProjectDocument = createEmptyDocument();
-  private _model: ProjectModel = hydrateDocument(this._document);
-  private _scheduledModel: ProjectSchedule | undefined;
-  private _diagnostics: readonly ScheduleDiagnostic[] = [];
+  private _snapshot = createProjectSnapshot(hydrateDocument(this._document), []).snapshot;
   private _isDisposed = false;
   private _hasInitializedWebview = false;
+  private readonly _sanitizedSourceTexts = new Set<string>();
   private readonly _disposables: vscode.Disposable[] = [];
   private readonly _onDidChangeModel = new vscode.EventEmitter<void>();
 
@@ -82,15 +84,13 @@ export class GanttEditorController {
     private readonly webviewPanel: vscode.WebviewPanel,
     private readonly iconBaseUri: string,
   ) {
-    this.reparse();
-
     this._disposables.push(
       vscode.workspace.onDidChangeTextDocument((event) => {
         if (event.document.uri.toString() === this.document.uri.toString()) {
           this.reparse();
           this.post({
             type: "documentChanged",
-            document: this.transportDocument(),
+            project: this.projectPresentation(),
             revision: this.document.version,
           });
         }
@@ -102,43 +102,24 @@ export class GanttEditorController {
         this.handleMessage(message),
       ),
     );
+
+    this.reparse();
   }
 
   get uri(): vscode.Uri {
     return this.document.uri;
   }
 
-  /** Returns the current plain document for host consumers and webview messages. */
-  getProjectDocument(): ProjectDocument {
-    return this._document;
+  /** Returns the current immutable hydrated, scheduled, and diagnostic state. */
+  get snapshot(): ProjectSnapshot {
+    return this._snapshot;
   }
 
-  /**
-   * The hydrated, `Date`-typed in-memory model derived from {@link model} on
-   * every reparse. Host-only; never sent over the webview protocol.
-   */
-  get hydratedModel(): ProjectModel {
-    return this._model;
-  }
-
-  /** Returns the current host-computed schedule, when the document is schedulable. */
-  get scheduledModel(): ProjectSchedule | undefined {
-    return this._scheduledModel;
-  }
-
-  /**
-   * The semantic validation result for the current model.
-   * Updated on every successful reparse.
-   */
-  get validation(): readonly ScheduleDiagnostic[] {
-    return this._diagnostics;
-  }
-
-  /** Reveals the editor panel and posts the initial model to the webview. */
+  /** Reveals the editor panel and posts the initial document to the webview. */
   sendInit(): void {
     this.post({
       type: "init",
-      document: this.transportDocument(),
+      project: this.projectPresentation(),
       revision: this.document.version,
       iconBaseUri: this.iconBaseUri,
     });
@@ -161,43 +142,48 @@ export class GanttEditorController {
     this.post({ type: "editEntity", entity });
   }
 
-  /** Adds or replaces a task. Used by host-side creation flows. */
-  async upsertTask(task: Task): Promise<void> {
-    await this.applyModel(upsertEntity(this._document, "task", task));
+  /** Adds a task, positioned per the current sidebar selection. Used by host-side creation flows. */
+  async upsertTask(task: Task, positionRef?: EditableEntityRef): Promise<void> {
+    const placement = resolveCreationPlacement(this._document, positionRef);
+    await this.applyDocument(createEntityAtPlacement(this._document, "task", task, placement));
   }
 
-  /** Adds or replaces a milestone through the document edit boundary. */
-  async upsertMilestone(milestone: Milestone): Promise<void> {
-    await this.applyModel(upsertEntity(this._document, "milestone", milestone));
+  /** Adds a milestone, positioned per the current sidebar selection, through the document edit boundary. */
+  async upsertMilestone(milestone: Milestone, positionRef?: EditableEntityRef): Promise<void> {
+    const placement = resolveCreationPlacement(this._document, positionRef);
+    await this.applyDocument(
+      createEntityAtPlacement(this._document, "milestone", milestone, placement),
+    );
   }
 
-  /** Adds or replaces a group through the document edit boundary. */
-  async upsertGroup(group: Group): Promise<void> {
-    await this.applyModel(upsertEntity(this._document, "group", group));
+  /** Adds a group, positioned per the current sidebar selection, through the document edit boundary. */
+  async upsertGroup(group: Group, positionRef?: EditableEntityRef): Promise<void> {
+    const placement = resolveCreationPlacement(this._document, positionRef);
+    await this.applyDocument(createEntityAtPlacement(this._document, "group", group, placement));
   }
 
-  /** Assigns selected entities to a group or project root. */
+  /** Reparents and repositions selected entities relative to a drop target. */
   async assignEntitiesToGroup(
     entities: readonly EditableEntityRef[],
-    targetGroupId: string | undefined,
+    target: EditableEntityRef | undefined,
   ): Promise<void> {
-    await this.applyModel(assignEntitiesToGroup(this._document, entities, targetGroupId));
+    await this.applyDocument(assignEntitiesToGroup(this._document, entities, target));
   }
 
   /** Moves one entity within its current owner scope. */
   async moveEntity(entity: EditableEntityRef, direction: MoveDirection): Promise<void> {
-    await this.applyModel(moveSidebarEntity(this._document, entity, direction));
+    await this.applyDocument(moveSidebarEntity(this._document, entity, direction));
   }
 
   /** Sorts authored sidebar order using current effective schedule dates. */
   async sortItems(direction: SortDirection): Promise<boolean> {
-    if (this._scheduledModel === undefined) {
+    if (this._snapshot.schedule === undefined) {
       void vscode.window.showWarningMessage(
         vscode.l10n.t("Sort is unavailable without a schedule."),
       );
       return false;
     }
-    await this.applyModel(sortProjectItems(this._document, direction, this.effectiveDateMap()));
+    await this.applyDocument(sortProjectItems(this._document, direction, this.effectiveDateMap()));
     return true;
   }
 
@@ -205,12 +191,11 @@ export class GanttEditorController {
    * Deletes any entity kind (task, milestone, or group).
    * Handles type-specific deletion logic via mutation strategies and group strategies.
    */
-  async deleteEntity(entity: EditableEntityRef, strategy?: GroupDeleteStrategy): Promise<void> {
+  async deleteEntity(entity: EditableEntityRef, strategy?: GroupDeleteStrategy): Promise<boolean> {
     if (entity.kind === "group") {
-      await this.deleteGroup(entity.id, strategy);
-    } else {
-      await this.deleteTaskOrMilestone(entity.kind, entity.id);
+      return this.deleteGroup(entity.id, strategy);
     }
+    return this.deleteTaskOrMilestone(entity.kind, entity.id);
   }
 
   /**
@@ -227,7 +212,7 @@ export class GanttEditorController {
       return false;
     }
     const dependencies = replaceById(this._document.dependencies, dependency);
-    await this.applyModel({ ...this._document, dependencies });
+    await this.applyDocument({ ...this._document, dependencies });
     return true;
   }
 
@@ -236,7 +221,7 @@ export class GanttEditorController {
    */
   async removeDependency(dependencyId: string): Promise<void> {
     const dependencies = this._document.dependencies.filter((dep) => dep.id !== dependencyId);
-    await this.applyModel({ ...this._document, dependencies });
+    await this.applyDocument({ ...this._document, dependencies });
   }
 
   /** Disposes event subscriptions owned by this controller. */
@@ -249,31 +234,49 @@ export class GanttEditorController {
   }
 
   /**
-   * Handles inbound webview messages and routes them to host operations.
+   * Routes webview proposals through host-owned validation and document mutation.
+   * Entity updates always receive a correlated result; the document change event is a separate
+   * authoritative state broadcast and can be observed before that result.
    */
   private async handleMessage(message: WebviewToHostMessage): Promise<void> {
     switch (message.type) {
       case "ready":
         this.sendL10nCatalogAndInit();
         break;
-      case "updateEntity":
-        await this.updateEntity(message.kind, message.entity);
+      case "updateEntity": {
+        let updated = false;
+        try {
+          updated = await this.updateEntity(message.kind, message.entity, message.baseRevision);
+        } finally {
+          this.post({
+            type: "updateEntityResult",
+            requestId: message.requestId,
+            entity: { kind: message.kind, id: message.entity.id },
+            updated,
+          });
+        }
         break;
-      case "entityUpdated":
-        await this.updateDocument(message.updatedDocument, message.baseRevision);
-        break;
+      }
       case "updateView":
         await this.updateView(message.view, message.baseRevision);
         break;
       case "addDependency":
-        await this.addDependency(message.dependency);
+        if (this.acceptWebviewRevision(message.baseRevision)) {
+          await this.addDependency(message.dependency);
+        }
         break;
       case "removeDependency":
-        await this.removeDependency(message.dependencyId);
+        if (this.acceptWebviewRevision(message.baseRevision)) {
+          await this.removeDependency(message.dependencyId);
+        }
         break;
-      case "deleteEntity":
-        await this.deleteEntity(message.entity, message.strategy);
+      case "deleteEntity": {
+        const deleted =
+          this.acceptWebviewRevision(message.baseRevision) &&
+          (await this.deleteEntity(message.entity, message.strategy));
+        this.post({ type: "deleteEntityResult", entity: message.entity, deleted });
         break;
+      }
       case "requestEditEntity":
         this.editEntity(message.entity);
         break;
@@ -281,48 +284,33 @@ export class GanttEditorController {
   }
 
   /**
-   * Updates one existing entity. Shows a warning and no-ops when the id is
-   * not found.
+   * Validates and applies one revision-bound entity proposal from the webview.
+   * The boolean result drives the correlated `updateEntityResult` acknowledgment.
    */
   private async updateEntity(
     kind: EditableEntityKind,
     entity: Task | Milestone | Group,
-  ): Promise<void> {
+    baseRevision: number,
+  ): Promise<boolean> {
+    if (baseRevision !== this.document.version) {
+      this.postCurrentProject();
+      return false;
+    }
     const next = replaceEntity(this._document, kind, entity);
     if (!next) {
       this.showUnknownIdWarning(kind, entity.id);
-      return;
+      return false;
     }
-    await this.applyModel(next);
-  }
-
-  /** Applies an authoring document from the webview unless its base is stale. */
-  private async updateDocument(
-    updatedDocument: ProjectDocument,
-    baseRevision: number,
-  ): Promise<void> {
-    if (baseRevision !== this.document.version) {
-      this.post({
-        type: "documentChanged",
-        document: this.transportDocument(),
-        revision: this.document.version,
-      });
-      return;
-    }
-    await this.applyModel(updatedDocument);
+    return this.applyDocument(next);
   }
 
   /** Applies a persisted view proposal through the same revision-safe edit path. */
   private async updateView(view: ProjectView, baseRevision: number): Promise<void> {
     if (baseRevision !== this.document.version) {
-      this.post({
-        type: "documentChanged",
-        document: this.transportDocument(),
-        revision: this.document.version,
-      });
+      this.postCurrentProject();
       return;
     }
-    await this.applyModel({ ...this._document, view });
+    await this.applyDocument({ ...this._document, view });
   }
 
   /**
@@ -332,41 +320,39 @@ export class GanttEditorController {
   private async deleteTaskOrMilestone(
     kind: Exclude<ProjectItemType, "group">,
     entityId: string,
-  ): Promise<void> {
-    const nextModel = buildTaskOrMilestoneDeletionDocument(this._document, kind, entityId);
-    if (!nextModel) {
+  ): Promise<boolean> {
+    const nextDocument = buildTaskOrMilestoneDeletionDocument(this._document, kind, entityId);
+    if (!nextDocument) {
       this.showUnknownIdWarning(kind, entityId);
-      return;
+      return false;
     }
-    await this.applyModel(nextModel);
+    return this.applyDocument(nextDocument);
   }
 
   /**
    * Deletes a group using either cascade or reparent strategy.
    * Prompts the user to choose a strategy if the group has contents and no strategy is provided.
    */
-  private async deleteGroup(groupId: string, strategy?: GroupDeleteStrategy): Promise<void> {
+  private async deleteGroup(groupId: string, strategy?: GroupDeleteStrategy): Promise<boolean> {
     if (this._isDisposed) {
-      return;
+      return false;
     }
     if (!findEntity(this._document, "group", groupId)) {
       void vscode.window.showWarningMessage(
         vscode.l10n.t("Cannot delete group '{0}': no matching id.", groupId),
       );
-      return;
+      return false;
     }
 
     const resolvedStrategy =
       strategy ??
       (hasGroupContents(this._document, groupId) ? await this.askGroupDeleteStrategy() : "cascade");
     if (!resolvedStrategy) {
-      return;
+      return false;
     }
 
     const next = buildGroupDeletionDocument(this._document, groupId, resolvedStrategy);
-    if (next) {
-      await this.applyModel(next);
-    }
+    return next ? this.applyDocument(next) : false;
   }
 
   /**
@@ -393,16 +379,18 @@ export class GanttEditorController {
   /** Builds the schedule-derived effective-date map consumed by sidebar sorting. */
   private effectiveDateMap(): EffectiveDateMap {
     const dates = new Map<string, { start: Date; end: Date }>();
-    this._scheduledModel?.tasks.forEach((task) =>
-      dates.set(task.id, { start: task.effectiveStart(), end: task.effectiveEnd() }),
-    );
-    this._scheduledModel?.milestones.forEach((milestone) => {
-      const date = milestone.effectiveStart();
-      dates.set(milestone.id, { start: date, end: date });
-    });
-    this._scheduledModel?.groups.forEach((group) =>
-      dates.set(group.id, { start: group.effectiveStart, end: group.effectiveEnd }),
-    );
+    for (const snapshot of [
+      ...this._snapshot.tasks,
+      ...this._snapshot.milestones,
+      ...this._snapshot.groups,
+    ]) {
+      if (snapshot.effective !== undefined) {
+        dates.set(snapshot.item.id, {
+          start: snapshot.effective.start,
+          end: snapshot.effective.end,
+        });
+      }
+    }
     return dates;
   }
 
@@ -414,34 +402,26 @@ export class GanttEditorController {
       return;
     }
     try {
-      const parsedDocument = parseDocument(this.document.getText());
+      const sourceText = this.document.getText();
+      const parsedDocument = parseDocument(sourceText);
       const sanitization = sanitizeScheduleGraph(parsedDocument);
       if (
         sanitization.removedDependencyIds.length > 0 ||
         sanitization.removedEntityIds.length > 0
       ) {
+        if (this._sanitizedSourceTexts.has(sourceText)) {
+          return;
+        }
+        this._sanitizedSourceTexts.add(sourceText);
         this.warnAndApplySanitization(sanitization);
         return;
       }
       const document = sanitization.document;
       const hydratedModel = hydrateDocument(document);
-      const diagnostics = evaluateScheduleGraph(document);
-      let scheduledModel: ProjectSchedule | undefined;
-      let schedulingError: SchedulingError | undefined;
-      if (blockingDiagnostics(diagnostics).length === 0) {
-        try {
-          scheduledModel = schedule(hydratedModel, hydratedModel.graph);
-        } catch (error) {
-          if (!(error instanceof SchedulingError)) {
-            throw error;
-          }
-          schedulingError = error;
-        }
-      }
+      const diagnostics = evaluateScheduleConstraints(document);
+      const { snapshot, schedulingError } = createProjectSnapshot(hydratedModel, diagnostics);
       this._document = document;
-      this._model = hydratedModel;
-      this._scheduledModel = scheduledModel;
-      this._diagnostics = diagnostics;
+      this._snapshot = snapshot;
       this._onDidChangeModel.fire();
       if (schedulingError !== undefined) {
         void vscode.window.showErrorMessage(vscode.l10n.t("Ganttee: {0}", schedulingError.message));
@@ -459,10 +439,6 @@ export class GanttEditorController {
         void vscode.window.showErrorMessage(
           vscode.l10n.t("Ganttee: invalid dependency graph. {0}", error.message),
         );
-        return;
-      }
-      if (error instanceof SchedulingError) {
-        this._scheduledModel = undefined;
         return;
       }
       throw error;
@@ -503,6 +479,9 @@ export class GanttEditorController {
     edit.replace(this.document.uri, fullRange, serializeDocument(next));
     const applied = await vscode.workspace.applyEdit(edit);
     if (!applied) {
+      if (this._isDisposed) {
+        return;
+      }
       void vscode.window.showErrorMessage(
         vscode.l10n.t("Cannot apply automatic scheduling cleanup."),
       );
@@ -511,26 +490,27 @@ export class GanttEditorController {
 
   /**
    * Validates and applies a full-document replacement through WorkspaceEdit.
+   * Returns whether VS Code accepted the edit so callers can acknowledge authoritative success.
    */
-  private async applyModel(next: ProjectDocument): Promise<void> {
+  private async applyDocument(next: ProjectDocument): Promise<boolean> {
     if (this._isDisposed) {
-      return;
+      return false;
     }
     try {
       const parsed = parseDocument(serializeDocument(next));
-      const blocking = blockingDiagnostics(evaluateScheduleGraph(parsed));
+      const blocking = blockingDiagnostics(evaluateScheduleDiagnostics(parsed));
       if (blocking.length > 0) {
         void vscode.window.showErrorMessage(
           vscode.l10n.t("Cannot apply update: {0}", summarizeBlockingDiagnostics(blocking)),
         );
-        return;
+        return false;
       }
     } catch (error) {
       if (error instanceof GanttParseError) {
         void vscode.window.showErrorMessage(
           vscode.l10n.t("Cannot apply update: {0}", error.message),
         );
-        return;
+        return false;
       }
       throw error;
     }
@@ -541,7 +521,7 @@ export class GanttEditorController {
       this.document.positionAt(this.document.getText().length),
     );
     edit.replace(this.document.uri, fullRange, serializeDocument(next));
-    await vscode.workspace.applyEdit(edit);
+    return vscode.workspace.applyEdit(edit);
   }
 
   /**
@@ -554,7 +534,7 @@ export class GanttEditorController {
     void this.webviewPanel.webview.postMessage(message);
   }
 
-  /** Sends the localized catalog and initial model once for this webview session. */
+  /** Sends the localized catalog and initial document once for this webview session. */
   private sendL10nCatalogAndInit(): void {
     if (this._hasInitializedWebview) {
       return;
@@ -568,15 +548,27 @@ export class GanttEditorController {
     this.sendInit();
   }
 
-  /** Creates the protocol document with its transient serialized schedule. */
-  private transportDocument(): ProjectDocument {
-    if (this._scheduledModel === undefined) {
-      return { ...this._document };
+  /** Creates the versionless UI projection for the current snapshot. */
+  private projectPresentation(): ProjectPresentation {
+    return toProjectPresentation(this._snapshot);
+  }
+
+  /** Sends the current project after rejecting a stale webview mutation. */
+  private postCurrentProject(): void {
+    this.post({
+      type: "documentChanged",
+      project: this.projectPresentation(),
+      revision: this.document.version,
+    });
+  }
+
+  /** Accepts a webview mutation only when it targets the current document revision. */
+  private acceptWebviewRevision(baseRevision: number): boolean {
+    if (baseRevision === this.document.version) {
+      return true;
     }
-    return {
-      ...this._document,
-      schedule: toScheduledDocument(this._scheduledModel),
-    };
+    this.postCurrentProject();
+    return false;
   }
 
   /**

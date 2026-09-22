@@ -1,2 +1,2 @@
 export * from "@common/documents/project";
-export * from "@common/documents/project-schedule";
+export * from "@common/documents/sortable";

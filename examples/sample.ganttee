@@ -73,34 +73,66 @@
       "progress": 0,
       "status": "todo",
       "groupId": "group-support"
+    },
+    {
+      "id": "999cc460-cc6f-4442-8fb0-50ada083c0fe",
+      "name": "UAT 2",
+      "duration": 10,
+      "progress": 0,
+      "status": "todo",
+      "groupId": "group-UAT"
     }
   ],
   "groups": [
     {
       "id": "group-discovery",
-      "name": "Discovery"
+      "name": "Discovery",
+      "sequence": [
+        "task-design",
+        "task-mlf0py0m"
+      ]
     },
     {
       "id": "group-delivery",
-      "name": "Delivery"
+      "name": "Delivery",
+      "sequence": [
+        "group-Build",
+        "group-Test",
+        "milestone-Release"
+      ]
     },
     {
       "id": "group-Build",
       "name": "Build",
+      "sequence": [
+        "task-build"
+      ],
       "groupId": "group-delivery"
     },
     {
       "id": "group-Test",
       "name": "Test",
+      "sequence": [
+        "task-test",
+        "task-9kcoliei"
+      ],
       "groupId": "group-delivery"
     },
     {
       "id": "group-UAT",
-      "name": "User Acceptance Test"
+      "name": "User Acceptance Test",
+      "sequence": [
+        "task-4p1xeki1",
+        "999cc460-cc6f-4442-8fb0-50ada083c0fe"
+      ]
     },
     {
       "id": "group-support",
-      "name": "Support"
+      "name": "Support",
+      "sequence": [
+        "task-v71r1sde",
+        "task-m63h6oat"
+      ]
     }
   ],
   "milestones": [
@@ -148,12 +180,6 @@
       "type": "endWith"
     },
     {
-      "id": "dep-6espp8ui",
-      "sourceId": "milestone-launch",
-      "targetId": "task-4p1xeki1",
-      "type": "startAfter"
-    },
-    {
       "id": "dep-8rybjfjw",
       "sourceId": "milestone-Release",
       "targetId": "task-9kcoliei",
@@ -176,7 +202,26 @@
       "sourceId": "task-m63h6oat",
       "targetId": "task-v71r1sde",
       "type": "startAfter"
+    },
+    {
+      "id": "b5d1eb55-6afb-4e3f-8afb-a87205c4e75a",
+      "sourceId": "999cc460-cc6f-4442-8fb0-50ada083c0fe",
+      "targetId": "task-4p1xeki1",
+      "type": "startAfter"
+    },
+    {
+      "id": "4f6f0e40-6b15-4599-9a21-e611b5a5e39e",
+      "sourceId": "milestone-launch",
+      "targetId": "999cc460-cc6f-4442-8fb0-50ada083c0fe",
+      "type": "startAfter"
     }
+  ],
+  "sequence": [
+    "group-discovery",
+    "group-delivery",
+    "group-UAT",
+    "milestone-launch",
+    "group-support"
   ],
   "settings": {
     "workingCalendar": {
@@ -196,9 +241,9 @@
   },
   "view": {
     "zoomLevel": "quarter",
-    "showDependencies": false,
+    "showDependencies": true,
     "showOffDays": true,
     "showHolidays": true,
-    "showCriticalPath": true
+    "showCriticalPath": false
   }
 }
