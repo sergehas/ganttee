@@ -1,5 +1,5 @@
 ---
-Status: Reviewed
+Status: Implementing
 Owner: Copilot
 Last updated: 2026-09-22
 Related ADRs: [0005-working-interval-ownership-convention.md](../../adr/0005-working-interval-ownership-convention.md)
@@ -7,7 +7,7 @@ Related ADRs: [0005-working-interval-ownership-convention.md](../../adr/0005-wor
 
 # Feature: Scheduling holidays
 
-![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
+![Status: Implementing](https://img.shields.io/badge/status-Implementing-FFB000?style=for-the-badge)
 
 ## 1. Summary
 
