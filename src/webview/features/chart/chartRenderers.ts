@@ -1,4 +1,4 @@
-import { CHART_BAR_RATIO } from "@webview/features/chart/chart.constants";
+import { CHART_BAR_RATIO, CRITICAL_ITEM_STYLE } from "@webview/features/chart/chart.constants";
 import {
   clipTimelineRectangle,
   isPointInTimeline,
@@ -69,13 +69,13 @@ export const renderLink: CustomSeriesRenderItem = (
   _params: CustomSeriesRenderItemParams,
   api: CustomSeriesRenderItemAPI,
 ): CustomSeriesRenderItemReturn =>
-  renderDependencyLink(api, "var(--vscode-descriptionForeground)", 1);
+  renderDependencyLink(api, "var(--vscode-descriptionForeground)", 2);
 
 /** Renders a critical dependency above ordinary dependency lines and bars. */
 export const renderCriticalLink: CustomSeriesRenderItem = (
   _params: CustomSeriesRenderItemParams,
   api: CustomSeriesRenderItemAPI,
-): CustomSeriesRenderItemReturn => renderDependencyLink(api, "#d19a24", 3);
+): CustomSeriesRenderItemReturn => renderDependencyLink(api, CRITICAL_ITEM_STYLE.borderColor, 3);
 
 /** Builds a dependency link with the requested stroke treatment. */
 function renderDependencyLink(
