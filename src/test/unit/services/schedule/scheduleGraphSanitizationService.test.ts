@@ -96,6 +96,44 @@ suite("scheduleGraphSanitizationService", () => {
     ]);
   });
 
+  test("removes every unanchored component member while preserving standalone groups", () => {
+    const document = createEmptyDocument();
+    document.tasks = [
+      {
+        id: "anchored",
+        name: "Anchored",
+        start: "2026-01-01",
+        end: "2026-01-02",
+      },
+      { id: "floating-task", name: "Floating task" },
+    ];
+    document.groups = [{ id: "standalone-group", name: "Standalone group" }];
+    document.milestones = [{ id: "floating-milestone", name: "Floating milestone" }];
+    document.dependencies = [
+      {
+        id: "floating-edge",
+        sourceId: "floating-task",
+        targetId: "floating-milestone",
+        type: "startAfter",
+      },
+    ];
+
+    const result = sanitizeScheduleGraph(document);
+
+    assert.deepStrictEqual(
+      result.document.tasks.map((task) => task.id),
+      ["anchored"],
+    );
+    assert.deepStrictEqual(
+      result.document.groups.map((group) => group.id),
+      ["standalone-group"],
+    );
+    assert.deepStrictEqual(result.document.milestones, []);
+    assert.deepStrictEqual(result.document.dependencies, []);
+    assert.deepStrictEqual(result.removedEntityIds.sort(), ["floating-milestone", "floating-task"]);
+    assert.deepStrictEqual(result.removedDependencyIds, ["floating-edge"]);
+  });
+
   test("sanitizes dangling source and target dependencies", () => {
     const document = createEmptyDocument();
     document.tasks = [{ id: "task", name: "Task", start: "2026-01-01", end: "2026-01-02" }];

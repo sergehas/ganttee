@@ -72,6 +72,7 @@ export class GanttEditorController {
   private _snapshot = createProjectSnapshot(hydrateDocument(this._document), []).snapshot;
   private _isDisposed = false;
   private _hasInitializedWebview = false;
+  private readonly _sanitizedSourceTexts = new Set<string>();
   private readonly _disposables: vscode.Disposable[] = [];
   private readonly _onDidChangeModel = new vscode.EventEmitter<void>();
 
@@ -83,8 +84,6 @@ export class GanttEditorController {
     private readonly webviewPanel: vscode.WebviewPanel,
     private readonly iconBaseUri: string,
   ) {
-    this.reparse();
-
     this._disposables.push(
       vscode.workspace.onDidChangeTextDocument((event) => {
         if (event.document.uri.toString() === this.document.uri.toString()) {
@@ -103,6 +102,8 @@ export class GanttEditorController {
         this.handleMessage(message),
       ),
     );
+
+    this.reparse();
   }
 
   get uri(): vscode.Uri {
@@ -401,12 +402,17 @@ export class GanttEditorController {
       return;
     }
     try {
-      const parsedDocument = parseDocument(this.document.getText());
+      const sourceText = this.document.getText();
+      const parsedDocument = parseDocument(sourceText);
       const sanitization = sanitizeScheduleGraph(parsedDocument);
       if (
         sanitization.removedDependencyIds.length > 0 ||
         sanitization.removedEntityIds.length > 0
       ) {
+        if (this._sanitizedSourceTexts.has(sourceText)) {
+          return;
+        }
+        this._sanitizedSourceTexts.add(sourceText);
         this.warnAndApplySanitization(sanitization);
         return;
       }
@@ -473,6 +479,9 @@ export class GanttEditorController {
     edit.replace(this.document.uri, fullRange, serializeDocument(next));
     const applied = await vscode.workspace.applyEdit(edit);
     if (!applied) {
+      if (this._isDisposed) {
+        return;
+      }
       void vscode.window.showErrorMessage(
         vscode.l10n.t("Cannot apply automatic scheduling cleanup."),
       );
