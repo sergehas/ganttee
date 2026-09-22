@@ -1,13 +1,13 @@
 ---
-Status: Draft
+Status: Reviewed
 Owner: Copilot
 Last updated: 2026-09-22
-Related ADRs: none yet
+Related ADRs: [0005-working-interval-ownership-convention.md](../../adr/0005-working-interval-ownership-convention.md)
 ---
 
 # Feature: Scheduling holidays
 
-![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)
+![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
 
 ## 1. Summary
 
@@ -77,6 +77,8 @@ effective schedules that consume working time only on eligible calendar interval
   - Given a holiday is only declared for the calendar date after an overnight interval starts When
     scheduling traverses the interval Then the interval remains eligible because holiday ownership
     is the interval start date.
+  - Given an instant exactly at a working interval's end boundary When it is normalized Then it
+    belongs to the next interval, never the one that just closed (half-open containment).
 
 - As a planner, I want invalid calendars rejected clearly, so that scheduling cannot hang or produce
   misleading dates.
@@ -117,10 +119,15 @@ effective schedules that consume working time only on eligible calendar interval
 - Forward and reverse working-time traversal, normalization, and working-time difference use one
   shared non-working-date check for both `daysOff` and `holidays`; there is no separate holiday
   traversal path.
-- A working interval is owned by its start calendar date. An overnight interval may continue into
-  the next date, but its holiday and weekday status comes from its owner date.
+- A working interval is owned by its start calendar date and uses half-open containment
+  (`start <= instant < end`); an instant exactly at `end` belongs to the next interval, never the
+  one that just closed (see [ADR-0005](../../adr/0005-working-interval-ownership-convention.md)). An
+  overnight interval may continue into the next date, but its holiday and weekday status comes from
+  its owner date.
 - `workingDayStart` remains in `[0, 24)` and `workingDayHours` remains greater than `0` and no
   greater than `24`; intervals may cross midnight when their sum exceeds `24`.
+- Holiday ranges are normalized (merged into a sorted, disjoint set) once per schedule computation,
+  so containment checks stay cheap regardless of how many holiday ranges are configured.
 - `scheduleGraphValidationService` reports impossible-calendar conditions (all seven weekdays
   unavailable, and working-hours/start values that cannot produce a valid interval) as blocking
   `ScheduleDiagnostic`s, checked before a document edit is written — the same pre-write gate already
@@ -140,10 +147,13 @@ effective schedules that consume working time only on eligible calendar interval
 
 ## 6. Domain & Data Model Impact
 
-- `src/common/dates.ts`: extend `WorkingTimeSettings` with normalized holiday ranges folded into the
-  same non-working-date check already used for `daysOff`. All date traversal helpers (normalization,
+- `src/common/dates.ts`: extend `WorkingTimeSettings` with holiday ranges normalized once per
+  schedule computation (merged into a sorted, disjoint set) and folded into the same
+  non-working-date check already used for `daysOff`. All date traversal helpers (normalization,
   forward/reverse traversal, working-time difference, overnight-interval ownership) consume that one
-  check; no separate holiday arithmetic is added.
+  check and its half-open, start-date-owned boundary contract (see
+  [ADR-0005](../../adr/0005-working-interval-ownership-convention.md)); no separate holiday
+  arithmetic is added.
 - `src/common/documents/project/projectSettings.ts`: retain existing inclusive `holidays` data and
   document its scheduling meaning rather than adding a second holiday shape.
 - `src/services/schedule/scheduleGraphValidationService.ts`: add the impossible-calendar check (all
@@ -170,9 +180,9 @@ effective schedules that consume working time only on eligible calendar interval
 
 ## 8. UX
 
-- Timeline (ECharts): preserve current holiday shading and visibility control. Holiday-aware
-  effective dates move bars through the existing schedule data; this feature adds no new visual
-  layer.
+- Timeline (ECharts): preserve the existing distinct holiday and configured-days-off shading and
+  visibility controls. Holiday-aware effective dates move bars through the existing schedule data;
+  this feature adds no new visual layer.
 - Sidebar tree: consume the same host-computed effective dates. No new tree nodes or controls.
 - Edit form: task and milestone forms keep authored date behavior. Project holiday editing is out of
   scope for this epic.
@@ -182,10 +192,13 @@ effective schedules that consume working time only on eligible calendar interval
 
 ## 9. Test Strategy
 
-- Unit (models/services): test holiday range normalization, inclusive boundaries, overlapping and
-  adjacent ranges, days-off overlap, forward and reverse traversal, fractional durations, explicit
-  start/end duration differences, overnight intervals, holiday-owned overnight intervals, and
-  impossible calendars.
+- Unit (models/services): test holiday range normalization (merge into sorted disjoint ranges),
+  inclusive boundaries, overlapping and adjacent ranges, days-off overlap, forward and reverse
+  traversal, fractional durations, explicit start/end duration differences, overnight intervals,
+  holiday-owned overnight intervals, and impossible calendars.
+- Boundary tests: exercise the half-open interval contract at `start`, `start - 1ms`, `end - 1ms`,
+  and `end` for both plain and overnight intervals, per
+  [ADR-0005](../../adr/0005-working-interval-ownership-convention.md).
 - Validation tests: cover malformed holiday dates, reversed ranges, and unsupported values in
   document-shape validation; cover all-weekdays-off, invalid working hours, and invalid working-day
   starts as blocking diagnostics in `scheduleGraphValidationService`.
@@ -205,10 +218,14 @@ effective schedules that consume working time only on eligible calendar interval
 
 - 🔴 **R-01** — Overnight intervals require interval lookup to consider a prior-date interval while
   preserving one owner date; an incorrect boundary can double-count or omit midnight work.
-  - Status: **Open**
+  - Status: **Resolved** (see [ADR-0005](../../adr/0005-working-interval-ownership-convention.md)) —
+    a single half-open, start-date-owned containment contract, backed by one shared function and a
+    dedicated boundary test matrix.
 - 🟡 **R-02** — Large holiday ranges can make repeated date eligibility checks expensive during long
   schedules.
-  - Status: **Open**
+  - Status: **Resolved** — holiday ranges are normalized (merged into a sorted, disjoint set) once
+    per schedule computation, keeping containment checks cheap independent of configured range
+    count.
 - 🟡 **R-03** — Validation and scheduling may diverge if they use different date-only parsing or
   range-inclusion rules.
   - Status: **Resolved** — impossible-calendar rejection now lives solely in
@@ -220,7 +237,27 @@ effective schedules that consume working time only on eligible calendar interval
 
 - 🟡 **Q-01** — Should a future project-settings editor be part of this capability or a separate
   feature after scheduling semantics ship?
-  - Status: **Open**
+  - Status: **Resolved** — Project-settings editing is a separate feature after scheduling semantics
+    ship.
 - 🟢 **Q-02** — Should the timeline later distinguish holiday shading from configured days-off
   shading, or remain a single non-working-calendar presentation?
-  - Status: **Open**
+  - Status: **Resolved** — The timeline already distinguishes holiday shading from configured
+    days-off shading; this feature preserves that existing presentation.
+
+## Review Outcome
+
+Review findings: the overnight-interval boundary risk (R-01) needed an explicit, shared containment
+contract to prevent divergent implementations; the large-holiday-range performance risk (R-02)
+needed a cheap normalization strategy. Q-01 and Q-02 also required explicit product decisions.
+
+Resolutions applied:
+
+- R-01 resolved via [ADR-0005](../../adr/0005-working-interval-ownership-convention.md): a
+  half-open, start-date-owned interval containment contract, backed by one shared ownership function
+  and a dedicated boundary test matrix (§4, §5, §6, §9).
+- R-02 resolved inline: holiday ranges are normalized into a sorted, disjoint set once per schedule
+  computation rather than scanned per lookup (§5, §6).
+- Q-01 resolved inline: project-settings editing is a separate feature after scheduling semantics
+  ship (§2, §7, §11).
+- Q-02 resolved inline: the timeline already distinguishes holiday shading from configured days-off
+  shading, and this feature preserves that presentation (§8, §11).
