@@ -1,13 +1,13 @@
 ---
-Status: Implementing
+Status: Implemented
 Owner: Copilot
-Last updated: 2026-09-21
+Last updated: 2026-09-22
 Related ADRs: <none yet>
 ---
 
 # Feature: Global Sort
 
-![Status: Implementing](https://img.shields.io/badge/status-Implementing-F59F00?style=for-the-badge)
+![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in
