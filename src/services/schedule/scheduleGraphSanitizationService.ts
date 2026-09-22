@@ -13,6 +13,7 @@ import {
   schedulableEntityIds,
   unanchoredComponents,
 } from "@services/dependency-graph/componentAnchoringService";
+import { removeIdsFromEverySequence } from "@services/ordering/sequenceOrderingService";
 
 /** A sanitized document together with everything sanitization destroyed. */
 export interface ScheduleGraphSanitization {
@@ -26,7 +27,8 @@ export interface ScheduleGraphSanitization {
 
 /**
  * Removes dependencies with missing or group endpoints, then removes any
- * component left with no absolute date to anchor it.
+ * component left with no absolute date to anchor it, stripping removed ids
+ * from every stored sequence.
  *
  * @param projectDoc The document to sanitize.
  * @returns The sanitized document and the ids of everything removed.
@@ -52,16 +54,21 @@ export function sanitizeScheduleGraph(projectDoc: ProjectDocument): ScheduleGrap
     )
     .map((dependency) => dependency.id);
 
+  const prunedDocument: ProjectDocument = {
+    ...projectDoc,
+    tasks: projectDoc.tasks.filter((task) => !removedEntityIds.has(task.id)),
+    milestones: projectDoc.milestones.filter((milestone) => !removedEntityIds.has(milestone.id)),
+    groups: projectDoc.groups.filter((group) => !removedEntityIds.has(group.id)),
+    dependencies: supportedDependencies.filter(
+      (dependency) => !touchesAny(dependency, removedEntityIds),
+    ),
+  };
+
   return {
-    document: {
-      ...projectDoc,
-      tasks: projectDoc.tasks.filter((task) => !removedEntityIds.has(task.id)),
-      milestones: projectDoc.milestones.filter((milestone) => !removedEntityIds.has(milestone.id)),
-      groups: projectDoc.groups.filter((group) => !removedEntityIds.has(group.id)),
-      dependencies: supportedDependencies.filter(
-        (dependency) => !touchesAny(dependency, removedEntityIds),
-      ),
-    },
+    document:
+      removedEntityIds.size > 0
+        ? removeIdsFromEverySequence(prunedDocument, removedEntityIds)
+        : prunedDocument,
     removedDependencyIds,
     removedEntityIds: [...removedEntityIds],
   };

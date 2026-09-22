@@ -117,6 +117,7 @@ suite("scheduleGraphSanitizationService", () => {
         type: "startAfter",
       },
     ];
+    document.sequence = ["anchored", "floating-task", "standalone-group", "floating-milestone"];
 
     const result = sanitizeScheduleGraph(document);
 
@@ -130,6 +131,7 @@ suite("scheduleGraphSanitizationService", () => {
     );
     assert.deepStrictEqual(result.document.milestones, []);
     assert.deepStrictEqual(result.document.dependencies, []);
+    assert.deepStrictEqual(result.document.sequence, ["anchored", "standalone-group"]);
     assert.deepStrictEqual(result.removedEntityIds.sort(), ["floating-milestone", "floating-task"]);
     assert.deepStrictEqual(result.removedDependencyIds, ["floating-edge"]);
   });

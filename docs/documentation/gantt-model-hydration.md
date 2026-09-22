@@ -152,10 +152,12 @@ sequenceDiagram
     App->>App: render timeline + chart
 ```
 
-Sanitization owns component-anchoring checks on reparse. Once sanitization reports no removals, the
-controller evaluates only determinacy and endpoint constraints, avoiding a second component scan.
-Snapshot creation schedules only when diagnostics permit it. The host sends a flattened presentation
-with its `revision`; the webview performs no model hydration or graph computation.
+Sanitization owns component-anchoring checks on reparse. When it removes entities it also strips
+their ids from the root and group `sequence` arrays, so the rewritten document keeps a consistent
+order. Once sanitization reports no removals, the controller evaluates only determinacy and endpoint
+constraints, avoiding a second component scan. Snapshot creation schedules only when diagnostics
+permit it. The host sends a flattened presentation with its `revision`; the webview performs no
+model hydration or graph computation.
 
 ---
 
@@ -250,6 +252,7 @@ classDiagram
         +milestones: Milestone[]
         +groups: Group[]
         +dependencies: Dependency[]
+        +sequence: string[]
         +settings: ProjectSettings
         +view: ProjectView
     }
@@ -259,6 +262,7 @@ classDiagram
         +milestones: Milestone[]
         +groups: Group[]
         +dependencies: Dependency[]
+        +sequence: string[]
         +version: number
         +settings: ProjectSettings
         +view: ProjectView
@@ -282,6 +286,7 @@ classDiagram
         +milestones: MilestonePresentation[]
         +groups: GroupPresentation[]
         +dependencies: Dependency[]
+        +sequence: string[]
         +settings: ProjectSettings
         +view: ProjectView
         +criticalPath: CriticalPathPresentation
