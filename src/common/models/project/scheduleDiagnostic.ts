@@ -43,6 +43,12 @@ export type ScheduleDiagnostic =
       severity: "blocking";
     };
 
+/** The diagnostic kinds a determinacy verdict can produce. */
+export type DeterminacyDiagnostic = Extract<
+  ScheduleDiagnostic,
+  { kind: "underConstrained" } | { kind: "overConstrained" }
+>;
+
 /**
  * Normalizes any diagnostic's affected entities to a flat, order-agnostic
  * list, for generic id-membership checks (filtering, summarizing) that don't

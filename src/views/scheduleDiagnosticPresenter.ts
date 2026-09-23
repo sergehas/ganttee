@@ -36,11 +36,17 @@ export function describeDiagnostic(
         String(diagnostic.count),
       );
     case "overConstrained":
-      return vscode.l10n.t(
-        "Task '{0}' is over-constrained ({1} constraints, need 2).",
-        diagnostic.entityId,
-        String(diagnostic.count),
-      );
+      return diagnostic.duplicateEndpoints.length > 0
+        ? vscode.l10n.t(
+            "Task '{0}' has a duplicate {1} constraint.",
+            diagnostic.entityId,
+            diagnostic.duplicateEndpoints.join(vscode.l10n.t(" and ")),
+          )
+        : vscode.l10n.t(
+            "Task '{0}' is over-constrained ({1} constraints, need 2).",
+            diagnostic.entityId,
+            String(diagnostic.count),
+          );
     case "danglingDependency":
       return vscode.l10n.t(
         "Dependency '{0}' references a missing entity.",

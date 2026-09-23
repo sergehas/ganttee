@@ -8,6 +8,7 @@
 
 import { Dependency, ProjectDocument } from "@common/documents";
 import {
+  DeterminacyDiagnostic,
   ScheduleDiagnostic,
   scheduleDiagnosticEntityIds,
   ScheduleDiagnosticSeverity,
@@ -20,7 +21,7 @@ import {
 } from "@services/dependency-graph/componentAnchoringService";
 import { createSchedulableGraph } from "@services/dependency-graph/dependencyGraphService";
 import {
-  ConstraintVerdict,
+  diagnoseDeterminacy,
   validateMilestoneConstraints,
   validateTaskConstraints,
 } from "@services/schedule/scheduleConstraintService";
@@ -89,7 +90,7 @@ export function evaluateScheduleConstraints(
         validateMilestoneConstraints(milestone, projectDoc.dependencies),
       ),
     ),
-  ].filter((diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined);
+  ].filter((diagnostic): diagnostic is DeterminacyDiagnostic => diagnostic !== undefined);
 
   const endpoints = projectDoc.dependencies
     .map((dependency) => diagnoseEndpoints(dependency, entityIds, groupIds))
@@ -151,31 +152,6 @@ export function diagnosticsFor(
   );
 }
 
-/** Turns a determinacy verdict into a diagnostic, if the entity has a problem. */
-function diagnoseDeterminacy(
-  entityId: string,
-  verdict: ConstraintVerdict,
-): ScheduleDiagnostic | undefined {
-  if (verdict.underConstrained) {
-    return {
-      kind: "underConstrained",
-      severity: "blocking",
-      entityId,
-      count: verdict.count,
-    };
-  }
-  if (!verdict.overConstrained) {
-    return undefined;
-  }
-  return {
-    kind: "overConstrained",
-    severity: verdict.blocking ? "blocking" : "warning",
-    entityId,
-    count: verdict.count,
-    duplicateEndpoints: duplicatedEndpoints(verdict),
-  };
-}
-
 /** Reports a dependency whose endpoints are missing or are groups. */
 function diagnoseEndpoints(
   dependency: Dependency,
@@ -202,16 +178,4 @@ function diagnoseEndpoints(
     };
   }
   return undefined;
-}
-
-/** Lists the endpoints that are constrained both statically and by a dependency. */
-function duplicatedEndpoints(verdict: ConstraintVerdict): readonly ScheduleEndpoint[] {
-  const endpoints: ScheduleEndpoint[] = [];
-  if (verdict.duplicateStart) {
-    endpoints.push("start");
-  }
-  if (verdict.duplicateEnd) {
-    endpoints.push("end");
-  }
-  return endpoints;
 }

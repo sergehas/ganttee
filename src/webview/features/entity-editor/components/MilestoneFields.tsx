@@ -1,5 +1,8 @@
 import { formatShortDate, parseIsoTimestamp } from "@common/dates";
-import { validateMilestoneConstraints } from "@services/schedule/scheduleConstraintService";
+import {
+  diagnoseDeterminacy,
+  validateMilestoneConstraints,
+} from "@services/schedule/scheduleConstraintService";
 import "@webview/components/Form.scss";
 import { FormField } from "@webview/components/FormField";
 import { CommonTextFields } from "@webview/features/entity-editor/components/CommonTextFields";
@@ -19,6 +22,7 @@ export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element 
   const t = useTranslate();
   const update = makeUpdater(milestone, onChange);
   const validation = validateMilestoneConstraints(milestone, document.dependencies);
+  const diagnostic = diagnoseDeterminacy(milestone.id, validation);
 
   return (
     <div className="ganttee-form ">
@@ -45,7 +49,7 @@ export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element 
         )}
       </FormField>
 
-      {milestoneValidationMessages(validation).map((message) => (
+      {milestoneValidationMessages(diagnostic).map((message) => (
         <ValidationMessage severity={message.severity} key={message.source}>
           {t(message.source)}
         </ValidationMessage>
