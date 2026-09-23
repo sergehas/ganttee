@@ -1,6 +1,9 @@
 import { formatShortDate, parseIsoTimestamp } from "@common/dates";
 import { TaskStatus } from "@common/documents";
-import { validateTaskConstraints } from "@services/schedule/scheduleConstraintService";
+import {
+  diagnoseDeterminacy,
+  validateTaskConstraints,
+} from "@services/schedule/scheduleConstraintService";
 import "@webview/components/Form.scss";
 import { FormField } from "@webview/components/FormField";
 import { Select } from "@webview/components/Select";
@@ -27,6 +30,7 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
   const update = makeUpdater(task, onChange);
 
   const validation = validateTaskConstraints(task, document.dependencies);
+  const diagnostic = diagnoseDeterminacy(task.id, validation);
 
   return (
     <div className="ganttee-form">
@@ -106,7 +110,7 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
         </Select>
       </FormField>
 
-      {taskValidationMessages(validation).map((message) => (
+      {taskValidationMessages(diagnostic).map((message) => (
         <ValidationMessage severity={message.severity} key={message.source}>
           {t(message.source, ...(message.values ?? []))}
         </ValidationMessage>

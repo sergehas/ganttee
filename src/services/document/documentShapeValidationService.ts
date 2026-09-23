@@ -326,7 +326,12 @@ function requireStringArray(value: unknown, field: string): string[] {
  */
 function requireDate(value: unknown, field: string): string {
   const date = requireString(value, field);
-  if (!ISO_DATE.test(date) || Number.isNaN(parseIsoDate(date).getTime())) {
+  const parsed = parseIsoDate(date);
+  if (
+    !ISO_DATE.test(date) ||
+    Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== date
+  ) {
     throw new GanttParseError(`${field} must be an ISO date (YYYY-MM-DD).`);
   }
   return date;

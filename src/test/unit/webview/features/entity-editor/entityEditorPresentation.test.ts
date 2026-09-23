@@ -49,23 +49,13 @@ suite("taskForm entityPresentation", () => {
   });
 
   test("builds task constraint validation messages across all branch conditions", () => {
-    const valid = taskValidationMessages({
-      count: 2,
-      duplicateStart: false,
-      duplicateEnd: false,
-      underConstrained: false,
-      overConstrained: false,
-      blocking: false,
-    });
-    assert.deepStrictEqual(valid, []);
+    assert.deepStrictEqual(taskValidationMessages(undefined), []);
 
     const blockingOnly = taskValidationMessages({
+      kind: "underConstrained",
+      severity: "blocking",
+      entityId: "task",
       count: 1,
-      duplicateStart: false,
-      duplicateEnd: false,
-      underConstrained: true,
-      overConstrained: false,
-      blocking: true,
     });
     assert.deepStrictEqual(blockingOnly, [
       {
@@ -76,12 +66,11 @@ suite("taskForm entityPresentation", () => {
     ]);
 
     const duplicateStartOnly = taskValidationMessages({
+      kind: "overConstrained",
+      severity: "warning",
+      entityId: "task",
       count: 2,
-      duplicateStart: true,
-      duplicateEnd: false,
-      underConstrained: false,
-      overConstrained: true,
-      blocking: false,
+      duplicateEndpoints: ["start"],
     });
     assert.deepStrictEqual(duplicateStartOnly, [
       {
@@ -91,12 +80,11 @@ suite("taskForm entityPresentation", () => {
     ]);
 
     const duplicateEndOnly = taskValidationMessages({
+      kind: "overConstrained",
+      severity: "warning",
+      entityId: "task",
       count: 2,
-      duplicateStart: false,
-      duplicateEnd: true,
-      underConstrained: false,
-      overConstrained: true,
-      blocking: false,
+      duplicateEndpoints: ["end"],
     });
     assert.deepStrictEqual(duplicateEndOnly, [
       {
@@ -106,12 +94,11 @@ suite("taskForm entityPresentation", () => {
     ]);
 
     const duplicateBoth = taskValidationMessages({
+      kind: "overConstrained",
+      severity: "blocking",
+      entityId: "task",
       count: 3,
-      duplicateStart: true,
-      duplicateEnd: true,
-      underConstrained: false,
-      overConstrained: true,
-      blocking: true,
+      duplicateEndpoints: ["start", "end"],
     });
     assert.deepStrictEqual(duplicateBoth, [
       {
@@ -127,23 +114,13 @@ suite("taskForm entityPresentation", () => {
   });
 
   test("builds milestone constraint validation messages across all branch conditions", () => {
-    const valid = milestoneValidationMessages({
-      count: 2,
-      duplicateStart: false,
-      duplicateEnd: false,
-      underConstrained: false,
-      overConstrained: false,
-      blocking: false,
-    });
-    assert.deepStrictEqual(valid, []);
+    assert.deepStrictEqual(milestoneValidationMessages(undefined), []);
 
     const blockingOnly = milestoneValidationMessages({
+      kind: "underConstrained",
+      severity: "blocking",
+      entityId: "milestone",
       count: 0,
-      duplicateStart: false,
-      duplicateEnd: false,
-      underConstrained: true,
-      overConstrained: false,
-      blocking: true,
     });
     assert.deepStrictEqual(blockingOnly, [
       {
@@ -153,12 +130,11 @@ suite("taskForm entityPresentation", () => {
     ]);
 
     const overConstrainedOnly = milestoneValidationMessages({
+      kind: "overConstrained",
+      severity: "warning",
+      entityId: "milestone",
       count: 2,
-      duplicateStart: true,
-      duplicateEnd: true,
-      underConstrained: false,
-      overConstrained: true,
-      blocking: false,
+      duplicateEndpoints: ["start", "end"],
     });
     assert.deepStrictEqual(overConstrainedOnly, [
       {
@@ -168,12 +144,11 @@ suite("taskForm entityPresentation", () => {
     ]);
 
     const blockingAndOverConstrained = milestoneValidationMessages({
-      count: 0,
-      duplicateStart: false,
-      duplicateEnd: false,
-      underConstrained: true,
-      overConstrained: true,
-      blocking: true,
+      kind: "overConstrained",
+      severity: "blocking",
+      entityId: "milestone",
+      count: 2,
+      duplicateEndpoints: ["start", "end"],
     });
     assert.deepStrictEqual(blockingAndOverConstrained, [
       {

@@ -6,6 +6,7 @@ import {
   formatShortDate,
   isoWeekNumber,
   isoWeekday,
+  normalizeHolidayRanges,
   normalizeToWorkingTime,
   parseIsoTimestamp,
   quarter,
@@ -27,6 +28,7 @@ const WORKING_DAY_SETTINGS = Object.freeze({
   daysOff: new Set([6, 7]),
   workingDayHours: 8,
   workingDayStart: 9,
+  holidays: [],
 });
 
 suite("dates", () => {
@@ -98,6 +100,75 @@ suite("dates", () => {
       WORKING_DAY_SETTINGS,
     );
     assert.strictEqual(dayOff.toISOString(), "2026-01-05T09:00:00.000Z");
+  });
+
+  test("merges overlapping and adjacent holiday ranges", () => {
+    assert.deepStrictEqual(
+      normalizeHolidayRanges([
+        { start: "2026-01-05", end: "2026-01-07" },
+        { start: "2026-01-01", end: "2026-01-02" },
+        { start: "2026-01-03", end: "2026-01-04" },
+        { start: "2026-01-06", end: "2026-01-10" },
+      ]),
+      [{ start: "2026-01-01", end: "2026-01-10" }],
+    );
+  });
+
+  test("applies holidays to forward, reverse, and fractional traversal", () => {
+    const settings = {
+      ...WORKING_DAY_SETTINGS,
+      holidays: [{ start: "2026-01-06", end: "2026-01-07" }],
+    };
+    assert.strictEqual(
+      addWorkingDays(new Date("2026-01-05T14:00:00.000Z"), 1, settings).toISOString(),
+      "2026-01-08T14:00:00.000Z",
+    );
+    assert.strictEqual(
+      subtractWorkingDays(new Date("2026-01-08T14:00:00.000Z"), 1, settings).toISOString(),
+      "2026-01-05T14:00:00.000Z",
+    );
+    assert.strictEqual(
+      diffInWorkingDays(
+        new Date("2026-01-05T14:00:00.000Z"),
+        new Date("2026-01-08T14:00:00.000Z"),
+        settings,
+      ),
+      1,
+    );
+  });
+
+  test("owns overnight intervals by their start date", () => {
+    const settings = {
+      daysOff: new Set<number>(),
+      workingDayHours: 8,
+      workingDayStart: 20,
+      holidays: [{ start: "2026-01-06", end: "2026-01-06" }],
+    };
+    assert.strictEqual(
+      normalizeToWorkingTime(new Date("2026-01-06T02:00:00.000Z"), settings).toISOString(),
+      "2026-01-06T02:00:00.000Z",
+    );
+    assert.strictEqual(
+      normalizeToWorkingTime(new Date("2026-01-06T20:00:00.000Z"), settings).toISOString(),
+      "2026-01-07T20:00:00.000Z",
+    );
+  });
+
+  test("uses half-open interval boundaries", () => {
+    const settings = {
+      daysOff: new Set<number>(),
+      workingDayHours: 8,
+      workingDayStart: 20,
+      holidays: [],
+    };
+    assert.strictEqual(
+      normalizeToWorkingTime(new Date("2026-01-05T19:59:59.999Z"), settings).toISOString(),
+      "2026-01-05T20:00:00.000Z",
+    );
+    assert.strictEqual(
+      normalizeToWorkingTime(new Date("2026-01-06T04:00:00.000Z"), settings).toISOString(),
+      "2026-01-06T20:00:00.000Z",
+    );
   });
 
   test("adds and subtracts working days across intervals", () => {

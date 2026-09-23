@@ -1,10 +1,7 @@
 import { formatShortDate, parseIsoDate } from "@common/dates";
 import { DependencyType, ProjectContent, ProjectItemType, TaskStatus } from "@common/documents";
+import { DeterminacyDiagnostic } from "@common/models";
 import { EditableEntityKind } from "@common/protocol";
-import {
-  validateMilestoneConstraints,
-  validateTaskConstraints,
-} from "@services/schedule/scheduleConstraintService";
 
 /** Resolves English source messages for form presentation. */
 type WebviewTranslator = (source: string, ...values: unknown[]) => string;
@@ -70,23 +67,28 @@ export interface EntityEditorValidationMessage {
 
 /** Builds localized-message inputs for task constraint validation. */
 export function taskValidationMessages(
-  validation: ReturnType<typeof validateTaskConstraints>,
+  diagnostic: DeterminacyDiagnostic | undefined,
 ): readonly EntityEditorValidationMessage[] {
+  if (diagnostic === undefined) {
+    return [];
+  }
   const messages: EntityEditorValidationMessage[] = [];
-  if (validation.blocking) {
+  if (diagnostic.severity === "blocking") {
     messages.push({
       severity: "error",
       source: "Task has {0} constraint(s); exactly 2 are needed to schedule.",
-      values: [validation.count],
+      values: [diagnostic.count],
     });
   }
-  if (validation.duplicateStart || validation.duplicateEnd) {
+  if (diagnostic.kind === "overConstrained" && diagnostic.duplicateEndpoints.length > 0) {
+    const hasStart = diagnostic.duplicateEndpoints.includes("start");
+    const hasEnd = diagnostic.duplicateEndpoints.includes("end");
     messages.push({
       severity: "warning",
       source:
-        validation.duplicateStart && validation.duplicateEnd
+        hasStart && hasEnd
           ? "Task has duplicate start and end constraints."
-          : validation.duplicateStart
+          : hasStart
             ? "Task has duplicate start constraints."
             : "Task has duplicate end constraints.",
     });
@@ -96,16 +98,19 @@ export function taskValidationMessages(
 
 /** Builds localized-message inputs for milestone constraint validation. */
 export function milestoneValidationMessages(
-  validation: ReturnType<typeof validateMilestoneConstraints>,
+  diagnostic: DeterminacyDiagnostic | undefined,
 ): readonly EntityEditorValidationMessage[] {
+  if (diagnostic === undefined) {
+    return [];
+  }
   const messages: EntityEditorValidationMessage[] = [];
-  if (validation.blocking) {
+  if (diagnostic.severity === "blocking") {
     messages.push({
       severity: "error",
       source: "Milestone needs a date or an outgoing dependency.",
     });
   }
-  if (validation.overConstrained) {
+  if (diagnostic.kind === "overConstrained") {
     messages.push({
       severity: "warning",
       source: "Milestone has a duplicate date constraint.",

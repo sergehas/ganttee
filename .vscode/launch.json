@@ -11,7 +11,11 @@
       "runtimeArgs": ["run-script", "test:unit:coverage"],
       "runtimeExecutable": "npm",
       "skipFiles": ["<node_internals>/**"],
-      "type": "node"
+      "type": "node",
+      "console": "internalConsole",
+      "env": { "FORCE_COLOR": "3" }, // Force truecolor
+      "outputCapture": "std",
+      "preLaunchTask": "npm: watch-tests"
     },
     {
       "name": "Run Extension",
@@ -24,19 +28,17 @@
     },
     {
       "name": "Smoke Tests",
-      "type": "extensionHost",
       "request": "launch",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/test/smoke",
-        "--disable-extensions",
-        "--extensions-dir",
-        "${workspaceFolder}/.vscode-test/smoke-extensions",
-        "${workspaceFolder}/src/test/fixtures"
-      ],
-      "outFiles": ["${workspaceFolder}/out/**/*.js", "${workspaceFolder}/dist/**/*.js"],
-      "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
-      "preLaunchTask": "npm: compile-tests"
+      "runtimeArgs": ["exec", "-c", "vscode-test --config .vscode-test-smoke.mjs"],
+      "runtimeExecutable": "npm",
+      "skipFiles": ["<node_internals>/**"],
+      "type": "node",
+      // "console": "integratedTerminal",
+      "console": "internalConsole",
+      "env": { "FORCE_COLOR": "3" }, // Force truecolor
+      "outputCapture": "std",
+
+      "preLaunchTask": "npm: watch-tests"
     }
   ]
 }

@@ -1,6 +1,7 @@
 import {
   addWorkingDays,
   diffInWorkingDays,
+  normalizeHolidayRanges,
   normalizeToWorkingTime,
   subtractWorkingDays,
   WorkingTimeSettings,
@@ -162,11 +163,22 @@ function workingTimeSettings(model: ProjectModel): WorkingTimeSettings {
     workingDayStart < 0 ||
     workingDayStart >= 24 ||
     [...daysOff].some((day) => !Number.isInteger(day) || day < 1 || day > 7) ||
+    model.settings.holidays.some(
+      (range) =>
+        !/^\d{4}-\d{2}-\d{2}$/.test(range.start) ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(range.end) ||
+        range.end < range.start,
+    ) ||
     daysOff.size === 7
   ) {
     throw new SchedulingError("Invalid working-time settings.");
   }
-  return { daysOff, workingDayHours, workingDayStart };
+  return {
+    daysOff,
+    workingDayHours,
+    workingDayStart,
+    holidays: normalizeHolidayRanges(model.settings.holidays),
+  };
 }
 
 /** Collects effective endpoint candidates from dependencies owned by a source. */

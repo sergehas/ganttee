@@ -9,6 +9,7 @@
  */
 
 import { Dependency, Milestone, Task } from "@common/documents";
+import { DeterminacyDiagnostic, ScheduleEndpoint } from "@common/models";
 
 /** Where a constraint on a schedulable endpoint comes from. */
 export type ConstraintSource = "static" | "dependency";
@@ -156,6 +157,53 @@ export function validateMilestoneConstraints(
   dependencies: readonly Dependency[],
 ): ConstraintVerdict {
   return judgeMilestoneConstraints(describeMilestoneEndpointConstraints(milestone, dependencies));
+}
+
+/**
+ * Turns a determinacy verdict into a diagnostic, if the entity has a problem.
+ *
+ * Shared by the host's document-wide schedule validation and the webview's
+ * live per-field form validation, so both report the same case for the same
+ * rule instead of independently re-deriving it from the raw verdict.
+ *
+ * @param entityId The entity the verdict was computed for.
+ * @param verdict The determinacy verdict to classify.
+ * @returns The diagnostic for `entityId`, or `undefined` when determinate.
+ */
+export function diagnoseDeterminacy(
+  entityId: string,
+  verdict: ConstraintVerdict,
+): DeterminacyDiagnostic | undefined {
+  if (verdict.underConstrained) {
+    return {
+      kind: "underConstrained",
+      severity: "blocking",
+      entityId,
+      count: verdict.count,
+    };
+  }
+  if (!verdict.overConstrained) {
+    return undefined;
+  }
+  return {
+    kind: "overConstrained",
+    severity: verdict.blocking ? "blocking" : "warning",
+    entityId,
+    count: verdict.count,
+    duplicateEndpoints: duplicatedEndpoints(verdict),
+  };
+}
+
+/** Lists the endpoints that are constrained both statically and by a dependency. */
+function duplicatedEndpoints(verdict: ConstraintVerdict): readonly ScheduleEndpoint[] {
+  const endpoints: ScheduleEndpoint[] = [];
+  if (verdict.duplicateStart) {
+    endpoints.push("start");
+  }
+  if (verdict.duplicateEnd) {
+    endpoints.push("end");
+  }
+  return endpoints;
 }
 
 /** Lists the sources that apply to a single endpoint, in precedence order. */

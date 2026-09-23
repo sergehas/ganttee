@@ -1,4 +1,5 @@
 import { createEmptyDocument, Dependency, ProjectDocument } from "@common/documents";
+import { scheduleDiagnosticEntityIds } from "@common/models";
 import {
   blockingDiagnostics,
   diagnosticsFor,
@@ -24,7 +25,7 @@ function summarize(diagnostics: readonly ScheduleDiagnostic[]): string[] {
   return diagnostics.map((diagnostic) =>
     diagnostic.kind === "danglingDependency" || diagnostic.kind === "groupDependency"
       ? `${diagnostic.kind}:${diagnostic.dependencyId}`
-      : `${diagnostic.kind}:${diagnostic.entityIds.join("+")}`,
+      : `${diagnostic.kind}:${scheduleDiagnosticEntityIds(diagnostic).join("+")}`,
   );
 }
 
@@ -167,6 +168,32 @@ suite("scheduleGraphValidationService", () => {
     const diagnostics = evaluateScheduleDiagnostics(anchoredTaskDocument());
 
     assert.deepStrictEqual(diagnostics, []);
+  });
+
+  test("blocks calendars with no eligible weekdays", () => {
+    const document = anchoredTaskDocument();
+    document.settings.workingCalendar.daysOff = [1, 2, 3, 4, 5, 6, 7];
+
+    const diagnostics = evaluateScheduleDiagnostics(document);
+
+    assert.deepStrictEqual(summarize(diagnostics), ["invalidWorkingCalendar:"]);
+    assert.strictEqual(hasBlockingScheduleDiagnostic(diagnostics), true);
+  });
+
+  test("blocks invalid working-time values", () => {
+    for (const settings of [
+      { workingDayHours: 0 },
+      { workingDayHours: 25 },
+      { workingDayStart: -1 },
+      { workingDayStart: 24 },
+    ]) {
+      const document = anchoredTaskDocument();
+      Object.assign(document.settings, settings);
+      assert.strictEqual(
+        hasBlockingScheduleDiagnostic(evaluateScheduleDiagnostics(document)),
+        true,
+      );
+    }
   });
 
   test("reports unanchored components and exempts group-only components", () => {

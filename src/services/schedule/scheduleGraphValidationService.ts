@@ -7,7 +7,13 @@
  */
 
 import { Dependency, ProjectDocument } from "@common/documents";
-import { ScheduleDiagnostic, ScheduleDiagnosticSeverity, ScheduleEndpoint } from "@common/models";
+import {
+  DeterminacyDiagnostic,
+  ScheduleDiagnostic,
+  scheduleDiagnosticEntityIds,
+  ScheduleDiagnosticSeverity,
+  ScheduleEndpoint,
+} from "@common/models";
 import {
   anchoredEntityIds,
   schedulableEntityIds,
@@ -15,7 +21,7 @@ import {
 } from "@services/dependency-graph/componentAnchoringService";
 import { createSchedulableGraph } from "@services/dependency-graph/dependencyGraphService";
 import {
-  ConstraintVerdict,
+  diagnoseDeterminacy,
   validateMilestoneConstraints,
   validateTaskConstraints,
 } from "@services/schedule/scheduleConstraintService";
@@ -32,7 +38,30 @@ export type { ScheduleDiagnostic, ScheduleDiagnosticSeverity, ScheduleEndpoint }
 export function evaluateScheduleDiagnostics(
   projectDoc: ProjectDocument,
 ): readonly ScheduleDiagnostic[] {
-  return [...evaluateScheduleConstraints(projectDoc), ...evaluateScheduleAnchoring(projectDoc)];
+  return [
+    ...evaluateWorkingCalendar(projectDoc),
+    ...evaluateScheduleConstraints(projectDoc),
+    ...evaluateScheduleAnchoring(projectDoc),
+  ];
+}
+
+/** Validates calendar values that could otherwise make traversal impossible. */
+function evaluateWorkingCalendar(projectDoc: ProjectDocument): readonly ScheduleDiagnostic[] {
+  const { daysOff } = projectDoc.settings.workingCalendar;
+  const uniqueDaysOff = new Set(daysOff);
+  const invalidDaysOff = daysOff.some((day) => !Number.isInteger(day) || day < 1 || day > 7);
+  const invalidHours =
+    !Number.isFinite(projectDoc.settings.workingDayHours) ||
+    projectDoc.settings.workingDayHours <= 0 ||
+    projectDoc.settings.workingDayHours > 24;
+  const invalidStart =
+    !Number.isFinite(projectDoc.settings.workingDayStart) ||
+    projectDoc.settings.workingDayStart < 0 ||
+    projectDoc.settings.workingDayStart >= 24;
+  if (!invalidDaysOff && uniqueDaysOff.size < 7 && !invalidHours && !invalidStart) {
+    return [];
+  }
+  return [{ kind: "invalidWorkingCalendar", severity: "blocking" }];
 }
 
 /**
@@ -61,7 +90,7 @@ export function evaluateScheduleConstraints(
         validateMilestoneConstraints(milestone, projectDoc.dependencies),
       ),
     ),
-  ].filter((diagnostic): diagnostic is ScheduleDiagnostic => diagnostic !== undefined);
+  ].filter((diagnostic): diagnostic is DeterminacyDiagnostic => diagnostic !== undefined);
 
   const endpoints = projectDoc.dependencies
     .map((dependency) => diagnoseEndpoints(dependency, entityIds, groupIds))
@@ -118,32 +147,9 @@ export function diagnosticsFor(
   diagnostics: readonly ScheduleDiagnostic[],
   entityId: string,
 ): readonly ScheduleDiagnostic[] {
-  return diagnostics.filter((diagnostic) => diagnostic.entityIds.includes(entityId));
-}
-
-/** Turns a determinacy verdict into a diagnostic, if the entity has a problem. */
-function diagnoseDeterminacy(
-  entityId: string,
-  verdict: ConstraintVerdict,
-): ScheduleDiagnostic | undefined {
-  if (verdict.underConstrained) {
-    return {
-      kind: "underConstrained",
-      severity: "blocking",
-      entityIds: [entityId],
-      count: verdict.count,
-    };
-  }
-  if (!verdict.overConstrained) {
-    return undefined;
-  }
-  return {
-    kind: "overConstrained",
-    severity: verdict.blocking ? "blocking" : "warning",
-    entityIds: [entityId],
-    count: verdict.count,
-    duplicateEndpoints: duplicatedEndpoints(verdict),
-  };
+  return diagnostics.filter((diagnostic) =>
+    scheduleDiagnosticEntityIds(diagnostic).includes(entityId),
+  );
 }
 
 /** Reports a dependency whose endpoints are missing or are groups. */
@@ -157,29 +163,19 @@ function diagnoseEndpoints(
     return {
       kind: "danglingDependency",
       severity: "blocking",
-      entityIds: endpointIds,
       dependencyId: dependency.id,
+      sourceId: dependency.sourceId,
+      targetId: dependency.targetId,
     };
   }
   if (endpointIds.some((id) => groupIds.has(id))) {
     return {
       kind: "groupDependency",
       severity: "blocking",
-      entityIds: endpointIds,
       dependencyId: dependency.id,
+      sourceId: dependency.sourceId,
+      targetId: dependency.targetId,
     };
   }
   return undefined;
-}
-
-/** Lists the endpoints that are constrained both statically and by a dependency. */
-function duplicatedEndpoints(verdict: ConstraintVerdict): readonly ScheduleEndpoint[] {
-  const endpoints: ScheduleEndpoint[] = [];
-  if (verdict.duplicateStart) {
-    endpoints.push("start");
-  }
-  if (verdict.duplicateEnd) {
-    endpoints.push("end");
-  }
-  return endpoints;
 }

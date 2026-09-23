@@ -5,7 +5,7 @@
       "id": "task-design",
       "name": "Design",
       "start": "2026-01-05",
-      "end": "2026-01-12",
+      "duration": 7,
       "description": "Wireframe and visual design.",
       "progress": 1,
       "status": "done",
@@ -14,8 +14,7 @@
     {
       "id": "task-build",
       "name": "Implement",
-      "start": "2026-01-13",
-      "end": "2026-01-27",
+      "duration": 6,
       "progress": 0.4,
       "status": "inProgress",
       "groupId": "group-Build"
@@ -236,11 +235,19 @@
       {
         "start": "2026-01-12",
         "end": "2026-01-17"
+      },
+      {
+        "start": "2026-03-12",
+        "end": "2026-03-19"
+      },
+      {
+        "start": "2026-04-15",
+        "end": "2026-04-16"
       }
     ]
   },
   "view": {
-    "zoomLevel": "quarter",
+    "zoomLevel": "week",
     "showDependencies": true,
     "showOffDays": true,
     "showHolidays": true,

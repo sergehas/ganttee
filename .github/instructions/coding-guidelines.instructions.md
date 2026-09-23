@@ -19,7 +19,8 @@ These are non-negotiable and enforced in review:
 2. **Branch coverage ≥ 90%:** The test suite MUST keep branch coverage at or above 90%. A change
    that drops coverage below the threshold is not mergeable.
 3. **Full JSDoc:** Every class, interface, enum, method, function, and member — **public and
-   private** — MUST carry a JSDoc comment describing its purpose.
+   private** — MUST carry a JSDoc comment describing its purpose, the parameters, the return value,
+   and any thrown errors.
 4. **Cyclomatic complexity ≤ 15:** Every function and method MUST have a cyclomatic complexity of 15
    or less. Refactor higher-complexity code (extract helpers, use lookup tables , simplify
    branching) before merging.
