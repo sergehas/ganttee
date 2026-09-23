@@ -66,6 +66,17 @@ suite("scheduleDiagnosticPresenter", () => {
     assert.ok(describeDiagnostic(DIAGNOSTICS[0], "unrelated").includes("under"));
   });
 
+  test("resolves entity names in diagnostic descriptions", () => {
+    const resolveEntityName = (id: string): string => `Name of ${id}`;
+
+    assert.ok(
+      describeDiagnostic(DIAGNOSTICS[0], "subject", resolveEntityName).includes("Name of under"),
+    );
+    assert.ok(
+      describeDiagnostic(DIAGNOSTICS[4], "subject", resolveEntityName).includes("Name of subject"),
+    );
+  });
+
   test("names the dependency for endpoint messages", () => {
     assert.ok(describeDiagnostic(DIAGNOSTICS[2], "task").includes("d1"));
     assert.ok(describeDiagnostic(DIAGNOSTICS[3], "task").includes("d2"));
@@ -81,6 +92,16 @@ suite("scheduleDiagnosticPresenter", () => {
     assert.ok(summary.includes("a, b"));
     assert.ok(summary.includes("invalid working calendar"));
     assert.strictEqual(summary.split("; ").length, 6);
+  });
+
+  test("resolves entity names in summaries and preserves dependency ids", () => {
+    const summary = summarizeBlockingDiagnostics(DIAGNOSTICS, (id) => `Name of ${id}`);
+
+    assert.ok(summary.includes("Name of under"));
+    assert.ok(summary.includes("Name of over"));
+    assert.ok(summary.includes("Name of a, Name of b"));
+    assert.ok(summary.includes("d1"));
+    assert.ok(!summary.includes("Name of d1"));
   });
 
   test("do not name anything for working calendar issues", () => {

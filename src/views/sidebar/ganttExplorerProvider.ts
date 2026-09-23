@@ -213,7 +213,13 @@ export class GanttExplorerProvider
     }
 
     item.tooltip = diagnostics
-      .map((diagnostic) => describeDiagnostic(diagnostic, entityId))
+      .map((diagnostic) =>
+        describeDiagnostic(
+          diagnostic,
+          entityId,
+          (id) => this.store.active?.snapshot.item(id)?.item.name ?? id,
+        ),
+      )
       .join("\n");
 
     const hasBlockingDiagnostic = diagnostics.some(

@@ -501,7 +501,16 @@ export class GanttEditorController {
       const blocking = blockingDiagnostics(evaluateScheduleDiagnostics(parsed));
       if (blocking.length > 0) {
         void vscode.window.showErrorMessage(
-          vscode.l10n.t("Cannot apply update: {0}", summarizeBlockingDiagnostics(blocking)),
+          vscode.l10n.t(
+            "Cannot apply update: {0}",
+            summarizeBlockingDiagnostics(
+              blocking,
+              (id) =>
+                [...parsed.tasks, ...parsed.milestones, ...parsed.groups].find(
+                  (item) => item.id === id,
+                )?.name ?? id,
+            ),
+          ),
         );
         return false;
       }

@@ -10,6 +10,8 @@ import { scheduleDiagnosticEntityIds } from "@common/models";
 import { ScheduleDiagnostic } from "@services/schedule/scheduleGraphValidationService";
 import * as vscode from "vscode";
 
+type EntityNameResolver = (entityId: string) => string;
+
 /**
  * Describes one diagnostic, phrased around a specific entity when the
  * diagnostic spans more than one.
@@ -22,29 +24,31 @@ import * as vscode from "vscode";
  *
  * @param diagnostic The diagnostic to describe.
  * @param contextEntityId The entity to phrase a multi-entity diagnostic around.
+ * @param resolveEntityName Resolves entity ids to display names.
  * @returns A localized, human-readable sentence.
  */
 export function describeDiagnostic(
   diagnostic: ScheduleDiagnostic,
   contextEntityId: string,
+  resolveEntityName: EntityNameResolver = (entityId) => entityId,
 ): string {
   switch (diagnostic.kind) {
     case "underConstrained":
       return vscode.l10n.t(
         "Task '{0}' is under-constrained ({1} constraints, need 2).",
-        diagnostic.entityId,
+        resolveEntityName(diagnostic.entityId),
         String(diagnostic.count),
       );
     case "overConstrained":
       return diagnostic.duplicateEndpoints.length > 0
         ? vscode.l10n.t(
             "Task '{0}' has a duplicate {1} constraint.",
-            diagnostic.entityId,
+            resolveEntityName(diagnostic.entityId),
             diagnostic.duplicateEndpoints.join(vscode.l10n.t(" and ")),
           )
         : vscode.l10n.t(
             "Task '{0}' is over-constrained ({1} constraints, need 2).",
-            diagnostic.entityId,
+            resolveEntityName(diagnostic.entityId),
             String(diagnostic.count),
           );
     case "danglingDependency":
@@ -60,7 +64,7 @@ export function describeDiagnostic(
     case "unanchoredComponent":
       return vscode.l10n.t(
         "Component containing '{0}' has no absolute date anchor.",
-        contextEntityId,
+        resolveEntityName(contextEntityId),
       );
     case "invalidWorkingCalendar":
       return vscode.l10n.t("The project working calendar is invalid.");
@@ -72,9 +76,13 @@ export function describeDiagnostic(
  * by kind so one message covers them all.
  *
  * @param diagnostics The blocking diagnostics to summarize.
+ * @param resolveEntityName Resolves entity ids to display names.
  * @returns A localized summary, or an empty string when nothing blocks.
  */
-export function summarizeBlockingDiagnostics(diagnostics: readonly ScheduleDiagnostic[]): string {
+export function summarizeBlockingDiagnostics(
+  diagnostics: readonly ScheduleDiagnostic[],
+  resolveEntityName: EntityNameResolver = (entityId) => entityId,
+): string {
   const groups: readonly {
     kind: ScheduleDiagnostic["kind"];
     format: (subjects: string) => string;
@@ -109,7 +117,7 @@ export function summarizeBlockingDiagnostics(diagnostics: readonly ScheduleDiagn
     .map((group) => ({
       group,
       present: diagnostics.some((diagnostic) => diagnostic.kind === group.kind),
-      subjects: subjectsOf(diagnostics, group.kind),
+      subjects: subjectsOf(diagnostics, group.kind, resolveEntityName),
     }))
     .filter((entry) => entry.present)
     .map((entry) => entry.group.format(entry.subjects.join(", ")))
@@ -120,12 +128,13 @@ export function summarizeBlockingDiagnostics(diagnostics: readonly ScheduleDiagn
 function subjectsOf(
   diagnostics: readonly ScheduleDiagnostic[],
   kind: ScheduleDiagnostic["kind"],
+  resolveEntityName: EntityNameResolver,
 ): readonly string[] {
   return diagnostics
     .filter((diagnostic) => diagnostic.kind === kind)
     .flatMap((diagnostic) =>
       diagnostic.kind === "danglingDependency" || diagnostic.kind === "groupDependency"
         ? [diagnostic.dependencyId]
-        : scheduleDiagnosticEntityIds(diagnostic),
+        : scheduleDiagnosticEntityIds(diagnostic).map(resolveEntityName),
     );
 }
