@@ -36,6 +36,11 @@ const DIAGNOSTICS: readonly ScheduleDiagnostic[] = [
     severity: "blocking",
     entityIds: ["a", "b"],
   },
+  {
+    kind: "invalidWorkingCalendar",
+    severity: "blocking",
+    entityIds: ["not named"],
+  },
 ];
 
 suite("scheduleDiagnosticPresenter", () => {
@@ -68,7 +73,12 @@ suite("scheduleDiagnosticPresenter", () => {
     assert.ok(summary.includes("d1"));
     assert.ok(summary.includes("d2"));
     assert.ok(summary.includes("a, b"));
-    assert.strictEqual(summary.split("; ").length, 5);
+    assert.ok(!summary.includes("not named"));
+    assert.strictEqual(summary.split("; ").length, 6);
+  });
+
+  test("do not name anything for working calendar issues", () => {
+    assert.ok(!describeDiagnostic(DIAGNOSTICS[5], "random").includes("random"));
   });
 
   test("summarizes nothing when there are no diagnostics", () => {

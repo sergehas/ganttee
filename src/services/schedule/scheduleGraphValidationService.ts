@@ -32,7 +32,30 @@ export type { ScheduleDiagnostic, ScheduleDiagnosticSeverity, ScheduleEndpoint }
 export function evaluateScheduleDiagnostics(
   projectDoc: ProjectDocument,
 ): readonly ScheduleDiagnostic[] {
-  return [...evaluateScheduleConstraints(projectDoc), ...evaluateScheduleAnchoring(projectDoc)];
+  return [
+    ...evaluateWorkingCalendar(projectDoc),
+    ...evaluateScheduleConstraints(projectDoc),
+    ...evaluateScheduleAnchoring(projectDoc),
+  ];
+}
+
+/** Validates calendar values that could otherwise make traversal impossible. */
+function evaluateWorkingCalendar(projectDoc: ProjectDocument): readonly ScheduleDiagnostic[] {
+  const { daysOff } = projectDoc.settings.workingCalendar;
+  const uniqueDaysOff = new Set(daysOff);
+  const invalidDaysOff = daysOff.some((day) => !Number.isInteger(day) || day < 1 || day > 7);
+  const invalidHours =
+    !Number.isFinite(projectDoc.settings.workingDayHours) ||
+    projectDoc.settings.workingDayHours <= 0 ||
+    projectDoc.settings.workingDayHours > 24;
+  const invalidStart =
+    !Number.isFinite(projectDoc.settings.workingDayStart) ||
+    projectDoc.settings.workingDayStart < 0 ||
+    projectDoc.settings.workingDayStart >= 24;
+  if (!invalidDaysOff && uniqueDaysOff.size < 7 && !invalidHours && !invalidStart) {
+    return [];
+  }
+  return [{ kind: "invalidWorkingCalendar", severity: "blocking", entityIds: [] }];
 }
 
 /**

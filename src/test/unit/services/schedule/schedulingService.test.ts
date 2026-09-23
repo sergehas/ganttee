@@ -58,6 +58,58 @@ suite("schedulingService", () => {
     });
   });
 
+  test("skips holidays for start normalization and forward traversal", () => {
+    const document = schedulingDocument();
+    document.settings!.workingCalendar = { daysOff: [6, 7] };
+    document.settings!.holidays = [{ start: "2026-09-09", end: "2026-09-10" }];
+    document.tasks = [
+      { id: "holiday-start", name: "Holiday start", start: "2026-09-09", duration: 1 },
+      { id: "spanning", name: "Spanning", start: "2026-09-08", duration: 3 },
+    ];
+
+    const scheduled = scheduleDocument(document);
+
+    assert.deepStrictEqual(
+      ["holiday-start", "spanning"].map((id) => taskSchedule(taskById(scheduled, id))),
+      [
+        {
+          start: "2026-09-11T09:00:00.000Z",
+          end: "2026-09-11T17:00:00.000Z",
+          duration: 1,
+        },
+        {
+          start: "2026-09-08T09:00:00.000Z",
+          end: "2026-09-14T17:00:00.000Z",
+          duration: 3,
+        },
+      ],
+    );
+  });
+
+  test("skips holidays for end-anchored and explicit endpoint schedules", () => {
+    const document = schedulingDocument();
+    document.settings!.holidays = [{ start: "2026-09-09", end: "2026-09-10" }];
+    document.tasks = [
+      { id: "end-anchored", name: "End anchored", end: "2026-09-10T17:00:00Z", duration: 1 },
+      {
+        id: "explicit",
+        name: "Explicit",
+        start: "2026-09-08T09:00:00Z",
+        end: "2026-09-11T17:00:00Z",
+      },
+    ];
+
+    const scheduled = scheduleDocument(document);
+
+    assert.strictEqual(
+      taskById(scheduled, "end-anchored").effectiveStart().toISOString(),
+      "2026-09-08T09:00:00.000Z",
+    );
+    assert.strictEqual(taskById(scheduled, "explicit").effectiveDuration(), 2);
+    assert.strictEqual(document.tasks[1].start, "2026-09-08T09:00:00Z");
+    assert.strictEqual(document.tasks[1].end, "2026-09-11T17:00:00Z");
+  });
+
   test("uses the default working calendar settings", () => {
     const document = createEmptyDocument();
     document.tasks = [{ id: "task", name: "Task", start: "2026-09-08", duration: 1 }];
@@ -429,6 +481,7 @@ suite("schedulingService", () => {
       daysOff: new Set(model.settings.workingCalendar.daysOff),
       workingDayHours: model.settings.workingDayHours,
       workingDayStart: model.settings.workingDayStart,
+      holidays: model.settings.holidays,
     };
 
     assert.deepStrictEqual(rollupGroupSchedules(model.groups, [], [], settings), []);

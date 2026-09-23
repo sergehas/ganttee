@@ -42,6 +42,8 @@ export function describeDiagnostic(diagnostic: ScheduleDiagnostic, entityId: str
       );
     case "unanchoredComponent":
       return vscode.l10n.t("Component containing '{0}' has no absolute date anchor.", entityId);
+    case "invalidWorkingCalendar":
+      return vscode.l10n.t("The project working calendar is invalid.");
   }
 }
 
@@ -76,6 +78,10 @@ export function summarizeBlockingDiagnostics(diagnostics: readonly ScheduleDiagn
     {
       kind: "unanchoredComponent",
       format: (subjects) => vscode.l10n.t("unanchored components: {0}", subjects),
+    },
+    {
+      kind: "invalidWorkingCalendar",
+      format: () => vscode.l10n.t("invalid working calendar"),
     },
   ];
 

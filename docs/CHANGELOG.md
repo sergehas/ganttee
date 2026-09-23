@@ -9,6 +9,9 @@ file.
 
 ### Added
 
+- Holiday-aware scheduling now skips inclusive project holiday ranges during date normalization,
+  forward and reverse traversal, fractional duration calculation, and overnight interval ownership.
+  Invalid calendars and malformed holiday dates are rejected before scheduling.
 - Sidebar project-management workflow: create projects, tasks, groups, and milestones from the
   explorer toolbar; native inline Move Up, Move Down, and Delete row actions; multi-selection bulk
   delete with one confirmation; drag-and-drop grouping/ungrouping with silent rejection of invalid

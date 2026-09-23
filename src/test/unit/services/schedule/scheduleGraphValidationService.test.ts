@@ -169,6 +169,32 @@ suite("scheduleGraphValidationService", () => {
     assert.deepStrictEqual(diagnostics, []);
   });
 
+  test("blocks calendars with no eligible weekdays", () => {
+    const document = anchoredTaskDocument();
+    document.settings.workingCalendar.daysOff = [1, 2, 3, 4, 5, 6, 7];
+
+    const diagnostics = evaluateScheduleDiagnostics(document);
+
+    assert.deepStrictEqual(summarize(diagnostics), ["invalidWorkingCalendar:"]);
+    assert.strictEqual(hasBlockingScheduleDiagnostic(diagnostics), true);
+  });
+
+  test("blocks invalid working-time values", () => {
+    for (const settings of [
+      { workingDayHours: 0 },
+      { workingDayHours: 25 },
+      { workingDayStart: -1 },
+      { workingDayStart: 24 },
+    ]) {
+      const document = anchoredTaskDocument();
+      Object.assign(document.settings, settings);
+      assert.strictEqual(
+        hasBlockingScheduleDiagnostic(evaluateScheduleDiagnostics(document)),
+        true,
+      );
+    }
+  });
+
   test("reports unanchored components and exempts group-only components", () => {
     const document = createEmptyDocument();
     document.tasks = [{ id: "task", name: "Task", duration: 1 }];

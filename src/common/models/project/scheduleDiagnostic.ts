@@ -35,4 +35,9 @@ export type ScheduleDiagnostic =
       kind: "unanchoredComponent";
       severity: "blocking";
       entityIds: readonly string[];
+    }
+  | {
+      kind: "invalidWorkingCalendar";
+      severity: "blocking";
+      entityIds: readonly string[];
     };

@@ -360,6 +360,13 @@ suite("documentShapeValidationService", () => {
           }),
         /settings\.holidays\[0\]\.end must not precede settings\.holidays\[0\]\.start/,
       );
+      assert.throws(
+        () =>
+          validateDocumentShape({
+            settings: { holidays: [{ start: "2026-02-30", end: "2026-03-01" }] },
+          }),
+        /settings\.holidays\[0\]\.start must be an ISO date/,
+      );
 
       const doc = validateDocumentShape({
         settings: {

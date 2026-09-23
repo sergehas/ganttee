@@ -23,6 +23,8 @@ export interface WorkingTimeSettings {
   readonly workingDayHours: number;
   /** UTC decimal hour at which a working interval starts. */
   readonly workingDayStart: number;
+  /** Inclusive holiday ranges excluded from working time. */
+  readonly holidays: readonly DateRange[];
 }
 
 /** Inclusive ISO date-only range used by project-level settings. */
@@ -31,6 +33,29 @@ export interface DateRange {
   readonly start: string;
   /** Inclusive range end in `YYYY-MM-DD` form. */
   readonly end: string;
+}
+
+/**
+ * Merges inclusive holiday ranges into sorted, disjoint ranges.
+ *
+ * @param ranges The holiday ranges to normalize.
+ * @returns A new sorted range list with overlaps and adjacent dates merged.
+ */
+export function normalizeHolidayRanges(ranges: readonly DateRange[]): readonly DateRange[] {
+  const sorted = [...ranges].sort((left, right) => left.start.localeCompare(right.start));
+  const merged: DateRange[] = [];
+  for (const range of sorted) {
+    const previous = merged.at(-1);
+    if (
+      previous === undefined ||
+      addDays(parseIsoDate(previous.end), 1) < parseIsoDate(range.start)
+    ) {
+      merged.push({ ...range });
+    } else if (range.end > previous.end) {
+      merged[merged.length - 1] = { ...previous, end: range.end };
+    }
+  }
+  return merged;
 }
 
 /**
@@ -153,19 +178,14 @@ export function diffIsoDates(start: string, end: string): number {
  * @param settings The active working-time settings.
  */
 export function normalizeToWorkingTime(date: Date, settings: WorkingTimeSettings): Date {
-  let day = utcDayStart(date.getTime());
-  while (true) {
-    const interval = intervalOn(day, settings);
-    if (interval !== undefined) {
-      if (date.getTime() < interval.start) {
-        return new Date(interval.start);
-      }
-      if (date.getTime() < interval.end) {
-        return new Date(date.getTime());
-      }
-    }
-    day += MS_PER_DAY;
+  const epochMilliseconds = date.getTime();
+  const day = utcDayStart(epochMilliseconds);
+  const currentInterval = intervalOn(day, settings);
+  if (currentInterval !== undefined && epochMilliseconds < currentInterval.start) {
+    return new Date(currentInterval.start);
   }
+  const interval = containingOrNextInterval(epochMilliseconds, settings);
+  return new Date(Math.max(epochMilliseconds, interval.start));
 }
 
 /**
@@ -268,7 +288,7 @@ export function quarter(value: number): number {
 
 /** Returns the working interval on a UTC day, or undefined for a day off. */
 function intervalOn(day: number, settings: WorkingTimeSettings): WorkingInterval | undefined {
-  if (settings.daysOff.has(isoWeekday(day))) {
+  if (isNonWorkingDate(day, settings)) {
     return undefined;
   }
   const start = day + settings.workingDayStart * MS_PER_HOUR;
@@ -278,6 +298,32 @@ function intervalOn(day: number, settings: WorkingTimeSettings): WorkingInterval
   };
 }
 
+/** Returns whether a calendar date is excluded by weekday or holiday settings. */
+function isNonWorkingDate(day: number, settings: WorkingTimeSettings): boolean {
+  return (
+    settings.daysOff.has(isoWeekday(day)) ||
+    holidayContains(formatIsoDate(new Date(day)), settings.holidays)
+  );
+}
+
+/** Returns whether a normalized holiday range contains an ISO date. */
+function holidayContains(date: string, ranges: readonly DateRange[]): boolean {
+  let low = 0;
+  let high = ranges.length - 1;
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2);
+    const range = ranges[middle];
+    if (date < range.start) {
+      high = middle - 1;
+    } else if (date > range.end) {
+      low = middle + 1;
+    } else {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Returns the working interval containing or following a timestamp. */
 function containingOrNextInterval(
   epochMilliseconds: number,
@@ -285,6 +331,14 @@ function containingOrNextInterval(
 ): WorkingInterval {
   let day = utcDayStart(epochMilliseconds);
   while (true) {
+    const previousInterval = intervalOn(day - MS_PER_DAY, settings);
+    if (
+      previousInterval !== undefined &&
+      epochMilliseconds >= previousInterval.start &&
+      epochMilliseconds < previousInterval.end
+    ) {
+      return previousInterval;
+    }
     const interval = intervalOn(day, settings);
     if (interval !== undefined && epochMilliseconds < interval.end) {
       return interval;
@@ -303,6 +357,10 @@ function containingOrPreviousInterval(
     const interval = intervalOn(day, settings);
     if (interval !== undefined && epochMilliseconds > interval.start) {
       return interval;
+    }
+    const nextInterval = intervalOn(day - MS_PER_DAY, settings);
+    if (nextInterval !== undefined && epochMilliseconds > nextInterval.start) {
+      return nextInterval;
     }
     day -= MS_PER_DAY;
   }

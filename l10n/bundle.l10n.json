@@ -42,6 +42,8 @@
   "dangling dependencies: {0}": "dangling dependencies: {0}",
   "group dependencies: {0}": "group dependencies: {0}",
   "unanchored components: {0}": "unanchored components: {0}",
+  "The project working calendar is invalid.": "The project working calendar is invalid.",
+  "invalid working calendar": "invalid working calendar",
   "Loading Gantt chart...": "Loading Gantt chart...",
   "No tasks yet. Use the Ganttee sidebar to add one.": "No tasks yet. Use the Ganttee sidebar to add one.",
   "—": "—",
