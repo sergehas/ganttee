@@ -56,8 +56,6 @@ interface GanttChartProps {
   view: ProjectView;
   /** Changes whenever the chart should fit its current entities. */
   fitVersion: number;
-  /** Entity currently selected in the editor. */
-  selectedEntity: EditableEntityRef | null;
   /** Opens an entity in the edit form. */
   onEditEntity: (entity: EditableEntityRef) => void;
   /** Applies an optional direct date shift to an entity. */
@@ -111,13 +109,8 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
       return;
     }
     chart.setOption(
-      buildOption(
-        props.project,
-        props.view,
-        props.selectedEntity,
-        l10n.locale,
-        translate(l10n, "—"),
-        (start, end) => translate(l10n, "{0} → {1}", start, end),
+      buildOption(props.project, props.view, l10n.locale, translate(l10n, "—"), (start, end) =>
+        translate(l10n, "{0} → {1}", start, end),
       ),
       true,
     );
@@ -127,7 +120,7 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
       containerRef.current.style.height = `${Math.max(rows, 1) * CHART_ROW_HEIGHT + 80}px`;
       chart.resize();
     }
-  }, [l10n, props.project, props.view, props.selectedEntity]);
+  }, [l10n, props.project, props.view]);
 
   return <div className="ganttee-gantt-chart" ref={containerRef} />;
 }
@@ -136,7 +129,6 @@ export function GanttChart(props: GanttChartProps): React.JSX.Element {
 function buildOption(
   project: ProjectPresentation,
   view: ProjectView,
-  selectedEntity: EditableEntityRef | null,
   locale: string,
   unavailable: string,
   formatRange: (start: string, end: string) => string,
@@ -178,7 +170,6 @@ function buildOption(
         task,
         effectiveStart: task.effectiveStart,
         effectiveEnd: task.effectiveEnd,
-        selected: selectedEntity?.kind === "task" && selectedEntity.id === task.id,
         itemStyle:
           view.showCriticalPath && criticalNodeIds.has(task.id) ? CRITICAL_ITEM_STYLE : undefined,
       };
@@ -189,7 +180,6 @@ function buildOption(
     value: [indexById.get(milestone.id) ?? 0, toChartMs(milestone.effectiveStart)],
     milestone,
     effectiveDate: milestone.effectiveStart,
-    selected: selectedEntity?.kind === "milestone" && selectedEntity.id === milestone.id,
     itemStyle:
       view.showCriticalPath && criticalNodeIds.has(milestone.id) ? CRITICAL_ITEM_STYLE : undefined,
   }));
@@ -252,6 +242,15 @@ function buildOption(
       formatter: (params: unknown) =>
         chartTooltipFormatter(params, locale, unavailable, formatRange),
     },
+    axisPointer: {
+      show: true,
+      snap: false,
+      link: [
+        {
+          xAxisIndex: "all",
+        },
+      ],
+    },
     grid: { left: 160, right: 24, top: hasParentAxis ? 68 : 44, bottom: 40 },
     dataZoom: [
       {
@@ -262,6 +261,7 @@ function buildOption(
         end: zoomEnd,
       },
     ],
+
     xAxis: createTimeAxis(axisRange),
     yAxis: {
       type: "category",

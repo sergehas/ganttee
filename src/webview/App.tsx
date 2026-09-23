@@ -26,7 +26,6 @@ interface PendingEntityUpdate {
 export function App(): React.JSX.Element {
   const [viewState, setViewState] = useState<GanttViewState | null>(null);
   const [l10n, setL10n] = useState<WebviewL10n | null>(null);
-  const [selectedEntity, setSelectedEntity] = useState<EditableEntityRef | null>(null);
   const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(null);
   const [closingEditingTarget, setClosingEditingTarget] = useState<ResolvedEditingEntity | null>(
     null,
@@ -76,9 +75,6 @@ export function App(): React.JSX.Element {
           } catch {
             setViewState(null);
           }
-          break;
-        case "selectEntity":
-          setSelectedEntity(message.entity);
           break;
         case "editEntity":
           toggleEntityEditor(message.entity);
@@ -151,7 +147,6 @@ export function App(): React.JSX.Element {
   /** Toggles the requested entity editor against the current editor identity. */
   function toggleEntityEditor(entity: EditableEntityRef): void {
     const currentEntity = editingEntityRef.current;
-    setSelectedEntity(entity);
     if (currentEntity?.kind === entity.kind && currentEntity.id === entity.id) {
       closeEntityEditor();
       return;
@@ -257,7 +252,6 @@ export function App(): React.JSX.Element {
                 project={viewState.project}
                 view={chartView}
                 fitVersion={fitVersion}
-                selectedEntity={selectedEntity}
                 onEditEntity={toggleEntityEditor}
                 onNudgeEntityByDays={nudgeEntityByDays}
               />
