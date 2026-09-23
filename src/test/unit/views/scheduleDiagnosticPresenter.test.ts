@@ -9,27 +9,29 @@ const DIAGNOSTICS: readonly ScheduleDiagnostic[] = [
   {
     kind: "underConstrained",
     severity: "blocking",
-    entityIds: ["under"],
+    entityId: "under",
     count: 1,
   },
   {
     kind: "overConstrained",
     severity: "blocking",
-    entityIds: ["over"],
+    entityId: "over",
     count: 3,
     duplicateEndpoints: [],
   },
   {
     kind: "danglingDependency",
     severity: "blocking",
-    entityIds: ["task", "missing"],
     dependencyId: "d1",
+    sourceId: "missing",
+    targetId: "task",
   },
   {
     kind: "groupDependency",
     severity: "blocking",
-    entityIds: ["task", "group"],
     dependencyId: "d2",
+    sourceId: "group",
+    targetId: "task",
   },
   {
     kind: "unanchoredComponent",
@@ -39,7 +41,6 @@ const DIAGNOSTICS: readonly ScheduleDiagnostic[] = [
   {
     kind: "invalidWorkingCalendar",
     severity: "blocking",
-    entityIds: ["not named"],
   },
 ];
 
@@ -55,9 +56,14 @@ suite("scheduleDiagnosticPresenter", () => {
   });
 
   test("names the entity for determinacy and anchoring messages", () => {
-    assert.ok(describeDiagnostic(DIAGNOSTICS[0], "subject").includes("subject"));
+    assert.ok(describeDiagnostic(DIAGNOSTICS[0], "subject").includes("under"));
     assert.ok(describeDiagnostic(DIAGNOSTICS[0], "subject").includes("1"));
     assert.ok(describeDiagnostic(DIAGNOSTICS[4], "subject").includes("subject"));
+  });
+
+  test("ignores a mismatched context entity for determinacy messages", () => {
+    assert.ok(!describeDiagnostic(DIAGNOSTICS[0], "unrelated").includes("unrelated"));
+    assert.ok(describeDiagnostic(DIAGNOSTICS[0], "unrelated").includes("under"));
   });
 
   test("names the dependency for endpoint messages", () => {
@@ -73,7 +79,7 @@ suite("scheduleDiagnosticPresenter", () => {
     assert.ok(summary.includes("d1"));
     assert.ok(summary.includes("d2"));
     assert.ok(summary.includes("a, b"));
-    assert.ok(!summary.includes("not named"));
+    assert.ok(summary.includes("invalid working calendar"));
     assert.strictEqual(summary.split("; ").length, 6);
   });
 

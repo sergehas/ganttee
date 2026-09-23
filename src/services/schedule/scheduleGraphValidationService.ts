@@ -7,7 +7,12 @@
  */
 
 import { Dependency, ProjectDocument } from "@common/documents";
-import { ScheduleDiagnostic, ScheduleDiagnosticSeverity, ScheduleEndpoint } from "@common/models";
+import {
+  ScheduleDiagnostic,
+  scheduleDiagnosticEntityIds,
+  ScheduleDiagnosticSeverity,
+  ScheduleEndpoint,
+} from "@common/models";
 import {
   anchoredEntityIds,
   schedulableEntityIds,
@@ -55,7 +60,7 @@ function evaluateWorkingCalendar(projectDoc: ProjectDocument): readonly Schedule
   if (!invalidDaysOff && uniqueDaysOff.size < 7 && !invalidHours && !invalidStart) {
     return [];
   }
-  return [{ kind: "invalidWorkingCalendar", severity: "blocking", entityIds: [] }];
+  return [{ kind: "invalidWorkingCalendar", severity: "blocking" }];
 }
 
 /**
@@ -141,7 +146,9 @@ export function diagnosticsFor(
   diagnostics: readonly ScheduleDiagnostic[],
   entityId: string,
 ): readonly ScheduleDiagnostic[] {
-  return diagnostics.filter((diagnostic) => diagnostic.entityIds.includes(entityId));
+  return diagnostics.filter((diagnostic) =>
+    scheduleDiagnosticEntityIds(diagnostic).includes(entityId),
+  );
 }
 
 /** Turns a determinacy verdict into a diagnostic, if the entity has a problem. */
@@ -153,7 +160,7 @@ function diagnoseDeterminacy(
     return {
       kind: "underConstrained",
       severity: "blocking",
-      entityIds: [entityId],
+      entityId,
       count: verdict.count,
     };
   }
@@ -163,7 +170,7 @@ function diagnoseDeterminacy(
   return {
     kind: "overConstrained",
     severity: verdict.blocking ? "blocking" : "warning",
-    entityIds: [entityId],
+    entityId,
     count: verdict.count,
     duplicateEndpoints: duplicatedEndpoints(verdict),
   };
@@ -180,16 +187,18 @@ function diagnoseEndpoints(
     return {
       kind: "danglingDependency",
       severity: "blocking",
-      entityIds: endpointIds,
       dependencyId: dependency.id,
+      sourceId: dependency.sourceId,
+      targetId: dependency.targetId,
     };
   }
   if (endpointIds.some((id) => groupIds.has(id))) {
     return {
       kind: "groupDependency",
       severity: "blocking",
-      entityIds: endpointIds,
       dependencyId: dependency.id,
+      sourceId: dependency.sourceId,
+      targetId: dependency.targetId,
     };
   }
   return undefined;

@@ -1,4 +1,5 @@
 import { createEmptyDocument, Dependency, ProjectDocument } from "@common/documents";
+import { scheduleDiagnosticEntityIds } from "@common/models";
 import {
   blockingDiagnostics,
   diagnosticsFor,
@@ -24,7 +25,7 @@ function summarize(diagnostics: readonly ScheduleDiagnostic[]): string[] {
   return diagnostics.map((diagnostic) =>
     diagnostic.kind === "danglingDependency" || diagnostic.kind === "groupDependency"
       ? `${diagnostic.kind}:${diagnostic.dependencyId}`
-      : `${diagnostic.kind}:${diagnostic.entityIds.join("+")}`,
+      : `${diagnostic.kind}:${scheduleDiagnosticEntityIds(diagnostic).join("+")}`,
   );
 }
 

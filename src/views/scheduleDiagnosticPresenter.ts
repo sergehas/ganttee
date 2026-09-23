@@ -6,28 +6,39 @@
  * import them; anything user-facing is resolved here on the host.
  */
 
+import { scheduleDiagnosticEntityIds } from "@common/models";
 import { ScheduleDiagnostic } from "@services/schedule/scheduleGraphValidationService";
 import * as vscode from "vscode";
 
 /**
- * Describes one diagnostic as it applies to a single entity.
+ * Describes one diagnostic, phrased around a specific entity when the
+ * diagnostic spans more than one.
+ *
+ * Determinacy, dependency, and calendar diagnostics already name their
+ * subject unambiguously (an `entityId`, a `dependencyId`, or nothing), so
+ * `contextEntityId` is only read for `unanchoredComponent`, whose
+ * `entityIds` can list every member of a connected component and the caller
+ * must pick which one the message is shown against.
  *
  * @param diagnostic The diagnostic to describe.
- * @param entityId The entity the message is shown against.
+ * @param contextEntityId The entity to phrase a multi-entity diagnostic around.
  * @returns A localized, human-readable sentence.
  */
-export function describeDiagnostic(diagnostic: ScheduleDiagnostic, entityId: string): string {
+export function describeDiagnostic(
+  diagnostic: ScheduleDiagnostic,
+  contextEntityId: string,
+): string {
   switch (diagnostic.kind) {
     case "underConstrained":
       return vscode.l10n.t(
         "Task '{0}' is under-constrained ({1} constraints, need 2).",
-        entityId,
+        diagnostic.entityId,
         String(diagnostic.count),
       );
     case "overConstrained":
       return vscode.l10n.t(
         "Task '{0}' is over-constrained ({1} constraints, need 2).",
-        entityId,
+        diagnostic.entityId,
         String(diagnostic.count),
       );
     case "danglingDependency":
@@ -41,7 +52,10 @@ export function describeDiagnostic(diagnostic: ScheduleDiagnostic, entityId: str
         diagnostic.dependencyId,
       );
     case "unanchoredComponent":
-      return vscode.l10n.t("Component containing '{0}' has no absolute date anchor.", entityId);
+      return vscode.l10n.t(
+        "Component containing '{0}' has no absolute date anchor.",
+        contextEntityId,
+      );
     case "invalidWorkingCalendar":
       return vscode.l10n.t("The project working calendar is invalid.");
   }
@@ -88,9 +102,10 @@ export function summarizeBlockingDiagnostics(diagnostics: readonly ScheduleDiagn
   return groups
     .map((group) => ({
       group,
+      present: diagnostics.some((diagnostic) => diagnostic.kind === group.kind),
       subjects: subjectsOf(diagnostics, group.kind),
     }))
-    .filter((entry) => entry.subjects.length > 0)
+    .filter((entry) => entry.present)
     .map((entry) => entry.group.format(entry.subjects.join(", ")))
     .join("; ");
 }
@@ -105,6 +120,6 @@ function subjectsOf(
     .flatMap((diagnostic) =>
       diagnostic.kind === "danglingDependency" || diagnostic.kind === "groupDependency"
         ? [diagnostic.dependencyId]
-        : [...diagnostic.entityIds],
+        : scheduleDiagnosticEntityIds(diagnostic),
     );
 }

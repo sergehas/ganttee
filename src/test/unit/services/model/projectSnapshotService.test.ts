@@ -21,7 +21,7 @@ suite("projectSnapshotService", () => {
       {
         kind: "underConstrained",
         severity: "blocking",
-        entityIds: ["task"],
+        entityId: "task",
         count: 0,
       },
     ]);

@@ -9,27 +9,29 @@ export type ScheduleDiagnostic =
   | {
       kind: "underConstrained";
       severity: "blocking";
-      entityIds: readonly string[];
+      entityId: string;
       count: number;
     }
   | {
       kind: "overConstrained";
       severity: ScheduleDiagnosticSeverity;
-      entityIds: readonly string[];
+      entityId: string;
       count: number;
       duplicateEndpoints: readonly ScheduleEndpoint[];
     }
   | {
       kind: "danglingDependency";
       severity: "blocking";
-      entityIds: readonly string[];
       dependencyId: string;
+      sourceId: string;
+      targetId: string;
     }
   | {
       kind: "groupDependency";
       severity: "blocking";
-      entityIds: readonly string[];
       dependencyId: string;
+      sourceId: string;
+      targetId: string;
     }
   | {
       kind: "unanchoredComponent";
@@ -39,5 +41,27 @@ export type ScheduleDiagnostic =
   | {
       kind: "invalidWorkingCalendar";
       severity: "blocking";
-      entityIds: readonly string[];
     };
+
+/**
+ * Normalizes any diagnostic's affected entities to a flat, order-agnostic
+ * list, for generic id-membership checks (filtering, summarizing) that don't
+ * need to know how each kind stores its subject(s).
+ *
+ * @param diagnostic The diagnostic to inspect.
+ * @returns Every entity id the diagnostic concerns; possibly empty.
+ */
+export function scheduleDiagnosticEntityIds(diagnostic: ScheduleDiagnostic): readonly string[] {
+  switch (diagnostic.kind) {
+    case "underConstrained":
+    case "overConstrained":
+      return [diagnostic.entityId];
+    case "danglingDependency":
+    case "groupDependency":
+      return [diagnostic.sourceId, diagnostic.targetId];
+    case "unanchoredComponent":
+      return diagnostic.entityIds;
+    case "invalidWorkingCalendar":
+      return [];
+  }
+}
