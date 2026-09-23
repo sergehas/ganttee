@@ -5,9 +5,14 @@ import { SaveEntityOptions } from "@services/editing/projectItemSaveGuardService
 import { buildShiftByDaysPatch } from "@services/editing/projectItemSchedulePatchService";
 import "@webview/App.scss";
 import { IconBaseUriProvider } from "@webview/components/Icon";
+import type {
+  ChartExportDestination,
+  ChartExportFormat,
+} from "@webview/features/chart/chartExport.types";
 import { ChartMenuBar } from "@webview/features/chart/components/ChartMenuBar";
-import { GanttChart } from "@webview/features/chart/components/GanttChart";
+import { GanttChart, GanttChartHandle } from "@webview/features/chart/components/GanttChart";
 import { EntityEditor } from "@webview/features/entity-editor/components/EntityEditor";
+import { ValidationMessage } from "@webview/features/entity-editor/components/ValidationMessage";
 import { useEntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
 import { translate, WebviewL10n, WebviewL10nContext } from "@webview/l10n";
 import { createGanttViewState, GanttViewState } from "@webview/viewState";
@@ -33,6 +38,8 @@ export function App(): React.JSX.Element {
   const [pendingView, setPendingView] = useState<ProjectView | null>(null);
   const [fitVersion, setFitVersion] = useState(0);
   const [iconBaseUri, setIconBaseUri] = useState<string | null>(null);
+  const chartRef = useRef<GanttChartHandle | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const projectRef = useRef<ProjectPresentation | null>(null);
   const editingEntityRef = useRef<EditableEntityRef | null>(null);
   const editorSessionVersionRef = useRef(0);
@@ -226,6 +233,16 @@ export function App(): React.JSX.Element {
     setFitVersion((version) => version + 1);
   };
 
+  /** Exports the currently rendered chart and reports browser failures locally. */
+  const exportImage = async (format: ChartExportFormat, destination: ChartExportDestination) => {
+    try {
+      setExportError(null);
+      await chartRef.current?.exportImage(format, destination);
+    } catch {
+      setExportError(translate(l10n, "Unable to export chart image."));
+    }
+  };
+
   /** Applies a chart date shift without closing an editor that is already showing the entity. */
   const nudgeEntityByDays = (entity: EditableEntityRef, days: number) => {
     const patch = buildShiftByDaysPatch(viewState.project, entity, days);
@@ -242,13 +259,20 @@ export function App(): React.JSX.Element {
       <WebviewL10nContext.Provider value={l10n}>
         <div className="ganttee-app">
           <div className="ganttee-app__timeline">
-            <ChartMenuBar view={chartView} onViewChange={updateView} onFitToWindow={fitToWindow} />
+            <ChartMenuBar
+              view={chartView}
+              onViewChange={updateView}
+              onFitToWindow={fitToWindow}
+              onExport={exportImage}
+            />
+            {exportError && <ValidationMessage severity="error">{exportError}</ValidationMessage>}
             {viewState.project.tasks.length === 0 && viewState.project.milestones.length === 0 ? (
               <div className="ganttee-app__empty">
                 {translate(l10n, "No tasks yet. Use the Ganttee sidebar to add one.")}
               </div>
             ) : (
               <GanttChart
+                ref={chartRef}
                 project={viewState.project}
                 view={chartView}
                 fitVersion={fitVersion}

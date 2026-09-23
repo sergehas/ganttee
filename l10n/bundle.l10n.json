@@ -109,5 +109,14 @@
   "Month": "Month",
   "Quarter": "Quarter",
   "Year": "Year",
-  "Fit to window": "Fit to window"
+  "Fit to window": "Fit to window",
+  "Export controls": "Export controls",
+  "Export to image": "Export to image",
+  "SVG": "SVG",
+  "PNG": "PNG",
+  "Download": "Download",
+  "Copy to clipboard": "Copy to clipboard",
+  "Gantt chart.svg": "Gantt chart.svg",
+  "Gantt chart.png": "Gantt chart.png",
+  "Unable to export chart image.": "Unable to export chart image."
 }

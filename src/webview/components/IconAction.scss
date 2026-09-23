@@ -38,3 +38,12 @@
     outline-offset: -1px;
   }
 }
+
+.ganttee-icon-action__submenu {
+  position: relative;
+}
+
+.ganttee-icon-action__menu--nested {
+  top: calc(var(--vscode-spacing-size40, 4px) * -1);
+  left: calc(100% + var(--vscode-spacing-size40, 4px));
+}

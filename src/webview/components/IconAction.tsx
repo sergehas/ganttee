@@ -23,48 +23,112 @@ interface IconActionProps {
   readonly pressed?: boolean;
 }
 
-/** Renders a localized icon-only action or a nested icon-action group. */
+/**
+ * Renders a localized icon-only action or a nested icon-action group.
+ * @param action Action definition to render.
+ * @param pressed Whether a leaf action is active.
+ * @returns Rendered action markup.
+ */
 export function IconAction({ action, pressed = false }: IconActionProps): React.JSX.Element {
+  return <ActionMenu action={action} pressed={pressed} />;
+}
+
+/**
+ * Renders a leaf action or a recursively nested action menu.
+ * @param action Action definition to render.
+ * @param pressed Whether a leaf action is active.
+ * @returns Rendered action markup.
+ */
+function ActionMenu({ action, pressed = false }: IconActionProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const hasChildren = Boolean(action.children?.length);
 
-  if (hasChildren) {
+  if (!hasChildren) {
     return (
-      <div className="ganttee-icon-action">
-        <IconButton
-          icon={action.icon}
-          label={action.label}
-          onClick={() => setOpen((current) => !current)}
-        />
-        {open && (
-          <div className="ganttee-icon-action__menu" role="menu">
-            {action.children?.map((child) => (
-              <button
-                type="button"
-                role="menuitem"
-                className="ganttee-icon-action__menu-item"
-                key={child.id}
-                onClick={() => {
-                  child.onSelect?.();
-                  setOpen(false);
-                }}
-              >
-                <span className={`codicon codicon-${child.icon}`} aria-hidden="true" />
-                <span>{child.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <IconButton
+        icon={action.icon}
+        label={action.label}
+        pressed={pressed}
+        onClick={action.onSelect}
+      />
     );
   }
 
   return (
-    <IconButton
-      icon={action.icon}
-      label={action.label}
-      pressed={pressed}
-      onClick={action.onSelect}
-    />
+    <div className="ganttee-icon-action">
+      <IconButton
+        icon={action.icon}
+        label={action.label}
+        hasPopup
+        expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      />
+      {open && (
+        <div className="ganttee-icon-action__menu" role="menu">
+          {action.children?.map((child) => (
+            <ActionMenuItem action={child} closeMenu={() => setOpen(false)} key={child.id} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ActionMenuItemProps {
+  /** Action rendered by the menu item. */
+  readonly action: IconActionItem;
+  /** Closes the owning menu after a leaf action is selected. */
+  readonly closeMenu: () => void;
+}
+
+/**
+ * Renders one menu item and opens nested children when present.
+ * @param action Action definition for this menu item.
+ * @param closeMenu Callback that closes the owning menu.
+ * @returns Rendered menu item markup.
+ */
+function ActionMenuItem({ action, closeMenu }: ActionMenuItemProps): React.JSX.Element {
+  const [open, setOpen] = useState(false);
+  const hasChildren = Boolean(action.children?.length);
+
+  if (!hasChildren) {
+    return (
+      <button
+        type="button"
+        role="menuitem"
+        className="ganttee-icon-action__menu-item"
+        onClick={() => {
+          action.onSelect?.();
+          closeMenu();
+        }}
+      >
+        <span className={`codicon codicon-${action.icon}`} aria-hidden="true" />
+        <span>{action.label}</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="ganttee-icon-action__submenu">
+      <button
+        type="button"
+        role="menuitem"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="ganttee-icon-action__menu-item"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className={`codicon codicon-${action.icon}`} aria-hidden="true" />
+        <span>{action.label}</span>
+        <span className="codicon codicon-chevron-right" aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="ganttee-icon-action__menu ganttee-icon-action__menu--nested" role="menu">
+          {action.children?.map((child) => (
+            <ActionMenuItem action={child} closeMenu={closeMenu} key={child.id} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
