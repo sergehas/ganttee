@@ -22,7 +22,7 @@ suite("chartMenuPresentation", () => {
       model.exportAction.children?.map((action) => action.label),
       ["SVG", "PNG"],
     );
-    assert.strictEqual(model.exportAction.onSelect, undefined);
+    assert.notEqual(model.exportAction.onSelect, undefined);
     assert.deepStrictEqual(
       model.exportAction.children?.map((action) => action.onSelect),
       [undefined, undefined],
