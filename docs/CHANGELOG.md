@@ -41,6 +41,8 @@ file.
   calculated using calendar days.
 - Chart editor menu bar with persisted view preferences (zoom level, dependency/off-day/holiday/
   critical-path visibility) stored in the document.
+- Export Gantt charts as images through the chart actions menu, with download and clipboard output
+  options.
 - Critical-path projection computed from the scheduled dependency graph.
 - Project settings support for calendar, holidays, and view preferences.
 
