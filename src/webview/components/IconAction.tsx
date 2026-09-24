@@ -1,6 +1,6 @@
 import "@webview/components/IconAction.scss";
 import { IconButton } from "@webview/components/IconButton";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 /** A leaf action or nested action group shown by an icon control. */
 export interface IconActionItem {
@@ -41,6 +41,7 @@ export function IconAction({ action, pressed = false }: IconActionProps): React.
  */
 function ActionMenu({ action, pressed = false }: IconActionProps): React.JSX.Element {
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const hasChildren = Boolean(action.children?.length);
 
   if (!hasChildren) {
@@ -55,7 +56,15 @@ function ActionMenu({ action, pressed = false }: IconActionProps): React.JSX.Ele
   }
 
   return (
-    <div className="ganttee-icon-action">
+    <div
+      className="ganttee-icon-action"
+      ref={containerRef}
+      onBlur={(event) => {
+        if (!containerRef.current?.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+    >
       <IconButton
         icon={action.icon}
         label={action.label}
@@ -82,13 +91,12 @@ interface ActionMenuItemProps {
 }
 
 /**
- * Renders one menu item and opens nested children when present.
+ * Renders one menu item; nested children open on hover via CSS.
  * @param action Action definition for this menu item.
  * @param closeMenu Callback that closes the owning menu.
  * @returns Rendered menu item markup.
  */
 function ActionMenuItem({ action, closeMenu }: ActionMenuItemProps): React.JSX.Element {
-  const [open, setOpen] = useState(false);
   const hasChildren = Boolean(action.children?.length);
 
   if (!hasChildren) {
@@ -104,6 +112,10 @@ function ActionMenuItem({ action, closeMenu }: ActionMenuItemProps): React.JSX.E
       >
         <span className={`codicon codicon-${action.icon}`} aria-hidden="true" />
         <span>{action.label}</span>
+        <span
+          className="ganttee-icon-action__submenu-indicator codicon codicon-blank"
+          aria-hidden="true"
+        />
       </button>
     );
   }
@@ -114,21 +126,20 @@ function ActionMenuItem({ action, closeMenu }: ActionMenuItemProps): React.JSX.E
         type="button"
         role="menuitem"
         aria-haspopup="menu"
-        aria-expanded={open}
         className="ganttee-icon-action__menu-item"
-        onClick={() => setOpen((current) => !current)}
       >
         <span className={`codicon codicon-${action.icon}`} aria-hidden="true" />
         <span>{action.label}</span>
-        <span className="codicon codicon-chevron-right" aria-hidden="true" />
+        <span
+          className="ganttee-icon-action__submenu-indicator codicon codicon-chevron-right"
+          aria-hidden="true"
+        />
       </button>
-      {open && (
-        <div className="ganttee-icon-action__menu ganttee-icon-action__menu--nested" role="menu">
-          {action.children?.map((child) => (
-            <ActionMenuItem action={child} closeMenu={closeMenu} key={child.id} />
-          ))}
-        </div>
-      )}
+      <div className="ganttee-icon-action__menu ganttee-icon-action__menu--nested" role="menu">
+        {action.children?.map((child) => (
+          <ActionMenuItem action={child} closeMenu={closeMenu} key={child.id} />
+        ))}
+      </div>
     </div>
   );
 }
