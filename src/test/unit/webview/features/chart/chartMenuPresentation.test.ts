@@ -79,6 +79,7 @@ suite("chartMenuPresentation", () => {
       (format, destination) => exports.push(`${format}:${destination}`),
     );
 
+    model.exportAction.onSelect?.();
     for (const formatAction of model.exportAction.children ?? []) {
       for (const destinationAction of formatAction.children ?? []) {
         destinationAction.onSelect?.();
@@ -86,6 +87,7 @@ suite("chartMenuPresentation", () => {
     }
 
     assert.deepStrictEqual(exports, [
+      "svg:download",
       "svg:download",
       "svg:clipboard",
       "png:download",

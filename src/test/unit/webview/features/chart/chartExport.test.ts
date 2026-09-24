@@ -144,6 +144,15 @@ suite("chartExport", () => {
     assert.deepStrictEqual(types, ["image/png", "image/png"]);
   });
 
+  test("rejects image blobs without a data URL payload separator", () => {
+    const createBlob = () => ({ __chartExportBlob: true as const });
+
+    assert.throws(
+      () => createImageBlob(() => "", createBlob, "data:image/png", "png", "image/png"),
+      /Invalid png data URL\./,
+    );
+  });
+
   test("creates the default browser adapters", () => {
     const browser = defaultBrowser();
 
@@ -153,6 +162,119 @@ suite("chartExport", () => {
       "download",
       "rasterizer",
     ]);
+  });
+
+  test("invokes the default browser adapters", async () => {
+    const globalObject = globalThis as Record<string, unknown>;
+    const keys = ["document", "atob", "Blob", "URL", "Image", "ClipboardItem"];
+    const previous = new Map<string, unknown>();
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(globalObject, key)) {
+        previous.set(key, globalObject[key]);
+      }
+    }
+    const previousNavigator = Object.getOwnPropertyDescriptor(globalObject, "navigator");
+
+    const link = createLink();
+    const canvas: ChartExportCanvas = {
+      width: 0,
+      height: 0,
+      getContext: () => ({ drawImage: () => undefined }),
+      toBlob: (callback) => callback(blob),
+    };
+    const blob = { __chartExportBlob: true as const };
+    const copiedText: string[] = [];
+    const clipboardItems: unknown[] = [];
+    const objectUrls: ChartExportBlob[] = [];
+    globalObject.document = {
+      createElement: (tagName: string) => {
+        if (tagName === "a") {
+          return link;
+        }
+        if (tagName === "canvas") {
+          return canvas;
+        }
+        throw new Error(`Unexpected element: ${tagName}`);
+      },
+    };
+    globalObject.atob = () => "bytes";
+    globalObject.Blob = class {
+      constructor() {
+        return blob;
+      }
+    };
+    globalObject.URL = {
+      createObjectURL: (createdBlob: ChartExportBlob) => {
+        objectUrls.push(createdBlob);
+        return "blob:default";
+      },
+      revokeObjectURL: () => undefined,
+    };
+    globalObject.Image = class {
+      width = 100;
+      height = 50;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(value: string) {
+        void value;
+        this.onload?.();
+      }
+    };
+    globalObject.ClipboardItem = class {
+      constructor(item: unknown) {
+        clipboardItems.push(item);
+      }
+    };
+    Object.defineProperty(globalObject, "navigator", {
+      configurable: true,
+      value: {
+        clipboard: {
+          write: async (items: readonly unknown[]) => {
+            clipboardItems.push(...items);
+          },
+          writeText: async (text: string) => {
+            copiedText.push(text);
+          },
+        },
+      },
+    });
+
+    try {
+      const browser = defaultBrowser();
+      browser.download.download("data:image/svg+xml,svg", "schedule.svg");
+      const createdBlob = browser.clipboard.createImageBlob(
+        "data:image/png;base64,encoded",
+        "png",
+        "image/png",
+      );
+      const artifact = browser.artifacts.create(createdBlob);
+      artifact.revoke();
+      await browser.clipboard.writeText("svg markup");
+      await browser.clipboard.writeImage(createdBlob, "image/png");
+      await browser.rasterizer.fromSvg("data:image/svg+xml,svg", 2);
+
+      assert.strictEqual(link.clicked, true);
+      assert.strictEqual(link.removed, true);
+      assert.deepStrictEqual(objectUrls, [blob]);
+      assert.strictEqual(artifact.url, "blob:default");
+      assert.deepStrictEqual(copiedText, ["svg markup"]);
+      assert.strictEqual(clipboardItems.length, 2);
+      assert.strictEqual(canvas.width, 200);
+      assert.strictEqual(canvas.height, 100);
+    } finally {
+      for (const key of keys) {
+        if (previous.has(key)) {
+          globalObject[key] = previous.get(key);
+        } else {
+          delete globalObject[key];
+        }
+      }
+      if (previousNavigator) {
+        Object.defineProperty(globalObject, "navigator", previousNavigator);
+      } else {
+        delete globalObject.navigator;
+      }
+    }
   });
 
   test("rasterizes an SVG image into a PNG blob", async () => {
@@ -180,6 +302,83 @@ suite("chartExport", () => {
 
     assert.strictEqual(canvas.width, 200);
     assert.strictEqual(canvas.height, 100);
+  });
+
+  test("rejects when the SVG image cannot load", async () => {
+    const runtime = {
+      document: { createElement: () => ({}) as ChartExportCanvas },
+      Image: class {
+        width = 0;
+        height = 0;
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        set src(value: string) {
+          void value;
+          this.onerror?.();
+        }
+      },
+    };
+
+    await assert.rejects(
+      createPngBlobFromSvg(runtime, "data:image/svg+xml,%3Csvg%3E", 2),
+      /SVG image loading failed\./,
+    );
+  });
+
+  test("rejects when the SVG canvas has no 2D context", async () => {
+    const runtime = {
+      document: {
+        createElement: () => ({
+          width: 0,
+          height: 0,
+          getContext: () => null,
+          toBlob: () => undefined,
+        }),
+      },
+      Image: class {
+        width = 0;
+        height = 0;
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        set src(value: string) {
+          void value;
+          this.onload?.();
+        }
+      },
+    };
+
+    await assert.rejects(
+      createPngBlobFromSvg(runtime, "data:image/svg+xml,%3Csvg%3E", 2),
+      /Canvas 2D context is unavailable\./,
+    );
+  });
+
+  test("rejects when the canvas cannot encode a PNG blob", async () => {
+    const runtime = {
+      document: {
+        createElement: () => ({
+          width: 0,
+          height: 0,
+          getContext: () => ({ drawImage: () => undefined }),
+          toBlob: (callback: (blob: ChartExportBlob | null) => void) => callback(null),
+        }),
+      },
+      Image: class {
+        width = 100;
+        height = 50;
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        set src(value: string) {
+          void value;
+          this.onload?.();
+        }
+      },
+    };
+
+    await assert.rejects(
+      createPngBlobFromSvg(runtime, "data:image/svg+xml,%3Csvg%3E", 2),
+      /PNG conversion failed\./,
+    );
   });
 
   test("rasterizes SVG renderer output before PNG clipboard copy", async () => {
