@@ -1,5 +1,20 @@
 .ganttee-icon-action {
   position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+
+  .ganttee-icon-button:has(+ .ganttee-icon-action__disclosure) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .ganttee-icon-action__disclosure {
+    width: 18px;
+    min-width: 18px;
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+  }
 }
 
 .ganttee-icon-action__menu {
@@ -8,33 +23,68 @@
   left: 0;
   z-index: 10;
   display: flex;
-  min-width: 160px;
+  min-width: 120px;
   flex-direction: column;
   padding: var(--vscode-spacing-size40, 4px);
   background-color: var(--vscode-menu-background);
   border: var(--vscode-strokeThickness, 1px) solid var(--vscode-menu-border);
   box-shadow: 0 4px 12px var(--vscode-widget-shadow);
+  border-radius: var(--vscode-cornerRadius-small, 4px);
 }
 
 .ganttee-icon-action__menu-item {
   display: flex;
   align-items: center;
   gap: var(--vscode-spacing-size80, 8px);
-  padding: var(--vscode-spacing-size60, 6px) var(--vscode-spacing-size80, 8px);
+  padding: var(--vscode-spacing-size20, 2px) var(--vscode-spacing-size80, 8px);
   color: var(--vscode-menu-foreground);
   background: transparent;
   border: 0;
+  text-wrap-mode: nowrap;
   text-align: left;
   cursor: pointer;
   font: inherit;
+  border-radius: var(--vscode-cornerRadius-medium, 6px);
+  border: var(--vscode-strokeThickness, 1px) solid transparent;
+  width: stretch;
 
-  &:hover {
+  &:hover,
+  &.focus-visible {
     color: var(--vscode-menu-selectionForeground);
-    background-color: var(--vscode-menu-selectionBackground);
-  }
-
-  &:focus-visible {
+    background-color: var(--vscode-list-hoverBackground);
     outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
     outline-offset: -1px;
+  }
+}
+
+.ganttee-icon-action__submenu {
+  position: relative;
+
+  .ganttee-icon-action__submenu-indicator {
+    margin-left: auto;
+    color: var(--vscode-textPreformat-foreground);
+  }
+}
+
+.ganttee-icon-action__menu--nested {
+  top: calc(var(--vscode-spacing-size40, 4px) * -1);
+  left: calc(100% + var(--vscode-spacing-size40, 4px));
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.2s ease-out,
+    transform 0.3s ease-out,
+    visibility 0.3s;
+
+  .ganttee-icon-action__submenu:hover > &,
+  .ganttee-icon-action__submenu:focus-within > & {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity 0.2s ease-out 0.2s,
+      transform 0.3s ease-out 0.2s,
+      visibility 0.3s 0.2s;
   }
 }

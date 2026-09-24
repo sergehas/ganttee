@@ -18,6 +18,15 @@ suite("chartMenuPresentation", () => {
       ["Zoom in", "Zoom out", "Fit to window"],
     );
     assert.deepStrictEqual(model.zoomLevels, ["day", "week", "month", "quarter", "year"]);
+    assert.deepStrictEqual(
+      model.exportAction.children?.map((action) => action.label),
+      ["SVG", "PNG"],
+    );
+    assert.notEqual(model.exportAction.onSelect, undefined);
+    assert.deepStrictEqual(
+      model.exportAction.children?.map((action) => action.onSelect),
+      [undefined, undefined],
+    );
   });
 
   test("preserves each layer's pressed state", () => {
@@ -46,17 +55,44 @@ suite("chartMenuPresentation", () => {
       () => {
         fitCount += 1;
       },
+      () => undefined,
     );
 
-    model.layerActions[0].onSelect();
-    model.zoomActions[0].onSelect();
-    model.zoomActions[2].onSelect();
+    model.layerActions[0].onSelect?.();
+    model.zoomActions[0].onSelect?.();
+    model.zoomActions[2].onSelect?.();
 
     assert.deepStrictEqual(proposals, [
       { ...view, showDependencies: false },
       { ...view, zoomLevel: "day" },
     ]);
     assert.strictEqual(fitCount, 1);
+  });
+
+  test("emits format and destination for export actions", () => {
+    const exports: string[] = [];
+    const model = createChartMenuPresentation(
+      DEFAULT_PROJECT_VIEW,
+      (source) => source,
+      () => undefined,
+      () => undefined,
+      (format, destination) => exports.push(`${format}:${destination}`),
+    );
+
+    model.exportAction.onSelect?.();
+    for (const formatAction of model.exportAction.children ?? []) {
+      for (const destinationAction of formatAction.children ?? []) {
+        destinationAction.onSelect?.();
+      }
+    }
+
+    assert.deepStrictEqual(exports, [
+      "svg:download",
+      "svg:download",
+      "svg:clipboard",
+      "png:download",
+      "png:clipboard",
+    ]);
   });
 });
 
@@ -65,6 +101,7 @@ function createModel(view: ProjectView): ChartMenuPresentation {
   return createChartMenuPresentation(
     view,
     (source) => source,
+    () => undefined,
     () => undefined,
     () => undefined,
   );

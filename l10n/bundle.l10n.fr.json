@@ -79,5 +79,16 @@
   "{0} → {1}": "{0} → {1}",
   "Reveal Task": "Révéler la tâche",
   "Reveal Milestone": "Révéler le jalon",
-  "Gantt Chart": "Diagramme de Gantt"
+  "Gantt Chart": "Diagramme de Gantt",
+  "Fit to window": "Ajuster à la fenêtre",
+  "Export controls": "Commandes d'exportation",
+  "Export to image": "Exporter l'image",
+  "More Actions": "Plus d'actions",
+  "SVG": "SVG",
+  "PNG": "PNG",
+  "Download": "Télécharger",
+  "Copy to clipboard": "Copier dans le presse-papiers",
+  "Gantt chart.svg": "Diagramme de Gantt.svg",
+  "Gantt chart.png": "Diagramme de Gantt.png",
+  "Unable to export chart image.": "Impossible d'exporter l'image du diagramme."
 }

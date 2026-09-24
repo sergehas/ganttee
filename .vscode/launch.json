@@ -6,6 +6,15 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Run Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}", "--disable-extensions"],
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
+      "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
       "name": "Tests",
       "request": "launch",
       "runtimeArgs": ["run-script", "test:unit:coverage"],
@@ -18,13 +27,16 @@
       "preLaunchTask": "npm: watch-tests"
     },
     {
-      "name": "Run Extension",
-      "type": "extensionHost",
+      "name": "Coverage check",
       "request": "launch",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}", "--disable-extensions"],
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
-      "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
-      "preLaunchTask": "${defaultBuildTask}"
+      "runtimeArgs": ["run-script", "test:coverage-check"],
+      "runtimeExecutable": "npm",
+      "skipFiles": ["<node_internals>/**"],
+      "type": "node",
+      "console": "internalConsole",
+      "env": { "FORCE_COLOR": "3" }, // Force truecolor
+      "outputCapture": "std",
+      "preLaunchTask": "npm: watch-tests"
     },
     {
       "name": "Smoke Tests",

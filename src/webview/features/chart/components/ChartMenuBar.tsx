@@ -1,6 +1,10 @@
 import { ProjectView } from "@common/documents";
-import { IconAction } from "@webview/components/IconAction";
+import { IconAction, IconActionMenu } from "@webview/components/IconAction";
 import { Select } from "@webview/components/Select";
+import {
+  ChartExportDestination,
+  ChartExportFormat,
+} from "@webview/features/chart/chartExport.types";
 import { createChartMenuPresentation } from "@webview/features/chart/chartMenuPresentation";
 import "@webview/features/chart/components/ChartMenuBar.scss";
 import { useTranslate } from "@webview/l10n";
@@ -12,22 +16,35 @@ interface ChartMenuBarProps {
   readonly onViewChange: (view: ProjectView) => void;
   /** Fits the visible chart without changing persisted preferences. */
   readonly onFitToWindow: () => void;
+  /** Exports the currently rendered chart image. */
+  readonly onExport: (format: ChartExportFormat, destination: ChartExportDestination) => void;
 }
 
-/** Renders the reusable chart view command strip. */
+/**
+ * Renders the reusable chart view command strip.
+ * @param props Current view, view callbacks, and export callback.
+ * @returns Rendered chart menu markup.
+ */
 export function ChartMenuBar({
   view,
   onViewChange,
   onFitToWindow,
+  onExport,
 }: ChartMenuBarProps): React.JSX.Element {
   const translate = useTranslate();
-  const presentation = createChartMenuPresentation(view, translate, onViewChange, onFitToWindow);
+  const presentation = createChartMenuPresentation(
+    view,
+    translate,
+    onViewChange,
+    onFitToWindow,
+    onExport,
+  );
 
   return (
     <nav className="ganttee-chart-menu-bar" aria-label={translate("Chart view controls")}>
       <div className="ganttee-chart-menu-bar__group" aria-label={translate("Chart layers")}>
         {presentation.layerActions.map((action) => (
-          <IconAction action={action} pressed={action.pressed} key={action.id} />
+          <IconAction action={action} key={action.id} />
         ))}
       </div>
       <div className="ganttee-chart-menu-bar__group" aria-label={translate("Zoom controls")}>
@@ -52,6 +69,9 @@ export function ChartMenuBar({
         </Select>
         <IconAction action={presentation.zoomActions[1]} />
         <IconAction action={presentation.zoomActions[2]} />
+      </div>
+      <div className="ganttee-chart-menu-bar__group" aria-label={translate("Export controls")}>
+        <IconActionMenu action={presentation.exportAction} />
       </div>
     </nav>
   );
