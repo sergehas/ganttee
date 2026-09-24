@@ -8,7 +8,8 @@
       "duration": 7,
       "description": "Wireframe and visual design.",
       "progress": 1,
-      "status": "done",
+      "state": "closed",
+      "status": "status-done",
       "groupId": "group-discovery"
     },
     {
@@ -16,7 +17,8 @@
       "name": "Implement",
       "duration": 6,
       "progress": 0.4,
-      "status": "inProgress",
+      "state": "open",
+      "status": "status-in-progress",
       "groupId": "group-Build"
     },
     {
@@ -26,7 +28,8 @@
       "end": "2026-02-04",
       "description": "# quality acceptance tests\nrun & results must be  tracked\nmus comply to test scenarios",
       "progress": 0,
-      "status": "todo",
+      "state": "open",
+      "status": "status-in-progress",
       "groupId": "group-Test"
     },
     {
@@ -36,7 +39,8 @@
       "end": "2026-02-26",
       "description": "# content\nThis phase is dedicated to **user acceptance** test\nit must be conclude by a sign-of",
       "progress": 0,
-      "status": "todo",
+      "state": "open",
+      "status": "status-in-progress",
       "groupId": "group-Test"
     },
     {
@@ -46,7 +50,8 @@
       "end": "2026-01-26",
       "description": "Design system integration tests",
       "progress": 0,
-      "status": "todo",
+      "state": "closed",
+      "status": "status-done",
       "groupId": "group-discovery"
     },
     {
@@ -54,15 +59,15 @@
       "name": "UAT 1",
       "end": "2026-03-10",
       "progress": 0,
-      "status": "todo",
-      "groupId": "group-UAT"
+      "groupId": "group-UAT",
+      "state": "open",
+      "status": "status-todo"
     },
     {
       "id": "task-v71r1sde",
       "name": "Warranty",
       "duration": 90,
       "progress": 0,
-      "status": "todo",
       "groupId": "group-support"
     },
     {
@@ -70,15 +75,14 @@
       "name": "L2 Support",
       "duration": 600,
       "progress": 0,
-      "status": "todo",
-      "groupId": "group-support"
+      "groupId": "group-support",
+      "status": "does-not-exist"
     },
     {
       "id": "999cc460-cc6f-4442-8fb0-50ada083c0fe",
       "name": "UAT 2",
       "duration": 10,
       "progress": 0,
-      "status": "todo",
       "groupId": "group-UAT"
     }
   ],
@@ -243,6 +247,26 @@
       {
         "start": "2026-04-15",
         "end": "2026-04-16"
+      }
+    ],
+    "statuses": [
+      {
+        "id": "status-todo",
+        "name": "todo",
+        "color": "#0000FFcc",
+        "state": "open"
+      },
+      {
+        "id": "status-in-progress",
+        "name": "In progress",
+        "color": "#00FF0088",
+        "state": "open"
+      },
+      {
+        "id": "status-done",
+        "name": "done",
+        "color": "#6a6a6acc",
+        "state": "closed"
       }
     ]
   },

@@ -14,14 +14,15 @@ import {
   DependencyType,
   Group,
   Milestone,
+  PROJECT_ITEM_STATES,
   ProjectDocument,
+  ProjectItemState,
   ProjectSettings,
+  ProjectStatus,
   ProjectView,
   resolveProjectSettings,
   resolveProjectView,
   Task,
-  TASK_STATUSES,
-  TaskStatus,
   WorkingCalendar,
 } from "@common/documents";
 
@@ -95,7 +96,34 @@ function validateSettings(raw: unknown): ProjectSettings {
       validateDateRange(holiday, `settings.holidays[${index}]`),
     );
   }
+  if (raw.statuses !== undefined) {
+    if (!Array.isArray(raw.statuses)) {
+      throw new GanttParseError("settings.statuses must be an array.");
+    }
+    settings.statuses = raw.statuses.map((status, index) =>
+      validateStatus(status, `settings.statuses[${index}]`),
+    );
+  }
   return resolveProjectSettings(settings);
+}
+
+/** Validates a configured project status entry. */
+function validateStatus(raw: unknown, field: string): ProjectStatus {
+  if (!isRecord(raw)) {
+    throw new GanttParseError(`${field} must be an object.`);
+  }
+  const status: ProjectStatus = {
+    id: requireString(raw.id, `${field}.id`),
+    name: requireString(raw.name, `${field}.name`),
+    color: requireString(raw.color, `${field}.color`),
+  };
+  if (raw.state !== undefined) {
+    if (!isProjectItemState(raw.state)) {
+      throw new GanttParseError(`${field}.state must be "open" or "closed".`);
+    }
+    status.state = raw.state;
+  }
+  return status;
 }
 
 /** Validates an optional view section and resolves omitted view properties. */
@@ -203,8 +231,11 @@ function validateTask(raw: unknown, index: number): Task {
   if (raw.progress !== undefined) {
     task.progress = clampProgress(raw.progress);
   }
-  if (raw.status !== undefined && isTaskStatus(raw.status)) {
-    task.status = raw.status;
+  if (raw.state !== undefined && isProjectItemState(raw.state)) {
+    task.state = raw.state;
+  }
+  if (raw.status !== undefined) {
+    task.status = requireString(raw.status, `tasks[${index}].status`);
   }
   if (raw.groupId !== undefined) {
     task.groupId = requireString(raw.groupId, `tasks[${index}].groupId`);
@@ -385,11 +416,9 @@ function clampProgress(value: unknown): number {
   return Math.min(1, Math.max(0, value));
 }
 
-/**
- * Returns whether the value is a supported task status.
- */
-function isTaskStatus(value: unknown): value is TaskStatus {
-  return typeof value === "string" && TASK_STATUSES.includes(value as TaskStatus);
+/** Returns whether the value is a supported task state. */
+function isProjectItemState(value: unknown): value is ProjectItemState {
+  return typeof value === "string" && PROJECT_ITEM_STATES.includes(value as ProjectItemState);
 }
 
 /**

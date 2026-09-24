@@ -8,23 +8,22 @@ import {
   findEntityName,
   findEntityRefById,
   milestoneValidationMessages,
-  STATUS_OPTIONS,
-  taskStatusLabel,
+  ProjectItemStateLabel,
+  STATE_OPTIONS,
   taskValidationMessages,
   titleOf,
 } from "@webview/features/entity-editor/entityEditorPresentation";
 import * as assert from "assert";
 
 suite("taskForm entityPresentation", () => {
-  test("exposes selectable status and dependency options", () => {
-    assert.deepStrictEqual(STATUS_OPTIONS, ["todo", "inProgress", "done"]);
+  test("exposes selectable state and dependency options", () => {
+    assert.deepStrictEqual(STATE_OPTIONS, ["open", "closed"]);
     assert.deepStrictEqual(DEPENDENCY_OPTIONS, ["startAfter", "startWith", "endWith"]);
   });
 
-  test("resolves task status labels", () => {
-    assert.strictEqual(taskStatusLabel("todo"), "To Do");
-    assert.strictEqual(taskStatusLabel("inProgress"), "In Progress");
-    assert.strictEqual(taskStatusLabel("done"), "Done");
+  test("resolves task state labels", () => {
+    assert.strictEqual(ProjectItemStateLabel("open"), "Open");
+    assert.strictEqual(ProjectItemStateLabel("closed"), "Closed");
   });
 
   test("resolves dependency type labels including fallback", () => {

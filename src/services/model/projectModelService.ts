@@ -82,6 +82,7 @@ function toTask(task: TaskDocument): Task {
     end: task.end !== undefined ? parseIsoDate(task.end) : undefined,
     duration: task.duration,
     progress: task.progress,
+    state: task.state,
     status: task.status,
   });
 }
@@ -126,6 +127,9 @@ function fromTask(task: Task): TaskDocument {
   }
   if (task.progress !== undefined) {
     plain.progress = task.progress;
+  }
+  if (task.state !== undefined) {
+    plain.state = task.state;
   }
   if (task.status !== undefined) {
     plain.status = task.status;

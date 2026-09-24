@@ -1,6 +1,5 @@
 import { addDays, diffInDays } from "@common/dates";
 import { ProjectItem as ProjectItemDocument } from "@common/documents/project/projectItem";
-import { TaskStatus } from "@common/documents/project/task";
 import { ProjectItem, UnresolvableScheduleError } from "@common/models/project/projectItem";
 
 /** Construction fields for an in-memory task. */
@@ -13,8 +12,6 @@ export interface TaskProps extends ProjectItemDocument {
   duration?: number;
   /** Completion ratio in the range 0..1. */
   progress?: number;
-  /** Lifecycle status. */
-  status?: TaskStatus;
 }
 
 /** A hydrated schedulable unit of work. */
@@ -27,8 +24,6 @@ export class Task extends ProjectItem {
   readonly duration?: number;
   /** Completion ratio in the range 0..1. */
   readonly progress?: number;
-  /** Lifecycle status. */
-  readonly status?: TaskStatus;
 
   /**
    * @param props The task fields, with dates already parsed to `Date`.
@@ -39,7 +34,6 @@ export class Task extends ProjectItem {
     this.end = props.end;
     this.duration = props.duration;
     this.progress = props.progress;
-    this.status = props.status;
   }
 
   /** Returns the resolved start date. */

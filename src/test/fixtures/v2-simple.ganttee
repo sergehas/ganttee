@@ -7,7 +7,7 @@
       "start": "2026-01-05",
       "end": "2026-01-09",
       "progress": 1,
-      "status": "done",
+      "state": "closed",
       "groupId": "g1"
     },
     {
@@ -16,7 +16,7 @@
       "start": "2026-01-12",
       "end": "2026-01-23",
       "progress": 0.5,
-      "status": "inProgress",
+      "state": "open",
       "groupId": "g1"
     },
     {

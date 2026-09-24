@@ -25,7 +25,7 @@ const SAMPLE_DOCUMENT: ProjectDocument = {
       end: "2026-01-05",
       description: "line one\nline two",
       progress: 0.5,
-      status: "inProgress",
+      state: "open",
       groupId: "g1",
     },
     { id: "t2", name: "B", start: "2026-01-02", duration: 3 },
@@ -182,6 +182,7 @@ suite("projectModelService", () => {
       workingDayHours: 8,
       workingDayStart: 9,
       holidays: [],
+      statuses: [],
     });
   });
 

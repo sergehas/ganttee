@@ -1,5 +1,5 @@
 import { formatShortDate, parseIsoTimestamp } from "@common/dates";
-import { TaskStatus } from "@common/documents";
+import { ProjectItemState } from "@common/documents";
 import {
   diagnoseDeterminacy,
   validateTaskConstraints,
@@ -15,11 +15,14 @@ import { DependencyFields } from "@webview/features/entity-editor/components/Dep
 import "@webview/features/entity-editor/components/TaskFields.scss";
 import { ValidationMessage } from "@webview/features/entity-editor/components/ValidationMessage";
 import {
-  STATUS_OPTIONS,
-  taskStatusLabel,
+  ProjectItemStateLabel,
+  STATE_OPTIONS,
   taskValidationMessages,
 } from "@webview/features/entity-editor/entityEditorPresentation";
-import { makeUpdater } from "@webview/features/entity-editor/hooks/useFieldUpdater";
+import {
+  makeMultiUpdater,
+  makeUpdater,
+} from "@webview/features/entity-editor/hooks/useFieldUpdater";
 
 /** Renders task-specific fields plus dependency editing controls. */
 export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
@@ -28,6 +31,7 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
   const { locale } = useWebviewL10n();
   const t = useTranslate();
   const update = makeUpdater(task, onChange);
+  const multiUpdate = makeMultiUpdater(task, onChange);
 
   const validation = validateTaskConstraints(task, document.dependencies);
   const diagnostic = diagnoseDeterminacy(task.id, validation);
@@ -43,6 +47,44 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
         onDescription={(description) => update("description", description)}
         onGroupId={(groupId) => update("groupId", groupId)}
       />
+      <div className="ganttee-form__row">
+        <FormField label={t("State")}>
+          <Select
+            value={task.state ?? "open"}
+            onChange={(event) => update("state", event.target.value as ProjectItemState)}
+          >
+            {STATE_OPTIONS.map((state) => (
+              <option key={state} value={state}>
+                {t(ProjectItemStateLabel(state))}
+              </option>
+            ))}
+          </Select>
+        </FormField>
+        <FormField label={t("Status")}>
+          <Select
+            value={task.status ?? ""}
+            onChange={(event) => {
+              const nextStatusId = event.target.value || undefined;
+              const nextStatus = document.settings.statuses.find(
+                (status) => status.id === nextStatusId,
+              );
+              if (nextStatus?.state !== undefined) {
+                multiUpdate({ state: nextStatus.state, status: nextStatusId });
+              } else {
+                multiUpdate({ status: nextStatusId });
+              }
+            }}
+          >
+            <option value="">{t("None")}</option>
+            {document.settings.statuses.map((status) => (
+              <option key={status.id} value={status.id}>
+                {status.name}
+              </option>
+            ))}
+          </Select>
+        </FormField>
+      </div>
+      <hr />
       <div className="ganttee-form__row">
         <FormField label={t("Start")}>
           <input
@@ -96,20 +138,6 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
           />
         </FormField>
       </div>
-
-      <FormField label={t("Status")}>
-        <Select
-          value={task.status ?? "todo"}
-          onChange={(event) => update("status", event.target.value as TaskStatus)}
-        >
-          {STATUS_OPTIONS.map((status) => (
-            <option key={status} value={status}>
-              {t(taskStatusLabel(status))}
-            </option>
-          ))}
-        </Select>
-      </FormField>
-
       {taskValidationMessages(diagnostic).map((message) => (
         <ValidationMessage severity={message.severity} key={message.source}>
           {t(message.source, ...(message.values ?? []))}

@@ -212,6 +212,7 @@ function buildOption(
 
   const taskData = tasks
     .map((task) => {
+      const statusColor = resolveStatusColor(task, project.settings.statuses);
       return {
         value: [
           indexById.get(task.id) ?? 0,
@@ -222,27 +223,42 @@ function buildOption(
         effectiveStart: task.effectiveStart,
         effectiveEnd: task.effectiveEnd,
         itemStyle:
-          view.showCriticalPath && criticalNodeIds.has(task.id) ? CRITICAL_ITEM_STYLE : undefined,
+          view.showCriticalPath && criticalNodeIds.has(task.id)
+            ? CRITICAL_ITEM_STYLE
+            : statusColor !== undefined
+              ? { color: statusColor }
+              : undefined,
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
-  const milestoneData = milestones.map((milestone) => ({
-    value: [indexById.get(milestone.id) ?? 0, toChartMs(milestone.effectiveStart)],
-    milestone,
-    effectiveDate: milestone.effectiveStart,
-    itemStyle:
-      view.showCriticalPath && criticalNodeIds.has(milestone.id) ? CRITICAL_ITEM_STYLE : undefined,
-  }));
+  const milestoneData = milestones.map((milestone) => {
+    const statusColor = resolveStatusColor(milestone, project.settings.statuses);
+    return {
+      value: [indexById.get(milestone.id) ?? 0, toChartMs(milestone.effectiveStart)],
+      milestone,
+      effectiveDate: milestone.effectiveStart,
+      itemStyle:
+        view.showCriticalPath && criticalNodeIds.has(milestone.id)
+          ? CRITICAL_ITEM_STYLE
+          : statusColor !== undefined
+            ? { color: statusColor }
+            : undefined,
+    };
+  });
 
-  const groupData = groups.map((group) => ({
-    value: [
-      indexById.get(group.id) ?? 0,
-      toChartMs(group.effectiveStart),
-      toChartMs(group.effectiveEnd),
-    ],
-    group,
-  }));
+  const groupData = groups.map((group) => {
+    const statusColor = resolveStatusColor(group, project.settings.statuses);
+    return {
+      value: [
+        indexById.get(group.id) ?? 0,
+        toChartMs(group.effectiveStart),
+        toChartMs(group.effectiveEnd),
+      ],
+      group,
+      itemStyle: statusColor !== undefined ? { color: statusColor } : undefined,
+    };
+  });
 
   const scheduledById = new Map(
     [...tasks, ...milestones].map((entity) => [
@@ -392,6 +408,19 @@ function buildOption(
       },
     ],
   };
+}
+
+/** Resolves an item color from the project-level status catalog when present. */
+function resolveStatusColor(
+  item: { readonly status?: string; readonly statusId?: string },
+  statuses: readonly { readonly id: string; readonly color: string }[],
+): string | undefined {
+  const statusId = item.status ?? item.statusId;
+  if (statusId === undefined) {
+    return undefined;
+  }
+  const status = statuses.find((candidate) => candidate.id === statusId);
+  return status?.color;
 }
 
 /** Builds off-day and holiday shading ranges for the visible chart interval. */

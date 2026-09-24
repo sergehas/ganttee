@@ -1,26 +1,31 @@
 import { formatShortDate, parseIsoDate } from "@common/dates";
-import { DependencyType, ProjectContent, ProjectItemType, TaskStatus } from "@common/documents";
+import {
+  DEPENDENCY_TYPES,
+  DependencyType,
+  PROJECT_ITEM_STATES,
+  ProjectContent,
+  ProjectItemState,
+  ProjectItemType,
+} from "@common/documents";
 import { DeterminacyDiagnostic } from "@common/models";
 import { EditableEntityKind } from "@common/protocol";
 
 /** Resolves English source messages for form presentation. */
 type WebviewTranslator = (source: string, ...values: unknown[]) => string;
 
-/** Selectable status values for the task status dropdown. */
-export const STATUS_OPTIONS: readonly TaskStatus[] = ["todo", "inProgress", "done"];
+/** Selectable lifecycle states for the task state dropdown. */
+export const STATE_OPTIONS: readonly ProjectItemState[] = PROJECT_ITEM_STATES;
 
 /** Selectable dependency type values for the dependency type dropdown. */
-export const DEPENDENCY_OPTIONS: readonly DependencyType[] = ["startAfter", "startWith", "endWith"];
+export const DEPENDENCY_OPTIONS: readonly DependencyType[] = DEPENDENCY_TYPES;
 
-/** Resolves a task status to its localization source message. */
-export function taskStatusLabel(status: TaskStatus): string {
+/** Resolves a task state to its localization source message. */
+export function ProjectItemStateLabel(status: ProjectItemState): string {
   switch (status) {
-    case "todo":
-      return "To Do";
-    case "inProgress":
-      return "In Progress";
-    case "done":
-      return "Done";
+    case "open":
+      return "Open";
+    case "closed":
+      return "Closed";
   }
 }
 

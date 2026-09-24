@@ -12,6 +12,7 @@ function schedulingDocument(): ProjectDocument {
     workingDayHours: 8,
     workingDayStart: 9,
     holidays: [],
+    statuses: [],
   };
   return document;
 }
@@ -46,6 +47,7 @@ suite("schedulingService", () => {
       workingDayHours: 8,
       workingDayStart: 8.5,
       holidays: [],
+      statuses: [],
     };
     document.tasks = [{ id: "task", name: "Task", start: "2026-09-08", duration: 2 }];
 
