@@ -13,7 +13,7 @@ mirrors each spec's status badge.
 | 6   | [Graph validation](./graph-validation/SPEC.md)                                            | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
 | 7   | [Scheduling engine](./scheduling-engine/SPEC.md)                                          | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
 | 8   | [Chart View Functional Organization](./chart-view-functional-organization/SPEC.md)        | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
-| 9   | [Item status](./item-status/SPEC.md)                                                      | Draft       | ![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)             |
+| 9   | [Item status](./item-status/SPEC.md)                                                      | Reviewed    | ![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)       |
 | 10  | [Gantt chart styles](./gantt-chart-styles/INTENT.md)                                      | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
 | 11  | [l10n bridge & webview codicons adoption](./l10n-bridge/SPEC.md)                          | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
 | 12  | [TreeView enhancements](./treeview-enhancements/SPEC.md)                                  | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |

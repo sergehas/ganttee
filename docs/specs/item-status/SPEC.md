@@ -1,12 +1,12 @@
 ---
-Status: Draft
+Status: Reviewed
 Owner: Copilot
 Last updated: 2026-09-24
 ---
 
 # Feature: Item status
 
-![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)
+![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
 
 <!-- AGENT NOTE: Keep this badge synced with front matter Status.
 Canonical status-to-badge mapping is defined in
@@ -31,8 +31,9 @@ open or closed while still carrying a named status, color, and optional enforced
 - Support an item-level status reference that can optionally enforce the item `state`.
 - Keep the lifecycle control and user-defined status control distinct in the entity editor.
 - Render tasks, groups, and milestones using the configured status color when present.
-- Preserve the repository's direct-replacement rule: no runtime migration, version bump, or protocol
-  change.
+- Preserve the repository's direct-replacement rule: no runtime migration or version bump. The
+  project is unreleased and has no persisted compatibility contract; all samples and fixtures are
+  replaced directly.
 
 ### Non-goals
 
@@ -75,9 +76,9 @@ status metadata remains configurable and decoupled from the underlying task/grou
     configured status names rather than the lifecycle `state` values.
   - Given an item in the entity editor When the user changes the lifecycle `state` Then the status
     selection remains distinct and does not overwrite the item's configured status reference.
-  - Given an item with a status selected and a matching enforced state When the user changes the
-    state directly Then the system preserves the explicit status state contract where the status
-    defines one.
+  - Given an item with a status selected and an enforced state When the user changes the state
+    directly Then the state change is accepted and the status reference remains unchanged because
+    enforcement applies only at status-assignment time.
 
 - As a planner, I want status color to appear in chart rendering, so that tasks, groups, and
   milestones show the intended status styling at a glance.
@@ -97,27 +98,27 @@ status metadata remains configurable and decoupled from the underlying task/grou
 - A project item may reference at most one status from the document's `statuses` collection.
 - When a status is assigned and it defines an enforced `state`, the item's `state` is set to that
   status's `state` at assignment time.
-- When a project document is loaded, each item status reference is validated against the document's
-  `statuses` collection; if a referenced status no longer exists, the item clears the invalid status
-  reference silently.
+- When a project document is loaded, an item status reference that does not match a configured
+  status is treated as absent (status reference is removed in item).
 - If a status has no enforced `state`, assigning it does not change the item's `state`.
 - A status selection is exposed as a dedicated control separate from the `state` control in the
   entity editor.
 - When a project item has an assigned status, the chart rendering uses the assigned status color for
   the item representation.
 - The direct-replacement rule applies to all `.ganttee` samples and tests: existing values are
-  updated in place and no runtime migration is introduced.
+  updated in place and no runtime migration or version bump is introduced because the project is
+  unreleased and has no persisted compatibility contract.
 
 ## 6. Domain & Data Model Impact
 
 - `ProjectItem` lifecycle field: rename `status` → `state`; restrict valid values to `open` and
   `closed`.
-- Document settings: add a `statuses` collection to the project document schema; keep the collection
-  shape intentionally simple and explicit in the Draft specification.
-- Status definition: include internal id, display name, hex RGBA color, and optional enforced
-  `state` override.
-- Project item reference: add an optional status reference to each item, through the item's document
-  pointer or reference field, without changing the document schema version.
+- Document settings: add a `statuses` array to the project document. Each entry has a unique string
+  `id`, a non-empty raw user-authored `name`, a validated hex RGBA `color`, and an optional `state`
+  of `open` or `closed`.
+- Project item reference: add an optional status reference to each item through the item's document
+  pointer or reference field. This is a direct shape replacement in the unreleased project; no
+  document schema version is introduced.
 - Fixture and sample data: replace all legacy lifecycle tokens in sample `.ganttee` content with the
   new direct values (`open`, `closed`).
 - Localization impact: update labels and helper text for state and status to distinguish the two
@@ -125,9 +126,9 @@ status metadata remains configurable and decoupled from the underlying task/grou
 
 ## 7. Protocol Impact
 
-- No host-to-webview or webview-to-host protocol additions are required for this spec.
-- Existing message payloads that already carry project items will continue to use the item model's
-  renamed `state` field and optional status reference.
+- No new host-to-webview or webview-to-host message kinds are required for this spec.
+- Existing message payloads that already carry project items will atomically use the renamed `state`
+  field and optional status reference. Mixed old/new host and webview consumers are unsupported.
 - Any UI or controller code that previously read `status` must use `state` consistently; this is a
   contract update within the document model and editor logic, not a network protocol change.
 
@@ -137,8 +138,9 @@ status metadata remains configurable and decoupled from the underlying task/grou
   semantic state in the chart without altering the cycle or dependency behavior.
 - Sidebar tree: item labels remain semantically stable; a status reference may be surfaced only when
   it enhances the current item metadata, without changing tree hierarchy or filtering behavior.
-- Edit form: the state control and status control appear separately, using clear labels so users can
-  differentiate lifecycle state from user-defined status metadata.
+- Edit form: separate localized `State` and `Status` controls distinguish lifecycle state from
+  user-defined status metadata. The configured status is not added to sidebar metadata in this
+  scope.
 
 Design rationale (values → principles → moves): Value Clarity · Principle: one field should not
 carry both lifecycle and presentation semantics · Move: separate `state` from status metadata while
@@ -161,23 +163,49 @@ keeping status color a visible, optional layer.
 
 - 🟡 **R-01** — Missing status references can leave stale metadata in a project item after a file is
   loaded.
-  - Status: **Resolved** — On load, the item status reference is validated against the document's
-    `statuses` collection and silently cleared if the target status no longer exists.
+  - Status: **Resolved** — Missing references are removed during document validation and do not
+    affect rendering.
 
 ## 11. Open Questions
 
 - 🟡 **Q-01** — What exact collection shape should document settings use for `statuses`?
-  - Status: **Open**
+  - Status: **Resolved** — `statuses` is an array of definitions with unique `id`, raw `name`,
+    validated hex RGBA `color`, and optional `state`.
 
 - 🟡 **Q-02** — What should happen when an item references a missing status?
-  - Status: **Resolved** — The status reference is silently removed during file-load validation.
+  - Status: **Resolved** — Missing references are treated as absent during document validation.
 
 - 🟢 **Q-03** — What localized label and control presentation should distinguish status from state
   in the entity editor?
-  - Status: **Open**
+  - Status: **Resolved** — The editor uses localized `State` and `Status` controls, with no sidebar
+    status display in this scope.
 
 ## 12. Validation Outcome
 
 - The specification is implementation-ready for the requested direct-replacement scope.
-- The Draft status is appropriate because the status schema and editor behavior still require final
-  confirmation on the exact `statuses` collection shape and fallback behavior.
+- The project is unreleased, so the persisted shape is replaced directly without a compatibility
+  migration or document version bump.
+
+## 13. Implementation notes
+
+- `validateSettings` validates and normalizes the document's configured statuses.
+- `validateDocumentShape` uses the validated statuses while constructing the typed document and
+  removes unresolved item status references from the returned model.
+- This is pure sanitization of the parsed model. It does not issue a `WorkspaceEdit`, mutate the
+  authored `.ganttee` text, trigger a second parse, or require a lifecycle event.
+- The returned model remains the source used by subsequent validation, rendering, and editor flows.
+
+## 14. Review Outcome
+
+- Resolved `Q-01` by defining `statuses` as an array of status definitions with `id`, raw `name`,
+  validated hex RGBA `color`, and optional `state`.
+- Resolved `Q-03` by requiring localized `State` and `Status` editor controls and excluding sidebar
+  status display from this scope.
+- Clarified that enforced state applies at status assignment only; later direct state edits are
+  accepted without clearing the status reference.
+- Clarified that missing status references are sanitized during document validation and do not
+  require a document edit or reload.
+- Clarified that the renamed item field is an atomic internal host/webview contract change with no
+  mixed-version compatibility.
+- Confirmed the direct-replacement and no-version-bump decision because the project is unreleased
+  and has no persisted compatibility contract.
