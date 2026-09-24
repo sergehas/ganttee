@@ -1,59 +1,40 @@
 import "@webview/components/IconAction.scss";
+import type { IconActionPresentation } from "@webview/components/IconAction.types";
 import { IconButton } from "@webview/components/IconButton";
+import { useTranslate } from "@webview/l10n";
 import { useRef, useState } from "react";
-
-/** A leaf action or nested action group shown by an icon control. */
-export interface IconActionItem {
-  /** Stable action identifier. */
-  readonly id: string;
-  /** Codicon name without the `codicon-` prefix. */
-  readonly icon: string;
-  /** Accessible and tooltip label. */
-  readonly label: string;
-  /** Runs when the leaf action is selected. */
-  readonly onSelect?: () => void;
-  /** Nested actions shown in a small menu. */
-  readonly children?: readonly IconActionItem[];
-}
 
 interface IconActionProps {
   /** Action definition to render. */
-  readonly action: IconActionItem;
-  /** Whether the leaf action represents an active layer. */
-  readonly pressed?: boolean;
+  readonly action: IconActionPresentation;
 }
 
 /**
- * Renders a localized icon-only action or a nested icon-action group.
+ * Renders a localized icon-only leaf action.
  * @param action Action definition to render.
- * @param pressed Whether a leaf action is active.
  * @returns Rendered action markup.
  */
-export function IconAction({ action, pressed = false }: IconActionProps): React.JSX.Element {
-  return <ActionMenu action={action} pressed={pressed} />;
+export function IconAction({ action }: IconActionProps): React.JSX.Element {
+  return (
+    <IconButton
+      icon={action.icon}
+      label={action.label}
+      pressed={action.pressed}
+      onClick={action.onSelect}
+    />
+  );
 }
 
 /**
- * Renders a leaf action or a recursively nested action menu.
+ * Renders an action menu button: the main icon triggers the default action when one exists,
+ * otherwise it opens the menu; a dedicated disclosure control always opens the menu.
  * @param action Action definition to render.
- * @param pressed Whether a leaf action is active.
  * @returns Rendered action markup.
  */
-function ActionMenu({ action, pressed = false }: IconActionProps): React.JSX.Element {
+export function IconActionMenu({ action }: IconActionProps): React.JSX.Element {
+  const t = useTranslate();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const hasChildren = Boolean(action.children?.length);
-
-  if (!hasChildren) {
-    return (
-      <IconButton
-        icon={action.icon}
-        label={action.label}
-        pressed={pressed}
-        onClick={action.onSelect}
-      />
-    );
-  }
 
   return (
     <div
@@ -68,10 +49,22 @@ function ActionMenu({ action, pressed = false }: IconActionProps): React.JSX.Ele
       <IconButton
         icon={action.icon}
         label={action.label}
+        pressed={action.pressed}
+        hasPopup={!action.onSelect}
+        expanded={action.onSelect ? undefined : open}
+        onClick={action.onSelect ?? (() => setOpen((current) => !current))}
+      />
+
+      <IconButton
+        icon="chevron-down"
+        label={t("More Actions")}
+        className="ganttee-icon-action__disclosure"
+        pressed={open}
         hasPopup
         expanded={open}
         onClick={() => setOpen((current) => !current)}
       />
+
       {open && (
         <div className="ganttee-icon-action__menu" role="menu">
           {action.children?.map((child) => (
@@ -85,7 +78,7 @@ function ActionMenu({ action, pressed = false }: IconActionProps): React.JSX.Ele
 
 interface ActionMenuItemProps {
   /** Action rendered by the menu item. */
-  readonly action: IconActionItem;
+  readonly action: IconActionPresentation;
   /** Closes the owning menu after a leaf action is selected. */
   readonly closeMenu: () => void;
 }

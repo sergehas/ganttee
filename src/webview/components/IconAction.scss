@@ -1,5 +1,20 @@
 .ganttee-icon-action {
   position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+
+  .ganttee-icon-button:has(+ .ganttee-icon-action__disclosure) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .ganttee-icon-action__disclosure {
+    width: 18px;
+    min-width: 18px;
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+  }
 }
 
 .ganttee-icon-action__menu {

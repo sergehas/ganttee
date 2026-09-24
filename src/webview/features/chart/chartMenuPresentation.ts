@@ -1,4 +1,5 @@
 import { ProjectView, ZoomLevel } from "@common/documents";
+import type { IconActionPresentation } from "@webview/components/IconAction.types";
 import type {
   ChartExportDestination,
   ChartExportFormat,
@@ -12,32 +13,16 @@ import {
 } from "@webview/features/chart/projectViewControls";
 import { WebviewTranslator } from "@webview/l10n";
 
-/** Plain icon action data consumed by the chart menu component. */
-export interface ChartMenuAction {
-  /** Stable action identifier. */
-  readonly id: string;
-  /** Codicon name without the `codicon-` prefix. */
-  readonly icon: string;
-  /** Localized accessible and tooltip label. */
-  readonly label: string;
-  /** Whether the action represents an enabled layer. */
-  readonly pressed?: boolean;
-  /** Runs when the action is selected. */
-  readonly onSelect?: () => void;
-  /** Nested actions shown by a grouped control. */
-  readonly children?: readonly ChartMenuAction[];
-}
-
 /** Plain action groups used to render the chart menu bar. */
 export interface ChartMenuPresentation {
   /** Independent chart-layer actions. */
-  readonly layerActions: readonly ChartMenuAction[];
+  readonly layerActions: readonly IconActionPresentation[];
   /** Zoom and fit actions. */
-  readonly zoomActions: readonly ChartMenuAction[];
+  readonly zoomActions: readonly IconActionPresentation[];
   /** Supported values for the zoom select. */
   readonly zoomLevels: readonly ZoomLevel[];
   /** Export format and destination action. */
-  readonly exportAction: ChartMenuAction;
+  readonly exportAction: IconActionPresentation;
 }
 
 /**
@@ -106,8 +91,8 @@ export function createChartMenuPresentation(
 function createExportAction(
   translate: WebviewTranslator,
   onExport: (format: ChartExportFormat, destination: ChartExportDestination) => void,
-): ChartMenuAction {
-  const createFormatAction = (format: ChartExportFormat): ChartMenuAction => ({
+): IconActionPresentation {
+  const createFormatAction = (format: ChartExportFormat): IconActionPresentation => ({
     id: format,
     icon: format === "svg" ? "file-code" : "file-media",
     label: translate(format.toUpperCase()),
@@ -131,6 +116,7 @@ function createExportAction(
     id: "export",
     icon: "export",
     label: translate("Export to image"),
+    onSelect: () => onExport("svg", "download"),
     children: [createFormatAction("svg"), createFormatAction("png")],
   };
 }
@@ -150,7 +136,7 @@ function createLayerAction(
   label: string,
   pressed: boolean,
   onSelect: () => void,
-): ChartMenuAction {
+): IconActionPresentation {
   return { id, icon, label, pressed, onSelect };
 }
 
@@ -167,6 +153,6 @@ function createAction(
   icon: string,
   label: string,
   onSelect: () => void,
-): ChartMenuAction {
+): IconActionPresentation {
   return { id, icon, label, onSelect };
 }

@@ -18,6 +18,8 @@ interface IconButtonProps {
   readonly expanded?: boolean;
   /** HTML button behavior. */
   readonly type?: "button" | "submit";
+  /** Additional class name appended to the button for layout/style variants. */
+  readonly className?: string;
 }
 
 /**
@@ -33,11 +35,12 @@ export function IconButton({
   hasPopup = false,
   expanded,
   type = "button",
+  className,
 }: IconButtonProps): React.JSX.Element {
   return (
     <button
       type={type}
-      className="ganttee-icon-button"
+      className={className ? `ganttee-icon-button ${className}` : "ganttee-icon-button"}
       aria-label={label}
       aria-pressed={pressed}
       aria-haspopup={hasPopup ? "menu" : undefined}

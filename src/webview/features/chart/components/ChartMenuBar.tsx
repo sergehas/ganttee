@@ -1,5 +1,5 @@
 import { ProjectView } from "@common/documents";
-import { IconAction } from "@webview/components/IconAction";
+import { IconAction, IconActionMenu } from "@webview/components/IconAction";
 import { Select } from "@webview/components/Select";
 import {
   ChartExportDestination,
@@ -44,7 +44,7 @@ export function ChartMenuBar({
     <nav className="ganttee-chart-menu-bar" aria-label={translate("Chart view controls")}>
       <div className="ganttee-chart-menu-bar__group" aria-label={translate("Chart layers")}>
         {presentation.layerActions.map((action) => (
-          <IconAction action={action} pressed={action.pressed} key={action.id} />
+          <IconAction action={action} key={action.id} />
         ))}
       </div>
       <div className="ganttee-chart-menu-bar__group" aria-label={translate("Zoom controls")}>
@@ -71,7 +71,7 @@ export function ChartMenuBar({
         <IconAction action={presentation.zoomActions[2]} />
       </div>
       <div className="ganttee-chart-menu-bar__group" aria-label={translate("Export controls")}>
-        <IconAction action={presentation.exportAction} />
+        <IconActionMenu action={presentation.exportAction} />
       </div>
     </nav>
   );
