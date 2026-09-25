@@ -4,82 +4,82 @@
     {
       "id": "task-design",
       "name": "Design",
+      "description": "Wireframe and visual design.",
+      "groupId": "group-discovery",
+      "state": "closed",
+      "status": "status-done",
       "start": "2026-01-05",
       "duration": 7,
-      "description": "Wireframe and visual design.",
-      "progress": 1,
-      "status": "done",
-      "groupId": "group-discovery"
+      "progress": 1
     },
     {
       "id": "task-build",
       "name": "Implement",
+      "groupId": "group-Build",
+      "state": "open",
+      "status": "status-in-progress",
       "duration": 6,
-      "progress": 0.4,
-      "status": "inProgress",
-      "groupId": "group-Build"
+      "progress": 0.4
     },
     {
       "id": "task-test",
       "name": "QA",
+      "description": "# quality acceptance tests\nrun & results must be  tracked\nmus comply to test scenarios",
+      "groupId": "group-Test",
+      "state": "open",
       "start": "2026-01-28",
       "end": "2026-02-04",
-      "description": "# quality acceptance tests\nrun & results must be  tracked\nmus comply to test scenarios",
-      "progress": 0,
-      "status": "todo",
-      "groupId": "group-Test"
+      "progress": 0
     },
     {
       "id": "task-9kcoliei",
       "name": "Integration tests",
+      "description": "# content\nThis phase is dedicated to **user acceptance** test\nit must be conclude by a sign-of",
+      "groupId": "group-Test",
+      "state": "closed",
       "start": "2026-02-08",
       "end": "2026-02-26",
-      "description": "# content\nThis phase is dedicated to **user acceptance** test\nit must be conclude by a sign-of",
-      "progress": 0,
-      "status": "todo",
-      "groupId": "group-Test"
+      "progress": 0
     },
     {
       "id": "task-mlf0py0m",
       "name": "SIT design",
+      "description": "Design system integration tests",
+      "groupId": "group-discovery",
+      "state": "closed",
+      "status": "status-done",
       "start": "2026-01-15",
       "end": "2026-01-26",
-      "description": "Design system integration tests",
-      "progress": 0,
-      "status": "todo",
-      "groupId": "group-discovery"
+      "progress": 0
     },
     {
       "id": "task-4p1xeki1",
       "name": "UAT 1",
+      "groupId": "group-UAT",
+      "state": "open",
       "end": "2026-03-10",
-      "progress": 0,
-      "status": "todo",
-      "groupId": "group-UAT"
+      "progress": 0
     },
     {
       "id": "task-v71r1sde",
       "name": "Warranty",
+      "groupId": "group-support",
       "duration": 90,
-      "progress": 0,
-      "status": "todo",
-      "groupId": "group-support"
+      "progress": 0
     },
     {
       "id": "task-m63h6oat",
       "name": "L2 Support",
+      "groupId": "group-support",
       "duration": 600,
-      "progress": 0,
-      "status": "todo",
-      "groupId": "group-support"
+      "progress": 0
     },
     {
       "id": "999cc460-cc6f-4442-8fb0-50ada083c0fe",
       "name": "UAT 2",
+      "groupId": "group-UAT",
       "duration": 10,
-      "progress": 0,
-      "status": "todo",
-      "groupId": "group-UAT"
+      "progress": 0
     }
   ],
   "groups": [
@@ -103,19 +103,21 @@
     {
       "id": "group-Build",
       "name": "Build",
+      "groupId": "group-delivery",
       "sequence": [
         "task-build"
-      ],
-      "groupId": "group-delivery"
+      ]
     },
     {
       "id": "group-Test",
       "name": "Test",
+      "groupId": "group-delivery",
+      "state": "closed",
+      "status": "status-done",
       "sequence": [
         "task-test",
         "task-9kcoliei"
-      ],
-      "groupId": "group-delivery"
+      ]
     },
     {
       "id": "group-UAT",
@@ -138,8 +140,10 @@
     {
       "id": "milestone-Release",
       "name": "Release",
-      "date": "2026-02-28",
-      "groupId": "group-delivery"
+      "groupId": "group-delivery",
+      "state": "closed",
+      "status": "status-done",
+      "date": "2026-02-28"
     },
     {
       "id": "milestone-launch",
@@ -243,6 +247,26 @@
       {
         "start": "2026-04-15",
         "end": "2026-04-16"
+      }
+    ],
+    "statuses": [
+      {
+        "id": "status-todo",
+        "name": "todo",
+        "color": "#0000FFcc",
+        "state": "open"
+      },
+      {
+        "id": "status-in-progress",
+        "name": "In progress",
+        "color": "#00FF0088",
+        "state": "open"
+      },
+      {
+        "id": "status-done",
+        "name": "done",
+        "color": "#6a6a6acc",
+        "state": "closed"
       }
     ]
   },

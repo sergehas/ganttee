@@ -1,12 +1,10 @@
 import { formatShortDate, parseIsoTimestamp } from "@common/dates";
-import { TaskStatus } from "@common/documents";
 import {
   diagnoseDeterminacy,
   validateTaskConstraints,
 } from "@services/schedule/scheduleConstraintService";
 import "@webview/components/Form.scss";
 import { FormField } from "@webview/components/FormField";
-import { Select } from "@webview/components/Select";
 import { TaskFieldsProps } from "@webview/features/entity-editor/entityEditor.types";
 import { useTranslate, useWebviewL10n } from "@webview/l10n";
 
@@ -14,11 +12,7 @@ import { CommonTextFields } from "@webview/features/entity-editor/components/Com
 import { DependencyFields } from "@webview/features/entity-editor/components/DependencyFields";
 import "@webview/features/entity-editor/components/TaskFields.scss";
 import { ValidationMessage } from "@webview/features/entity-editor/components/ValidationMessage";
-import {
-  STATUS_OPTIONS,
-  taskStatusLabel,
-  taskValidationMessages,
-} from "@webview/features/entity-editor/entityEditorPresentation";
+import { taskValidationMessages } from "@webview/features/entity-editor/entityEditorPresentation";
 import { makeUpdater } from "@webview/features/entity-editor/hooks/useFieldUpdater";
 
 /** Renders task-specific fields plus dependency editing controls. */
@@ -35,14 +29,12 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
   return (
     <div className="ganttee-form">
       <CommonTextFields
-        name={task.name}
-        description={task.description}
-        groupId={task.groupId}
+        item={task}
         groups={document.groups}
-        onName={(name) => update("name", name)}
-        onDescription={(description) => update("description", description)}
-        onGroupId={(groupId) => update("groupId", groupId)}
+        statuses={document.settings.statuses}
+        onChange={onChange}
       />
+      <hr />
       <div className="ganttee-form__row">
         <FormField label={t("Start")}>
           <input
@@ -96,20 +88,6 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
           />
         </FormField>
       </div>
-
-      <FormField label={t("Status")}>
-        <Select
-          value={task.status ?? "todo"}
-          onChange={(event) => update("status", event.target.value as TaskStatus)}
-        >
-          {STATUS_OPTIONS.map((status) => (
-            <option key={status} value={status}>
-              {t(taskStatusLabel(status))}
-            </option>
-          ))}
-        </Select>
-      </FormField>
-
       {taskValidationMessages(diagnostic).map((message) => (
         <ValidationMessage severity={message.severity} key={message.source}>
           {t(message.source, ...(message.values ?? []))}

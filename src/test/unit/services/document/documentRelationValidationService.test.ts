@@ -79,6 +79,22 @@ suite("documentRelationValidationService", () => {
     assert.throws(() => assertDocumentRelations(milestoneReference), /milestones\[0\]/);
   });
 
+  test("removes unknown status references and preserves valid or absent statuses", () => {
+    const document = createEmptyDocument();
+    document.settings.statuses = [{ id: "active", name: "Active", color: "#008000ff" }];
+    document.tasks = [{ id: "task", name: "Task", status: "missing" }];
+    document.groups = [{ id: "group", name: "Group", status: "active" }];
+    document.milestones = [{ id: "milestone", name: "Milestone" }];
+    document.sequence = ["task", "group", "milestone"];
+
+    assertDocumentRelations(document);
+
+    assert.deepStrictEqual(
+      [document.tasks[0].status, document.groups[0].status, document.milestones[0].status],
+      [undefined, "active", undefined],
+    );
+  });
+
   test("converts graph integrity errors to parse errors", () => {
     const selfLoop = createEmptyDocument();
     selfLoop.tasks = [{ id: "task", name: "Task" }];

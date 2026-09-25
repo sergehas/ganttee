@@ -2,12 +2,6 @@ import { formatIsoDate, MS_PER_DAY } from "@common/dates";
 import { ProjectItem } from "@common/documents/project/projectItem";
 import { generateId } from "@common/idFactory";
 
-/** Lifecycle state of a task. */
-export const TASK_STATUSES = ["todo", "inProgress", "done"] as const;
-
-/** Lifecycle state of a task. */
-export type TaskStatus = (typeof TASK_STATUSES)[number];
-
 /** A persisted schedulable unit of work. */
 export interface Task extends ProjectItem {
   /** Inclusive start date, ISO-8601 date string. */
@@ -18,8 +12,6 @@ export interface Task extends ProjectItem {
   duration?: number;
   /** Completion ratio in the range 0..1. */
   progress?: number;
-  /** Lifecycle status. */
-  status?: TaskStatus;
 }
 
 /** Creates a new task template with a localized default name. */
@@ -34,7 +26,7 @@ export function createDefaultTask(name: string): Task {
     start: formatIsoDate(today),
     end: formatIsoDate(end),
     progress: 0,
-    status: "todo",
+    state: "open",
   };
 }
 

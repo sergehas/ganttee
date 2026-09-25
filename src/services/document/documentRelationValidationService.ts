@@ -23,6 +23,7 @@ export function assertDocumentRelations(projectDoc: ProjectDocument): void {
   assertGroupHierarchy(projectDoc.groups);
   assertGroupReferences(projectDoc);
   assertSequenceIntegrity(projectDoc);
+  assertStatusReferences(projectDoc);
   try {
     assertGraphIntegrity(projectDoc);
   } catch (error) {
@@ -106,6 +107,23 @@ function assertGroupReferences(projectDoc: ProjectDocument): void {
   projectDoc.milestones.forEach((milestone, index) => {
     if (milestone.groupId !== undefined && !groupIds.has(milestone.groupId)) {
       throw new GanttParseError(`milestones[${index}].groupId references an unknown group id.`);
+    }
+  });
+}
+
+/** Asserts that every status reference points to an existing status id. */
+function assertStatusReferences(projectDoc: ProjectDocument): void {
+  const statusIds = new Set(projectDoc.settings.statuses.map((status) => status.id));
+  const entities = [...projectDoc.tasks, ...projectDoc.groups, ...projectDoc.milestones];
+
+  entities.forEach((entity, index) => {
+    if (entity.status !== undefined && !statusIds.has(entity.status)) {
+      //silently ignore unknown status references
+      //throw new GanttParseError(`entities[${index}].status references an unknown status id.`);
+      console.warn(
+        `entities[${index}].status references an unknown status id and will be ignored.`,
+      );
+      entity.status = undefined;
     }
   });
 }

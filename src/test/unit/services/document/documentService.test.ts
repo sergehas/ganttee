@@ -25,7 +25,7 @@ suite("documentService", () => {
             start: "2026-01-01",
             end: "2026-01-05",
             progress: 0.5,
-            status: "inProgress",
+            state: "open",
           },
         ],
         groups: [{ id: "g1", name: "Phase 1" }],
@@ -247,6 +247,7 @@ suite("documentService", () => {
       workingDayHours: 8,
       workingDayStart: 8.5,
       holidays: [],
+      statuses: [],
     });
     assert.deepStrictEqual(parseDocument(serializeDocument(document)), document);
   });
@@ -259,6 +260,7 @@ suite("documentService", () => {
       workingDayHours: 8,
       workingDayStart: 9,
       holidays: [],
+      statuses: [],
     });
     assert.deepStrictEqual(document.view, {
       zoomLevel: "week",
@@ -351,6 +353,7 @@ suite("documentService", () => {
       workingDayHours: 8,
       workingDayStart: 9,
       holidays: [],
+      statuses: [],
     });
   });
 
@@ -392,6 +395,7 @@ suite("documentService", () => {
       workingDayHours: 8,
       workingDayStart: 9,
       holidays: [],
+      statuses: [],
     });
   });
 
@@ -405,6 +409,7 @@ suite("documentService", () => {
       workingDayHours: 8,
       workingDayStart: 9,
       holidays: [],
+      statuses: [],
     });
   });
 });

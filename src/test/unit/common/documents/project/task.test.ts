@@ -10,7 +10,7 @@ suite("Task", () => {
     assert.notStrictEqual(task.id, "");
     assert.strictEqual(task.name, "New Task");
     assert.strictEqual(task.progress, 0);
-    assert.strictEqual(task.status, "todo");
+    assert.strictEqual(task.state, "open");
     assert.strictEqual(diffIsoDates(task.start ?? "", task.end ?? ""), 3);
   });
 });

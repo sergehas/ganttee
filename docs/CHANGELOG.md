@@ -9,6 +9,9 @@ file.
 
 ### Added
 
+- Item lifecycle state is now separated from document-defined status metadata: tasks, groups, and
+  milestones use the `state` field with `open` and `closed` values, while document `statuses` can
+  assign a named status with an optional enforced lifecycle state and status color.
 - Holiday-aware scheduling now skips inclusive project holiday ranges during date normalization,
   forward and reverse traversal, fractional duration calculation, and overnight interval ownership.
   Invalid calendars and malformed holiday dates are rejected before scheduling.

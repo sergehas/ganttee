@@ -14,14 +14,16 @@ import {
   DependencyType,
   Group,
   Milestone,
+  PROJECT_ITEM_STATES,
   ProjectDocument,
+  ProjectItem,
+  ProjectItemState,
   ProjectSettings,
+  ProjectStatus,
   ProjectView,
   resolveProjectSettings,
   resolveProjectView,
   Task,
-  TASK_STATUSES,
-  TaskStatus,
   WorkingCalendar,
 } from "@common/documents";
 
@@ -95,7 +97,34 @@ function validateSettings(raw: unknown): ProjectSettings {
       validateDateRange(holiday, `settings.holidays[${index}]`),
     );
   }
+  if (raw.statuses !== undefined) {
+    if (!Array.isArray(raw.statuses)) {
+      throw new GanttParseError("settings.statuses must be an array.");
+    }
+    settings.statuses = raw.statuses.map((status, index) =>
+      validateStatus(status, `settings.statuses[${index}]`),
+    );
+  }
   return resolveProjectSettings(settings);
+}
+
+/** Validates a configured project status entry. */
+function validateStatus(raw: unknown, field: string): ProjectStatus {
+  if (!isRecord(raw)) {
+    throw new GanttParseError(`${field} must be an object.`);
+  }
+  const status: ProjectStatus = {
+    id: requireString(raw.id, `${field}.id`),
+    name: requireString(raw.name, `${field}.name`),
+    color: requireString(raw.color, `${field}.color`),
+  };
+  if (raw.state !== undefined) {
+    if (!isProjectItemState(raw.state)) {
+      throw new GanttParseError(`${field}.state must be "open" or "closed".`);
+    }
+    status.state = raw.state;
+  }
+  return status;
 }
 
 /** Validates an optional view section and resolves omitted view properties. */
@@ -185,8 +214,7 @@ function validateTask(raw: unknown, index: number): Task {
     throw new GanttParseError(`tasks[${index}] must be an object.`);
   }
   const task: Task = {
-    id: requireString(raw.id, `tasks[${index}].id`),
-    name: requireString(raw.name, `tasks[${index}].name`),
+    ...validateProjectItem(raw, `tasks[${index}]`),
   };
   if (raw.start !== undefined) {
     task.start = requireDate(raw.start, `tasks[${index}].start`);
@@ -197,17 +225,8 @@ function validateTask(raw: unknown, index: number): Task {
   if (raw.duration !== undefined) {
     task.duration = requireNonNegativeNumber(raw.duration, `tasks[${index}].duration`);
   }
-  if (raw.description !== undefined) {
-    task.description = requireString(raw.description, `tasks[${index}].description`);
-  }
   if (raw.progress !== undefined) {
     task.progress = clampProgress(raw.progress);
-  }
-  if (raw.status !== undefined && isTaskStatus(raw.status)) {
-    task.status = raw.status;
-  }
-  if (raw.groupId !== undefined) {
-    task.groupId = requireString(raw.groupId, `tasks[${index}].groupId`);
   }
   return task;
 }
@@ -220,13 +239,9 @@ function validateGroup(raw: unknown, index: number): Group {
     throw new GanttParseError(`groups[${index}] must be an object.`);
   }
   const group: Group = {
-    id: requireString(raw.id, `groups[${index}].id`),
-    name: requireString(raw.name, `groups[${index}].name`),
+    ...validateProjectItem(raw, `groups[${index}]`),
     sequence: requireStringArray(raw.sequence, `groups[${index}].sequence`),
   };
-  if (raw.groupId !== undefined) {
-    group.groupId = requireString(raw.groupId, `groups[${index}].groupId`);
-  }
   if (typeof raw.collapsed === "boolean") {
     group.collapsed = raw.collapsed;
   }
@@ -241,8 +256,7 @@ function validateMilestone(raw: unknown, index: number): Milestone {
     throw new GanttParseError(`milestones[${index}] must be an object.`);
   }
   const milestone: Milestone = {
-    id: requireString(raw.id, `milestones[${index}].id`),
-    name: requireString(raw.name, `milestones[${index}].name`),
+    ...validateProjectItem(raw, `milestones[${index}]`),
   };
   if (raw.date !== undefined) {
     milestone.date = requireDate(raw.date, `milestones[${index}].date`);
@@ -252,10 +266,30 @@ function validateMilestone(raw: unknown, index: number): Milestone {
       `milestones[${index}].duration must be 0; milestones are zero-duration.`,
     );
   }
-  if (raw.groupId !== undefined) {
-    milestone.groupId = requireString(raw.groupId, `milestones[${index}].groupId`);
-  }
   return milestone;
+}
+
+/**
+ * Validates and normalizes fields inherited by every persisted project item.
+ */
+function validateProjectItem(raw: Record<string, unknown>, field: string): ProjectItem {
+  const projectItem: ProjectItem = {
+    id: requireString(raw.id, `${field}.id`),
+    name: requireString(raw.name, `${field}.name`),
+  };
+  if (raw.description !== undefined) {
+    projectItem.description = requireString(raw.description, `${field}.description`);
+  }
+  if (raw.groupId !== undefined) {
+    projectItem.groupId = requireString(raw.groupId, `${field}.groupId`);
+  }
+  if (raw.state !== undefined && isProjectItemState(raw.state)) {
+    projectItem.state = raw.state;
+  }
+  if (raw.status !== undefined) {
+    projectItem.status = requireString(raw.status, `${field}.status`);
+  }
+  return projectItem;
 }
 
 /**
@@ -385,11 +419,9 @@ function clampProgress(value: unknown): number {
   return Math.min(1, Math.max(0, value));
 }
 
-/**
- * Returns whether the value is a supported task status.
- */
-function isTaskStatus(value: unknown): value is TaskStatus {
-  return typeof value === "string" && TASK_STATUSES.includes(value as TaskStatus);
+/** Returns whether the value is a supported task state. */
+function isProjectItemState(value: unknown): value is ProjectItemState {
+  return typeof value === "string" && PROJECT_ITEM_STATES.includes(value as ProjectItemState);
 }
 
 /**

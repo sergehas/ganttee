@@ -12,9 +12,10 @@ import {
   Group as GroupDocument,
   Milestone as MilestoneDocument,
   ProjectDocument,
+  ProjectItem as ProjectItemDocument,
   Task as TaskDocument,
 } from "@common/documents";
-import { Group, Milestone, ProjectModel, Task } from "@common/models";
+import { Group, Milestone, ProjectItem, ProjectModel, Task } from "@common/models";
 import { assertAcyclicGraph } from "@services/dependency-graph/dependencyGraphService";
 
 /**
@@ -74,25 +75,18 @@ export function toDocument(model: ProjectModel): ProjectDocument {
 /** Maps a plain task record to a {@link Task}. */
 function toTask(task: TaskDocument): Task {
   return new Task({
-    id: task.id,
-    name: task.name,
-    description: task.description,
-    groupId: task.groupId,
+    ...toProjectItem(task),
     start: task.start !== undefined ? parseIsoDate(task.start) : undefined,
     end: task.end !== undefined ? parseIsoDate(task.end) : undefined,
     duration: task.duration,
     progress: task.progress,
-    status: task.status,
   });
 }
 
 /** Maps a plain milestone record to a {@link Milestone}. */
 function toMilestone(milestone: MilestoneDocument): Milestone {
   return new Milestone({
-    id: milestone.id,
-    name: milestone.name,
-    description: milestone.description,
-    groupId: milestone.groupId,
+    ...toProjectItem(milestone),
     date: milestone.date !== undefined ? parseIsoDate(milestone.date) : undefined,
   });
 }
@@ -100,18 +94,27 @@ function toMilestone(milestone: MilestoneDocument): Milestone {
 /** Maps a plain group record to a {@link Group}. */
 function toGroup(group: GroupDocument): Group {
   return new Group({
-    id: group.id,
-    name: group.name,
-    description: group.description,
-    groupId: group.groupId,
+    ...toProjectItem(group),
     collapsed: group.collapsed,
     sequence: group.sequence ?? [],
   });
 }
 
+/** Maps shared document fields to the in-memory project item constructor shape. */
+function toProjectItem(projectItem: ProjectItemDocument): ProjectItemDocument {
+  return {
+    id: projectItem.id,
+    name: projectItem.name,
+    description: projectItem.description,
+    groupId: projectItem.groupId,
+    state: projectItem.state,
+    status: projectItem.status,
+  };
+}
+
 /** Projects a {@link Task} back to a plain task record. */
 function fromTask(task: Task): TaskDocument {
-  const plain: TaskDocument = { id: task.id, name: task.name };
+  const plain: TaskDocument = { ...fromProjectItem(task) };
   if (task.start !== undefined) {
     plain.start = formatIsoDate(task.start);
   }
@@ -121,27 +124,15 @@ function fromTask(task: Task): TaskDocument {
   if (task.duration !== undefined) {
     plain.duration = task.duration;
   }
-  if (task.description !== undefined) {
-    plain.description = task.description;
-  }
   if (task.progress !== undefined) {
     plain.progress = task.progress;
-  }
-  if (task.status !== undefined) {
-    plain.status = task.status;
-  }
-  if (task.groupId !== undefined) {
-    plain.groupId = task.groupId;
   }
   return plain;
 }
 
 /** Projects a {@link Group} back to a plain group record. */
 function fromGroup(group: Group): GroupDocument {
-  const plain: GroupDocument = { id: group.id, name: group.name, sequence: [...group.sequence] };
-  if (group.groupId !== undefined) {
-    plain.groupId = group.groupId;
-  }
+  const plain: GroupDocument = { ...fromProjectItem(group), sequence: [...group.sequence] };
   if (group.collapsed !== undefined) {
     plain.collapsed = group.collapsed;
   }
@@ -151,14 +142,28 @@ function fromGroup(group: Group): GroupDocument {
 /** Projects a {@link Milestone} back to a plain milestone record. */
 function fromMilestone(milestone: Milestone): MilestoneDocument {
   const plain: MilestoneDocument = {
-    id: milestone.id,
-    name: milestone.name,
+    ...fromProjectItem(milestone),
   };
   if (milestone.date !== undefined) {
     plain.date = formatIsoDate(milestone.date);
   }
-  if (milestone.groupId !== undefined) {
-    plain.groupId = milestone.groupId;
-  }
   return plain;
+}
+
+/** Maps shared in-memory fields to their persisted project item representation. */
+function fromProjectItem(projectItem: ProjectItem): ProjectItemDocument {
+  const document: ProjectItemDocument = { id: projectItem.id, name: projectItem.name };
+  if (projectItem.description !== undefined) {
+    document.description = projectItem.description;
+  }
+  if (projectItem.groupId !== undefined) {
+    document.groupId = projectItem.groupId;
+  }
+  if (projectItem.state !== undefined) {
+    document.state = projectItem.state;
+  }
+  if (projectItem.status !== undefined) {
+    document.status = projectItem.status;
+  }
+  return document;
 }

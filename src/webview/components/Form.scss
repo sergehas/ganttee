@@ -12,6 +12,14 @@
     }
   }
 
+  hr {
+    width: stretch;
+    border-top: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
+    border-bottom: none;
+    border-left: none;
+    border-right: none;
+  }
+
   fieldset {
     padding: var(--vscode-spacing-size80, 8px);
     border: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);

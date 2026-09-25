@@ -1,4 +1,7 @@
-import { ProjectItem as ProjectItemDocument } from "@common/documents/project/projectItem";
+import type {
+  ProjectItem as ProjectItemDocument,
+  ProjectItemState,
+} from "@common/documents/project/projectItem";
 
 /** A project item that can resolve its effective scheduled time span. */
 export interface Schedulable {
@@ -23,6 +26,10 @@ export abstract class ProjectItem implements ProjectItemDocument {
   readonly description?: string;
   /** Owning group id, if any. */
   readonly groupId?: string;
+  /** Lifecycle state of the item. */
+  readonly state?: ProjectItemState;
+  /** Optional status reference for the document status catalog. */
+  readonly status?: string;
 
   /**
    * @param document The persisted shared item fields to hydrate.
@@ -32,5 +39,7 @@ export abstract class ProjectItem implements ProjectItemDocument {
     this.name = document.name;
     this.description = document.description;
     this.groupId = document.groupId;
+    this.state = document.state;
+    this.status = document.status;
   }
 }
