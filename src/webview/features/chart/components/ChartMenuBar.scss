@@ -4,7 +4,7 @@
   align-items: center;
   gap: var(--vscode-spacing-size40, 4px);
   padding-bottom: var(--vscode-spacing-size80, 8px);
-  border-bottom: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
+  //border-bottom: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
 }
 
 .ganttee-chart-menu-bar__group {
@@ -14,6 +14,6 @@
 
   & + & {
     padding-left: var(--vscode-spacing-size40, 40px);
-    border-left: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
+    border-left: var(--vscode-strokeThickness, 1px) solid var(--vscode-disabledForeground);
   }
 }

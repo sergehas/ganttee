@@ -10,10 +10,15 @@
   }
 
   .ganttee-icon-action__disclosure {
-    width: 18px;
-    min-width: 18px;
+    width: 16px;
+    min-width: 16px;
     border-bottom-left-radius: 0;
     border-top-left-radius: 0;
+
+    .codicon::before {
+      font-size: 12px;
+      line-height: 16px;
+    }
   }
 }
 
@@ -23,7 +28,7 @@
   left: 0;
   z-index: 10;
   display: flex;
-  min-width: 120px;
+  min-width: 140px;
   flex-direction: column;
   padding: var(--vscode-spacing-size40, 4px);
   background-color: var(--vscode-menu-background);
@@ -48,12 +53,20 @@
   border: var(--vscode-strokeThickness, 1px) solid transparent;
   width: stretch;
 
+  .codicon {
+    color: var(--vscode-titleBar-inactiveForeground);
+  }
+
   &:hover,
   &.focus-visible {
     color: var(--vscode-menu-selectionForeground);
     background-color: var(--vscode-list-hoverBackground);
     outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
     outline-offset: -1px;
+
+    .codicon {
+      color: var(--vscode-menu-selectionForeground);
+    }
   }
 }
 
