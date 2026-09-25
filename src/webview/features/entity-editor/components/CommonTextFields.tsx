@@ -12,6 +12,7 @@ import {
   makeUpdater,
 } from "@webview/features/entity-editor/hooks/useFieldUpdater";
 import { useTranslate } from "@webview/l10n";
+import { createElement } from "react";
 
 /** Renders name, description, and group assignment fields shared by all entity types. */
 export function CommonTextFields({
@@ -86,16 +87,30 @@ export function CommonTextFields({
         </FormField>
         <FormField label={t("Status")}>
           <Select
+            className="ganttee-status-select"
             value={item.status ?? ""}
             onChange={(event) => {
               const nextStatusId = event.target.value || undefined;
               onStatus(nextStatusId);
             }}
           >
-            <option value="">{t("None")}</option>
+            <button>
+              {
+                /* workaround as selectedcontent is not known by react */
+                createElement("selectedcontent", { className: "ganttee-status-option" })
+              }
+            </button>
+            <option className="ganttee-status-option" value="">
+              <span className="ganttee-status-color"></span>
+              <span className="ganttee-status-name">{t("None")}</span>
+            </option>
             {statuses.map((status) => (
-              <option key={status.id} value={status.id}>
-                {status.name}
+              <option key={status.id} value={status.id} className="ganttee-status-option">
+                <span
+                  className="ganttee-status-color"
+                  style={{ backgroundColor: status.color }}
+                ></span>
+                <span className="ganttee-status-name">{status.name}</span>
               </option>
             ))}
           </Select>
