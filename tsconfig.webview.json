@@ -15,7 +15,8 @@
       "@common/*": ["./src/common/*"],
       "@services/*": ["./src/services/*"],
       "@webview/*": ["./src/webview/*"],
-      "@src/*": ["./src/*"]
+      "@src/*": ["./src/*"],
+      "@themes/*": ["./media/themes/*"]
     }
   },
 

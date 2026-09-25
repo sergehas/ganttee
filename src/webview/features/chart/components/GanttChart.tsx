@@ -11,9 +11,10 @@ import type {
 import { isDirectEditGesture } from "@webview/features/chart/chartInteractions";
 import {
   renderCriticalLink,
+  renderGroup,
   renderLink,
   renderMilestone,
-  renderTaskBar,
+  renderTask,
 } from "@webview/features/chart/chartRenderers";
 import {
   chartTooltipFormatter,
@@ -28,10 +29,7 @@ import {
   buildTimelineTicks,
   createTimelineAxisModel,
 } from "@webview/features/chart/timelineAxis";
-import {
-  AXIS_LABEL_COLOR,
-  createTimelineTickRenderer,
-} from "@webview/features/chart/timelineHeaderRenderer";
+import { createTimelineTickRenderer } from "@webview/features/chart/timelineHeaderRenderer";
 import { translate, useWebviewL10n } from "@webview/l10n";
 import type {} from "echarts";
 import { CustomChart } from "echarts/charts";
@@ -54,6 +52,8 @@ echarts.use([
   CanvasRenderer,
   SVGRenderer,
 ]);
+
+import * as theme from "@themes/blue.json";
 
 interface GanttChartProps {
   /** Current authored and computed project presentation. */
@@ -105,12 +105,15 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
       }),
       [l10n],
     );
+    //const themeData = JSON.parse(walden as unknown as string);
+    echarts.registerTheme("ganttee-theme", theme);
 
     useEffect(() => {
       if (!containerRef.current) {
         return;
       }
-      const chart = echarts.init(containerRef.current, undefined, {
+      const theme = "ganttee-theme"; //document.body.classList.contains("vscode-dark") ? "dark" : "light";
+      const chart = echarts.init(containerRef.current, theme, {
         renderer: "svg",
       });
       chartRef.current = chart;
@@ -335,9 +338,40 @@ function buildOption(
       inverse: true,
       data: rows.map((row) => row.label),
       axisTick: { show: false },
-      axisLabel: { color: AXIS_LABEL_COLOR },
+      //axisLabel: { color: AXIS_LABEL_COLOR },
+      splitLine: {
+        show: false,
+      },
     },
     series: [
+      //warning: order of series lead color selection from the theme
+      {
+        type: "custom",
+        name: "groups",
+        renderItem: renderGroup,
+        encode: { x: [1, 2], y: 0 },
+        data: groupData,
+        clip: true,
+        zlevel: 3,
+      },
+      {
+        type: "custom",
+        name: "tasks",
+        renderItem: renderTask,
+        encode: { x: [1, 2], y: 0 },
+        data: taskData,
+        clip: true,
+        zlevel: 3,
+      },
+      {
+        type: "custom",
+        name: "milestones",
+        renderItem: renderMilestone,
+        encode: { x: 1, y: 0 },
+        data: milestoneData,
+        clip: true,
+        zlevel: 3,
+      },
       {
         type: "custom",
         name: "timeline-header",
@@ -350,7 +384,7 @@ function buildOption(
           value: [tick.value, 0],
         })),
         clip: false,
-        z: 8,
+        zlevel: 0,
         silent: true,
       },
       {
@@ -360,7 +394,7 @@ function buildOption(
         encode: { x: [1, 3], y: [0, 2] },
         data: view.showDependencies ? linkData : [],
         clip: true,
-        z: 1,
+        zlevel: 1,
         silent: true,
         markArea: {
           silent: true,
@@ -376,35 +410,8 @@ function buildOption(
           ? linkData.filter((link) => criticalDependencyIds.has(link.id))
           : [],
         clip: true,
-        z: 4,
+        zlevel: 2,
         silent: true,
-      },
-      {
-        type: "custom",
-        name: "groups",
-        renderItem: renderTaskBar,
-        encode: { x: [1, 2], y: 0 },
-        data: groupData,
-        clip: true,
-        z: 3,
-      },
-      {
-        type: "custom",
-        name: "tasks",
-        renderItem: renderTaskBar,
-        encode: { x: [1, 2], y: 0 },
-        data: taskData,
-        clip: true,
-        z: 3,
-      },
-      {
-        type: "custom",
-        name: "milestones",
-        renderItem: renderMilestone,
-        encode: { x: 1, y: 0 },
-        data: milestoneData,
-        clip: true,
-        z: 5,
       },
     ],
   };
@@ -438,7 +445,7 @@ function buildCalendarAreas(
         areas.push([
           {
             xAxis: start,
-            itemStyle: { color: "rgba(127, 127, 127, 0.18)" },
+            itemStyle: { color: "rgba(127, 127, 127, 0.12)" },
           },
           { xAxis: start + DAY },
         ]);
@@ -453,7 +460,7 @@ function buildCalendarAreas(
         areas.push([
           {
             xAxis: start,
-            itemStyle: { color: "rgba(240, 163, 10, 0.24)" },
+            itemStyle: { color: "rgba(127, 127, 127, 0.18)" },
           },
           { xAxis: end },
         ]);
@@ -516,6 +523,7 @@ function createTimeAxis(range: { min: number; max: number }): Record<string, unk
     axisTick: { show: false },
     axisLine: { show: true },
     splitLine: { show: false },
+    zlevel: 0,
   };
 }
 
