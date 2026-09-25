@@ -3,6 +3,12 @@
     "out": false, // set this to true to hide the "out" folder with the compiled JS files
     "dist": false // set this to true to hide the "dist" folder with the compiled JS files
   },
+  "files.associations": {
+    "*.ganttee": "json"
+  },
+  "workbench.editorAssociations": {
+    "*.ganttee": "default"
+  },
   "search.exclude": {
     "out": true, // set this to false to include "out" folder in search results
     "dist": true // set this to false to include "dist" folder in search results
