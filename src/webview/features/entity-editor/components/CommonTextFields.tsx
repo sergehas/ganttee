@@ -1,37 +1,67 @@
+import { ProjectItemState } from "@common/documents";
 import { FormField } from "@webview/components/FormField";
 import { Select } from "@webview/components/Select";
 import "@webview/features/entity-editor/components/CommonTextFields.scss";
 import { CommonTextFieldsProps } from "@webview/features/entity-editor/entityEditor.types";
+import {
+  ProjectItemStateLabel,
+  STATE_OPTIONS,
+} from "@webview/features/entity-editor/entityEditorPresentation";
+import {
+  makeMultiUpdater,
+  makeUpdater,
+} from "@webview/features/entity-editor/hooks/useFieldUpdater";
 import { useTranslate } from "@webview/l10n";
 
 /** Renders name, description, and group assignment fields shared by all entity types. */
-export function CommonTextFields(props: CommonTextFieldsProps): React.JSX.Element {
+export function CommonTextFields({
+  item,
+  statuses = [],
+  groups = [],
+  excludedGroupId,
+  onChange,
+}: CommonTextFieldsProps): React.JSX.Element {
   const t = useTranslate();
-  const groupOptions = props.groups.filter((group) => group.id !== props.excludedGroupId);
+  const update = onChange ? makeUpdater(item, onChange) : undefined;
+  const multiUpdate = onChange ? makeMultiUpdater(item, onChange) : undefined;
+  const groupOptions = groups.filter((group) => group.id !== excludedGroupId);
+
+  const onName = (name: string) => update?.("name", name);
+  const onDescription = (description: string | undefined) => update?.("description", description);
+  const onGroupId = (groupId: string | undefined) => update?.("groupId", groupId);
+  const onState = (state: ProjectItemState) => update?.("state", state);
+  const onStatus = (statusId: string | undefined) => {
+    const nextStatus = statuses.find((status) => status.id === statusId);
+    if (nextStatus?.state !== undefined) {
+      multiUpdate?.({ state: nextStatus.state, status: statusId });
+    } else {
+      multiUpdate?.({ status: statusId });
+    }
+  };
 
   return (
     <div className="ganttee-common-text-fields">
       <FormField label={t("Name")}>
         <input
           type="text"
-          value={props.name}
-          onChange={(event) => props.onName(event.target.value)}
+          value={item.name}
+          onChange={(event) => onName(event.target.value)}
           required
         />
       </FormField>
 
       <FormField label={t("Description")}>
         <textarea
-          value={props.description ?? ""}
-          onChange={(event) => props.onDescription(event.target.value || undefined)}
+          value={item.description ?? ""}
+          onChange={(event) => onDescription(event.target.value || undefined)}
           rows={3}
         />
       </FormField>
 
       <FormField label={t("Group")}>
         <Select
-          value={props.groupId ?? ""}
-          onChange={(event) => props.onGroupId(event.target.value || undefined)}
+          value={item.groupId ?? ""}
+          onChange={(event) => onGroupId(event.target.value || undefined)}
         >
           <option value="">{t("(none)")}</option>
           {groupOptions.map((group) => (
@@ -41,6 +71,36 @@ export function CommonTextFields(props: CommonTextFieldsProps): React.JSX.Elemen
           ))}
         </Select>
       </FormField>
+      <div className="ganttee-form__row">
+        <FormField label={t("State")}>
+          <Select
+            value={item.state ?? "open"}
+            onChange={(event) => onState(event.target.value as ProjectItemState)}
+          >
+            {STATE_OPTIONS.map((state) => (
+              <option key={state} value={state}>
+                {t(ProjectItemStateLabel(state))}
+              </option>
+            ))}
+          </Select>
+        </FormField>
+        <FormField label={t("Status")}>
+          <Select
+            value={item.status ?? ""}
+            onChange={(event) => {
+              const nextStatusId = event.target.value || undefined;
+              onStatus(nextStatusId);
+            }}
+          >
+            <option value="">{t("None")}</option>
+            {statuses.map((status) => (
+              <option key={status.id} value={status.id}>
+                {status.name}
+              </option>
+            ))}
+          </Select>
+        </FormField>
+      </div>
     </div>
   );
 }

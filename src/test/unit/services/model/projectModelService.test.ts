@@ -30,9 +30,35 @@ const SAMPLE_DOCUMENT: ProjectDocument = {
     },
     { id: "t2", name: "B", start: "2026-01-02", duration: 3 },
   ],
-  groups: [{ id: "g1", name: "Phase", collapsed: true }],
-  milestones: [{ id: "m1", name: "M", date: "2026-01-10", groupId: "g1" }],
+  groups: [
+    {
+      id: "g1",
+      name: "Phase",
+      description: "Phase description",
+      collapsed: true,
+      state: "open",
+      status: "status-1",
+    },
+  ],
+  milestones: [
+    {
+      id: "m1",
+      name: "M",
+      date: "2026-01-10",
+      description: "Milestone description",
+      groupId: "g1",
+      state: "closed",
+      status: "status-2",
+    },
+  ],
   dependencies: [{ id: "d1", sourceId: "t2", targetId: "t1", type: "startAfter" }],
+  settings: {
+    ...createEmptyDocument().settings,
+    statuses: [
+      { id: "status-1", name: "Status 1", color: "#1a73e8" },
+      { id: "status-2", name: "Status 2", color: "#188038" },
+    ],
+  },
 };
 
 suite("date helpers", () => {
@@ -182,7 +208,7 @@ suite("projectModelService", () => {
       workingDayHours: 8,
       workingDayStart: 9,
       holidays: [],
-      statuses: [],
+      statuses: SAMPLE_DOCUMENT.settings.statuses,
     });
   });
 

@@ -21,21 +21,19 @@ export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element 
   const { locale } = useWebviewL10n();
   const t = useTranslate();
   const update = makeUpdater(milestone, onChange);
+
   const validation = validateMilestoneConstraints(milestone, document.dependencies);
   const diagnostic = diagnoseDeterminacy(milestone.id, validation);
 
   return (
     <div className="ganttee-form ">
       <CommonTextFields
-        name={milestone.name}
-        description={milestone.description}
-        groupId={milestone.groupId}
+        item={milestone}
         groups={document.groups}
-        onName={(name) => update("name", name)}
-        onDescription={(description) => update("description", description)}
-        onGroupId={(groupId) => update("groupId", groupId)}
+        statuses={document.settings.statuses}
+        onChange={onChange}
       />
-
+      <hr />
       <FormField label={t("Date")}>
         <input
           type="date"

@@ -155,11 +155,22 @@ suite("documentShapeValidationService", () => {
 
       const doc = validateDocumentShape({
         groups: [
-          { id: "g1", name: "G1", groupId: "g0", collapsed: true },
+          {
+            id: "g1",
+            name: "G1",
+            description: "Group description",
+            groupId: "g0",
+            state: "closed",
+            status: "status-1",
+            collapsed: true,
+          },
           { id: "g2", name: "G2", collapsed: "not-a-bool" as unknown as boolean },
         ],
       });
+      assert.strictEqual(doc.groups[0].description, "Group description");
       assert.strictEqual(doc.groups[0].groupId, "g0");
+      assert.strictEqual(doc.groups[0].state, "closed");
+      assert.strictEqual(doc.groups[0].status, "status-1");
       assert.strictEqual(doc.groups[0].collapsed, true);
       assert.strictEqual(doc.groups[1].collapsed, undefined);
     });
@@ -199,10 +210,24 @@ suite("documentShapeValidationService", () => {
       );
 
       const doc = validateDocumentShape({
-        milestones: [{ id: "m1", name: "M", date: "2026-06-01", duration: 0, groupId: "g1" }],
+        milestones: [
+          {
+            id: "m1",
+            name: "M",
+            date: "2026-06-01",
+            duration: 0,
+            description: "Milestone description",
+            groupId: "g1",
+            state: "open",
+            status: "status-1",
+          },
+        ],
       });
       assert.strictEqual(doc.milestones[0].date, "2026-06-01");
+      assert.strictEqual(doc.milestones[0].description, "Milestone description");
       assert.strictEqual(doc.milestones[0].groupId, "g1");
+      assert.strictEqual(doc.milestones[0].state, "open");
+      assert.strictEqual(doc.milestones[0].status, "status-1");
     });
   });
 

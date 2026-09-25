@@ -16,6 +16,7 @@ import {
   Milestone,
   PROJECT_ITEM_STATES,
   ProjectDocument,
+  ProjectItem,
   ProjectItemState,
   ProjectSettings,
   ProjectStatus,
@@ -213,8 +214,7 @@ function validateTask(raw: unknown, index: number): Task {
     throw new GanttParseError(`tasks[${index}] must be an object.`);
   }
   const task: Task = {
-    id: requireString(raw.id, `tasks[${index}].id`),
-    name: requireString(raw.name, `tasks[${index}].name`),
+    ...validateProjectItem(raw, `tasks[${index}]`),
   };
   if (raw.start !== undefined) {
     task.start = requireDate(raw.start, `tasks[${index}].start`);
@@ -225,20 +225,8 @@ function validateTask(raw: unknown, index: number): Task {
   if (raw.duration !== undefined) {
     task.duration = requireNonNegativeNumber(raw.duration, `tasks[${index}].duration`);
   }
-  if (raw.description !== undefined) {
-    task.description = requireString(raw.description, `tasks[${index}].description`);
-  }
   if (raw.progress !== undefined) {
     task.progress = clampProgress(raw.progress);
-  }
-  if (raw.state !== undefined && isProjectItemState(raw.state)) {
-    task.state = raw.state;
-  }
-  if (raw.status !== undefined) {
-    task.status = requireString(raw.status, `tasks[${index}].status`);
-  }
-  if (raw.groupId !== undefined) {
-    task.groupId = requireString(raw.groupId, `tasks[${index}].groupId`);
   }
   return task;
 }
@@ -251,13 +239,9 @@ function validateGroup(raw: unknown, index: number): Group {
     throw new GanttParseError(`groups[${index}] must be an object.`);
   }
   const group: Group = {
-    id: requireString(raw.id, `groups[${index}].id`),
-    name: requireString(raw.name, `groups[${index}].name`),
+    ...validateProjectItem(raw, `groups[${index}]`),
     sequence: requireStringArray(raw.sequence, `groups[${index}].sequence`),
   };
-  if (raw.groupId !== undefined) {
-    group.groupId = requireString(raw.groupId, `groups[${index}].groupId`);
-  }
   if (typeof raw.collapsed === "boolean") {
     group.collapsed = raw.collapsed;
   }
@@ -272,8 +256,7 @@ function validateMilestone(raw: unknown, index: number): Milestone {
     throw new GanttParseError(`milestones[${index}] must be an object.`);
   }
   const milestone: Milestone = {
-    id: requireString(raw.id, `milestones[${index}].id`),
-    name: requireString(raw.name, `milestones[${index}].name`),
+    ...validateProjectItem(raw, `milestones[${index}]`),
   };
   if (raw.date !== undefined) {
     milestone.date = requireDate(raw.date, `milestones[${index}].date`);
@@ -283,10 +266,30 @@ function validateMilestone(raw: unknown, index: number): Milestone {
       `milestones[${index}].duration must be 0; milestones are zero-duration.`,
     );
   }
-  if (raw.groupId !== undefined) {
-    milestone.groupId = requireString(raw.groupId, `milestones[${index}].groupId`);
-  }
   return milestone;
+}
+
+/**
+ * Validates and normalizes fields inherited by every persisted project item.
+ */
+function validateProjectItem(raw: Record<string, unknown>, field: string): ProjectItem {
+  const projectItem: ProjectItem = {
+    id: requireString(raw.id, `${field}.id`),
+    name: requireString(raw.name, `${field}.name`),
+  };
+  if (raw.description !== undefined) {
+    projectItem.description = requireString(raw.description, `${field}.description`);
+  }
+  if (raw.groupId !== undefined) {
+    projectItem.groupId = requireString(raw.groupId, `${field}.groupId`);
+  }
+  if (raw.state !== undefined && isProjectItemState(raw.state)) {
+    projectItem.state = raw.state;
+  }
+  if (raw.status !== undefined) {
+    projectItem.status = requireString(raw.status, `${field}.status`);
+  }
+  return projectItem;
 }
 
 /**

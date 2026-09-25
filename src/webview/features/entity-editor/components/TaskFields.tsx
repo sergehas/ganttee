@@ -1,12 +1,10 @@
 import { formatShortDate, parseIsoTimestamp } from "@common/dates";
-import { ProjectItemState } from "@common/documents";
 import {
   diagnoseDeterminacy,
   validateTaskConstraints,
 } from "@services/schedule/scheduleConstraintService";
 import "@webview/components/Form.scss";
 import { FormField } from "@webview/components/FormField";
-import { Select } from "@webview/components/Select";
 import { TaskFieldsProps } from "@webview/features/entity-editor/entityEditor.types";
 import { useTranslate, useWebviewL10n } from "@webview/l10n";
 
@@ -14,15 +12,8 @@ import { CommonTextFields } from "@webview/features/entity-editor/components/Com
 import { DependencyFields } from "@webview/features/entity-editor/components/DependencyFields";
 import "@webview/features/entity-editor/components/TaskFields.scss";
 import { ValidationMessage } from "@webview/features/entity-editor/components/ValidationMessage";
-import {
-  ProjectItemStateLabel,
-  STATE_OPTIONS,
-  taskValidationMessages,
-} from "@webview/features/entity-editor/entityEditorPresentation";
-import {
-  makeMultiUpdater,
-  makeUpdater,
-} from "@webview/features/entity-editor/hooks/useFieldUpdater";
+import { taskValidationMessages } from "@webview/features/entity-editor/entityEditorPresentation";
+import { makeUpdater } from "@webview/features/entity-editor/hooks/useFieldUpdater";
 
 /** Renders task-specific fields plus dependency editing controls. */
 export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
@@ -31,7 +22,6 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
   const { locale } = useWebviewL10n();
   const t = useTranslate();
   const update = makeUpdater(task, onChange);
-  const multiUpdate = makeMultiUpdater(task, onChange);
 
   const validation = validateTaskConstraints(task, document.dependencies);
   const diagnostic = diagnoseDeterminacy(task.id, validation);
@@ -39,51 +29,11 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
   return (
     <div className="ganttee-form">
       <CommonTextFields
-        name={task.name}
-        description={task.description}
-        groupId={task.groupId}
+        item={task}
         groups={document.groups}
-        onName={(name) => update("name", name)}
-        onDescription={(description) => update("description", description)}
-        onGroupId={(groupId) => update("groupId", groupId)}
+        statuses={document.settings.statuses}
+        onChange={onChange}
       />
-      <div className="ganttee-form__row">
-        <FormField label={t("State")}>
-          <Select
-            value={task.state ?? "open"}
-            onChange={(event) => update("state", event.target.value as ProjectItemState)}
-          >
-            {STATE_OPTIONS.map((state) => (
-              <option key={state} value={state}>
-                {t(ProjectItemStateLabel(state))}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-        <FormField label={t("Status")}>
-          <Select
-            value={task.status ?? ""}
-            onChange={(event) => {
-              const nextStatusId = event.target.value || undefined;
-              const nextStatus = document.settings.statuses.find(
-                (status) => status.id === nextStatusId,
-              );
-              if (nextStatus?.state !== undefined) {
-                multiUpdate({ state: nextStatus.state, status: nextStatusId });
-              } else {
-                multiUpdate({ status: nextStatusId });
-              }
-            }}
-          >
-            <option value="">{t("None")}</option>
-            {document.settings.statuses.map((status) => (
-              <option key={status.id} value={status.id}>
-                {status.name}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-      </div>
       <hr />
       <div className="ganttee-form__row">
         <FormField label={t("Start")}>

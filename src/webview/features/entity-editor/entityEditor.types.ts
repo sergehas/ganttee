@@ -4,6 +4,8 @@ import {
   Group,
   Milestone,
   ProjectContent,
+  ProjectItem,
+  ProjectStatus,
   Task,
 } from "@common/documents";
 import {
@@ -51,22 +53,16 @@ export interface TaskFormProps {
 
 /** Props for the CommonTextFields section shared by all entity editors. */
 export interface CommonTextFieldsProps {
-  /** Entity name value. */
-  name: string;
-  /** Optional entity description. */
-  description?: string;
-  /** Optional containing group identifier. */
-  groupId?: string;
+  /** Project item currently being edited. */
+  item: ProjectItem;
+  /** Status definitions available for selection. */
+  statuses?: ProjectStatus[];
   /** Groups available for selection. */
-  groups: Group[];
+  groups?: Group[];
   /** Group identifier excluded from the selection. */
   excludedGroupId?: string;
-  /** Updates the entity name. */
-  onName: (name: string) => void;
-  /** Updates or clears the entity description. */
-  onDescription: (description: string | undefined) => void;
-  /** Updates or clears the containing group. */
-  onGroupId: (groupId: string | undefined) => void;
+  /** Replaces the current project item draft. */
+  onChange?: (item: ProjectItem) => void;
 }
 
 /** Props for the task-specific fields section. */

@@ -23,16 +23,13 @@ export function GroupFields(props: GroupFieldsProps): React.JSX.Element {
   return (
     <div className="ganttee-form ganttee-group-fields">
       <CommonTextFields
-        name={group.name}
-        description={group.description}
-        groupId={group.groupId}
+        item={group}
         groups={document.groups}
         excludedGroupId={group.id}
-        onName={(name) => update("name", name)}
-        onDescription={(description) => update("description", description)}
-        onGroupId={(groupId) => update("groupId", groupId)}
+        statuses={document.settings.statuses}
+        onChange={props.onChange}
       />
-
+      <hr />
       <div className="ganttee-form__row">
         <FormField label={t("Start")}>
           <input
