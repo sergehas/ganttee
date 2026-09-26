@@ -21,15 +21,25 @@ styles are `classic`, matching the current chart, and `metro`, using metro-map-l
 
 - Support multiple chart visual styles.
 - Let users select the active style from the chart menu bar view controls.
-- Persist the selected style in the `.ganttee` file's `view` object.
+- Persist selected visual style as a view option.
 - Keep visual style behavior limited to chart rendering.
+- Persist the selected style in the `.ganttee` file's `view` object.
 - Provide `classic`, `rounded` and `metro` styles initially.
+- Add a persisted view option to toggle between standard Y-axis labels and labels displayed on graph
+  items.
+- Add a persisted view option to show or hide X-axis labels.
+- Add a persisted view option to switch the chart between light and dark themes. In light theme,
+  enforce a white chart background.
+- Add a non persisted view option to show or legend.
+- Add a non persisted view option to show or chart legend.
 
 ## Non-goals
 
 - Changing validation, scheduling, dependency computation, or other services.
 - Adding visual styles beyond `classic`, `rounded` and `metro` in this phase.
 - Changing the underlying task, milestone, group, dependency, or critical-path data model.
+- Bumping the document version.
+- Implementing document migration.
 
 ## Rules
 
