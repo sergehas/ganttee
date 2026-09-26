@@ -1,6 +1,14 @@
 {
-  "color": ["#516b91", "#59c4e6", "#edafda", "#93b7e3", "#a5e7f0", "#cbb0e3"],
-  "backgroundColor": "rgba(0,0,0,0)",
+  "color": [
+    "#4ea397",
+    "#7bd9a5",
+    "#d0648a",
+    "#7bd9a5",
+    "rgba(127, 127, 127, 0.60)",
+    "rgba(127, 127, 127, 0.12)",
+    "rgba(127, 127, 127, 0.18)"
+  ],
+  "backgroundColor": "rgba(255,255,255,0)",
   "textStyle": {},
   "title": {
     "textStyle": {
@@ -15,22 +23,22 @@
       "borderWidth": "2"
     },
     "lineStyle": {
-      "width": "2"
+      "width": "3"
     },
-    "symbolSize": "6",
+    "symbolSize": "8",
     "symbol": "emptyCircle",
-    "smooth": true
+    "smooth": false
   },
   "radar": {
     "itemStyle": {
       "borderWidth": "2"
     },
     "lineStyle": {
-      "width": "2"
+      "width": "3"
     },
-    "symbolSize": "6",
+    "symbolSize": "8",
     "symbol": "emptyCircle",
-    "smooth": true
+    "smooth": false
   },
   "bar": {
     "itemStyle": {
@@ -68,82 +76,24 @@
       "borderColor": "#ccc"
     }
   },
-  "funnel": {
-    "itemStyle": {
-      "borderWidth": 0,
-      "borderColor": "#ccc"
-    }
-  },
   "gauge": {
     "itemStyle": {
       "borderWidth": 0,
       "borderColor": "#ccc"
     }
   },
-  "candlestick": {
-    "itemStyle": {
-      "color": "#edafda",
-      "color0": "transparent",
-      "borderColor": "#d680bc",
-      "borderColor0": "#8fd3e8",
-      "borderWidth": "2"
-    }
-  },
-  "graph": {
-    "itemStyle": {
-      "borderWidth": 0,
-      "borderColor": "#ccc"
+  "axisPointer": {
+    "label": {
+      "color": "#222",
+      "backgroundColor": "#4ea397"
     },
     "lineStyle": {
-      "width": 1,
-      "color": "#aaa"
+      "color": "#cccccc",
+      "width": 1
     },
-    "symbolSize": "6",
-    "symbol": "emptyCircle",
-    "smooth": true,
-    "color": ["#516b91", "#59c4e6", "#edafda", "#93b7e3", "#a5e7f0", "#cbb0e3"],
-    "label": {
-      "color": "#eee"
-    }
-  },
-  "map": {
-    "itemStyle": {
-      "areaColor": "#f3f3f3",
-      "borderColor": "#516b91",
-      "borderWidth": 0.5
-    },
-    "label": {
-      "color": "#000"
-    },
-    "emphasis": {
-      "itemStyle": {
-        "areaColor": "#a5e7f0",
-        "borderColor": "#516b91",
-        "borderWidth": 1
-      },
-      "label": {
-        "color": "#516b91"
-      }
-    }
-  },
-  "geo": {
-    "itemStyle": {
-      "areaColor": "#f3f3f3",
-      "borderColor": "#516b91",
-      "borderWidth": 0.5
-    },
-    "label": {
-      "color": "#000"
-    },
-    "emphasis": {
-      "itemStyle": {
-        "areaColor": "#a5e7f0",
-        "borderColor": "#516b91",
-        "borderWidth": 1
-      },
-      "label": {
-        "color": "#516b91"
-      }
+    "crossStyle": {
+      "color": "#cccccc",
+      "width": 1
     }
   },
   "categoryAxis": {
@@ -299,49 +249,49 @@
   },
   "timeline": {
     "lineStyle": {
-      "color": "#8fd3e8",
+      "color": "#4ea397",
       "width": 1
     },
     "itemStyle": {
-      "color": "#8fd3e8",
+      "color": "#4ea397",
       "borderWidth": 1
     },
     "controlStyle": {
-      "color": "#8fd3e8",
-      "borderColor": "#8fd3e8",
+      "color": "#4ea397",
+      "borderColor": "#4ea397",
       "borderWidth": 0.5
     },
     "checkpointStyle": {
-      "color": "#8fd3e8",
-      "borderColor": "rgba(138,124,168,0.37)"
+      "color": "#4ea397",
+      "borderColor": "rgba(60,235,210,0.3)"
     },
     "label": {
-      "color": "#8fd3e8"
+      "color": "#4ea397"
     },
     "emphasis": {
       "itemStyle": {
-        "color": "#8fd3e8"
+        "color": "#4ea397"
       },
       "controlStyle": {
-        "color": "#8fd3e8",
-        "borderColor": "#8fd3e8",
+        "color": "#4ea397",
+        "borderColor": "#4ea397",
         "borderWidth": 0.5
       },
       "label": {
-        "color": "#8fd3e8"
+        "color": "#4ea397"
       }
     }
   },
   "visualMap": {
-    "color": ["#516b91", "#59c4e6", "#a5e7f0"]
+    "color": ["#d0648a"]
   },
   "markPoint": {
     "label": {
-      "color": "#eee"
+      "color": "#ffffff"
     },
     "emphasis": {
       "label": {
-        "color": "#eee"
+        "color": "#ffffff"
       }
     }
   },

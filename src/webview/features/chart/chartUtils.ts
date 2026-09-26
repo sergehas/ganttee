@@ -158,7 +158,7 @@ export function chartTooltipFormatter(
   params: unknown,
   locale: string,
   unavailable: string,
-  formatRange: (start: string, end: string) => string,
+  translate: (source: string, ...values: readonly unknown[]) => string,
 ): string {
   const data = (
     params as {
@@ -182,7 +182,7 @@ export function chartTooltipFormatter(
       locale,
       unavailable,
     );
-    return `<strong>${escapeChartHtml(data.task.name)}</strong><br/>${formatRange(start, end)}`;
+    return `<strong>${escapeChartHtml(data.task.name)}</strong><br/>${translate("{0} → {1}", start, end)}`;
   }
   if (data?.milestone) {
     const date = displayTooltipDate(data.effectiveDate ?? data.milestone.date, locale, unavailable);

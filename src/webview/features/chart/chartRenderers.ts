@@ -1,4 +1,4 @@
-import { CHART_BAR_RATIO, CRITICAL_ITEM_STYLE } from "@webview/features/chart/chart.constants";
+import { CHART_BAR_RATIO } from "@webview/features/chart/chart.constants";
 import {
   clipTimelineRectangle,
   isPointInTimeline,
@@ -70,7 +70,6 @@ export const renderGroup: CustomSeriesRenderItem = (
   }
   const quarter = shape.height / 4;
   const r = 3;
-  const fill = api.visual("color") as string;
   return {
     type: "compoundPath",
     shape: {
@@ -107,7 +106,7 @@ export const renderGroup: CustomSeriesRenderItem = (
         },
       ],
     },
-    style: { fill },
+    style: { fill: api.visual("color") as string },
   };
 };
 
@@ -146,31 +145,6 @@ export const renderMilestone: CustomSeriesRenderItem = (
 };
 
 /**
- * Renders an ordinary dependency as an orthogonal link.
- *
- * @param _params Custom-series render parameters, unused by this renderer.
- * @param api Custom-series render API used to read dependency endpoints.
- * @returns An orthogonal polyline connecting the dependency endpoints.
- */
-export const renderLink: CustomSeriesRenderItem = (
-  _params: CustomSeriesRenderItemParams,
-  api: CustomSeriesRenderItemAPI,
-): CustomSeriesRenderItemReturn => renderDependencyLink(api, "#555555", 2);
-
-/**
- * Renders a critical dependency above ordinary dependency lines and bars.
- *
- * @param _params Custom-series render parameters, unused by this renderer.
- * @param api Custom-series render API used to read dependency endpoints.
- * @returns A prominently styled orthogonal polyline connecting the dependency
- *          endpoints.
- */
-export const renderCriticalLink: CustomSeriesRenderItem = (
-  _params: CustomSeriesRenderItemParams,
-  api: CustomSeriesRenderItemAPI,
-): CustomSeriesRenderItemReturn => renderDependencyLink(api, CRITICAL_ITEM_STYLE.borderColor, 3);
-
-/**
  * Builds a dependency link with the requested stroke treatment.
  *
  * @param api Custom-series render API used to convert dependency values to
@@ -179,10 +153,9 @@ export const renderCriticalLink: CustomSeriesRenderItem = (
  * @param lineWidth Width of the link stroke in pixels.
  * @returns An orthogonal polyline connecting the source and target points.
  */
-function renderDependencyLink(
+export function renderDependencyLink(
+  _params: CustomSeriesRenderItemParams,
   api: CustomSeriesRenderItemAPI,
-  stroke: string,
-  lineWidth: number,
 ): CustomSeriesRenderItemReturn {
   const from = api.coord([api.value(1), api.value(0)]);
   const to = api.coord([api.value(3), api.value(2)]);
@@ -197,9 +170,38 @@ function renderDependencyLink(
         [to[0], to[1]],
       ],
     },
-    style: { stroke, lineWidth, fill: "none" },
+    style: { stroke: api.visual("color") as string, lineWidth: 2, fill: "none" },
   };
 }
+
+/**
+ * Renders a calendar shading band spanning the full timeline height.
+ *
+ * @param params Custom-series render parameters containing the chart grid.
+ * @param api Custom-series render API used to read the band bounds and its fill.
+ * @returns A clipped rectangle covering the band, or `undefined` when it lies
+ *          outside the timeline grid.
+ */
+export const renderCalendarArea: CustomSeriesRenderItem = (
+  params: CustomSeriesRenderItemParams,
+  api: CustomSeriesRenderItemAPI,
+): CustomSeriesRenderItemReturn => {
+  const grid = timelineGrid(params);
+  const start = api.coord([api.value(0), 0])[0];
+  const end = api.coord([api.value(1), 0])[0];
+  const shape = clipTimelineRectangle(
+    { x: start, y: grid.y, width: Math.max(end - start, 1), height: grid.height },
+    grid,
+  );
+  if (shape === undefined) {
+    return undefined;
+  }
+  return {
+    type: "rect",
+    shape,
+    style: { fill: api.visual("color") as string },
+  };
+};
 
 /**
  * Resolves the active Cartesian grid from custom-series render parameters.

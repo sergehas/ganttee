@@ -552,7 +552,11 @@ export class GanttEditorController {
     this.post({
       type: "l10nCatalog",
       locale: vscode.env.language,
-      strings: createWebviewL10nCatalog((source) => vscode.l10n.t(source)),
+      strings: createWebviewL10nCatalog(
+        (source) => vscode.l10n.t(source),
+        //dirty hack, as some people makes no difference between a key and a value
+        vscode.env.language === "en",
+      ),
     });
     this.sendInit();
   }

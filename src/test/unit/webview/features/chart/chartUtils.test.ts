@@ -16,7 +16,8 @@ import * as assert from "assert";
 suite("chartUtils", () => {
   const locale = "en-US";
   const unavailable = "—";
-  const formatRange = (start: string, end: string) => `${start} → ${end}`;
+  const formatRange = (_source: string, ...values: readonly unknown[]) =>
+    `${values[0]} → ${values[1]}`;
   test("builds rows and indexes tasks before milestones", () => {
     const document = createDocument();
 

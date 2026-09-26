@@ -2,7 +2,7 @@ import { ProjectView } from "@common/documents";
 import { EffectiveSchedulePresentation, ProjectPresentation } from "@common/presentation/project";
 import { EditableEntityRef } from "@common/protocol";
 import { CHART_ROW_HEIGHT, CRITICAL_ITEM_STYLE } from "@webview/features/chart/chart.constants";
-import { CalendarArea, TimelineTickData } from "@webview/features/chart/chart.types";
+import { CalendarAreaData, TimelineTickData } from "@webview/features/chart/chart.types";
 import { exportChartImage } from "@webview/features/chart/chartExport";
 import type {
   ChartExportDestination,
@@ -10,9 +10,9 @@ import type {
 } from "@webview/features/chart/chartExport.types";
 import { isDirectEditGesture } from "@webview/features/chart/chartInteractions";
 import {
-  renderCriticalLink,
+  renderCalendarArea,
+  renderDependencyLink,
   renderGroup,
-  renderLink,
   renderMilestone,
   renderTask,
 } from "@webview/features/chart/chartRenderers";
@@ -31,12 +31,11 @@ import {
 } from "@webview/features/chart/timelineAxis";
 import { createTimelineTickRenderer } from "@webview/features/chart/timelineHeaderRenderer";
 import { translate, useWebviewL10n } from "@webview/l10n";
-import type {} from "echarts";
 import { CustomChart } from "echarts/charts";
 import {
   DataZoomComponent,
   GridComponent,
-  MarkAreaComponent,
+  LegendComponent,
   TooltipComponent,
 } from "echarts/components";
 import * as echarts from "echarts/core";
@@ -46,14 +45,14 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 echarts.use([
   CustomChart,
   GridComponent,
-  MarkAreaComponent,
   TooltipComponent,
   DataZoomComponent,
   CanvasRenderer,
   SVGRenderer,
+  LegendComponent,
 ]);
 
-import * as theme from "@themes/blue.json";
+import * as theme from "@themes/blue-theme.json";
 
 interface GanttChartProps {
   /** Current authored and computed project presentation. */
@@ -118,14 +117,25 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
       });
       chartRef.current = chart;
 
-      chart.on("click", (params) => {
-        const entity = entityFromChartEvent(params);
+      chart.on("click", (event) => {
+        const entity = entityFromChartEvent(event);
         if (entity) {
-          if (isDirectEditGesture(params)) {
+          if (isDirectEditGesture(event)) {
             propsRef.current.onNudgeEntityByDays?.(entity, 1);
             return;
           }
           propsRef.current.onEditEntity(entity);
+        }
+        console.log(`chart click event: ${event.componentType}`, event);
+        switch (event.componentType) {
+          case "Legend":
+            //TODO : toggle props.view for the day-off or holidays or dependencies display
+            break;
+          case "series":
+            //TODO : if not isDirectEditGesture & entity is a group, collapse this group (hide all
+            // its child entities) else, onEditEntity should be triggered
+            //BTW, onNudgeEntityByDays should be removed (useless, not required)
+            break;
         }
       });
 
@@ -148,8 +158,12 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
         return;
       }
       chart.setOption(
-        buildOption(props.project, props.view, l10n.locale, translate(l10n, "—"), (start, end) =>
-          translate(l10n, "{0} → {1}", start, end),
+        buildOption(
+          props.project,
+          props.view,
+          l10n.locale,
+          translate(l10n, "—"),
+          (source: string, ...values: readonly unknown[]) => translate(l10n, source, ...values),
         ),
         true,
       );
@@ -185,7 +199,7 @@ function buildOption(
   view: ProjectView,
   locale: string,
   unavailable: string,
-  formatRange: (start: string, end: string) => string,
+  translate: (text: string, ...args: readonly unknown[]) => string,
 ): echarts.EChartsCoreOption {
   const tasks = project.tasks.filter(hasEffectiveSchedule);
   const milestones = project.milestones.filter(hasEffectiveSchedule);
@@ -231,6 +245,7 @@ function buildOption(
             : statusColor !== undefined
               ? { color: statusColor }
               : undefined,
+        name: task.name,
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
@@ -274,27 +289,30 @@ function buildOption(
     ]),
   );
 
-  const linkData = project.dependencies
-    .map((dep) => {
-      const source = scheduledById.get(dep.sourceId);
-      const target = scheduledById.get(dep.targetId);
-      if (!source || !target) {
-        return undefined;
-      }
-      const sourceRow = indexById.get(source.id) ?? 0;
-      const targetRow = indexById.get(target.id) ?? 0;
-      const endpoints = dependencyLinkEndpoints(dep.type, source, target);
-      if (!endpoints) {
-        return undefined;
-      }
-      const [fromMs, toMsValue] = endpoints;
-      return {
-        id: dep.id,
-        value: [targetRow, fromMs, sourceRow, toMsValue],
-      };
-    })
-    .filter((item): item is { id: string; value: number[] } => item !== undefined);
-  const calendarAreas = buildCalendarAreas(project, range, view);
+  const linkData = project.dependencies.map((dep) => {
+    const source = scheduledById.get(dep.sourceId);
+    const target = scheduledById.get(dep.targetId);
+    if (!source || !target) {
+      return undefined;
+    }
+    const sourceRow = indexById.get(source.id) ?? 0;
+    const targetRow = indexById.get(target.id) ?? 0;
+    const endpoints = dependencyLinkEndpoints(dep.type, source, target);
+    if (!endpoints) {
+      return undefined;
+    }
+    const [fromMs, toMsValue] = endpoints;
+    return {
+      id: dep.id,
+      value: [targetRow, fromMs, sourceRow, toMsValue],
+      itemStyle:
+        view.showCriticalPath && criticalDependencyIds.has(dep.id)
+          ? CRITICAL_ITEM_STYLE
+          : undefined,
+    };
+  });
+  const offDaysAreas = buildOffDaysAreas(project, range);
+  const holidayAreas = buildHolidayAreas(project, range);
   const timelineAxis = createTimelineAxisModel(view.zoomLevel, locale);
   const axisRange = {
     min: alignTimelineStart(view.zoomLevel, range.min),
@@ -309,8 +327,16 @@ function buildOption(
     animation: false,
     tooltip: {
       trigger: "item",
-      formatter: (params: unknown) =>
-        chartTooltipFormatter(params, locale, unavailable, formatRange),
+      formatter: (params: unknown) => chartTooltipFormatter(params, locale, unavailable, translate),
+    },
+    legend: {
+      show: true,
+      bottom: 0,
+      // data: ["groups", "tasks", "milestones", "dependencies", "Design"],
+      formatter: (name: string) => {
+        return translate(name);
+      },
+      triggerEvent: true,
     },
     axisPointer: {
       show: true,
@@ -326,7 +352,7 @@ function buildOption(
       {
         type: "inside",
         xAxisIndex: 0,
-        filterMode: "none",
+        filterMode: "weakFilter",
         start: 0,
         end: zoomEnd,
       },
@@ -374,6 +400,17 @@ function buildOption(
       },
       {
         type: "custom",
+        name: "dependencies",
+        renderItem: renderDependencyLink,
+        encode: { x: [1, 3], y: [0, 2] },
+        data: view.showDependencies ? linkData : [],
+        clip: true,
+        zlevel: 1,
+        silent: true,
+      },
+
+      {
+        type: "custom",
         name: "timeline-header",
         renderItem: createTimelineTickRenderer(
           timelineAxis.formatSelected,
@@ -389,28 +426,22 @@ function buildOption(
       },
       {
         type: "custom",
-        name: "dependencies",
-        renderItem: renderLink,
-        encode: { x: [1, 3], y: [0, 2] },
-        data: view.showDependencies ? linkData : [],
+        name: "off-days",
+        renderItem: renderCalendarArea,
+        encode: { x: [0, 1] },
+        data: offDaysAreas,
         clip: true,
-        zlevel: 1,
+        zlevel: 0,
         silent: true,
-        markArea: {
-          silent: true,
-          data: calendarAreas,
-        },
       },
       {
         type: "custom",
-        name: "critical-dependencies",
-        renderItem: renderCriticalLink,
-        encode: { x: [1, 3], y: [0, 2] },
-        data: view.showCriticalPath
-          ? linkData.filter((link) => criticalDependencyIds.has(link.id))
-          : [],
+        name: "holidays",
+        renderItem: renderCalendarArea,
+        encode: { x: [0, 1] },
+        data: holidayAreas,
         clip: true,
-        zlevel: 2,
+        zlevel: 0,
         silent: true,
       },
     ],
@@ -430,41 +461,39 @@ function resolveStatusColor(
   return status?.color;
 }
 
-/** Builds off-day and holiday shading ranges for the visible chart interval. */
-function buildCalendarAreas(
+/** Builds off-day shading ranges for the visible chart interval. */
+function buildOffDaysAreas(
   project: ProjectPresentation,
   range: { min: number; max: number },
-  view: ProjectView,
-): CalendarArea[] {
-  const areas: CalendarArea[] = [];
-  if (view.showOffDays) {
-    const daysOff = project.settings.workingCalendar.daysOff;
-    for (let start = startOfDay(range.min); start < range.max; start += DAY) {
-      const weekday = new Date(start).getDay() || 7;
-      if (daysOff.includes(weekday)) {
-        areas.push([
-          {
-            xAxis: start,
-            itemStyle: { color: "rgba(127, 127, 127, 0.12)" },
-          },
-          { xAxis: start + DAY },
-        ]);
-      }
+): CalendarAreaData[] {
+  const areas: CalendarAreaData[] = [];
+  const daysOff = project.settings.workingCalendar.daysOff;
+  for (let start = startOfDay(range.min); start < range.max; start += DAY) {
+    const weekday = new Date(start).getDay() || 7;
+    if (daysOff.includes(weekday)) {
+      areas.push({
+        value: [start, start + DAY],
+        // itemStyle: { color: "rgba(127, 127, 127, 0.12)" },
+      });
     }
   }
-  if (view.showHolidays) {
-    for (const holiday of project.settings.holidays) {
-      const start = startOfDay(toChartMs(holiday.start));
-      const end = startOfDay(toChartMs(holiday.end)) + DAY;
-      if (end >= range.min && start <= range.max) {
-        areas.push([
-          {
-            xAxis: start,
-            itemStyle: { color: "rgba(127, 127, 127, 0.18)" },
-          },
-          { xAxis: end },
-        ]);
-      }
+  return areas;
+}
+
+/** Builds holiday shading ranges for the visible chart interval. */
+function buildHolidayAreas(
+  project: ProjectPresentation,
+  range: { min: number; max: number },
+): CalendarAreaData[] {
+  const areas: CalendarAreaData[] = [];
+  for (const holiday of project.settings.holidays) {
+    const start = startOfDay(toChartMs(holiday.start));
+    const end = startOfDay(toChartMs(holiday.end)) + DAY;
+    if (end >= range.min && start <= range.max) {
+      areas.push({
+        value: [start, end],
+        //itemStyle: { color: "rgba(127, 127, 127, 0.18)" },
+      });
     }
   }
   return areas;

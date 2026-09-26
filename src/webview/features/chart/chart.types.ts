@@ -1,13 +1,10 @@
-/** Timeline coordinate for one calendar-area boundary. */
-export interface CalendarAreaBoundary {
-  /** Timeline coordinate for this boundary. */
-  readonly xAxis: number;
-  /** Optional fill applied to the complete area. */
+/** Timeline span and fill for one calendar shading band. */
+export interface CalendarAreaData {
+  /** Start and end timeline coordinates of the band. */
+  readonly value: readonly [number, number];
+  /** Fill applied to the band. */
   readonly itemStyle?: { readonly color: string };
 }
-
-/** Calendar area represented as inclusive start and end boundaries. */
-export type CalendarArea = [CalendarAreaBoundary, CalendarAreaBoundary];
 
 /** Timestamp and placeholder row coordinate used by the custom series. */
 export interface TimelineTickData {

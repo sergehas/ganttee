@@ -119,5 +119,13 @@
   "Copy to clipboard": "Copy to clipboard",
   "Gantt chart.svg": "Gantt chart.svg",
   "Gantt chart.png": "Gantt chart.png",
-  "Unable to export chart image.": "Unable to export chart image."
+  "Unable to export chart image.": "Unable to export chart image.",
+  "groups": "Groups",
+  "tasks": "Tasks",
+  "milestones": "Milestones",
+  "dependencies": "Dependencies",
+  "off-days": "Off-days",
+  "holidays": "Holidays",
+  "timeline-header": "Timeline labels",
+  "toto": "Toto pedalo"
 }
