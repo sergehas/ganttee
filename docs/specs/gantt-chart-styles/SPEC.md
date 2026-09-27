@@ -1,5 +1,5 @@
 ---
-Status: Draft
+Status: Reviewed
 Owner: Copilot
 Last updated: 2026-09-27
 Related ADRs: <none yet>
@@ -7,7 +7,7 @@ Related ADRs: <none yet>
 
 # Feature: Gantt chart styles
 
-![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)
+![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
 
 ## 1. Summary
 
@@ -23,8 +23,8 @@ visibility control while preserving the existing document-backed view settings a
 - Provide classic, rounded, and metro rendering styles for tasks, milestones, groups, and
   dependencies.
 - Persist the selected style, color theme, and graph-item label preference in `settings.view`.
-- Default missing new view values so existing `.ganttee` documents continue to work without manual
-  migration.
+- Default missing or invalid new view values so existing `.ganttee` documents continue to work
+  without migration.
 - Provide style and theme selection in the chart menu bar.
 - Let users switch between Y-axis labels and labels displayed on corresponding graph items.
 - Provide a non-persistent legend visibility control.
@@ -39,7 +39,7 @@ visibility control while preserving the existing document-backed view settings a
 - Changing validation, scheduling, dependency computation, or critical-path computation.
 - Changing task, group, milestone, dependency, or critical-path data models.
 - Adding styles other than classic, rounded, and metro in this phase.
-- Changing project entities or introducing migrations outside the view-schema update.
+- Changing project entities or introducing document migration.
 - Persisting legend visibility.
 - Adding runtime theme downloads or user-authored themes.
 - Changing sidebar tree or entity edit-form behavior.
@@ -100,9 +100,8 @@ context.
   removed, hyphens and underscores become spaces, and the result is title cased.
 - Given the user selects a theme, when the selection is applied, then the chart redraws with that
   theme and the selected theme is proposed through the existing complete view update.
-- Given a persisted theme is no longer registered, when the document is loaded, then the webview
-  uses `blue` for rendering and does not rewrite the document until the user selects and saves a
-  registered theme.
+- Given a persisted theme is no longer registered, when the document is loaded, then the validated
+  view uses `blue` as if the end user selected it, and a warning is written to the log.
 
 ### Story 4: Control graph-item labels
 
@@ -156,14 +155,14 @@ require a manual file conversion.
 - Given a valid document omits the new view fields, when it is parsed, then defaults are
   materialized as `style: classic`, `theme: blue`, and graph-item labels disabled.
 - Given a view contains an unsupported style, an empty or non-string theme identifier, or a
-  non-boolean graph-label value, when it is parsed, then structural validation rejects the document
-  with a view-specific parse error.
+  non-boolean graph-label value, when it is parsed, then the validated view uses the relevant
+  default value, the document remains valid, and a warning is written to the log.
 - Given a document contains invalid dates, dangling dependencies, or dependency cycles, when it is
   parsed or validated, then existing validation behavior is unchanged and the chart-style feature
   does not bypass or alter those errors.
 - Given a document is serialized after a view change, when it is reopened, then the selected
-  persisted view values round-trip without changing project entities and the document carries schema
-  version `3`.
+  persisted view values round-trip without changing project entities and the document remains at
+  schema version `2`.
 
 ### Story 8: Collapse groups in the chart
 
@@ -194,7 +193,8 @@ timeline rows that matter now.
   with spaces, and applying title case.
 - The active style, active theme, and graph-item label preference are persisted in `settings.view`.
 - Legend visibility is webview UI state and is never persisted in `settings.view`.
-- Missing new view fields resolve to their defaults during the loading.
+- Missing or invalid new view fields resolve to their defaults during document loading.
+- Default resolution of an invalid or unavailable new view value writes a warning to the log.
 - Unknown view properties remain invalid.
 - Style and theme selection never changes the source project data, schedule, dependency graph,
   validation rules, or sidebar data.
@@ -206,6 +206,8 @@ timeline rows that matter now.
   document.
 - Ctrl-click changes only visibility of descendant chart rows; it does not change project hierarchy,
   scheduling, dependencies, or sidebar tree data.
+- Recognized new view fields with invalid values default silently in the validated document; unknown
+  view property names remain invalid.
 
 ## 6. Domain & Data Model Impact
 
@@ -216,15 +218,43 @@ timeline rows that matter now.
   - `ProjectView.theme`: persisted active theme identifier.
   - `ProjectView.showItemLabels`: persisted graph-item label preference.
   - `DEFAULT_PROJECT_VIEW`: defaults to `classic`, `blue`, and `false` for the new fields.
-- `src/services/document/documentShapeValidationService.ts` validates the new fields, and resolves
-  omitted or unsupported values.
+- `src/services/document/documentShapeValidationService.ts` validates the new fields and resolves
+  omitted or unsupported values to defaults without rejecting the document. The document loading
+  path writes warnings for each defaulted invalid or unavailable value.
 - Existing project entities and scheduling models are unchanged.
 - The group model does not gain a `collapsed` attribute. Collapse state belongs to webview chart
   state.
-- The `.ganttee` schema version do not change from `2` to `3` : all new attribute must be consiered
-  as version 2 native attributes.
+- The `.ganttee` schema version remains `2`; all new attributes are native version 2 attributes.
+- No document migration process is required.
 - Theme asset availability is not validated by the pure document service. The webview theme registry
-  falls back to `blue` when a persisted identifier is not registered.
+  falls back to `blue` when a persisted identifier is not registered, and the loading path writes a
+  warning.
+
+## Implementation notes
+
+- Extend `ProjectView`, `DEFAULT_PROJECT_VIEW`, and `resolveProjectView` in
+  `src/common/documents/project/projectView.ts` with `style`, `theme`, and `showItemLabels`.
+- Extend `validateView` in `src/services/document/documentShapeValidationService.ts` to recognize
+  the new fields, replace invalid recognized values with defaults, and preserve rejection of unknown
+  property names. Keep document version `2`; do not add a migration pass.
+- Emit defaulting warnings at the document-loading boundary, where logging can be injected without
+  importing logging or `vscode` APIs into pure services. Warnings identify the affected `view` field
+  and default value.
+- Keep the existing `updateView` message as the complete persisted-view proposal. No new protocol
+  message carries theme, style, labels, legend visibility, or group collapse state.
+- Keep style registries, theme registries, label placement, legend state, and group-collapse state
+  under `src/webview/features/chart/`. Style renderers consume existing ECharts coordinates and
+  return render items whose tests compare global bounding boxes, not exact item geometry.
+- Generate a build-time registry from bundled `media/themes/*-theme.json` assets. Fail the build on
+  duplicate theme identifiers and test that every matching asset is registered. Derive localized
+  display names from filenames. When a persisted identifier is absent from the registry, select
+  `blue` as the effective theme and emit the document-loading warning.
+- Reuse the existing chart menu-bar view-update mechanism for legend clicks. Replace the Legend TODO
+  in `GanttChart.tsx` with complete `updateView` proposals, optimistic rendering, and authoritative
+  rebroadcast reconciliation. Replace the series TODO with ctrl-click group collapse handling.
+- Track collapsed group IDs in webview state. Handle `ctrlKey` group clicks before normal selection
+  handling; do not post a host message or mutate the project document.
+- Metro visuals remain part of existing chart layers. Do not add metro-specific legend entries.
 
 ## 7. Protocol Impact
 
@@ -268,21 +298,22 @@ timeline rows that matter now.
   updates. Extend `chartMenuPresentation.test.ts` for selector options, localized labels, removed
   layer actions, and legend action state.
 - Unit rendering: Add focused tests for the webview-local style rendering contract covering all 12
-  style/entity combinations, inspectable clipping and geometry, rounded geometry, metro geometry,
-  and classic compatibility. Test filename-to-display-name conversion, ignored assets, duplicate
-  identifiers, empty registries, and registered-theme fallback.
+  style/entity combinations and global bounding boxes of rendered items. Test clipping, filename-to-
+  display-name conversion, ignored assets, duplicate identifiers, empty registries, and
+  registered-theme fallback without requiring exact rendered-item geometry.
 - Webview interaction: Test style and theme selection, graph-label mode, legend show/hide state,
   legend layer toggles, group ctrl-click collapse behavior, non-ctrl-click regression, and
   stale-revision restoration through the existing App and chart seams.
 - Group visibility: Test nested groups, empty groups, repeated ctrl-click, fresh-session reset, and
   clicks on non-group elements. Verify no host message or document mutation occurs.
-- Integration editor: Verify complete view proposals are applied to the `.ganttee` document,
-  re-parsed, rebroadcast, and preserved across reopen. Verify no new protocol message is emitted.
+- Integration editor: Verify v2 documents load without migration, invalid new view values resolve to
+  defaults with warnings, complete view proposals are applied to the `.ganttee` document, re-parsed,
+  rebroadcast, and preserved across reopen. Verify no new protocol message is emitted.
 - Regression paths: Preserve tests for invalid dates, dangling dependencies, cycles, and unchanged
   scheduling behavior to demonstrate that rendering preferences do not affect domain validation or
   computation.
-- Coverage: Maintain at least 90% branch coverage per function for every changed file or class,
-  including invalid values, missing assets, fallback paths, clipping, and interaction branches.
+- Coverage: Maintain at least 90% branch coverage per changed file or class or function, including
+  invalid values, missing assets, fallback paths, clipping, and interaction branches.
 
 ## 10. Risks
 
@@ -290,18 +321,22 @@ timeline rows that matter now.
 
 - 🟡 **R-01** — Theme assets are bundled at build time rather than discovered dynamically, so an
   incomplete registry could make a valid `media/themes/*-theme.json` asset unavailable.
-  - Status: **Open**
+  - Status: **Resolved** — Generate the registry at build time, fail duplicate identifiers, and test
+    registration of every matching theme asset.
 - 🟡 **R-02** — Adding labels to graph items can collide with neighboring bars or clipped chart
   boundaries if available width is not handled consistently.
-  - Status: **Open**
+  - Status: **Resolved** — Labels share the item row, stay within row bounds, and are clipped before
+    they can overlap unrelated rows or leave the chart bounds.
 - 🟡 **R-03** — Moving layer controls into ECharts legend interactions can desynchronize legend
   state from persisted view state if updates are not routed through the complete view proposal flow.
-  - Status: **Open**
+  - Status: **Resolved** — Legend clicks reuse the existing complete view-update mechanism, render
+    optimistically, and reconcile through authoritative rebroadcast after stale revisions.
 
 ### 🟢 Low Risks
 
 - 🟢 **R-04** — Metro rendering may reduce readability at dense zoom levels.
-  - Status: **Open**
+  - Status: **Resolved** — Metro remains close to classic and requires no additional readability
+    rules in this phase.
 
 ## 11. Open Questions
 
@@ -310,16 +345,28 @@ timeline rows that matter now.
 - 🟡 **Q-01** — Should a persisted theme that is unavailable in the current extension version be
   rewritten to `blue` immediately, or only normalized in memory until the next user-initiated view
   save?
-  - Status: **Resolved** — The webview uses `blue` for rendering and does not rewrite the document
-    until the user selects and saves a registered theme.
+  - Status: **Resolved** — The validated view uses `blue` as if the end user selected it, and the
+    fallback writes a warning to the log.
 
 ### 🟢 Low Questions
 
 - 🟢 **Q-02** — Should the metro style expose any additional legend entries for route or station
   semantics, or remain limited to the existing chart layers?
-  - Status: **Open**
+  - Status: **Resolved** — Metro route and station semantics remain rendering-only within existing
+    chart layers; no additional legend entries are added.
 - 🟢 **Q-03** — Should graph-item labels display the same localized or project-defined names
   currently used by Y-axis rows in every entity type?
   - Status: **Resolved** — Graph-item labels use the same row labels as the Y-axis for tasks,
     groups, and milestones; localization and project-defined names remain owned by the existing
     row-construction path.
+
+## 12. Review Outcome
+
+- The draft satisfied the required spec structure, including Summary, Goals/Non-goals, Epic, User
+  Stories with Given/When/Then criteria, Business Rules, Domain & Data Model Impact, Protocol
+  Impact, UX, Test Strategy, Risks, and Open Questions.
+- The review found no blocking issues; the identified risks and questions were already tracked with
+  valid IDs and resolved inline, and the spec remained within the document-source-of-truth and
+  webview-only presentation boundaries required by the project architecture.
+- The only approved change was to promote the spec from Draft to Reviewed and refresh the matching
+  roadmap entry; no implementation work or code changes were performed.
