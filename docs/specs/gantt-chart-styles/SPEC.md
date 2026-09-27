@@ -1,5 +1,5 @@
 ---
-Status: Reviewed
+Status: Implementing
 Owner: Copilot
 Last updated: 2026-09-27
 Related ADRs: <none yet>
@@ -7,7 +7,7 @@ Related ADRs: <none yet>
 
 # Feature: Gantt chart styles
 
-![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
+![Status: Implementing](https://img.shields.io/badge/status-Implementing-F59F00?style=for-the-badge)
 
 ## 1. Summary
 
