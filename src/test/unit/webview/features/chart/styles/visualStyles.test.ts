@@ -184,31 +184,38 @@ suite("visualStyles", () => {
       const [track, start, end] = task.children ?? [];
       assert.strictEqual(track.shape?.height, 4);
       assert.deepStrictEqual([start.shape?.cx, end.shape?.cx], [150, 250]);
-      assert.deepStrictEqual([start.style?.stroke, start.style?.fill], [ITEM_COLOR, "#ffffff"]);
+      assert.deepStrictEqual([start.style?.stroke, start.style?.fill], [ITEM_COLOR, ITEM_COLOR]);
     });
 
     test("metro uses the theme background for station and group fills, with a white fallback", () => {
       const themeBackground = "#121314";
       const theme: ChartThemeData = { ...THEME, backgroundColor: themeBackground };
-      const renderTask = bindThemeToRenderer(VISUAL_STYLES.metro.renderTask, theme);
       const renderGroup = bindThemeToRenderer(VISUAL_STYLES.metro.renderGroup, theme);
       const renderMilestone = bindThemeToRenderer(VISUAL_STYLES.metro.renderMilestone, theme);
-      const task = asElement(renderTask(fakeParams(), fakeApi(TASK)));
       const group = asElement(renderGroup(fakeParams(), fakeApi(TASK)));
       const milestone = asElement(renderMilestone(fakeParams(), fakeApi(MILESTONE)));
       const themeWithoutBackground: ChartThemeData = { palette: [], textStyle: {} };
-      const fallbackTask = asElement(
-        bindThemeToRenderer(VISUAL_STYLES.metro.renderTask, themeWithoutBackground)(
+      const fallbackGroup = asElement(
+        bindThemeToRenderer(VISUAL_STYLES.metro.renderGroup, themeWithoutBackground)(
           fakeParams(),
           fakeApi(TASK),
         ),
       );
+      const fallbackMilestone = asElement(
+        bindThemeToRenderer(VISUAL_STYLES.metro.renderMilestone, themeWithoutBackground)(
+          fakeParams(),
+          fakeApi(MILESTONE),
+        ),
+      );
 
       assert.deepStrictEqual(
-        [task.children?.[1].style?.fill, group.style?.fill, milestone.style?.fill],
-        [themeBackground, themeBackground, themeBackground],
+        [group.style?.fill, milestone.style?.fill],
+        [themeBackground, themeBackground],
       );
-      assert.strictEqual(fallbackTask.children?.[1].style?.fill, "#ffffff");
+      assert.deepStrictEqual(
+        [fallbackGroup.style?.fill, fallbackMilestone.style?.fill],
+        ["#ffffff", "#ffffff"],
+      );
     });
 
     test("metro milestone is a station", () => {
@@ -225,30 +232,63 @@ suite("visualStyles", () => {
       const group = asElement(style.renderGroup(fakeParams(), fakeApi(TASK)));
       assert.deepStrictEqual(
         [group.type, group.shape?.r, group.style?.stroke],
-        ["rect", 5, ITEM_COLOR],
+        ["rect", 5.25, ITEM_COLOR],
+      );
+    });
+
+    test("metro dependency uses straight lines and cubic bends", () => {
+      const style = bindStyle(VISUAL_STYLES.metro);
+      const dependency = asElement(style.renderDependency(fakeParams(), fakeApi(LINK)));
+      assert.deepStrictEqual(
+        dependency.children?.map((child) => child.type),
+        ["line", "bezierCurve", "line", "bezierCurve", "line"],
+      );
+      assert.deepStrictEqual(
+        dependency.children?.map((child) => child.style?.lineWidth),
+        [4, 4, 4, 4, 4],
       );
     });
   });
 
   suite("metro routes", () => {
-    test("uses horizontal, 45°, horizontal segments when the horizontal gap is wide", () => {
-      assert.deepStrictEqual(segmentKinds(metroRoute([150, 10], [250, 50])), ["h", "45", "h"]);
-      assert.deepStrictEqual(segmentKinds(metroRoute([150, 10], [190, 50])), ["h", "45", "h"]);
+    test("keeps the three route segments straight between their bends", () => {
+      const points = metroRoute([150, 10], [240, 70], 10);
+      assert.deepStrictEqual(points, [
+        [150, 10],
+        [180, 10],
+        [210, 70],
+        [240, 70],
+      ]);
+      assert.deepStrictEqual(segmentKinds(points), ["h", "other", "h"]);
     });
 
-    test("uses a 45° then vertical segment when the horizontal gap is narrow", () => {
-      assert.deepStrictEqual(segmentKinds(metroRoute([150, 10], [180, 110])), ["45", "v"]);
+    test("uses one horizontal run and one oblique run when the span is too short for both bends", () => {
+      const points = metroRoute([150, 10], [179, 70], 10);
+      assert.deepStrictEqual(points, [
+        [150, 10],
+        [150 + 29 / 3, 10],
+        [179, 70],
+      ]);
+      assert.deepStrictEqual(segmentKinds(points), ["h", "other"]);
     });
 
-    test("uses a vertical line when both ends share the same time", () => {
-      assert.deepStrictEqual(metroRoute([150, 10], [150, 70]), [
+    test("keeps the three-run route when horizontal span equals the bend threshold", () => {
+      assert.deepStrictEqual(metroRoute([150, 10], [180, 70], 10), [
+        [150, 10],
+        [160, 10],
+        [180, 70],
+      ]);
+    });
+
+    test("uses a vertical line when the horizontal gap is within tolerance", () => {
+      assert.deepStrictEqual(metroRoute([150, 10], [150.25, 70], 10), [
         [150, 10],
         [150, 70],
       ]);
     });
 
     test("falls back to a right-angle route for backward links", () => {
-      assert.deepStrictEqual(segmentKinds(metroRoute([250, 10], [150, 50])), ["h", "v", "h"]);
+      assert.deepStrictEqual(segmentKinds(metroRoute([250, 10], [150, 50], 10)), ["h", "v", "h"]);
     });
   });
 });

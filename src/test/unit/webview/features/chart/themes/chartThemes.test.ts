@@ -24,7 +24,7 @@ suite("chartThemes", () => {
     assert.deepStrictEqual(registry.get("blue"), {
       id: "blue",
       label: "Blue",
-      data: { color: ["#00f"] },
+      data: { palette: ["#00f"] },
     });
   });
 
