@@ -110,6 +110,16 @@ function boundsOf(element: RenderedElement): Bounds {
       return union(
         (shape.points as number[][]).map(([x, y]) => ({ left: x, top: y, right: x, bottom: y })),
       );
+    case "line":
+    case "bezierCurve": {
+      const { x1, y1, x2, y2 } = shape as Record<string, number>;
+      return {
+        left: Math.min(x1, x2),
+        top: Math.min(y1, y2),
+        right: Math.max(x1, x2),
+        bottom: Math.max(y1, y2),
+      };
+    }
     case "compoundPath":
       return union((shape.paths as RenderedElement[]).map(boundsOf));
     case "group":

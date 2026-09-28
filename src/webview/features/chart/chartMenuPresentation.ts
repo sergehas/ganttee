@@ -34,6 +34,8 @@ export interface ChartMenuState {
   readonly view: ProjectView;
   /** Whether the session legend is visible. */
   readonly legendVisible: boolean;
+  /** Whether the session colored-style mode is enabled. */
+  readonly coloredStyleEnabled: boolean;
   /** Selectable color themes. */
   readonly themes: ChartThemeRegistry;
 }
@@ -48,6 +50,8 @@ export interface ChartMenuHandlers {
   readonly onExport: (format: ChartExportFormat, destination: ChartExportDestination) => void;
   /** Toggles the session legend visibility. */
   readonly onToggleLegend: () => void;
+  /** Toggles the session colored-style mode. */
+  readonly onToggleColoredStyle: () => void;
 }
 
 /** Plain action groups used to render the chart menu bar. */
@@ -78,7 +82,7 @@ export function createChartMenuPresentation(
   translate: WebviewTranslator,
   handlers: ChartMenuHandlers,
 ): ChartMenuPresentation {
-  const { view, legendVisible, themes } = state;
+  const { view, legendVisible, coloredStyleEnabled, themes } = state;
   const { onViewChange } = handlers;
   const capitalized = (value: string) => translate(value[0].toUpperCase() + value.slice(1));
 
@@ -104,6 +108,13 @@ export function createChartMenuPresentation(
         translate("Show legend"),
         legendVisible,
         handlers.onToggleLegend,
+      ),
+      createToggleAction(
+        "colored-style",
+        "symbol-color",
+        translate("Colored style"),
+        coloredStyleEnabled,
+        handlers.onToggleColoredStyle,
       ),
     ],
     zoomActions: [

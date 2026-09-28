@@ -70,9 +70,9 @@ suite("visualStyles", () => {
         milestone: { left: 194, top: 4, right: 206, bottom: 16 },
       },
       metro: {
-        task: { left: 145, top: 5, right: 255, bottom: 15 },
-        group: { left: 145, top: 5, right: 255, bottom: 15 },
-        milestone: { left: 195, top: 5, right: 205, bottom: 15 },
+        task: { left: 144.75, top: 4.75, right: 255.25, bottom: 15.25 },
+        group: { left: 144.75, top: 4.75, right: 255.25, bottom: 15.25 },
+        milestone: { left: 194.75, top: 4.75, right: 205.25, bottom: 15.25 },
       },
     } as const;
 

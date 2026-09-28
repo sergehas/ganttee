@@ -15,7 +15,7 @@ export const CRITICAL_ITEM_STYLE = {
   // fill: "#d19a24",
   // stroke: "#f0c36a",
   // lineWidth: 3,
-  color: "#d19a24",
+  color: "#f65800",
   borderColor: "#ff0000",
   borderWidth: 3,
 };

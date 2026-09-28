@@ -6,7 +6,7 @@ import type { registerTheme } from "echarts/core" with { "resolution-mode": "imp
 /** ECharts theme data with the fields consumed by chart visual styles typed explicitly. */
 export type ChartThemeData = Parameters<typeof registerTheme>[1] & {
   /** Palette colors used by the chart theme. */
-  readonly palette?: readonly string[];
+  readonly color?: readonly string[];
   /** Chart canvas background color. */
   readonly backgroundColor?: string;
   /** Default text styling. */

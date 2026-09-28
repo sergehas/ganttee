@@ -22,6 +22,8 @@ export type ThemeAwareRenderItem = (
 export interface VisualStyle {
   /** Persisted style identifier. */
   readonly id: ProjectStyle;
+  /** Whether this style supports the session-only colored rendering mode; defaults to false. */
+  readonly colored?: boolean;
   /** Renders a task bar from `[row, start, end]` values. */
   readonly renderTask: ThemeAwareRenderItem;
   /** Renders a group bar from `[row, start, end]` values. */

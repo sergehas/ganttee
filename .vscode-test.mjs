@@ -11,6 +11,8 @@ export default defineConfig({
   ],
   coverage: {
     // "json-summary" feeds scripts/check-coverage.mjs; "html"/"text" are for human inspection.
+    // c8 filters compiled files before source-map remapping.
+    exclude: ["**/out/test/**", "**/src/test/**"],
     reporter: ["text", "json-summary", "lcov"],
   },
 });

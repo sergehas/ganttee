@@ -26,6 +26,7 @@ const BEND_HANDLE_RATIO = 0.55228475;
  */
 export const metroStyle: VisualStyle = {
   id: "metro",
+  colored: true,
 
   renderTask: (params, api) => {
     const bar = barPlacement(api);

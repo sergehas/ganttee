@@ -1,30 +1,17 @@
-import {
-  DEFAULT_PROJECT_VIEW,
-  Dependency,
-  Group,
-  Milestone,
-  ProjectView,
-  Task,
-} from "@common/documents";
+import { Dependency, Group, Milestone, ProjectView, Task } from "@common/documents";
 import { ProjectPresentation } from "@common/presentation/project";
 import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
 import { SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
 import "@webview/App.scss";
 import { IconBaseUriProvider } from "@webview/components/Icon";
-import type {
-  ChartExportDestination,
-  ChartExportFormat,
-} from "@webview/features/chart/chartExport.types";
-import { ChartMenuBar } from "@webview/features/chart/components/ChartMenuBar";
-import { GanttChart, GanttChartHandle } from "@webview/features/chart/components/GanttChart";
-import { CHART_THEMES, resolveChartTheme } from "@webview/features/chart/themes/chartThemes";
+import { ChartView } from "@webview/features/chart/components/ChartView";
 import { EntityEditor } from "@webview/features/entity-editor/components/EntityEditor";
 import { ValidationMessage } from "@webview/features/entity-editor/components/ValidationMessage";
 import { useEntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
 import { translate, WebviewL10n, WebviewL10nContext } from "@webview/l10n";
 import { createGanttViewState, GanttViewState } from "@webview/viewState";
 import { onHostMessage, postToHost } from "@webview/vscodeApi";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** Webview-only behavior retained until the host acknowledges an entity update. */
 interface PendingEntityUpdate {
@@ -43,10 +30,7 @@ export function App(): React.JSX.Element {
     null,
   );
   const [pendingView, setPendingView] = useState<ProjectView | null>(null);
-  const [legendVisible, setLegendVisible] = useState(true);
-  const [fitVersion, setFitVersion] = useState(0);
   const [iconBaseUri, setIconBaseUri] = useState<string | null>(null);
-  const chartRef = useRef<GanttChartHandle | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const projectRef = useRef<ProjectPresentation | null>(null);
   const editingEntityRef = useRef<EditableEntityRef | null>(null);
@@ -210,9 +194,6 @@ export function App(): React.JSX.Element {
     onRemoveDependency: removeDependency,
   });
 
-  const themeId = (pendingView ?? viewState?.project.view ?? DEFAULT_PROJECT_VIEW).theme;
-  const chartTheme = useMemo(() => resolveChartTheme(CHART_THEMES, themeId), [themeId]);
-
   if (!l10n) {
     return <div className="ganttee-app__empty" aria-busy="true" />;
   }
@@ -239,53 +220,31 @@ export function App(): React.JSX.Element {
     });
   };
 
-  /** Requests a temporary chart viewport fit without changing persisted view data. */
-  const fitToWindow = () => {
-    setFitVersion((version) => version + 1);
-  };
-
-  /** Exports the currently rendered chart and reports browser failures locally. */
-  const exportImage = async (format: ChartExportFormat, destination: ChartExportDestination) => {
-    try {
-      setExportError(null);
-      await chartRef.current?.exportImage(format, destination);
-    } catch {
-      setExportError(translate(l10n, "Unable to export chart image."));
-    }
-  };
-
   return (
     <IconBaseUriProvider baseUri={iconBaseUri ?? ""}>
       <WebviewL10nContext.Provider value={l10n}>
         <div className="ganttee-app">
           <div className="ganttee-app__timeline">
-            <ChartMenuBar
+            <ChartView
+              project={viewState.project}
               view={chartView}
-              legendVisible={legendVisible}
-              themes={CHART_THEMES}
-              themeId={chartTheme.id}
+              isEmpty={
+                viewState.project.tasks.length === 0 && viewState.project.milestones.length === 0
+              }
+              emptyState={
+                <div className="ganttee-app__empty">
+                  {translate(l10n, "No tasks yet. Use the Ganttee sidebar to add one.")}
+                </div>
+              }
+              toolbarFeedback={
+                exportError ? (
+                  <ValidationMessage severity="error">{exportError}</ValidationMessage>
+                ) : null
+              }
               onViewChange={updateView}
-              onToggleLegend={() => setLegendVisible((visible) => !visible)}
-              onFitToWindow={fitToWindow}
-              onExport={exportImage}
+              onEditEntity={toggleEntityEditor}
+              onExportError={setExportError}
             />
-            {exportError && <ValidationMessage severity="error">{exportError}</ValidationMessage>}
-            {viewState.project.tasks.length === 0 && viewState.project.milestones.length === 0 ? (
-              <div className="ganttee-app__empty">
-                {translate(l10n, "No tasks yet. Use the Ganttee sidebar to add one.")}
-              </div>
-            ) : (
-              <GanttChart
-                ref={chartRef}
-                project={viewState.project}
-                view={chartView}
-                theme={chartTheme}
-                legendVisible={legendVisible}
-                fitVersion={fitVersion}
-                onEditEntity={toggleEntityEditor}
-                onViewChange={updateView}
-              />
-            )}
           </div>
           {displayedEditingTarget && (
             <aside

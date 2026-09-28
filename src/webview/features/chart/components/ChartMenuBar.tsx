@@ -19,6 +19,8 @@ interface ChartMenuBarProps {
   readonly view: ProjectView;
   /** Whether the session legend is visible. */
   readonly legendVisible: boolean;
+  /** Whether the session colored-style mode is enabled. */
+  readonly coloredStyleEnabled: boolean;
   /** Selectable color themes. */
   readonly themes: ChartThemeRegistry;
   /** Effective color theme, which may differ from an unregistered persisted theme. */
@@ -27,6 +29,8 @@ interface ChartMenuBarProps {
   readonly onViewChange: (view: ProjectView) => void;
   /** Toggles the session legend visibility. */
   readonly onToggleLegend: () => void;
+  /** Toggles the session colored-style mode. */
+  readonly onToggleColoredStyle: () => void;
   /** Fits the visible chart without changing persisted preferences. */
   readonly onFitToWindow: () => void;
   /** Exports the currently rendered chart image. */
@@ -60,7 +64,12 @@ export function ChartMenuBar(props: ChartMenuBarProps): React.JSX.Element {
   const { view, onViewChange } = props;
   const translate = useTranslate();
   const presentation = createChartMenuPresentation(
-    { view, legendVisible: props.legendVisible, themes: props.themes },
+    {
+      view,
+      legendVisible: props.legendVisible,
+      coloredStyleEnabled: props.coloredStyleEnabled,
+      themes: props.themes,
+    },
     translate,
     props,
   );

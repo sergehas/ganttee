@@ -14,6 +14,10 @@ import {
   resolveChartClick,
 } from "@webview/features/chart/chartInteractions";
 import { withItemLabel } from "@webview/features/chart/chartItemLabels";
+import {
+  buildMetroGroupColorMap,
+  resolveMetroItemColor,
+} from "@webview/features/chart/chartItemColors";
 import { renderCalendarArea } from "@webview/features/chart/chartRenderers";
 import { buildChartRows, ChartRow, toggleCollapsedGroup } from "@webview/features/chart/chartRows";
 import {
@@ -68,6 +72,8 @@ interface GanttChartProps {
   theme: ChartTheme;
   /** Whether the session legend is visible. */
   legendVisible: boolean;
+  /** Whether the session colored-style mode is enabled. */
+  coloredStyleEnabled: boolean;
   /** Changes whenever the chart should fit its current entities. */
   fitVersion: number;
   /** Opens an entity in the edit form. */
@@ -180,6 +186,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
           rows,
           props.theme.data,
           props.legendVisible,
+          props.coloredStyleEnabled,
           l10n.locale,
           translate(l10n, "—"),
           (source: string, ...values: readonly unknown[]) => translate(l10n, source, ...values),
@@ -190,7 +197,15 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
         containerRef.current.style.height = `${Math.max(rows.length, 1) * CHART_ROW_HEIGHT + 80}px`;
         chart.resize();
       }
-    }, [l10n, props.project, props.view, props.legendVisible, props.theme, rows]);
+    }, [
+      l10n,
+      props.project,
+      props.view,
+      props.legendVisible,
+      props.coloredStyleEnabled,
+      props.theme,
+      rows,
+    ]);
 
     return <div className="ganttee-gantt-chart" ref={containerRef} />;
   },
@@ -204,6 +219,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
  * @param project Current authored and computed project presentation.
  * @param view Persisted chart visibility, style, and zoom preferences.
  * @param rows Visible scheduled rows in display order.
+ * @param coloredStyleEnabled Whether the session colored-style mode is enabled.
  * @param legendVisible Whether the session legend is visible.
  * @param locale Locale used by timeline axis builders and tooltip formatting.
  * @param unavailable Localized fallback text for unavailable tooltip values.
@@ -217,6 +233,7 @@ function buildOption(
   rows: readonly ChartRow[],
   themeData: ChartTheme["data"],
   legendVisible: boolean,
+  coloredStyleEnabled: boolean,
   locale: string,
   unavailable: string,
   translate: (text: string, ...args: readonly unknown[]) => string,
@@ -226,6 +243,26 @@ function buildOption(
   const scheduledGroups = project.groups.filter(hasEffectiveSchedule);
   const criticalNodeIds = new Set(project.criticalPath.nodeIds);
   const criticalDependencyIds = new Set(project.criticalPath.dependencyIds);
+  const style = VISUAL_STYLES[view.style];
+  const metroGroupPaletteColors = coloredStyleEnabled
+    ? buildMetroGroupColorMap(project.groups, themeData.color)
+    : new Map<string, string>();
+  const metroGroupColors = new Map<string, string | undefined>();
+  if (coloredStyleEnabled) {
+    for (const group of project.groups) {
+      const isCriticalPathGroup = view.showCriticalPath && criticalNodeIds.has(group.id);
+      metroGroupColors.set(
+        group.id,
+        resolveMetroItemColor(
+          isCriticalPathGroup ? CRITICAL_ITEM_STYLE.color : undefined,
+          metroGroupPaletteColors.get(group.id),
+          resolveStatusColor(group, project.settings.statuses),
+          themeData.color?.[0],
+        ),
+      );
+    }
+  }
+  const metroItemColors = new Map<string, string | undefined>();
   const indexById = new Map(rows.map((row, index) => [row.id, index]));
   const isVisible = (entity: { readonly id: string }) => indexById.has(entity.id);
   const tasks = scheduledTasks.filter(isVisible);
@@ -253,6 +290,18 @@ function buildOption(
 
   const taskData = tasks.map((task) => {
     const statusColor = resolveStatusColor(task, project.settings.statuses);
+    const isCriticalPathTask = view.showCriticalPath && criticalNodeIds.has(task.id);
+    const metroColor = coloredStyleEnabled
+      ? resolveMetroItemColor(
+          isCriticalPathTask ? CRITICAL_ITEM_STYLE.color : undefined,
+          task.groupId === undefined ? undefined : metroGroupColors.get(task.groupId),
+          statusColor,
+          themeData.color?.[1],
+        )
+      : undefined;
+    if (coloredStyleEnabled) {
+      metroItemColors.set(task.id, metroColor);
+    }
     return {
       value: [
         indexById.get(task.id) ?? 0,
@@ -262,9 +311,10 @@ function buildOption(
       task,
       effectiveStart: task.effectiveStart,
       effectiveEnd: task.effectiveEnd,
-      itemStyle:
-        view.showCriticalPath && criticalNodeIds.has(task.id)
-          ? CRITICAL_ITEM_STYLE
+      itemStyle: isCriticalPathTask
+        ? CRITICAL_ITEM_STYLE
+        : metroColor !== undefined
+          ? { color: metroColor }
           : statusColor !== undefined
             ? { color: statusColor }
             : undefined,
@@ -274,13 +324,26 @@ function buildOption(
 
   const milestoneData = milestones.map((milestone) => {
     const statusColor = resolveStatusColor(milestone, project.settings.statuses);
+    const isCriticalPathMilestone = view.showCriticalPath && criticalNodeIds.has(milestone.id);
+    const metroColor = coloredStyleEnabled
+      ? resolveMetroItemColor(
+          isCriticalPathMilestone ? CRITICAL_ITEM_STYLE.color : undefined,
+          undefined,
+          statusColor,
+          themeData.color?.[2],
+        )
+      : undefined;
+    if (coloredStyleEnabled) {
+      metroItemColors.set(milestone.id, metroColor);
+    }
     return {
       value: [indexById.get(milestone.id) ?? 0, toChartMs(milestone.effectiveStart)],
       milestone,
       effectiveDate: milestone.effectiveStart,
-      itemStyle:
-        view.showCriticalPath && criticalNodeIds.has(milestone.id)
-          ? CRITICAL_ITEM_STYLE
+      itemStyle: isCriticalPathMilestone
+        ? CRITICAL_ITEM_STYLE
+        : metroColor !== undefined
+          ? { color: metroColor }
           : statusColor !== undefined
             ? { color: statusColor }
             : undefined,
@@ -289,6 +352,9 @@ function buildOption(
 
   const groupData = groups.map((group) => {
     const statusColor = resolveStatusColor(group, project.settings.statuses);
+    const isCriticalPathGroup =
+      coloredStyleEnabled && view.showCriticalPath && criticalNodeIds.has(group.id);
+    const metroColor = coloredStyleEnabled ? metroGroupColors.get(group.id) : undefined;
     return {
       value: [
         indexById.get(group.id) ?? 0,
@@ -296,7 +362,13 @@ function buildOption(
         toChartMs(group.effectiveEnd),
       ],
       group,
-      itemStyle: statusColor !== undefined ? { color: statusColor } : undefined,
+      itemStyle: isCriticalPathGroup
+        ? CRITICAL_ITEM_STYLE
+        : metroColor !== undefined
+          ? { color: metroColor }
+          : statusColor !== undefined
+            ? { color: statusColor }
+            : undefined,
     };
   });
 
@@ -330,7 +402,9 @@ function buildOption(
       itemStyle:
         view.showCriticalPath && criticalDependencyIds.has(dep.id)
           ? CRITICAL_ITEM_STYLE
-          : undefined,
+          : coloredStyleEnabled && metroItemColors.get(dep.targetId) !== undefined
+            ? { color: metroItemColors.get(dep.targetId) }
+            : undefined,
     };
   });
   const offDaysAreas = buildOffDaysAreas(project, range);
@@ -344,7 +418,6 @@ function buildOption(
   const hasParentAxis = timelineAxis.formatParent !== undefined;
   const fullDuration = Math.max(axisRange.max - axisRange.min, 1);
   const zoomEnd = Math.min(100, (timelineAxis.visibleDuration / fullDuration) * 100);
-  const style = VISUAL_STYLES[view.style];
   const labelled = (
     render: CustomSeriesRenderItem,
     items: readonly { readonly name: string }[],

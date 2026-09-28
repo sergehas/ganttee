@@ -18,7 +18,7 @@ suite("chartMenuPresentation", () => {
 
     assert.deepStrictEqual(
       model.toggleActions.map((action) => action.label),
-      ["[Show critical path]", "[Show labels on items]", "[Show legend]"],
+      ["[Show critical path]", "[Show labels on items]", "[Show legend]", "[Colored style]"],
     );
     assert.deepStrictEqual(
       model.zoomActions.map((action) => action.label),
@@ -37,7 +37,22 @@ suite("chartMenuPresentation", () => {
 
   test("does not expose dependency, off-day, or holiday layer actions", () => {
     const ids = createModel(DEFAULT_PROJECT_VIEW).toggleActions.map((action) => action.id);
-    assert.deepStrictEqual(ids, ["critical-path", "item-labels", "legend"]);
+    assert.deepStrictEqual(ids, ["critical-path", "item-labels", "legend", "colored-style"]);
+  });
+
+  test("always exposes colored-style and reflects the selected style default", () => {
+    const metroView = { ...DEFAULT_PROJECT_VIEW, style: "metro" as const };
+    const metroAction = createModel(metroView, true, true).toggleActions.find(
+      (action) => action.id === "colored-style",
+    );
+    const classicAction = createModel(DEFAULT_PROJECT_VIEW, true, false).toggleActions.find(
+      (action) => action.id === "colored-style",
+    );
+
+    assert.deepStrictEqual(
+      [metroAction?.label, metroAction?.pressed, classicAction?.pressed],
+      ["[Colored style]", true, false],
+    );
   });
 
   test("creates localized zoom, style, and theme options", () => {
@@ -70,13 +85,13 @@ suite("chartMenuPresentation", () => {
 
     assert.deepStrictEqual(
       createModel(view, true).toggleActions.map((action) => action.pressed),
-      [true, false, true],
+      [true, false, true, false],
     );
     assert.deepStrictEqual(
       createModel({ ...view, showItemLabels: true }, false).toggleActions.map(
         (action) => action.pressed,
       ),
-      [true, true, false],
+      [true, true, false, false],
     );
   });
 
@@ -85,8 +100,10 @@ suite("chartMenuPresentation", () => {
     const proposals: ProjectView[] = [];
     let fitCount = 0;
     let legendToggles = 0;
+    let coloredStyleToggles = 0;
+    const metroView = { ...view, style: "metro" as const };
     const model = createChartMenuPresentation(
-      { view, legendVisible: true, themes: THEMES },
+      { view: metroView, legendVisible: true, coloredStyleEnabled: true, themes: THEMES },
       (source) => source,
       createHandlers({
         onViewChange: (nextView) => proposals.push(nextView),
@@ -96,6 +113,9 @@ suite("chartMenuPresentation", () => {
         onToggleLegend: () => {
           legendToggles += 1;
         },
+        onToggleColoredStyle: () => {
+          coloredStyleToggles += 1;
+        },
       }),
     );
 
@@ -104,19 +124,25 @@ suite("chartMenuPresentation", () => {
     }
 
     assert.deepStrictEqual(proposals, [
-      { ...view, showCriticalPath: true },
-      { ...view, showItemLabels: true },
-      { ...view, zoomLevel: "day" },
-      { ...view, zoomLevel: "month" },
+      { ...metroView, showCriticalPath: true },
+      { ...metroView, showItemLabels: true },
+      { ...metroView, zoomLevel: "day" },
+      { ...metroView, zoomLevel: "month" },
     ]);
     assert.strictEqual(fitCount, 1);
     assert.strictEqual(legendToggles, 1);
+    assert.strictEqual(coloredStyleToggles, 1);
   });
 
   test("emits format and destination for export actions", () => {
     const exports: string[] = [];
     const model = createChartMenuPresentation(
-      { view: DEFAULT_PROJECT_VIEW, legendVisible: true, themes: THEMES },
+      {
+        view: DEFAULT_PROJECT_VIEW,
+        legendVisible: true,
+        coloredStyleEnabled: true,
+        themes: THEMES,
+      },
       (source) => source,
       createHandlers({
         onExport: (format, destination) => exports.push(`${format}:${destination}`),
@@ -141,9 +167,13 @@ suite("chartMenuPresentation", () => {
 });
 
 /** Builds menu presentation data with a bracketing translator that exposes localized keys. */
-function createModel(view: ProjectView, legendVisible = true): ChartMenuPresentation {
+function createModel(
+  view: ProjectView,
+  legendVisible = true,
+  coloredStyleEnabled = false,
+): ChartMenuPresentation {
   return createChartMenuPresentation(
-    { view, legendVisible, themes: THEMES },
+    { view, legendVisible, coloredStyleEnabled, themes: THEMES },
     (source) => `[${source}]`,
     createHandlers({}),
   );
@@ -156,6 +186,7 @@ function createHandlers(overrides: Partial<ChartMenuHandlers>): ChartMenuHandler
     onFitToWindow: () => undefined,
     onExport: () => undefined,
     onToggleLegend: () => undefined,
+    onToggleColoredStyle: () => undefined,
     ...overrides,
   };
 }
