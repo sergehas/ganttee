@@ -1,5 +1,10 @@
-import { CURRENT_DOCUMENT_VERSION } from "@common/documents";
-import { parseDocument, serializeDocument } from "@services/document/documentService";
+import { CURRENT_DOCUMENT_VERSION, DEFAULT_PROJECT_VIEW } from "@common/documents";
+import {
+  GanttParseError,
+  parseDocument,
+  serializeDocument,
+  ViewDefaultWarning,
+} from "@services/document/documentService";
 import { FIXTURES_DIR } from "@src/test/testFixtures";
 import * as assert from "assert";
 import * as fs from "fs";
@@ -81,5 +86,37 @@ suite("documentLoad integration", () => {
     assert.ok(Array.isArray(doc.groups));
     assert.ok(Array.isArray(doc.milestones));
     assert.ok(Array.isArray(doc.dependencies));
+  });
+
+  test("v2 fixture without style fields loads with view defaults", () => {
+    const doc = parseDocument(readFixture("v2-simple.ganttee"));
+
+    assert.strictEqual(doc.version, 2);
+    assert.deepStrictEqual(doc.view, DEFAULT_PROJECT_VIEW);
+  });
+
+  test("invalid view values default with one warning each and legacy collapsed is dropped", () => {
+    const warnings: ViewDefaultWarning[] = [];
+    const doc = parseDocument(readFixture("v2-invalid-view.ganttee"), (warning) =>
+      warnings.push(warning),
+    );
+
+    assert.strictEqual(doc.version, 2);
+    assert.deepStrictEqual(doc.view, DEFAULT_PROJECT_VIEW);
+    assert.deepStrictEqual(
+      warnings.map((warning) => warning.field),
+      ["zoomLevel", "showDependencies", "style", "theme", "showItemLabels"],
+    );
+    assert.strictEqual("collapsed" in doc.groups[0], false);
+
+    const styled = { ...doc, view: { ...doc.view, style: "metro" as const, theme: "green" } };
+    assert.deepStrictEqual(parseDocument(serializeDocument(styled)), styled);
+  });
+
+  test("unknown view properties still fail", () => {
+    assert.throws(
+      () => parseDocument(JSON.stringify({ view: { legendVisible: false } })),
+      GanttParseError,
+    );
   });
 });

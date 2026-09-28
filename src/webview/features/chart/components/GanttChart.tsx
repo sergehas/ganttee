@@ -8,22 +8,23 @@ import type {
   ChartExportDestination,
   ChartExportFormat,
 } from "@webview/features/chart/chartExport.types";
-import { isDirectEditGesture } from "@webview/features/chart/chartInteractions";
 import {
-  renderCalendarArea,
-  renderDependencyLink,
-  renderGroup,
-  renderMilestone,
-  renderTask,
-} from "@webview/features/chart/chartRenderers";
+  applyLegendSelection,
+  legendSelection,
+  resolveChartClick,
+} from "@webview/features/chart/chartInteractions";
+import { withItemLabel } from "@webview/features/chart/chartItemLabels";
+import { renderCalendarArea } from "@webview/features/chart/chartRenderers";
+import { buildChartRows, ChartRow, toggleCollapsedGroup } from "@webview/features/chart/chartRows";
 import {
   chartTooltipFormatter,
   DAY,
   dependencyLinkEndpoints,
-  entityFromChartEvent,
   toChartMs,
 } from "@webview/features/chart/chartUtils";
 import "@webview/features/chart/components/GanttChart.scss";
+import { VISUAL_STYLES } from "@webview/features/chart/styles/visualStyles";
+import { CHART_THEMES, ChartTheme } from "@webview/features/chart/themes/chartThemes";
 import {
   alignTimelineStart,
   buildTimelineTicks,
@@ -31,6 +32,7 @@ import {
 } from "@webview/features/chart/timelineAxis";
 import { createTimelineTickRenderer } from "@webview/features/chart/timelineHeaderRenderer";
 import { translate, useWebviewL10n } from "@webview/l10n";
+import type { CustomSeriesRenderItem } from "echarts";
 import { CustomChart } from "echarts/charts";
 import {
   DataZoomComponent,
@@ -40,7 +42,7 @@ import {
 } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer, SVGRenderer } from "echarts/renderers";
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 
 echarts.use([
   CustomChart,
@@ -52,19 +54,25 @@ echarts.use([
   LegendComponent,
 ]);
 
-import * as theme from "@themes/blue-theme.json";
+for (const theme of CHART_THEMES.values()) {
+  echarts.registerTheme(theme.id, theme.data);
+}
 
 interface GanttChartProps {
   /** Current authored and computed project presentation. */
   project: ProjectPresentation;
   /** Persisted chart view preferences. */
   view: ProjectView;
+  /** Effective color theme. */
+  theme: ChartTheme;
+  /** Whether the session legend is visible. */
+  legendVisible: boolean;
   /** Changes whenever the chart should fit its current entities. */
   fitVersion: number;
   /** Opens an entity in the edit form. */
   onEditEntity: (entity: EditableEntityRef) => void;
-  /** Applies an optional direct date shift to an entity. */
-  onNudgeEntityByDays?: (entity: EditableEntityRef, days: number) => void;
+  /** Emits a complete proposed persisted view. */
+  onViewChange: (view: ProjectView) => void;
 }
 
 /** Imperative commands exposed by the rendered chart. */
@@ -87,6 +95,13 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
     const chartRef = useRef<echarts.ECharts | null>(null);
     const propsRef = useRef(props);
     propsRef.current = props;
+    const [collapsedGroupIds, setCollapsedGroupIds] = useState<ReadonlySet<string>>(
+      () => new Set(),
+    );
+    const rows = useMemo(
+      () => visibleRows(props.project, collapsedGroupIds),
+      [props.project, collapsedGroupIds],
+    );
 
     useImperativeHandle(
       ref,
@@ -104,38 +119,34 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
       }),
       [l10n],
     );
-    //const themeData = JSON.parse(walden as unknown as string);
-    echarts.registerTheme("ganttee-theme", theme);
 
     useEffect(() => {
       if (!containerRef.current) {
         return;
       }
-      const theme = "ganttee-theme"; //document.body.classList.contains("vscode-dark") ? "dark" : "light";
-      const chart = echarts.init(containerRef.current, theme, {
+      const chart = echarts.init(containerRef.current, propsRef.current.theme.id, {
         renderer: "svg",
       });
       chartRef.current = chart;
 
       chart.on("click", (event) => {
-        const entity = entityFromChartEvent(event);
-        if (entity) {
-          if (isDirectEditGesture(event)) {
-            propsRef.current.onNudgeEntityByDays?.(entity, 1);
-            return;
-          }
-          propsRef.current.onEditEntity(entity);
+        const action = resolveChartClick(event);
+        switch (action.kind) {
+          case "toggleGroup":
+            setCollapsedGroupIds((current) => toggleCollapsedGroup(current, action.groupId));
+            break;
+          case "edit":
+            propsRef.current.onEditEntity(action.entity);
+            break;
         }
-        console.log(`chart click event: ${event.componentType}`, event);
-        switch (event.componentType) {
-          case "Legend":
-            //TODO : toggle props.view for the day-off or holidays or dependencies display
-            break;
-          case "series":
-            //TODO : if not isDirectEditGesture & entity is a group, collapse this group (hide all
-            // its child entities) else, onEditEntity should be triggered
-            //BTW, onNudgeEntityByDays should be removed (useless, not required)
-            break;
+      });
+      chart.on("legendselectchanged", (event) => {
+        const next = applyLegendSelection(
+          propsRef.current.view,
+          event as { name: string; selected: Record<string, boolean> },
+        );
+        if (next) {
+          propsRef.current.onViewChange(next);
         }
       });
 
@@ -147,6 +158,10 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
         chartRef.current = null;
       };
     }, []);
+
+    useEffect(() => {
+      chartRef.current?.setTheme(props.theme.id);
+    }, [props.theme.id]);
 
     useEffect(() => {
       chartRef.current?.dispatchAction({ type: "dataZoom", start: 0, end: 100 });
@@ -161,6 +176,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
         buildOption(
           props.project,
           props.view,
+          rows,
+          props.legendVisible,
           l10n.locale,
           translate(l10n, "—"),
           (source: string, ...values: readonly unknown[]) => translate(l10n, source, ...values),
@@ -168,14 +185,10 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
         true,
       );
       if (containerRef.current) {
-        const rows =
-          props.project.tasks.length +
-          props.project.milestones.length +
-          props.project.groups.length;
-        containerRef.current.style.height = `${Math.max(rows, 1) * CHART_ROW_HEIGHT + 80}px`;
+        containerRef.current.style.height = `${Math.max(rows.length, 1) * CHART_ROW_HEIGHT + 80}px`;
         chart.resize();
       }
-    }, [l10n, props.project, props.view]);
+    }, [l10n, props.project, props.view, props.legendVisible, props.theme.id, rows]);
 
     return <div className="ganttee-gantt-chart" ref={containerRef} />;
   },
@@ -187,7 +200,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
  * critical-path emphasis, entity bars, milestones, and localized tooltip formatting.
  *
  * @param project Current authored and computed project presentation.
- * @param view Persisted chart visibility and zoom preferences.
+ * @param view Persisted chart visibility, style, and zoom preferences.
+ * @param rows Visible scheduled rows in display order.
+ * @param legendVisible Whether the session legend is visible.
  * @param locale Locale used by timeline axis builders and tooltip formatting.
  * @param unavailable Localized fallback text for unavailable tooltip values.
  * @param formatRange Formats a localized start/end range for tooltip content.
@@ -197,26 +212,32 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
 function buildOption(
   project: ProjectPresentation,
   view: ProjectView,
+  rows: readonly ChartRow[],
+  legendVisible: boolean,
   locale: string,
   unavailable: string,
   translate: (text: string, ...args: readonly unknown[]) => string,
 ): echarts.EChartsCoreOption {
-  const tasks = project.tasks.filter(hasEffectiveSchedule);
-  const milestones = project.milestones.filter(hasEffectiveSchedule);
-  const groups = project.groups.filter(hasEffectiveSchedule);
+  const scheduledTasks = project.tasks.filter(hasEffectiveSchedule);
+  const scheduledMilestones = project.milestones.filter(hasEffectiveSchedule);
+  const scheduledGroups = project.groups.filter(hasEffectiveSchedule);
   const criticalNodeIds = new Set(project.criticalPath.nodeIds);
   const criticalDependencyIds = new Set(project.criticalPath.dependencyIds);
-  const indexableIds = new Set([
-    ...tasks.map((task) => task.id),
-    ...milestones.map((milestone) => milestone.id),
-    ...groups.map((group) => group.id),
-  ]);
-  const rows = orderedRows(project).filter((row) => indexableIds.has(row.id));
   const indexById = new Map(rows.map((row, index) => [row.id, index]));
+  const isVisible = (entity: { readonly id: string }) => indexById.has(entity.id);
+  const tasks = scheduledTasks.filter(isVisible);
+  const milestones = scheduledMilestones.filter(isVisible);
+  const groups = scheduledGroups.filter(isVisible);
   const timestamps = [
-    ...tasks.flatMap((task) => [toChartMs(task.effectiveStart), toChartMs(task.effectiveEnd)]),
-    ...milestones.map((milestone) => toChartMs(milestone.effectiveStart)),
-    ...groups.flatMap((group) => [toChartMs(group.effectiveStart), toChartMs(group.effectiveEnd)]),
+    ...scheduledTasks.flatMap((task) => [
+      toChartMs(task.effectiveStart),
+      toChartMs(task.effectiveEnd),
+    ]),
+    ...scheduledMilestones.map((milestone) => toChartMs(milestone.effectiveStart)),
+    ...scheduledGroups.flatMap((group) => [
+      toChartMs(group.effectiveStart),
+      toChartMs(group.effectiveEnd),
+    ]),
   ];
   const now = Date.now();
   const range =
@@ -227,28 +248,26 @@ function buildOption(
           max: Math.max(...timestamps) + 2 * DAY,
         };
 
-  const taskData = tasks
-    .map((task) => {
-      const statusColor = resolveStatusColor(task, project.settings.statuses);
-      return {
-        value: [
-          indexById.get(task.id) ?? 0,
-          toChartMs(task.effectiveStart),
-          toChartMs(task.effectiveEnd),
-        ],
-        task,
-        effectiveStart: task.effectiveStart,
-        effectiveEnd: task.effectiveEnd,
-        itemStyle:
-          view.showCriticalPath && criticalNodeIds.has(task.id)
-            ? CRITICAL_ITEM_STYLE
-            : statusColor !== undefined
-              ? { color: statusColor }
-              : undefined,
-        name: task.name,
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== undefined);
+  const taskData = tasks.map((task) => {
+    const statusColor = resolveStatusColor(task, project.settings.statuses);
+    return {
+      value: [
+        indexById.get(task.id) ?? 0,
+        toChartMs(task.effectiveStart),
+        toChartMs(task.effectiveEnd),
+      ],
+      task,
+      effectiveStart: task.effectiveStart,
+      effectiveEnd: task.effectiveEnd,
+      itemStyle:
+        view.showCriticalPath && criticalNodeIds.has(task.id)
+          ? CRITICAL_ITEM_STYLE
+          : statusColor !== undefined
+            ? { color: statusColor }
+            : undefined,
+      name: task.name,
+    };
+  });
 
   const milestoneData = milestones.map((milestone) => {
     const statusColor = resolveStatusColor(milestone, project.settings.statuses);
@@ -322,6 +341,19 @@ function buildOption(
   const hasParentAxis = timelineAxis.formatParent !== undefined;
   const fullDuration = Math.max(axisRange.max - axisRange.min, 1);
   const zoomEnd = Math.min(100, (timelineAxis.visibleDuration / fullDuration) * 100);
+  const style = VISUAL_STYLES[view.style];
+  const labelled = (
+    render: CustomSeriesRenderItem,
+    items: readonly { readonly name: string }[],
+    endDimension: number,
+  ) =>
+    view.showItemLabels
+      ? withItemLabel(
+          render,
+          items.map((item) => item.name),
+          endDimension,
+        )
+      : render;
 
   return {
     animation: false,
@@ -330,13 +362,12 @@ function buildOption(
       formatter: (params: unknown) => chartTooltipFormatter(params, locale, unavailable, translate),
     },
     legend: {
-      show: true,
+      show: legendVisible,
       bottom: 0,
-      // data: ["groups", "tasks", "milestones", "dependencies", "Design"],
+      selected: legendSelection(view),
       formatter: (name: string) => {
         return translate(name);
       },
-      triggerEvent: true,
     },
     axisPointer: {
       show: true,
@@ -347,7 +378,12 @@ function buildOption(
         },
       ],
     },
-    grid: { left: 160, right: 24, top: hasParentAxis ? 68 : 44, bottom: 40 },
+    grid: {
+      left: view.showItemLabels ? 24 : 160,
+      right: 24,
+      top: hasParentAxis ? 68 : 44,
+      bottom: 40,
+    },
     dataZoom: [
       {
         type: "inside",
@@ -364,7 +400,7 @@ function buildOption(
       inverse: true,
       data: rows.map((row) => row.label),
       axisTick: { show: false },
-      //axisLabel: { color: AXIS_LABEL_COLOR },
+      axisLabel: { show: !view.showItemLabels },
       splitLine: {
         show: false,
       },
@@ -374,7 +410,7 @@ function buildOption(
       {
         type: "custom",
         name: "groups",
-        renderItem: renderGroup,
+        renderItem: labelled(style.renderGroup, groups, 2),
         encode: { x: [1, 2], y: 0 },
         data: groupData,
         clip: true,
@@ -383,7 +419,7 @@ function buildOption(
       {
         type: "custom",
         name: "tasks",
-        renderItem: renderTask,
+        renderItem: labelled(style.renderTask, tasks, 2),
         encode: { x: [1, 2], y: 0 },
         data: taskData,
         clip: true,
@@ -392,7 +428,7 @@ function buildOption(
       {
         type: "custom",
         name: "milestones",
-        renderItem: renderMilestone,
+        renderItem: labelled(style.renderMilestone, milestones, 1),
         encode: { x: 1, y: 0 },
         data: milestoneData,
         clip: true,
@@ -401,9 +437,9 @@ function buildOption(
       {
         type: "custom",
         name: "dependencies",
-        renderItem: renderDependencyLink,
+        renderItem: style.renderDependency,
         encode: { x: [1, 3], y: [0, 2] },
-        data: view.showDependencies ? linkData : [],
+        data: linkData,
         clip: true,
         zlevel: 1,
         silent: true,
@@ -471,10 +507,7 @@ function buildOffDaysAreas(
   for (let start = startOfDay(range.min); start < range.max; start += DAY) {
     const weekday = new Date(start).getDay() || 7;
     if (daysOff.includes(weekday)) {
-      areas.push({
-        value: [start, start + DAY],
-        // itemStyle: { color: "rgba(127, 127, 127, 0.12)" },
-      });
+      areas.push({ value: [start, start + DAY] });
     }
   }
   return areas;
@@ -490,10 +523,7 @@ function buildHolidayAreas(
     const start = startOfDay(toChartMs(holiday.start));
     const end = startOfDay(toChartMs(holiday.end)) + DAY;
     if (end >= range.min && start <= range.max) {
-      areas.push({
-        value: [start, end],
-        //itemStyle: { color: "rgba(127, 127, 127, 0.18)" },
-      });
+      areas.push({ value: [start, end] });
     }
   }
   return areas;
@@ -510,35 +540,22 @@ function hasEffectiveSchedule<T extends EffectiveSchedulePresentation>(
   );
 }
 
-/** Flattens the project's authored sequence (root, then each group's own sequence) into row order. */
-function orderedRows(project: ProjectPresentation): { id: string; label: string }[] {
-  const byId = new Map<string, { id: string; label: string }>();
-  for (const task of project.tasks) {
-    byId.set(task.id, { id: task.id, label: task.name });
-  }
-  for (const milestone of project.milestones) {
-    byId.set(milestone.id, { id: milestone.id, label: milestone.name });
-  }
-  for (const group of project.groups) {
-    byId.set(group.id, { id: group.id, label: group.name });
-  }
-  const groupsById = new Map(project.groups.map((group) => [group.id, group]));
-
-  const rows: { id: string; label: string }[] = [];
-  const visit = (sequence: readonly string[]) => {
-    for (const id of sequence) {
-      const row = byId.get(id);
-      if (row) {
-        rows.push(row);
-      }
-      const group = groupsById.get(id);
-      if (group) {
-        visit(group.sequence ?? []);
-      }
-    }
-  };
-  visit(project.sequence ?? []);
-  return rows;
+/**
+ * Returns the rows of scheduled entities that are not hidden by a collapsed group.
+ * @param project Current project presentation.
+ * @param collapsedGroupIds Groups whose descendants are hidden.
+ * @returns Visible scheduled rows in display order.
+ */
+function visibleRows(
+  project: ProjectPresentation,
+  collapsedGroupIds: ReadonlySet<string>,
+): ChartRow[] {
+  const scheduledIds = new Set(
+    [...project.tasks, ...project.milestones, ...project.groups]
+      .filter(hasEffectiveSchedule)
+      .map((entity) => entity.id),
+  );
+  return buildChartRows(project, collapsedGroupIds).filter((row) => scheduledIds.has(row.id));
 }
 
 /** Creates the hidden continuous scale used by custom calendar ticks. */

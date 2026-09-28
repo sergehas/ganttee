@@ -48,6 +48,14 @@ file.
   options.
 - Critical-path projection computed from the scheduled dependency graph.
 - Project settings support for calendar, holidays, and view preferences.
+- Gantt chart styles: choose a Classic, Rounded, or Metro visual style and a color theme from the
+  chart menu bar, show entity labels next to chart items instead of on the Y axis, and show or hide
+  the legend for the current session. Style, theme, and label placement are saved in the document
+  view. Themes are registered from every bundled `media/themes/*-theme.json` asset.
+- Ctrl-click (Cmd-click on macOS) a group in the chart to collapse or expand its rows for the
+  current session.
+- Invalid `view` values are replaced by their defaults and logged to the Ganttee output channel
+  instead of blocking the document.
 
 ### Changed
 
@@ -73,6 +81,10 @@ file.
   header) and a more organized control bar.
 - Refactored the webview into reusable components with a more consistent React/SCSS structure.
 - Improved dependency and group rendering in the chart, including schedule-driven group boundaries.
+- Dependency, off-day, and holiday visibility moved from the chart menu bar to the chart legend, and
+  still persist in the document view. Item heights are clamped to a minimum and maximum size.
+- Removed the group `collapsed` attribute and its edit-form checkbox; existing values are ignored.
+- Removed the ctrl-click one-day date shift on chart items.
 
 ### Fixed
 

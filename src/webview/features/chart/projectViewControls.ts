@@ -1,7 +1,4 @@
-import { ProjectView, ZoomLevel } from "@common/documents";
-
-/** Supported chart zoom levels ordered from finest to coarsest. */
-export const ZOOM_LEVELS: readonly ZoomLevel[] = ["day", "week", "month", "quarter", "year"];
+import { BooleanViewField, ProjectView, ZOOM_LEVELS, ZoomLevel } from "@common/documents";
 
 /** Returns the next finer zoom level, or the current level at the boundary. */
 export function zoomIn(level: ZoomLevel): ZoomLevel {
@@ -15,15 +12,16 @@ export function zoomOut(level: ZoomLevel): ZoomLevel {
   return ZOOM_LEVELS[Math.min(index + 1, ZOOM_LEVELS.length - 1)];
 }
 
-/** Replaces the persisted zoom level without changing layer preferences. */
-export function withZoomLevel(view: ProjectView, zoomLevel: ZoomLevel): ProjectView {
-  return { ...view, zoomLevel };
+/** Replaces one persisted view preference without changing the others. */
+export function withViewField<K extends keyof ProjectView>(
+  view: ProjectView,
+  field: K,
+  value: ProjectView[K],
+): ProjectView {
+  return { ...view, [field]: value };
 }
 
-/** Toggles one persisted chart layer without changing other preferences. */
-export function toggleProjectViewLayer(
-  view: ProjectView,
-  layer: "showDependencies" | "showOffDays" | "showHolidays" | "showCriticalPath",
-): ProjectView {
-  return { ...view, [layer]: !view[layer] };
+/** Toggles one persisted boolean view preference without changing the others. */
+export function toggleViewFlag(view: ProjectView, field: BooleanViewField): ProjectView {
+  return withViewField(view, field, !view[field]);
 }

@@ -79,10 +79,17 @@ export class GanttEditorController {
   /** Fires whenever the parsed model changes. */
   readonly onDidChangeModel = this._onDidChangeModel.event;
 
+  /**
+   * @param document The `.ganttee` text document backing this editor.
+   * @param webviewPanel The webview panel hosting the chart.
+   * @param iconBaseUri Webview URI of the bundled icon folder.
+   * @param log Output channel receiving document-loading warnings.
+   */
   constructor(
     private readonly document: vscode.TextDocument,
     private readonly webviewPanel: vscode.WebviewPanel,
     private readonly iconBaseUri: string,
+    private readonly log: vscode.LogOutputChannel,
   ) {
     this._disposables.push(
       vscode.workspace.onDidChangeTextDocument((event) => {
@@ -403,7 +410,16 @@ export class GanttEditorController {
     }
     try {
       const sourceText = this.document.getText();
-      const parsedDocument = parseDocument(sourceText);
+      const parsedDocument = parseDocument(sourceText, ({ field, defaultValue }) =>
+        this.log.warn(
+          vscode.l10n.t(
+            "{0}: view.{1} is invalid; using the default value {2}.",
+            this.document.uri.fsPath,
+            field,
+            JSON.stringify(defaultValue),
+          ),
+        ),
+      );
       const sanitization = sanitizeScheduleGraph(parsedDocument);
       if (
         sanitization.removedDependencyIds.length > 0 ||

@@ -35,7 +35,6 @@ const SAMPLE_DOCUMENT: ProjectDocument = {
       id: "g1",
       name: "Phase",
       description: "Phase description",
-      collapsed: true,
       state: "open",
       status: "status-1",
     },
@@ -174,9 +173,8 @@ suite("projectModelService", () => {
     assert.strictEqual(model.dependencies.length, 1);
   });
 
-  test("preserves collapsed and grouping metadata on hydration", () => {
+  test("preserves grouping metadata on hydration", () => {
     const model = hydrateDocument(SAMPLE_DOCUMENT);
-    assert.strictEqual(model.groups[0].collapsed, true);
     assert.strictEqual(model.tasks[0].groupId, "g1");
     assert.strictEqual(model.milestones[0].groupId, "g1");
   });
@@ -225,6 +223,9 @@ suite("projectModelService", () => {
         showOffDays: true,
         showHolidays: true,
         showCriticalPath: true,
+        style: "rounded",
+        theme: "green",
+        showItemLabels: true,
       },
     };
 

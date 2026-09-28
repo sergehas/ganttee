@@ -1,8 +1,14 @@
-import { Dependency, Group, Milestone, ProjectView, Task } from "@common/documents";
+import {
+  DEFAULT_PROJECT_VIEW,
+  Dependency,
+  Group,
+  Milestone,
+  ProjectView,
+  Task,
+} from "@common/documents";
 import { ProjectPresentation } from "@common/presentation/project";
 import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
 import { SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
-import { buildShiftByDaysPatch } from "@services/editing/projectItemSchedulePatchService";
 import "@webview/App.scss";
 import { IconBaseUriProvider } from "@webview/components/Icon";
 import type {
@@ -11,13 +17,14 @@ import type {
 } from "@webview/features/chart/chartExport.types";
 import { ChartMenuBar } from "@webview/features/chart/components/ChartMenuBar";
 import { GanttChart, GanttChartHandle } from "@webview/features/chart/components/GanttChart";
+import { CHART_THEMES, resolveChartTheme } from "@webview/features/chart/themes/chartThemes";
 import { EntityEditor } from "@webview/features/entity-editor/components/EntityEditor";
 import { ValidationMessage } from "@webview/features/entity-editor/components/ValidationMessage";
 import { useEntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
 import { translate, WebviewL10n, WebviewL10nContext } from "@webview/l10n";
 import { createGanttViewState, GanttViewState } from "@webview/viewState";
 import { onHostMessage, postToHost } from "@webview/vscodeApi";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 /** Webview-only behavior retained until the host acknowledges an entity update. */
 interface PendingEntityUpdate {
@@ -36,6 +43,7 @@ export function App(): React.JSX.Element {
     null,
   );
   const [pendingView, setPendingView] = useState<ProjectView | null>(null);
+  const [legendVisible, setLegendVisible] = useState(true);
   const [fitVersion, setFitVersion] = useState(0);
   const [iconBaseUri, setIconBaseUri] = useState<string | null>(null);
   const chartRef = useRef<GanttChartHandle | null>(null);
@@ -202,6 +210,9 @@ export function App(): React.JSX.Element {
     onRemoveDependency: removeDependency,
   });
 
+  const themeId = (pendingView ?? viewState?.project.view ?? DEFAULT_PROJECT_VIEW).theme;
+  const chartTheme = useMemo(() => resolveChartTheme(CHART_THEMES, themeId), [themeId]);
+
   if (!l10n) {
     return <div className="ganttee-app__empty" aria-busy="true" />;
   }
@@ -243,17 +254,6 @@ export function App(): React.JSX.Element {
     }
   };
 
-  /** Applies a chart date shift without closing an editor that is already showing the entity. */
-  const nudgeEntityByDays = (entity: EditableEntityRef, days: number) => {
-    const patch = buildShiftByDaysPatch(viewState.project, entity, days);
-    if (!patch) {
-      return;
-    }
-    workflow.patchEntityDatesFromChart(viewState.project, entity, patch, {
-      keepEditorOpen: true,
-    });
-  };
-
   return (
     <IconBaseUriProvider baseUri={iconBaseUri ?? ""}>
       <WebviewL10nContext.Provider value={l10n}>
@@ -261,7 +261,11 @@ export function App(): React.JSX.Element {
           <div className="ganttee-app__timeline">
             <ChartMenuBar
               view={chartView}
+              legendVisible={legendVisible}
+              themes={CHART_THEMES}
+              themeId={chartTheme.id}
               onViewChange={updateView}
+              onToggleLegend={() => setLegendVisible((visible) => !visible)}
               onFitToWindow={fitToWindow}
               onExport={exportImage}
             />
@@ -275,9 +279,11 @@ export function App(): React.JSX.Element {
                 ref={chartRef}
                 project={viewState.project}
                 view={chartView}
+                theme={chartTheme}
+                legendVisible={legendVisible}
                 fitVersion={fitVersion}
                 onEditEntity={toggleEntityEditor}
-                onNudgeEntityByDays={nudgeEntityByDays}
+                onViewChange={updateView}
               />
             )}
           </div>

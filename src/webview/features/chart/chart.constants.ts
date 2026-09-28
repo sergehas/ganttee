@@ -4,6 +4,12 @@ export const CHART_ROW_HEIGHT = 28;
 /** Fraction of a row used for a rendered task or group bar. */
 export const CHART_BAR_RATIO = 0.6;
 
+/** Smallest rendered item height in pixels, whatever the row density. */
+export const CHART_ITEM_MIN_HEIGHT = 8;
+
+/** Largest rendered item height in pixels, whatever the row density. */
+export const CHART_ITEM_MAX_HEIGHT = 20;
+
 /** Visual style for critical-path items. */
 export const CRITICAL_ITEM_STYLE = {
   // fill: "#d19a24",

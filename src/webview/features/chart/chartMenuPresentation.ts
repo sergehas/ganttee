@@ -1,84 +1,127 @@
-import { ProjectView, ZoomLevel } from "@common/documents";
+import {
+  PROJECT_STYLES,
+  ProjectStyle,
+  ProjectTheme,
+  ProjectView,
+  ZOOM_LEVELS,
+  ZoomLevel,
+} from "@common/documents";
 import type { IconActionPresentation } from "@webview/components/IconAction.types";
 import type {
   ChartExportDestination,
   ChartExportFormat,
 } from "@webview/features/chart/chartExport.types";
 import {
-  toggleProjectViewLayer,
-  withZoomLevel,
-  ZOOM_LEVELS,
+  toggleViewFlag,
+  withViewField,
   zoomIn,
   zoomOut,
 } from "@webview/features/chart/projectViewControls";
+import type { ChartThemeRegistry } from "@webview/features/chart/themes/chartThemes";
 import { WebviewTranslator } from "@webview/l10n";
+
+/** One localized choice of a view select. */
+export interface SelectOptionPresentation<T extends string> {
+  /** Persisted value. */
+  readonly value: T;
+  /** Localized label. */
+  readonly label: string;
+}
+
+/** Current state shown by the chart menu. */
+export interface ChartMenuState {
+  /** Current persisted chart view. */
+  readonly view: ProjectView;
+  /** Whether the session legend is visible. */
+  readonly legendVisible: boolean;
+  /** Selectable color themes. */
+  readonly themes: ChartThemeRegistry;
+}
+
+/** Callbacks invoked by chart menu actions. */
+export interface ChartMenuHandlers {
+  /** Receives complete proposed view values. */
+  readonly onViewChange: (view: ProjectView) => void;
+  /** Requests a temporary viewport fit. */
+  readonly onFitToWindow: () => void;
+  /** Requests an image export destination. */
+  readonly onExport: (format: ChartExportFormat, destination: ChartExportDestination) => void;
+  /** Toggles the session legend visibility. */
+  readonly onToggleLegend: () => void;
+}
 
 /** Plain action groups used to render the chart menu bar. */
 export interface ChartMenuPresentation {
-  /** Independent chart-layer actions. */
-  readonly layerActions: readonly IconActionPresentation[];
+  /** Independent on/off display actions. */
+  readonly toggleActions: readonly IconActionPresentation[];
   /** Zoom and fit actions. */
   readonly zoomActions: readonly IconActionPresentation[];
-  /** Supported values for the zoom select. */
-  readonly zoomLevels: readonly ZoomLevel[];
+  /** Choices of the zoom select. */
+  readonly zoomOptions: readonly SelectOptionPresentation<ZoomLevel>[];
+  /** Choices of the visual-style select. */
+  readonly styleOptions: readonly SelectOptionPresentation<ProjectStyle>[];
+  /** Choices of the color-theme select. */
+  readonly themeOptions: readonly SelectOptionPresentation<ProjectTheme>[];
   /** Export format and destination action. */
   readonly exportAction: IconActionPresentation;
 }
 
 /**
  * Builds localized chart menu presentation data without depending on React or the DOM.
- * @param view Current persisted chart view.
+ * @param state Current view, legend visibility, and themes.
  * @param translate Localizes labels for controls and menus.
- * @param onViewChange Receives complete proposed view values.
- * @param onFitToWindow Requests a temporary viewport fit.
- * @param onExport Requests an image export destination.
- * @returns The actions and zoom options rendered by the chart menu.
+ * @param handlers Callbacks invoked by the actions.
+ * @returns The actions and select options rendered by the chart menu.
  */
 export function createChartMenuPresentation(
-  view: ProjectView,
+  state: ChartMenuState,
   translate: WebviewTranslator,
-  onViewChange: (view: ProjectView) => void,
-  onFitToWindow: () => void,
-  onExport: (format: ChartExportFormat, destination: ChartExportDestination) => void,
+  handlers: ChartMenuHandlers,
 ): ChartMenuPresentation {
-  const toggle = (
-    layer: "showDependencies" | "showOffDays" | "showHolidays" | "showCriticalPath",
-  ) => onViewChange(toggleProjectViewLayer(view, layer));
+  const { view, legendVisible, themes } = state;
+  const { onViewChange } = handlers;
+  const capitalized = (value: string) => translate(value[0].toUpperCase() + value.slice(1));
 
   return {
-    layerActions: [
-      createLayerAction(
-        "dependencies",
-        "git-compare",
-        translate("Show dependencies"),
-        view.showDependencies,
-        () => toggle("showDependencies"),
-      ),
-      createLayerAction("off-days", "off-days", translate("Show off-days"), view.showOffDays, () =>
-        toggle("showOffDays"),
-      ),
-      createLayerAction("holidays", "calendar", translate("Show holidays"), view.showHolidays, () =>
-        toggle("showHolidays"),
-      ),
-      createLayerAction(
+    toggleActions: [
+      createToggleAction(
         "critical-path",
         "warning-compact",
         translate("Show critical path"),
         view.showCriticalPath,
-        () => toggle("showCriticalPath"),
+        () => onViewChange(toggleViewFlag(view, "showCriticalPath")),
+      ),
+      createToggleAction(
+        "item-labels",
+        "tag",
+        translate("Show labels on items"),
+        view.showItemLabels,
+        () => onViewChange(toggleViewFlag(view, "showItemLabels")),
+      ),
+      createToggleAction(
+        "legend",
+        "list-unordered",
+        translate("Show legend"),
+        legendVisible,
+        handlers.onToggleLegend,
       ),
     ],
     zoomActions: [
       createAction("zoom-in", "zoom-in", translate("Zoom in"), () =>
-        onViewChange(withZoomLevel(view, zoomIn(view.zoomLevel))),
+        onViewChange(withViewField(view, "zoomLevel", zoomIn(view.zoomLevel))),
       ),
       createAction("zoom-out", "zoom-out", translate("Zoom out"), () =>
-        onViewChange(withZoomLevel(view, zoomOut(view.zoomLevel))),
+        onViewChange(withViewField(view, "zoomLevel", zoomOut(view.zoomLevel))),
       ),
-      createAction("fit", "screen-full", translate("Fit to window"), onFitToWindow),
+      createAction("fit", "screen-full", translate("Fit to window"), handlers.onFitToWindow),
     ],
-    exportAction: createExportAction(translate, onExport),
-    zoomLevels: ZOOM_LEVELS,
+    zoomOptions: ZOOM_LEVELS.map((value) => ({ value, label: capitalized(value) })),
+    styleOptions: PROJECT_STYLES.map((value) => ({ value, label: capitalized(value) })),
+    themeOptions: [...themes.values()].map((theme) => ({
+      value: theme.id,
+      label: translate(theme.label),
+    })),
+    exportAction: createExportAction(translate, handlers.onExport),
   };
 }
 
@@ -122,15 +165,15 @@ function createExportAction(
 }
 
 /**
- * Creates a layer action with its active state.
+ * Creates an on/off action with its active state.
  * @param id Stable action identifier.
  * @param icon Codicon name.
  * @param label Localized accessible label.
- * @param pressed Whether the layer is currently active.
+ * @param pressed Whether the option is currently on.
  * @param onSelect Callback invoked on selection.
- * @returns A configured layer action.
+ * @returns A configured toggle action.
  */
-function createLayerAction(
+function createToggleAction(
   id: string,
   icon: string,
   label: string,

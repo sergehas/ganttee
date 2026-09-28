@@ -6,8 +6,19 @@ import * as vscode from "vscode";
 export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
   static readonly viewType = "ganttee.chartEditor";
 
-  static register(context: vscode.ExtensionContext, store: GanttStore): vscode.Disposable {
-    const provider = new GanttEditorProvider(context, store);
+  /**
+   * Registers the provider.
+   * @param context Extension context owning the registration.
+   * @param store Active-editor store.
+   * @param log Output channel receiving document-loading warnings.
+   * @returns The registration disposable.
+   */
+  static register(
+    context: vscode.ExtensionContext,
+    store: GanttStore,
+    log: vscode.LogOutputChannel,
+  ): vscode.Disposable {
+    const provider = new GanttEditorProvider(context, store, log);
     return vscode.window.registerCustomEditorProvider(GanttEditorProvider.viewType, provider, {
       webviewOptions: { retainContextWhenHidden: true },
     });
@@ -16,6 +27,7 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
   private constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly store: GanttStore,
+    private readonly log: vscode.LogOutputChannel,
   ) {}
 
   resolveCustomTextEditor(document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel): void {
@@ -31,7 +43,12 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
     const iconBaseUri = webviewPanel.webview.asWebviewUri(
       vscode.Uri.joinPath(this.context.extensionUri, "media", "icons"),
     );
-    const controller = new GanttEditorController(document, webviewPanel, iconBaseUri.toString());
+    const controller = new GanttEditorController(
+      document,
+      webviewPanel,
+      iconBaseUri.toString(),
+      this.log,
+    );
     this.store.setActive(controller);
 
     const modelSubscription = controller.onDidChangeModel(() => {

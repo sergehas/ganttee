@@ -9,12 +9,14 @@
 import { DateRange, parseIsoDate } from "@common/dates";
 import {
   CURRENT_DOCUMENT_VERSION,
+  DEFAULT_PROJECT_VIEW,
   Dependency,
   DEPENDENCY_TYPES,
   DependencyType,
   Group,
   Milestone,
   PROJECT_ITEM_STATES,
+  PROJECT_STYLES,
   ProjectDocument,
   ProjectItem,
   ProjectItemState,
@@ -25,10 +27,34 @@ import {
   resolveProjectView,
   Task,
   WorkingCalendar,
+  ZOOM_LEVELS,
 } from "@common/documents";
 
 /** Raised when a `.ganttee` document cannot be parsed or is structurally invalid. */
 export class GanttParseError extends Error {}
+
+/** A recognized view field whose invalid value was replaced by its default. */
+export interface ViewDefaultWarning {
+  /** The `view` property that held an invalid value. */
+  readonly field: keyof ProjectView;
+  /** The default value used instead. */
+  readonly defaultValue: ProjectView[keyof ProjectView];
+}
+
+/** Receives a warning each time a view value is replaced by its default. */
+export type ViewDefaultWarningListener = (warning: ViewDefaultWarning) => void;
+
+/** Value checks for every recognized view property. */
+const VIEW_FIELD_VALIDATORS: { readonly [K in keyof ProjectView]: (value: unknown) => boolean } = {
+  zoomLevel: (value) => (ZOOM_LEVELS as readonly unknown[]).includes(value),
+  showDependencies: isBoolean,
+  showOffDays: isBoolean,
+  showHolidays: isBoolean,
+  showCriticalPath: isBoolean,
+  style: (value) => (PROJECT_STYLES as readonly unknown[]).includes(value),
+  theme: (value) => typeof value === "string" && value.trim().length > 0,
+  showItemLabels: isBoolean,
+};
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -37,10 +63,14 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
  * collections and dropping unknown settings keys.
  *
  * @param raw The payload read from disk.
+ * @param onWarning Receives each view value replaced by its default.
  * @returns The typed document.
  * @throws {GanttParseError} When a field has the wrong shape.
  */
-export function validateDocumentShape(raw: unknown): ProjectDocument {
+export function validateDocumentShape(
+  raw: unknown,
+  onWarning: ViewDefaultWarningListener = () => undefined,
+): ProjectDocument {
   if (!isRecord(raw)) {
     throw new GanttParseError("Document root must be an object.");
   }
@@ -53,7 +83,7 @@ export function validateDocumentShape(raw: unknown): ProjectDocument {
     dependencies: asArray(raw.dependencies, "dependencies").map(validateDependency),
     sequence: requireStringArray(raw.sequence, "sequence"),
     settings: validateSettings(raw.settings),
-    view: validateView(raw.view),
+    view: validateView(raw.view, onWarning),
   };
   return projectDoc;
 }
@@ -127,53 +157,40 @@ function validateStatus(raw: unknown, field: string): ProjectStatus {
   return status;
 }
 
-/** Validates an optional view section and resolves omitted view properties. */
-function validateView(raw: unknown): ProjectView {
+/**
+ * Validates an optional view section. Recognized properties with invalid values fall back to
+ * their defaults and are reported; unknown properties are rejected.
+ */
+function validateView(raw: unknown, onWarning: ViewDefaultWarningListener): ProjectView {
   if (raw === undefined) {
     return resolveProjectView();
   }
   if (!isRecord(raw)) {
     throw new GanttParseError("view must be an object.");
   }
-  const allowed = new Set([
-    "zoomLevel",
-    "showDependencies",
-    "showOffDays",
-    "showHolidays",
-    "showCriticalPath",
-  ]);
   for (const key of Object.keys(raw)) {
-    if (!allowed.has(key)) {
+    if (!Object.hasOwn(VIEW_FIELD_VALIDATORS, key)) {
       throw new GanttParseError(`view.${key} is not supported.`);
     }
   }
-  const view: Partial<ProjectView> = {};
-  if (raw.zoomLevel !== undefined) {
-    if (
-      raw.zoomLevel !== "day" &&
-      raw.zoomLevel !== "week" &&
-      raw.zoomLevel !== "month" &&
-      raw.zoomLevel !== "quarter" &&
-      raw.zoomLevel !== "year"
-    ) {
-      throw new GanttParseError("view.zoomLevel is invalid.");
+  const view: Record<string, unknown> = {};
+  for (const field of Object.keys(VIEW_FIELD_VALIDATORS) as (keyof ProjectView)[]) {
+    const value = raw[field];
+    if (value === undefined) {
+      continue;
     }
-    view.zoomLevel = raw.zoomLevel;
-  }
-  for (const field of [
-    "showDependencies",
-    "showOffDays",
-    "showHolidays",
-    "showCriticalPath",
-  ] as const) {
-    if (raw[field] !== undefined) {
-      if (typeof raw[field] !== "boolean") {
-        throw new GanttParseError(`view.${field} must be a boolean.`);
-      }
-      view[field] = raw[field];
+    if (VIEW_FIELD_VALIDATORS[field](value)) {
+      view[field] = value;
+    } else {
+      onWarning({ field, defaultValue: DEFAULT_PROJECT_VIEW[field] });
     }
   }
-  return resolveProjectView(view);
+  return resolveProjectView(view as Partial<ProjectView>);
+}
+
+/** Returns whether a value is a boolean. */
+function isBoolean(value: unknown): boolean {
+  return typeof value === "boolean";
 }
 
 /** Validates an inclusive date-only range. */
@@ -242,9 +259,6 @@ function validateGroup(raw: unknown, index: number): Group {
     ...validateProjectItem(raw, `groups[${index}]`),
     sequence: requireStringArray(raw.sequence, `groups[${index}].sequence`),
   };
-  if (typeof raw.collapsed === "boolean") {
-    group.collapsed = raw.collapsed;
-  }
   return group;
 }
 

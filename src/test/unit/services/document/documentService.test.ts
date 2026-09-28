@@ -3,6 +3,7 @@ import {
   GanttParseError,
   parseDocument,
   serializeDocument,
+  ViewDefaultWarning,
 } from "@services/document/documentService";
 import * as assert from "assert";
 
@@ -268,6 +269,9 @@ suite("documentService", () => {
       showOffDays: false,
       showHolidays: false,
       showCriticalPath: false,
+      style: "classic",
+      theme: "blue",
+      showItemLabels: false,
     });
     assert.deepStrictEqual(parseDocument(serializeDocument(document)), document);
   });
@@ -297,11 +301,53 @@ suite("documentService", () => {
       showOffDays: false,
       showHolidays: true,
       showCriticalPath: false,
+      style: "classic",
+      theme: "blue",
+      showItemLabels: false,
     });
     assert.deepStrictEqual(parseDocument(serializeDocument(document)).view, document.view);
   });
 
-  test("preserves holiday ranges and rejects malformed view or holiday values", () => {
+  test("round-trips style, theme, and item labels at schema version 2", () => {
+    const document = parseDocument(
+      JSON.stringify({
+        version: 2,
+        view: { style: "metro", theme: "green", showItemLabels: true },
+      }),
+    );
+    const reparsed = parseDocument(serializeDocument(document));
+
+    assert.strictEqual(reparsed.version, 2);
+    assert.strictEqual(reparsed.view.style, "metro");
+    assert.strictEqual(reparsed.view.theme, "green");
+    assert.strictEqual(reparsed.view.showItemLabels, true);
+    assert.deepStrictEqual(reparsed, document);
+  });
+
+  test("forwards view default warnings", () => {
+    const warnings: ViewDefaultWarning[] = [];
+    const document = parseDocument(
+      JSON.stringify({ view: { zoomLevel: "decade", showHolidays: "yes" } }),
+      (warning) => warnings.push(warning),
+    );
+
+    assert.strictEqual(document.view.zoomLevel, "week");
+    assert.strictEqual(document.view.showHolidays, false);
+    assert.deepStrictEqual(warnings, [
+      { field: "zoomLevel", defaultValue: "week" },
+      { field: "showHolidays", defaultValue: false },
+    ]);
+  });
+
+  test("view defaulting does not mask invalid dates", () => {
+    const text = JSON.stringify({
+      view: { style: "neon" },
+      tasks: [{ id: "t1", name: "Task", start: "bad-date" }],
+    });
+    assert.throws(() => parseDocument(text), GanttParseError);
+  });
+
+  test("preserves holiday ranges and rejects malformed holiday values", () => {
     const document = parseDocument(
       JSON.stringify({
         version: 2,
@@ -321,14 +367,6 @@ suite("documentService", () => {
     assert.deepStrictEqual(document.settings.holidays, [
       { start: "2026-12-24", end: "2026-12-26" },
     ]);
-    assert.throws(
-      () => parseDocument(JSON.stringify({ view: { zoomLevel: "decade" } })),
-      GanttParseError,
-    );
-    assert.throws(
-      () => parseDocument(JSON.stringify({ view: { showHolidays: "yes" } })),
-      GanttParseError,
-    );
     assert.throws(
       () =>
         parseDocument(
