@@ -1,12 +1,24 @@
 import { DEFAULT_PROJECT_VIEW, ProjectTheme } from "@common/documents";
 import { THEME_ASSETS } from "@webview/features/chart/themes/themeAssets.generated";
+import type { EChartsOption } from "echarts";
+import type { registerTheme } from "echarts/core" with { "resolution-mode": "import" };
+
+/** ECharts theme data with the fields consumed by chart visual styles typed explicitly. */
+export type ChartThemeData = Parameters<typeof registerTheme>[1] & {
+  /** Palette colors used by the chart theme. */
+  readonly palette?: readonly string[];
+  /** Chart canvas background color. */
+  readonly backgroundColor?: string;
+  /** Default text styling. */
+  readonly textStyle?: EChartsOption["textStyle"];
+};
 
 /** A bundled JSON asset from `media/themes`. */
 export interface ThemeAsset {
   /** Asset file name. */
   readonly fileName: string;
   /** Parsed ECharts theme definition. */
-  readonly data: object;
+  readonly data: ChartThemeData;
 }
 
 /** A selectable chart color theme. */
@@ -16,7 +28,7 @@ export interface ChartTheme {
   /** Source display label, localized by the caller. */
   readonly label: string;
   /** ECharts theme definition. */
-  readonly data: object;
+  readonly data: ChartThemeData;
 }
 
 /** Registered chart themes keyed by identifier, in asset order. */

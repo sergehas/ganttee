@@ -1,14 +1,14 @@
 {
   "color": [
-    "#4ea397",
-    "#7bd9a5",
-    "#d0648a",
-    "#7bd9a5",
-    "rgba(127, 127, 127, 0.60)",
+    "#516b91",
+    "#59c4e6",
+    "#edafda",
+    "#93b7e3",
+    "#333333",
     "rgba(127, 127, 127, 0.12)",
     "rgba(127, 127, 127, 0.18)"
   ],
-  "backgroundColor": "#121314",
+  "backgroundColor": "#ffffff",
   "textStyle": {},
   "title": {
     "textStyle": {
@@ -23,69 +23,69 @@
       "borderWidth": "2"
     },
     "lineStyle": {
-      "width": "3"
+      "width": "2"
     },
-    "symbolSize": "8",
+    "symbolSize": "6",
     "symbol": "emptyCircle",
-    "smooth": false
+    "smooth": true
   },
   "radar": {
     "itemStyle": {
       "borderWidth": "2"
     },
     "lineStyle": {
-      "width": "3"
+      "width": "2"
     },
-    "symbolSize": "8",
+    "symbolSize": "6",
     "symbol": "emptyCircle",
-    "smooth": false
+    "smooth": true
   },
   "bar": {
     "itemStyle": {
       "barBorderWidth": 0,
-      "barBorderColor": "#ccc"
+      "barBorderColor": "#333"
     }
   },
   "pie": {
     "itemStyle": {
       "borderWidth": 0,
-      "borderColor": "#ccc"
+      "borderColor": "#333"
     }
   },
   "scatter": {
     "itemStyle": {
       "borderWidth": 0,
-      "borderColor": "#ccc"
+      "borderColor": "#333"
     }
   },
   "boxplot": {
     "itemStyle": {
       "borderWidth": 0,
-      "borderColor": "#ccc"
+      "borderColor": "#333"
     }
   },
   "parallel": {
     "itemStyle": {
       "borderWidth": 0,
-      "borderColor": "#ccc"
+      "borderColor": "#333"
     }
   },
   "sankey": {
     "itemStyle": {
       "borderWidth": 0,
-      "borderColor": "#ccc"
+      "borderColor": "#333"
     }
   },
   "gauge": {
     "itemStyle": {
       "borderWidth": 0,
-      "borderColor": "#ccc"
+      "borderColor": "#333"
     }
   },
   "axisPointer": {
     "label": {
       "color": "#222",
-      "backgroundColor": "#4ea397"
+      "backgroundColor": "#59c4e6"
     },
     "lineStyle": {
       "color": "#cccccc",
@@ -238,60 +238,60 @@
   "tooltip": {
     "axisPointer": {
       "lineStyle": {
-        "color": "#ccc",
+        "color": "#333",
         "width": 1
       },
       "crossStyle": {
-        "color": "#ccc",
+        "color": "#333",
         "width": 1
       }
     }
   },
   "timeline": {
     "lineStyle": {
-      "color": "#4ea397",
+      "color": "#8fd3e8",
       "width": 1
     },
     "itemStyle": {
-      "color": "#4ea397",
+      "color": "#8fd3e8",
       "borderWidth": 1
     },
     "controlStyle": {
-      "color": "#4ea397",
-      "borderColor": "#4ea397",
+      "color": "#8fd3e8",
+      "borderColor": "#8fd3e8",
       "borderWidth": 0.5
     },
     "checkpointStyle": {
-      "color": "#4ea397",
-      "borderColor": "rgba(60,235,210,0.3)"
+      "color": "#8fd3e8",
+      "borderColor": "rgba(138,124,168,0.37)"
     },
     "label": {
-      "color": "#4ea397"
+      "color": "#8fd3e8"
     },
     "emphasis": {
       "itemStyle": {
-        "color": "#4ea397"
+        "color": "#8fd3e8"
       },
       "controlStyle": {
-        "color": "#4ea397",
-        "borderColor": "#4ea397",
+        "color": "#8fd3e8",
+        "borderColor": "#8fd3e8",
         "borderWidth": 0.5
       },
       "label": {
-        "color": "#4ea397"
+        "color": "#8fd3e8"
       }
     }
   },
   "visualMap": {
-    "color": ["#d0648a"]
+    "color": ["#516b91", "#59c4e6", "#a5e7f0"]
   },
   "markPoint": {
     "label": {
-      "color": "#ffffff"
+      "color": "#eee"
     },
     "emphasis": {
       "label": {
-        "color": "#ffffff"
+        "color": "#eee"
       }
     }
   },

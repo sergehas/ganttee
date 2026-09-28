@@ -23,6 +23,7 @@ import {
   toChartMs,
 } from "@webview/features/chart/chartUtils";
 import "@webview/features/chart/components/GanttChart.scss";
+import { bindThemeToRenderer } from "@webview/features/chart/styles/visualStyle";
 import { VISUAL_STYLES } from "@webview/features/chart/styles/visualStyles";
 import { CHART_THEMES, ChartTheme } from "@webview/features/chart/themes/chartThemes";
 import {
@@ -177,6 +178,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
           props.project,
           props.view,
           rows,
+          props.theme.data,
           props.legendVisible,
           l10n.locale,
           translate(l10n, "—"),
@@ -188,7 +190,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
         containerRef.current.style.height = `${Math.max(rows.length, 1) * CHART_ROW_HEIGHT + 80}px`;
         chart.resize();
       }
-    }, [l10n, props.project, props.view, props.legendVisible, props.theme.id, rows]);
+    }, [l10n, props.project, props.view, props.legendVisible, props.theme, rows]);
 
     return <div className="ganttee-gantt-chart" ref={containerRef} />;
   },
@@ -213,6 +215,7 @@ function buildOption(
   project: ProjectPresentation,
   view: ProjectView,
   rows: readonly ChartRow[],
+  themeData: ChartTheme["data"],
   legendVisible: boolean,
   locale: string,
   unavailable: string,
@@ -410,7 +413,7 @@ function buildOption(
       {
         type: "custom",
         name: "groups",
-        renderItem: labelled(style.renderGroup, groups, 2),
+        renderItem: labelled(bindThemeToRenderer(style.renderGroup, themeData), groups, 2),
         encode: { x: [1, 2], y: 0 },
         data: groupData,
         clip: true,
@@ -419,7 +422,7 @@ function buildOption(
       {
         type: "custom",
         name: "tasks",
-        renderItem: labelled(style.renderTask, tasks, 2),
+        renderItem: labelled(bindThemeToRenderer(style.renderTask, themeData), tasks, 2),
         encode: { x: [1, 2], y: 0 },
         data: taskData,
         clip: true,
@@ -428,7 +431,7 @@ function buildOption(
       {
         type: "custom",
         name: "milestones",
-        renderItem: labelled(style.renderMilestone, milestones, 1),
+        renderItem: labelled(bindThemeToRenderer(style.renderMilestone, themeData), milestones, 1),
         encode: { x: 1, y: 0 },
         data: milestoneData,
         clip: true,
@@ -437,7 +440,7 @@ function buildOption(
       {
         type: "custom",
         name: "dependencies",
-        renderItem: style.renderDependency,
+        renderItem: bindThemeToRenderer(style.renderDependency, themeData),
         encode: { x: [1, 3], y: [0, 2] },
         data: linkData,
         clip: true,

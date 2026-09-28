@@ -22,13 +22,14 @@ const VERTICAL_TOLERANCE = 0.5;
 export const metroStyle: VisualStyle = {
   id: "metro",
 
-  renderTask: (params, api) => {
+  renderTask: (params, api, theme) => {
     const bar = barPlacement(api);
     const overhang = bar.height / 2;
     if (clipBar(params, bar, bar.height, overhang) === undefined) {
       return undefined;
     }
     const color = itemColor(api);
+    const fill = theme.backgroundColor ?? STATION_FILL;
     const track = clipBar(params, bar, bar.height / 3);
     return {
       type: "group",
@@ -36,13 +37,13 @@ export const metroStyle: VisualStyle = {
         ...(track === undefined
           ? []
           : [{ type: "rect" as const, shape: track, style: { fill: color } }]),
-        station([bar.x, bar.centerY], bar.height, color),
-        station([bar.x + bar.width, bar.centerY], bar.height, color),
+        station([bar.x, bar.centerY], bar.height, color, fill),
+        station([bar.x + bar.width, bar.centerY], bar.height, color, fill),
       ],
     };
   },
 
-  renderGroup: (params, api) => {
+  renderGroup: (params, api, theme) => {
     const bar = barPlacement(api);
     const shape = clipBar(params, bar, bar.height, bar.height / 2);
     if (shape === undefined) {
@@ -58,16 +59,25 @@ export const metroStyle: VisualStyle = {
         height: shape.height - lineWidth,
         r: (shape.height - lineWidth) / 2,
       },
-      style: { fill: STATION_FILL, stroke: itemColor(api), lineWidth },
+      style: {
+        fill: theme.backgroundColor ?? STATION_FILL,
+        stroke: itemColor(api),
+        lineWidth,
+      },
     };
   },
 
-  renderMilestone: (params, api) => {
+  renderMilestone: (params, api, theme) => {
     const placement = milestonePlacement(params, api);
     if (placement === undefined) {
       return undefined;
     }
-    return station(placement.center, placement.height, itemColor(api));
+    return station(
+      placement.center,
+      placement.height,
+      itemColor(api),
+      theme.backgroundColor ?? STATION_FILL,
+    );
   },
 
   renderDependency: (_params, api) => {
@@ -93,12 +103,12 @@ export const metroStyle: VisualStyle = {
  * @param color Ring color.
  * @returns A ringed circle element.
  */
-function station(center: ChartPoint, height: number, color: string) {
+function station(center: ChartPoint, height: number, color: string, fill: string) {
   const lineWidth = stationLineWidth(height);
   return {
     type: "circle" as const,
     shape: { cx: center[0], cy: center[1], r: (height - lineWidth) / 2 },
-    style: { fill: STATION_FILL, stroke: color, lineWidth },
+    style: { fill, stroke: color, lineWidth },
   };
 }
 

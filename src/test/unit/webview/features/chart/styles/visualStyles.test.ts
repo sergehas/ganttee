@@ -1,6 +1,8 @@
 import { PROJECT_STYLES } from "@common/documents";
 import { metroRoute } from "@webview/features/chart/styles/metroStyle";
+import { bindThemeToRenderer, VisualStyle } from "@webview/features/chart/styles/visualStyle";
 import { VISUAL_STYLES } from "@webview/features/chart/styles/visualStyles";
+import type { ChartThemeData } from "@webview/features/chart/themes/chartThemes";
 import * as assert from "assert";
 import {
   asElement,
@@ -16,6 +18,17 @@ import {
 const TASK = [0, 5, 15];
 const MILESTONE = [0, 10];
 const LINK = [0, 5, 2, 15];
+const THEME: ChartThemeData = { palette: [ITEM_COLOR], backgroundColor: "#ffffff", textStyle: {} };
+
+/** Binds the test theme to all renderers in a style. */
+function bindStyle(style: VisualStyle) {
+  return {
+    renderTask: bindThemeToRenderer(style.renderTask, THEME),
+    renderGroup: bindThemeToRenderer(style.renderGroup, THEME),
+    renderMilestone: bindThemeToRenderer(style.renderMilestone, THEME),
+    renderDependency: bindThemeToRenderer(style.renderDependency, THEME),
+  };
+}
 
 suite("visualStyles", () => {
   test("registers one style per supported identifier", () => {
@@ -23,6 +36,25 @@ suite("visualStyles", () => {
     for (const id of PROJECT_STYLES) {
       assert.strictEqual(VISUAL_STYLES[id].id, id);
     }
+  });
+
+  test("passes the selected theme data to each renderer", () => {
+    let receivedTheme: ChartThemeData | undefined;
+    const style = {
+      ...VISUAL_STYLES.classic,
+      renderTask: (
+        params: Parameters<typeof VISUAL_STYLES.classic.renderTask>[0],
+        api: Parameters<typeof VISUAL_STYLES.classic.renderTask>[1],
+        theme: ChartThemeData,
+      ) => {
+        receivedTheme = theme;
+        return VISUAL_STYLES.classic.renderTask(params, api, theme);
+      },
+    };
+
+    bindThemeToRenderer(style.renderTask, THEME)(fakeParams(), fakeApi(TASK));
+
+    assert.strictEqual(receivedTheme, THEME);
   });
 
   suite("global bounding boxes", () => {
@@ -45,7 +77,7 @@ suite("visualStyles", () => {
     } as const;
 
     for (const id of PROJECT_STYLES) {
-      const style = VISUAL_STYLES[id];
+      const style = bindStyle(VISUAL_STYLES[id]);
 
       test(`${id} task`, () => {
         assert.deepStrictEqual(
@@ -81,7 +113,7 @@ suite("visualStyles", () => {
 
   suite("clipping and omission", () => {
     for (const id of PROJECT_STYLES) {
-      const style = VISUAL_STYLES[id];
+      const style = bindStyle(VISUAL_STYLES[id]);
 
       test(`${id} omits items outside the grid`, () => {
         assert.strictEqual(style.renderTask(fakeParams(), fakeApi([0, -20, -15])), undefined);
@@ -97,13 +129,15 @@ suite("visualStyles", () => {
 
     test("classic and rounded tasks are clipped to the grid", () => {
       for (const id of ["classic", "rounded"] as const) {
-        const bounds = boundingBox(VISUAL_STYLES[id].renderTask(fakeParams(), fakeApi([0, -5, 5])));
+        const style = bindStyle(VISUAL_STYLES[id]);
+        const bounds = boundingBox(style.renderTask(fakeParams(), fakeApi([0, -5, 5])));
         assert.strictEqual(bounds.left, GRID.x);
       }
     });
 
     test("metro keeps a task whose only visible part is its end station", () => {
-      const task = asElement(VISUAL_STYLES.metro.renderTask(fakeParams(), fakeApi([0, -1, -0.3])));
+      const style = bindStyle(VISUAL_STYLES.metro);
+      const task = asElement(style.renderTask(fakeParams(), fakeApi([0, -1, -0.3])));
       assert.deepStrictEqual(
         task.children?.map((child) => child.type),
         ["circle", "circle"],
@@ -113,7 +147,7 @@ suite("visualStyles", () => {
 
   suite("shapes", () => {
     test("classic uses a rounded rectangle, a bracket, a diamond, and a right-angle link", () => {
-      const style = VISUAL_STYLES.classic;
+      const style = bindStyle(VISUAL_STYLES.classic);
       assert.strictEqual(asElement(style.renderTask(fakeParams(), fakeApi(TASK))).shape?.r, 3);
       assert.strictEqual(
         asElement(style.renderGroup(fakeParams(), fakeApi(TASK))).type,
@@ -130,7 +164,7 @@ suite("visualStyles", () => {
     });
 
     test("rounded uses half-circle task ends, circle milestones, and round joins", () => {
-      const style = VISUAL_STYLES.rounded;
+      const style = bindStyle(VISUAL_STYLES.rounded);
       assert.strictEqual(asElement(style.renderTask(fakeParams(), fakeApi(TASK))).shape?.r, 6);
       const group = asElement(style.renderGroup(fakeParams(), fakeApi(TASK)));
       assert.strictEqual((group.shape?.paths as unknown[]).length, 3);
@@ -145,17 +179,41 @@ suite("visualStyles", () => {
     });
 
     test("metro task is a thin track with a station on each end", () => {
-      const task = asElement(VISUAL_STYLES.metro.renderTask(fakeParams(), fakeApi(TASK)));
+      const style = bindStyle(VISUAL_STYLES.metro);
+      const task = asElement(style.renderTask(fakeParams(), fakeApi(TASK)));
       const [track, start, end] = task.children ?? [];
       assert.strictEqual(track.shape?.height, 4);
       assert.deepStrictEqual([start.shape?.cx, end.shape?.cx], [150, 250]);
       assert.deepStrictEqual([start.style?.stroke, start.style?.fill], [ITEM_COLOR, "#ffffff"]);
     });
 
-    test("metro milestone is a station", () => {
-      const milestone = asElement(
-        VISUAL_STYLES.metro.renderMilestone(fakeParams(), fakeApi(MILESTONE)),
+    test("metro uses the theme background for station and group fills, with a white fallback", () => {
+      const themeBackground = "#121314";
+      const theme: ChartThemeData = { ...THEME, backgroundColor: themeBackground };
+      const renderTask = bindThemeToRenderer(VISUAL_STYLES.metro.renderTask, theme);
+      const renderGroup = bindThemeToRenderer(VISUAL_STYLES.metro.renderGroup, theme);
+      const renderMilestone = bindThemeToRenderer(VISUAL_STYLES.metro.renderMilestone, theme);
+      const task = asElement(renderTask(fakeParams(), fakeApi(TASK)));
+      const group = asElement(renderGroup(fakeParams(), fakeApi(TASK)));
+      const milestone = asElement(renderMilestone(fakeParams(), fakeApi(MILESTONE)));
+      const themeWithoutBackground: ChartThemeData = { palette: [], textStyle: {} };
+      const fallbackTask = asElement(
+        bindThemeToRenderer(VISUAL_STYLES.metro.renderTask, themeWithoutBackground)(
+          fakeParams(),
+          fakeApi(TASK),
+        ),
       );
+
+      assert.deepStrictEqual(
+        [task.children?.[1].style?.fill, group.style?.fill, milestone.style?.fill],
+        [themeBackground, themeBackground, themeBackground],
+      );
+      assert.strictEqual(fallbackTask.children?.[1].style?.fill, "#ffffff");
+    });
+
+    test("metro milestone is a station", () => {
+      const style = bindStyle(VISUAL_STYLES.metro);
+      const milestone = asElement(style.renderMilestone(fakeParams(), fakeApi(MILESTONE)));
       assert.deepStrictEqual(
         [milestone.type, milestone.shape?.cx, milestone.style?.stroke],
         ["circle", 200, ITEM_COLOR],
@@ -163,7 +221,8 @@ suite("visualStyles", () => {
     });
 
     test("metro group is an outlined interchange capsule", () => {
-      const group = asElement(VISUAL_STYLES.metro.renderGroup(fakeParams(), fakeApi(TASK)));
+      const style = bindStyle(VISUAL_STYLES.metro);
+      const group = asElement(style.renderGroup(fakeParams(), fakeApi(TASK)));
       assert.deepStrictEqual(
         [group.type, group.shape?.r, group.style?.stroke],
         ["rect", 5, ITEM_COLOR],

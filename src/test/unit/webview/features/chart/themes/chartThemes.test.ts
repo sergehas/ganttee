@@ -14,7 +14,7 @@ const THEMES_DIR = path.resolve(__dirname, "../../../../../../../media/themes");
 suite("chartThemes", () => {
   test("registers only *-theme.json assets", () => {
     const registry = createThemeRegistry([
-      { fileName: "blue-theme.json", data: { color: ["#00f"] } },
+      { fileName: "blue-theme.json", data: { palette: ["#00f"] } },
       { fileName: "notes.json", data: {} },
       { fileName: "-theme.json", data: {} },
       { fileName: "green-theme.jsonc", data: {} },

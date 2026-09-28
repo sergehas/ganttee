@@ -1,10 +1,20 @@
 import { withItemLabel } from "@webview/features/chart/chartItemLabels";
 import { classicStyle } from "@webview/features/chart/styles/classicStyle";
+import { bindThemeToRenderer } from "@webview/features/chart/styles/visualStyle";
 import * as assert from "assert";
 import { asElement, fakeApi, fakeParams } from "./styles/fakeRenderApi";
 
 suite("chartItemLabels", () => {
-  const render = withItemLabel(classicStyle.renderTask, ["Alpha", ""], 2);
+  const theme = {
+    color: [],
+    backgroundColor: "#ffffff",
+    textStyle: {},
+  };
+  const render = withItemLabel(
+    bindThemeToRenderer(classicStyle.renderTask, theme),
+    ["Alpha", ""],
+    2,
+  );
 
   test("draws the row label right of the item, truncated at the grid edge", () => {
     const [item, label] = asElement(render(fakeParams(), fakeApi([0, 5, 15]))).children ?? [];
@@ -21,7 +31,11 @@ suite("chartItemLabels", () => {
   });
 
   test("uses the milestone date as the item end", () => {
-    const milestone = withItemLabel(classicStyle.renderMilestone, ["Launch"], 1);
+    const milestone = withItemLabel(
+      bindThemeToRenderer(classicStyle.renderMilestone, theme),
+      ["Launch"],
+      1,
+    );
     const [, label] = asElement(milestone(fakeParams(), fakeApi([0, 10]))).children ?? [];
     assert.strictEqual(label.x, 210);
   });
