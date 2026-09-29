@@ -222,6 +222,7 @@
     "watch": "npm run generate:themes && npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "watch:themes": "node scripts/generate-theme-assets.mjs --watch",
     "package": "npm run check-types && npm run lint && npm run format:check && node esbuild.js --production",
     "compile:tests": "npm run generate:themes && tsc --project tsconfig.json --outDir out && tsc-alias --project tsconfig.json --outDir out",
     "watch:test": "npm run generate:themes && tsc --project tsconfig.json --outDir out && npm-run-all -p watch:test:tsc watch:test:alias",
