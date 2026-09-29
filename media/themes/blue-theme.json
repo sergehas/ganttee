@@ -54,6 +54,10 @@
     "bottom": 10
   },
   "tooltip": {
+    "backgroundColor": "rgba(19, 20, 21, 0.9)",
+    "textStyle": {
+      "color": "#cccccc"
+    },
     "axisPointer": {
       "lineStyle": {
         "color": "#ccc",

@@ -58,7 +58,10 @@ suite("chartOptionBuilder", () => {
     assert.deepStrictEqual(yAxis?.data, ["Task", "Plain"]);
     assert.strictEqual(yAxis?.axisPointer?.show, true);
     const tooltip = option.tooltip as { readonly formatter: (params: unknown) => string };
-    assert.ok(tooltip.formatter({ data: { task: { id: "task", name: "Task" } } }).includes("Task"));
+    const tooltipText = tooltip.formatter({ data: { task: project.tasks[0] } });
+    assert.ok(tooltipText.includes("Task"));
+    assert.ok(tooltipText.includes("Ready"));
+    assert.ok(tooltipText.includes("#00aa00"));
     const legend = option.legend as { readonly formatter: (name: string) => string };
     assert.strictEqual(legend.formatter("tasks"), "tasks");
   });

@@ -105,6 +105,10 @@ function boundsOf(element: RenderedElement): Bounds {
       const { cx, cy, r } = shape as Record<string, number>;
       return { left: cx - r, top: cy - r, right: cx + r, bottom: cy + r };
     }
+    case "arc": {
+      const { cx, cy, r } = shape as Record<string, number>;
+      return { left: cx - r, top: cy - r, right: cx + r, bottom: cy + r };
+    }
     case "polygon":
     case "polyline":
       return union(

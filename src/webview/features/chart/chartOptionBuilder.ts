@@ -229,7 +229,8 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
     animation: false,
     tooltip: {
       trigger: "item",
-      formatter: (params: unknown) => chartTooltipFormatter(params, locale, unavailable, translate),
+      formatter: (params: unknown) =>
+        chartTooltipFormatter(params, locale, unavailable, translate, project.settings.statuses),
     },
     legend: {
       show: legendVisible,

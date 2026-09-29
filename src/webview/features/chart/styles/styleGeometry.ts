@@ -109,6 +109,15 @@ export function clipBar(
   );
 }
 
+/** Creates an invisible rectangle that expands the clickable area without changing visuals. */
+export function createTransparentHitTarget(shape: TimelineRectangle) {
+  return {
+    type: "rect" as const,
+    shape,
+    style: { fill: "rgba(0, 0, 0, 0)", stroke: "none", lineWidth: 0 },
+  };
+}
+
 /**
  * Converts `[row, date]` values into a milestone placement.
  * @param params Custom-series render parameters.

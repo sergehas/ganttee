@@ -70,7 +70,7 @@ suite("visualStyles", () => {
         milestone: { left: 194, top: 4, right: 206, bottom: 16 },
       },
       metro: {
-        task: { left: 144.75, top: 4.75, right: 255.25, bottom: 15.25 },
+        task: { left: 144, top: 4, right: 256, bottom: 16 },
         group: { left: 144.75, top: 4.75, right: 255.25, bottom: 15.25 },
         milestone: { left: 194.75, top: 4.75, right: 205.25, bottom: 15.25 },
       },
@@ -140,7 +140,7 @@ suite("visualStyles", () => {
       const task = asElement(style.renderTask(fakeParams(), fakeApi([0, -1, -0.3])));
       assert.deepStrictEqual(
         task.children?.map((child) => child.type),
-        ["circle", "circle"],
+        ["circle", "circle", "rect"],
       );
     });
   });
@@ -149,9 +149,20 @@ suite("visualStyles", () => {
     test("classic uses a rounded rectangle, a bracket, a diamond, and a right-angle link", () => {
       const style = bindStyle(VISUAL_STYLES.classic);
       assert.strictEqual(asElement(style.renderTask(fakeParams(), fakeApi(TASK))).shape?.r, 3);
-      assert.strictEqual(
-        asElement(style.renderGroup(fakeParams(), fakeApi(TASK))).type,
-        "compoundPath",
+      const group = asElement(style.renderGroup(fakeParams(), fakeApi(TASK)));
+      assert.strictEqual(group.type, "group");
+      assert.deepStrictEqual(
+        group.children?.map((child) => child.type),
+        ["compoundPath", "rect"],
+      );
+      assert.deepStrictEqual(group.children?.[1].shape, { x: 150, y: 4, width: 100, height: 12 });
+      assert.deepStrictEqual(
+        [
+          group.children?.[1].style?.fill,
+          group.children?.[1].style?.stroke,
+          group.children?.[1].style?.lineWidth,
+        ],
+        ["rgba(0, 0, 0, 0)", "none", 0],
       );
       assert.strictEqual(
         asElement(style.renderMilestone(fakeParams(), fakeApi(MILESTONE))).type,
@@ -163,11 +174,34 @@ suite("visualStyles", () => {
       );
     });
 
-    test("rounded uses half-circle task ends, circle milestones, and round joins", () => {
+    test("rounded uses parenthesized group ends, circle milestones, and round joins", () => {
       const style = bindStyle(VISUAL_STYLES.rounded);
       assert.strictEqual(asElement(style.renderTask(fakeParams(), fakeApi(TASK))).shape?.r, 6);
       const group = asElement(style.renderGroup(fakeParams(), fakeApi(TASK)));
-      assert.strictEqual((group.shape?.paths as unknown[]).length, 3);
+      assert.strictEqual(group.type, "group");
+      const [band, leftArc, rightArc, hitTarget] = group.children ?? [];
+      assert.strictEqual(band.type, "rect");
+      assert.deepStrictEqual(
+        [leftArc.type, leftArc.shape?.cx, leftArc.shape?.cy, leftArc.shape?.r],
+        ["arc", 156, 10, 4.5],
+      );
+      assert.deepStrictEqual(
+        [leftArc.shape?.startAngle, leftArc.shape?.endAngle],
+        [Math.PI / 2, (3 * Math.PI) / 2],
+      );
+      assert.deepStrictEqual(
+        [rightArc.type, rightArc.shape?.cx, rightArc.shape?.cy, rightArc.shape?.r],
+        ["arc", 244, 10, 4.5],
+      );
+      assert.deepStrictEqual(
+        [rightArc.shape?.startAngle, rightArc.shape?.endAngle],
+        [-Math.PI / 2, Math.PI / 2],
+      );
+      assert.deepStrictEqual(
+        [leftArc.style?.stroke, leftArc.style?.lineWidth, leftArc.style?.fill],
+        [ITEM_COLOR, 3, "none"],
+      );
+      assert.deepStrictEqual(hitTarget.shape, { x: 150, y: 4, width: 100, height: 12 });
       assert.strictEqual(
         asElement(style.renderMilestone(fakeParams(), fakeApi(MILESTONE))).type,
         "circle",
@@ -181,10 +215,15 @@ suite("visualStyles", () => {
     test("metro task is a thin track with a station on each end", () => {
       const style = bindStyle(VISUAL_STYLES.metro);
       const task = asElement(style.renderTask(fakeParams(), fakeApi(TASK)));
-      const [track, start, end] = task.children ?? [];
+      const [track, start, end, hitTarget] = task.children ?? [];
       assert.strictEqual(track.shape?.height, 4);
       assert.deepStrictEqual([start.shape?.cx, end.shape?.cx], [150, 250]);
       assert.deepStrictEqual([start.style?.stroke, start.style?.fill], [ITEM_COLOR, ITEM_COLOR]);
+      assert.deepStrictEqual(hitTarget.shape, { x: 144, y: 4, width: 112, height: 12 });
+      assert.deepStrictEqual(
+        [hitTarget.style?.fill, hitTarget.style?.stroke, hitTarget.style?.lineWidth],
+        ["rgba(0, 0, 0, 0)", "none", 0],
+      );
     });
 
     test("metro uses the theme background for station and group fills, with a white fallback", () => {

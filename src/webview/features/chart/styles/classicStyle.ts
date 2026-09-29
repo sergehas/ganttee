@@ -1,6 +1,7 @@
 import {
   barPlacement,
   clipBar,
+  createTransparentHitTarget,
   dependencyEndpoints,
   itemColor,
   milestonePlacement,
@@ -15,6 +16,7 @@ const CORNER_RADIUS = 3;
 export const classicStyle: VisualStyle = {
   id: "classic",
 
+  /** Draws tasks as filled bars with small rounded corners. */
   renderTask: (params, api) => {
     const shape = clipBar(params, barPlacement(api));
     if (shape === undefined) {
@@ -23,6 +25,7 @@ export const classicStyle: VisualStyle = {
     return { type: "rect", shape: { ...shape, r: CORNER_RADIUS }, style: { fill: itemColor(api) } };
   },
 
+  /** Draws groups as brackets with a transparent full-size hit target. */
   renderGroup: (params, api) => {
     const shape = clipBar(params, barPlacement(api));
     if (shape === undefined) {
@@ -34,18 +37,25 @@ export const classicStyle: VisualStyle = {
       shape: { x, y: shape.y, width, height, r: CORNER_RADIUS },
     });
     return {
-      type: "compoundPath",
-      shape: {
-        paths: [
-          segment(shape.x, shape.width, quarter),
-          segment(shape.x, quarter, shape.height),
-          segment(shape.x + shape.width - quarter, quarter, shape.height),
-        ],
-      },
-      style: { fill: itemColor(api) },
+      type: "group",
+      children: [
+        {
+          type: "compoundPath" as const,
+          shape: {
+            paths: [
+              segment(shape.x, shape.width, quarter),
+              segment(shape.x, quarter, shape.height),
+              segment(shape.x + shape.width - quarter, quarter, shape.height),
+            ],
+          },
+          style: { fill: itemColor(api) },
+        },
+        createTransparentHitTarget(shape),
+      ],
     };
   },
 
+  /** Draws milestones as filled diamonds. */
   renderMilestone: (params, api) => {
     const placement = milestonePlacement(params, api);
     if (placement === undefined) {
@@ -67,6 +77,7 @@ export const classicStyle: VisualStyle = {
     };
   },
 
+  /** Draws dependencies as orthogonal polylines. */
   renderDependency: (_params, api) => {
     const { from, to } = dependencyEndpoints(api);
     return {

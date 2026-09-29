@@ -2,6 +2,7 @@ import {
   barPlacement,
   ChartPoint,
   clipBar,
+  createTransparentHitTarget,
   dependencyEndpoints,
   itemColor,
   itemHeight,
@@ -28,10 +29,12 @@ export const metroStyle: VisualStyle = {
   id: "metro",
   colored: true,
 
+  /** Draws tasks as thin tracks with station endpoints and a transparent hit target. */
   renderTask: (params, api) => {
     const bar = barPlacement(api);
     const overhang = bar.height / 2;
-    if (clipBar(params, bar, bar.height, overhang) === undefined) {
+    const hitArea = clipBar(params, bar, bar.height, overhang);
+    if (hitArea === undefined) {
       return undefined;
     }
     const color = itemColor(api);
@@ -45,10 +48,12 @@ export const metroStyle: VisualStyle = {
           : [{ type: "rect" as const, shape: track, style: { fill: color } }]),
         station([bar.x, bar.centerY], bar.height, color, color),
         station([bar.x + bar.width, bar.centerY], bar.height, color, color),
+        createTransparentHitTarget(hitArea),
       ],
     };
   },
 
+  /** Draws groups as outlined interchange capsules. */
   renderGroup: (params, api, theme) => {
     const bar = barPlacement(api);
     const shape = clipBar(params, bar, bar.height, bar.height / 2);
@@ -73,6 +78,7 @@ export const metroStyle: VisualStyle = {
     };
   },
 
+  /** Draws milestones as ringed stations. */
   renderMilestone: (params, api, theme) => {
     const placement = milestonePlacement(params, api);
     if (placement === undefined) {
@@ -86,6 +92,7 @@ export const metroStyle: VisualStyle = {
     );
   },
 
+  /** Draws dependencies as metro routes with horizontal ends and rounded bends. */
   renderDependency: (_params, api) => {
     const { from, to } = dependencyEndpoints(api);
     const bendSize = itemHeight(api) / 2;

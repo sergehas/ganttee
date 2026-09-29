@@ -1,6 +1,7 @@
 import {
   barPlacement,
   clipBar,
+  createTransparentHitTarget,
   dependencyEndpoints,
   itemColor,
   milestonePlacement,
@@ -12,6 +13,7 @@ import type { VisualStyle } from "@webview/features/chart/styles/visualStyle";
 export const roundedStyle: VisualStyle = {
   id: "rounded",
 
+  /** Draws tasks as pill-ended bars. */
   renderTask: (params, api) => {
     const shape = clipBar(params, barPlacement(api));
     if (shape === undefined) {
@@ -24,6 +26,7 @@ export const roundedStyle: VisualStyle = {
     };
   },
 
+  /** Draws groups as parenthesized bands with a full-size hit target. */
   renderGroup: (params, api) => {
     const shape = clipBar(params, barPlacement(api));
     if (shape === undefined) {
@@ -31,40 +34,58 @@ export const roundedStyle: VisualStyle = {
     }
     const stroke = shape.height / 4;
     const radius = stroke / 2;
+    const arcRadius = shape.height / 2 - stroke / 2;
+    const centerY = shape.y + shape.height / 2;
+    const lineStyle = {
+      fill: "none" as const,
+      stroke: itemColor(api),
+      lineWidth: stroke,
+      lineCap: "round" as const,
+    };
     return {
-      type: "compoundPath",
-      shape: {
-        paths: [
-          {
-            type: "rect",
-            shape: {
-              x: shape.x,
-              y: shape.y + (shape.height - stroke) / 2,
-              width: shape.width,
-              height: stroke,
-              r: radius,
-            },
+      type: "group",
+      children: [
+        {
+          type: "rect" as const,
+          shape: {
+            x: shape.x,
+            y: centerY - stroke / 2,
+            width: shape.width,
+            height: stroke,
+            r: radius,
           },
-          {
-            type: "rect",
-            shape: { x: shape.x, y: shape.y, width: stroke, height: shape.height, r: radius },
+          style: { fill: itemColor(api) },
+        },
+        {
+          type: "arc" as const,
+          shape: {
+            cx: shape.x + shape.height / 2,
+            cy: centerY,
+            r: arcRadius,
+            startAngle: Math.PI / 2,
+            endAngle: (3 * Math.PI) / 2,
+            clockwise: true,
           },
-          {
-            type: "rect",
-            shape: {
-              x: shape.x + shape.width - stroke,
-              y: shape.y,
-              width: stroke,
-              height: shape.height,
-              r: radius,
-            },
+          style: lineStyle,
+        },
+        {
+          type: "arc" as const,
+          shape: {
+            cx: shape.x + shape.width - shape.height / 2,
+            cy: centerY,
+            r: arcRadius,
+            startAngle: -Math.PI / 2,
+            endAngle: Math.PI / 2,
+            clockwise: true,
           },
-        ],
-      },
-      style: { fill: itemColor(api) },
+          style: lineStyle,
+        },
+        createTransparentHitTarget(shape),
+      ],
     };
   },
 
+  /** Draws milestones as filled circles. */
   renderMilestone: (params, api) => {
     const placement = milestonePlacement(params, api);
     if (placement === undefined) {
@@ -78,6 +99,7 @@ export const roundedStyle: VisualStyle = {
     };
   },
 
+  /** Draws dependencies as rounded, right-angle routes. */
   renderDependency: (_params, api) => {
     const { from, to } = dependencyEndpoints(api);
     return {
