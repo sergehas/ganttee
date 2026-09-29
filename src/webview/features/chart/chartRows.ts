@@ -1,3 +1,5 @@
+import { EffectiveSchedulePresentation, ProjectPresentation } from "@common/presentation/project";
+
 /** A named chart entity. */
 interface NamedEntity {
   /** Stable identifier. */
@@ -45,6 +47,7 @@ export function buildChartRows(
   );
   const groupsById = new Map(project.groups.map((group) => [group.id, group]));
   const rows: ChartRow[] = [];
+  /** Visits a sequence depth-first, respecting collapsed groups. */
   const visit = (sequence: readonly string[]) => {
     for (const id of sequence) {
       const row = byId.get(id);
@@ -59,6 +62,37 @@ export function buildChartRows(
   };
   visit(project.sequence ?? []);
   return rows;
+}
+
+/** Returns visible rows whose entities have a complete effective schedule.
+ * @param project Presented project.
+ * @param collapsedGroupIds Groups whose descendants are hidden.
+ * @returns Scheduled rows in authored display order.
+ */
+export function buildVisibleChartRows(
+  project: ProjectPresentation,
+  collapsedGroupIds: ReadonlySet<string>,
+): ChartRow[] {
+  const scheduledIds = new Set(
+    [...project.tasks, ...project.milestones, ...project.groups]
+      .filter(isEffectivelyScheduled)
+      .map((entity) => entity.id),
+  );
+  return buildChartRows(project, collapsedGroupIds).filter((row) => scheduledIds.has(row.id));
+}
+
+/** Narrows a presented item to one carrying a complete effective schedule.
+ * @param item Presented item to check.
+ * @returns Whether all effective schedule fields are present.
+ */
+export function isEffectivelyScheduled<T extends EffectiveSchedulePresentation>(
+  item: T,
+): item is T & Required<EffectiveSchedulePresentation> {
+  return (
+    item.effectiveStart !== undefined &&
+    item.effectiveEnd !== undefined &&
+    item.effectiveDuration !== undefined
+  );
 }
 
 /**

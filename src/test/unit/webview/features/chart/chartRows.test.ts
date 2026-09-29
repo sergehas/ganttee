@@ -1,5 +1,8 @@
+import { createEmptyDocument } from "@common/documents";
+import { ProjectPresentation } from "@common/presentation/project";
 import {
   buildChartRows,
+  buildVisibleChartRows,
   ChartRowSource,
   toggleCollapsedGroup,
 } from "@webview/features/chart/chartRows";
@@ -51,6 +54,32 @@ suite("chartRows", () => {
 
   test("returns no rows for a project without a sequence", () => {
     assert.deepStrictEqual(buildChartRows({ ...PROJECT, sequence: undefined }, new Set()), []);
+  });
+
+  test("excludes rows without a complete effective schedule", () => {
+    const document = createEmptyDocument();
+    const project: ProjectPresentation = {
+      ...document,
+      tasks: [
+        {
+          id: "scheduled",
+          name: "Scheduled",
+          effectiveStart: "2026-09-08T09:00:00.000Z",
+          effectiveEnd: "2026-09-09T09:00:00.000Z",
+          effectiveDuration: 1,
+        },
+        { id: "unscheduled", name: "Unscheduled" },
+      ],
+      sequence: ["scheduled", "unscheduled"],
+      groups: [],
+      milestones: [],
+      dependencies: [],
+      criticalPath: { nodeIds: [], dependencyIds: [] },
+    };
+
+    assert.deepStrictEqual(buildVisibleChartRows(project, new Set()), [
+      { id: "scheduled", label: "Scheduled" },
+    ]);
   });
 
   test("toggles collapse state without mutating the input", () => {

@@ -6,7 +6,11 @@ import type {
   CustomSeriesRenderItemReturn,
 } from "echarts";
 
-/** Creates a renderer for exact calendar grid lines and header labels. */
+/** Creates a renderer for exact calendar grid lines and header labels.
+ * @param formatSelected Formats the selected-level tick label.
+ * @param formatParent Optionally formats the parent-level label.
+ * @returns An ECharts renderer for in-grid timeline ticks.
+ */
 export function createTimelineTickRenderer(
   formatSelected: (value: number) => string,
   formatParent?: (value: number) => string,

@@ -7,13 +7,10 @@ import type {
   CustomSeriesRenderItemReturn,
 } from "echarts";
 
-/**
- * Renders a calendar shading band spanning the full timeline height.
- *
- * @param params Custom-series render parameters containing the chart grid.
- * @param api Custom-series render API used to read the band bounds and its fill.
- * @returns A clipped rectangle covering the band, or `undefined` when it lies
- *          outside the timeline grid.
+/** Renders a clipped calendar shading band spanning the full timeline height.
+ * @param params ECharts custom-series render parameters.
+ * @param api ECharts API for coordinates and visual styles.
+ * @returns The clipped shading rectangle, or `undefined` when outside the grid.
  */
 export const renderCalendarArea: CustomSeriesRenderItem = (
   params: CustomSeriesRenderItemParams,

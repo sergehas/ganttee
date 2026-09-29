@@ -1,43 +1,18 @@
 import { ProjectView } from "@common/documents";
-import { EffectiveSchedulePresentation, ProjectPresentation } from "@common/presentation/project";
+import { ProjectPresentation } from "@common/presentation/project";
 import { EditableEntityRef } from "@common/protocol";
-import { CHART_ROW_HEIGHT, CRITICAL_ITEM_STYLE } from "@webview/features/chart/chart.constants";
-import { CalendarAreaData, TimelineTickData } from "@webview/features/chart/chart.types";
+import { CHART_ROW_HEIGHT } from "@webview/features/chart/chart.constants";
 import { exportChartImage } from "@webview/features/chart/chartExport";
 import type {
   ChartExportDestination,
   ChartExportFormat,
 } from "@webview/features/chart/chartExport.types";
-import {
-  applyLegendSelection,
-  legendSelection,
-  resolveChartClick,
-} from "@webview/features/chart/chartInteractions";
-import { withItemLabel } from "@webview/features/chart/chartItemLabels";
-import {
-  buildMetroGroupColorMap,
-  resolveMetroItemColor,
-} from "@webview/features/chart/chartItemColors";
-import { renderCalendarArea } from "@webview/features/chart/chartRenderers";
-import { buildChartRows, ChartRow, toggleCollapsedGroup } from "@webview/features/chart/chartRows";
-import {
-  chartTooltipFormatter,
-  DAY,
-  dependencyLinkEndpoints,
-  toChartMs,
-} from "@webview/features/chart/chartUtils";
+import { applyLegendSelection, resolveChartClick } from "@webview/features/chart/chartInteractions";
+import { buildChartOption } from "@webview/features/chart/chartOptionBuilder";
+import { buildVisibleChartRows, toggleCollapsedGroup } from "@webview/features/chart/chartRows";
 import "@webview/features/chart/components/GanttChart.scss";
-import { bindThemeToRenderer } from "@webview/features/chart/styles/visualStyle";
-import { VISUAL_STYLES } from "@webview/features/chart/styles/visualStyles";
 import { CHART_THEMES, ChartTheme } from "@webview/features/chart/themes/chartThemes";
-import {
-  alignTimelineStart,
-  buildTimelineTicks,
-  createTimelineAxisModel,
-} from "@webview/features/chart/timelineAxis";
-import { createTimelineTickRenderer } from "@webview/features/chart/timelineHeaderRenderer";
 import { translate, useWebviewL10n } from "@webview/l10n";
-import type { CustomSeriesRenderItem } from "echarts";
 import { CustomChart } from "echarts/charts";
 import {
   DataZoomComponent,
@@ -86,7 +61,7 @@ interface GanttChartProps {
 export interface GanttChartHandle {
   /**
    * Exports the current chart using the requested format and destination.
-   * @param format Requested image format.
+   * @param format Requested SVG or PNG format.
    * @param destination Download or clipboard destination.
    * @returns A promise that settles after export completion.
    * @throws When chart conversion or browser delivery fails.
@@ -106,7 +81,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
       () => new Set(),
     );
     const rows = useMemo(
-      () => visibleRows(props.project, collapsedGroupIds),
+      () => buildVisibleChartRows(props.project, collapsedGroupIds),
       [props.project, collapsedGroupIds],
     );
 
@@ -180,17 +155,18 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
         return;
       }
       chart.setOption(
-        buildOption(
-          props.project,
-          props.view,
+        buildChartOption({
+          project: props.project,
+          view: props.view,
           rows,
-          props.theme.data,
-          props.legendVisible,
-          props.coloredStyleEnabled,
-          l10n.locale,
-          translate(l10n, "—"),
-          (source: string, ...values: readonly unknown[]) => translate(l10n, source, ...values),
-        ),
+          themeData: props.theme.data,
+          legendVisible: props.legendVisible,
+          coloredStyleEnabled: props.coloredStyleEnabled,
+          locale: l10n.locale,
+          unavailable: translate(l10n, "—"),
+          translate: (source: string, ...values: readonly unknown[]) =>
+            translate(l10n, source, ...values),
+        }),
         true,
       );
       if (containerRef.current) {
@@ -210,448 +186,3 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
     return <div className="ganttee-gantt-chart" ref={containerRef} />;
   },
 );
-
-/**
- * Builds the ECharts option from the current project presentation and view state.
- * The returned option contains the timeline range, calendar shading, dependency layers,
- * critical-path emphasis, entity bars, milestones, and localized tooltip formatting.
- *
- * @param project Current authored and computed project presentation.
- * @param view Persisted chart visibility, style, and zoom preferences.
- * @param rows Visible scheduled rows in display order.
- * @param coloredStyleEnabled Whether the session colored-style mode is enabled.
- * @param legendVisible Whether the session legend is visible.
- * @param locale Locale used by timeline axis builders and tooltip formatting.
- * @param unavailable Localized fallback text for unavailable tooltip values.
- * @param formatRange Formats a localized start/end range for tooltip content.
- * @returns An ECharts option describing the current chart rendering.
- * @throws Propagates errors raised while building timeline or chart presentation data.
- */
-function buildOption(
-  project: ProjectPresentation,
-  view: ProjectView,
-  rows: readonly ChartRow[],
-  themeData: ChartTheme["data"],
-  legendVisible: boolean,
-  coloredStyleEnabled: boolean,
-  locale: string,
-  unavailable: string,
-  translate: (text: string, ...args: readonly unknown[]) => string,
-): echarts.EChartsCoreOption {
-  const scheduledTasks = project.tasks.filter(hasEffectiveSchedule);
-  const scheduledMilestones = project.milestones.filter(hasEffectiveSchedule);
-  const scheduledGroups = project.groups.filter(hasEffectiveSchedule);
-  const criticalNodeIds = new Set(project.criticalPath.nodeIds);
-  const criticalDependencyIds = new Set(project.criticalPath.dependencyIds);
-  const style = VISUAL_STYLES[view.style];
-  const metroGroupPaletteColors = coloredStyleEnabled
-    ? buildMetroGroupColorMap(project.groups, themeData.color)
-    : new Map<string, string>();
-  const metroGroupColors = new Map<string, string | undefined>();
-  if (coloredStyleEnabled) {
-    for (const group of project.groups) {
-      const isCriticalPathGroup = view.showCriticalPath && criticalNodeIds.has(group.id);
-      metroGroupColors.set(
-        group.id,
-        resolveMetroItemColor(
-          isCriticalPathGroup ? CRITICAL_ITEM_STYLE.color : undefined,
-          metroGroupPaletteColors.get(group.id),
-          resolveStatusColor(group, project.settings.statuses),
-          themeData.color?.[0],
-        ),
-      );
-    }
-  }
-  const metroItemColors = new Map<string, string | undefined>();
-  const indexById = new Map(rows.map((row, index) => [row.id, index]));
-  const isVisible = (entity: { readonly id: string }) => indexById.has(entity.id);
-  const tasks = scheduledTasks.filter(isVisible);
-  const milestones = scheduledMilestones.filter(isVisible);
-  const groups = scheduledGroups.filter(isVisible);
-  const timestamps = [
-    ...scheduledTasks.flatMap((task) => [
-      toChartMs(task.effectiveStart),
-      toChartMs(task.effectiveEnd),
-    ]),
-    ...scheduledMilestones.map((milestone) => toChartMs(milestone.effectiveStart)),
-    ...scheduledGroups.flatMap((group) => [
-      toChartMs(group.effectiveStart),
-      toChartMs(group.effectiveEnd),
-    ]),
-  ];
-  const now = Date.now();
-  const range =
-    timestamps.length === 0
-      ? { min: now - 2 * DAY, max: now + 14 * DAY }
-      : {
-          min: Math.min(...timestamps) - 2 * DAY,
-          max: Math.max(...timestamps) + 2 * DAY,
-        };
-
-  const taskData = tasks.map((task) => {
-    const statusColor = resolveStatusColor(task, project.settings.statuses);
-    const isCriticalPathTask = view.showCriticalPath && criticalNodeIds.has(task.id);
-    const metroColor = coloredStyleEnabled
-      ? resolveMetroItemColor(
-          isCriticalPathTask ? CRITICAL_ITEM_STYLE.color : undefined,
-          task.groupId === undefined ? undefined : metroGroupColors.get(task.groupId),
-          statusColor,
-          themeData.color?.[1],
-        )
-      : undefined;
-    if (coloredStyleEnabled) {
-      metroItemColors.set(task.id, metroColor);
-    }
-    return {
-      value: [
-        indexById.get(task.id) ?? 0,
-        toChartMs(task.effectiveStart),
-        toChartMs(task.effectiveEnd),
-      ],
-      task,
-      effectiveStart: task.effectiveStart,
-      effectiveEnd: task.effectiveEnd,
-      itemStyle: isCriticalPathTask
-        ? CRITICAL_ITEM_STYLE
-        : metroColor !== undefined
-          ? { color: metroColor }
-          : statusColor !== undefined
-            ? { color: statusColor }
-            : undefined,
-      name: task.name,
-    };
-  });
-
-  const milestoneData = milestones.map((milestone) => {
-    const statusColor = resolveStatusColor(milestone, project.settings.statuses);
-    const isCriticalPathMilestone = view.showCriticalPath && criticalNodeIds.has(milestone.id);
-    const metroColor = coloredStyleEnabled
-      ? resolveMetroItemColor(
-          isCriticalPathMilestone ? CRITICAL_ITEM_STYLE.color : undefined,
-          undefined,
-          statusColor,
-          themeData.color?.[2],
-        )
-      : undefined;
-    if (coloredStyleEnabled) {
-      metroItemColors.set(milestone.id, metroColor);
-    }
-    return {
-      value: [indexById.get(milestone.id) ?? 0, toChartMs(milestone.effectiveStart)],
-      milestone,
-      effectiveDate: milestone.effectiveStart,
-      itemStyle: isCriticalPathMilestone
-        ? CRITICAL_ITEM_STYLE
-        : metroColor !== undefined
-          ? { color: metroColor }
-          : statusColor !== undefined
-            ? { color: statusColor }
-            : undefined,
-    };
-  });
-
-  const groupData = groups.map((group) => {
-    const statusColor = resolveStatusColor(group, project.settings.statuses);
-    const isCriticalPathGroup =
-      coloredStyleEnabled && view.showCriticalPath && criticalNodeIds.has(group.id);
-    const metroColor = coloredStyleEnabled ? metroGroupColors.get(group.id) : undefined;
-    return {
-      value: [
-        indexById.get(group.id) ?? 0,
-        toChartMs(group.effectiveStart),
-        toChartMs(group.effectiveEnd),
-      ],
-      group,
-      itemStyle: isCriticalPathGroup
-        ? CRITICAL_ITEM_STYLE
-        : metroColor !== undefined
-          ? { color: metroColor }
-          : statusColor !== undefined
-            ? { color: statusColor }
-            : undefined,
-    };
-  });
-
-  const scheduledById = new Map(
-    [...tasks, ...milestones].map((entity) => [
-      entity.id,
-      {
-        id: entity.id,
-        start: entity.effectiveStart,
-        end: entity.effectiveEnd,
-      },
-    ]),
-  );
-
-  const linkData = project.dependencies.map((dep) => {
-    const source = scheduledById.get(dep.sourceId);
-    const target = scheduledById.get(dep.targetId);
-    if (!source || !target) {
-      return undefined;
-    }
-    const sourceRow = indexById.get(source.id) ?? 0;
-    const targetRow = indexById.get(target.id) ?? 0;
-    const endpoints = dependencyLinkEndpoints(dep.type, source, target);
-    if (!endpoints) {
-      return undefined;
-    }
-    const [fromMs, toMsValue] = endpoints;
-    return {
-      id: dep.id,
-      value: [targetRow, fromMs, sourceRow, toMsValue],
-      itemStyle:
-        view.showCriticalPath && criticalDependencyIds.has(dep.id)
-          ? CRITICAL_ITEM_STYLE
-          : coloredStyleEnabled && metroItemColors.get(dep.targetId) !== undefined
-            ? { color: metroItemColors.get(dep.targetId) }
-            : undefined,
-    };
-  });
-  const offDaysAreas = buildOffDaysAreas(project, range);
-  const holidayAreas = buildHolidayAreas(project, range);
-  const timelineAxis = createTimelineAxisModel(view.zoomLevel, locale);
-  const axisRange = {
-    min: alignTimelineStart(view.zoomLevel, range.min),
-    max: range.max,
-  };
-  const timelineTicks = buildTimelineTicks(view.zoomLevel, locale, axisRange);
-  const hasParentAxis = timelineAxis.formatParent !== undefined;
-  const fullDuration = Math.max(axisRange.max - axisRange.min, 1);
-  const zoomEnd = Math.min(100, (timelineAxis.visibleDuration / fullDuration) * 100);
-  const labelled = (
-    render: CustomSeriesRenderItem,
-    items: readonly { readonly name: string }[],
-    endDimension: number,
-  ) =>
-    view.showItemLabels
-      ? withItemLabel(
-          render,
-          items.map((item) => item.name),
-          endDimension,
-        )
-      : render;
-
-  return {
-    animation: false,
-    tooltip: {
-      trigger: "item",
-      formatter: (params: unknown) => chartTooltipFormatter(params, locale, unavailable, translate),
-    },
-    legend: {
-      show: legendVisible,
-      bottom: 0,
-      selected: legendSelection(view),
-      formatter: (name: string) => {
-        return translate(name);
-      },
-    },
-    axisPointer: {
-      show: true,
-      snap: false,
-      link: [
-        {
-          xAxisIndex: "all",
-        },
-      ],
-    },
-    grid: {
-      left: view.showItemLabels ? 24 : 160,
-      right: 24,
-      top: hasParentAxis ? 68 : 44,
-      bottom: 40,
-    },
-    dataZoom: [
-      {
-        type: "inside",
-        xAxisIndex: 0,
-        filterMode: "weakFilter",
-        start: 0,
-        end: zoomEnd,
-      },
-    ],
-
-    xAxis: createTimeAxis(axisRange),
-    yAxis: {
-      type: "category",
-      inverse: true,
-      data: rows.map((row) => row.label),
-      axisTick: { show: false },
-      axisLabel: { show: !view.showItemLabels },
-      splitLine: {
-        show: false,
-      },
-    },
-    series: [
-      //warning: order of series lead color selection from the theme
-      {
-        type: "custom",
-        name: "groups",
-        renderItem: labelled(bindThemeToRenderer(style.renderGroup, themeData), groups, 2),
-        encode: { x: [1, 2], y: 0 },
-        data: groupData,
-        clip: true,
-        zlevel: 3,
-      },
-      {
-        type: "custom",
-        name: "tasks",
-        renderItem: labelled(bindThemeToRenderer(style.renderTask, themeData), tasks, 2),
-        encode: { x: [1, 2], y: 0 },
-        data: taskData,
-        clip: true,
-        zlevel: 3,
-      },
-      {
-        type: "custom",
-        name: "milestones",
-        renderItem: labelled(bindThemeToRenderer(style.renderMilestone, themeData), milestones, 1),
-        encode: { x: 1, y: 0 },
-        data: milestoneData,
-        clip: true,
-        zlevel: 3,
-      },
-      {
-        type: "custom",
-        name: "dependencies",
-        renderItem: bindThemeToRenderer(style.renderDependency, themeData),
-        encode: { x: [1, 3], y: [0, 2] },
-        data: linkData,
-        clip: true,
-        zlevel: 1,
-        silent: true,
-      },
-
-      {
-        type: "custom",
-        name: "timeline-header",
-        renderItem: createTimelineTickRenderer(
-          timelineAxis.formatSelected,
-          timelineAxis.formatParent,
-        ),
-        encode: { x: 0 },
-        data: timelineTicks.map((tick): TimelineTickData => ({
-          value: [tick.value, 0],
-        })),
-        clip: false,
-        zlevel: 0,
-        silent: true,
-      },
-      {
-        type: "custom",
-        name: "off-days",
-        renderItem: renderCalendarArea,
-        encode: { x: [0, 1] },
-        data: offDaysAreas,
-        clip: true,
-        zlevel: 0,
-        silent: true,
-      },
-      {
-        type: "custom",
-        name: "holidays",
-        renderItem: renderCalendarArea,
-        encode: { x: [0, 1] },
-        data: holidayAreas,
-        clip: true,
-        zlevel: 0,
-        silent: true,
-      },
-    ],
-  };
-}
-
-/** Resolves an item color from the project-level status catalog when present. */
-function resolveStatusColor(
-  item: { readonly status?: string; readonly statusId?: string },
-  statuses: readonly { readonly id: string; readonly color: string }[],
-): string | undefined {
-  const statusId = item.status ?? item.statusId;
-  if (statusId === undefined) {
-    return undefined;
-  }
-  const status = statuses.find((candidate) => candidate.id === statusId);
-  return status?.color;
-}
-
-/** Builds off-day shading ranges for the visible chart interval. */
-function buildOffDaysAreas(
-  project: ProjectPresentation,
-  range: { min: number; max: number },
-): CalendarAreaData[] {
-  const areas: CalendarAreaData[] = [];
-  const daysOff = project.settings.workingCalendar.daysOff;
-  for (let start = startOfDay(range.min); start < range.max; start += DAY) {
-    const weekday = new Date(start).getDay() || 7;
-    if (daysOff.includes(weekday)) {
-      areas.push({ value: [start, start + DAY] });
-    }
-  }
-  return areas;
-}
-
-/** Builds holiday shading ranges for the visible chart interval. */
-function buildHolidayAreas(
-  project: ProjectPresentation,
-  range: { min: number; max: number },
-): CalendarAreaData[] {
-  const areas: CalendarAreaData[] = [];
-  for (const holiday of project.settings.holidays) {
-    const start = startOfDay(toChartMs(holiday.start));
-    const end = startOfDay(toChartMs(holiday.end)) + DAY;
-    if (end >= range.min && start <= range.max) {
-      areas.push({ value: [start, end] });
-    }
-  }
-  return areas;
-}
-
-/** Narrows a presented item to one carrying a complete effective schedule. */
-function hasEffectiveSchedule<T extends EffectiveSchedulePresentation>(
-  item: T,
-): item is T & Required<EffectiveSchedulePresentation> {
-  return (
-    item.effectiveStart !== undefined &&
-    item.effectiveEnd !== undefined &&
-    item.effectiveDuration !== undefined
-  );
-}
-
-/**
- * Returns the rows of scheduled entities that are not hidden by a collapsed group.
- * @param project Current project presentation.
- * @param collapsedGroupIds Groups whose descendants are hidden.
- * @returns Visible scheduled rows in display order.
- */
-function visibleRows(
-  project: ProjectPresentation,
-  collapsedGroupIds: ReadonlySet<string>,
-): ChartRow[] {
-  const scheduledIds = new Set(
-    [...project.tasks, ...project.milestones, ...project.groups]
-      .filter(hasEffectiveSchedule)
-      .map((entity) => entity.id),
-  );
-  return buildChartRows(project, collapsedGroupIds).filter((row) => scheduledIds.has(row.id));
-}
-
-/** Creates the hidden continuous scale used by custom calendar ticks. */
-function createTimeAxis(range: { min: number; max: number }): Record<string, unknown> {
-  return {
-    type: "time",
-    min: range.min,
-    max: range.max,
-    position: "top",
-    axisLabel: { show: false },
-    axisTick: { show: false },
-    axisLine: { show: true },
-    splitLine: { show: false },
-    zlevel: 0,
-  };
-}
-
-/** Returns local midnight for a chart timestamp. */
-function startOfDay(timestamp: number): number {
-  const date = new Date(timestamp);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-}

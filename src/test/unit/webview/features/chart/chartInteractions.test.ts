@@ -1,6 +1,7 @@
 import { DEFAULT_PROJECT_VIEW } from "@common/documents";
 import {
   applyLegendSelection,
+  entityFromChartEvent,
   LEGEND_LAYERS,
   legendSelection,
   resolveChartClick,
@@ -21,6 +22,24 @@ const TASK = { task: { id: "t1" } };
 const MILESTONE = { milestone: { id: "m1" } };
 
 suite("chartInteractions", () => {
+  suite("entityFromChartEvent", () => {
+    test("maps supported chart series and ignores other series", () => {
+      assert.deepStrictEqual(entityFromChartEvent(click("tasks", TASK)), {
+        kind: "task",
+        id: "t1",
+      });
+      assert.deepStrictEqual(entityFromChartEvent(click("milestones", MILESTONE)), {
+        kind: "milestone",
+        id: "m1",
+      });
+      assert.deepStrictEqual(entityFromChartEvent(click("groups", GROUP)), {
+        kind: "group",
+        id: "g1",
+      });
+      assert.strictEqual(entityFromChartEvent(click("dependencies", {})), undefined);
+    });
+  });
+
   suite("resolveChartClick", () => {
     test("toggles a group on ctrl- or cmd-click", () => {
       for (const modifiers of [{ ctrlKey: true }, { metaKey: true }]) {
