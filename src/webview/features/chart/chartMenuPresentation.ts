@@ -104,7 +104,7 @@ export function createChartMenuPresentation(
       ),
       createToggleAction(
         "legend",
-        "list-unordered",
+        "layout-statusbar",
         translate("Show legend"),
         legendVisible,
         handlers.onToggleLegend,

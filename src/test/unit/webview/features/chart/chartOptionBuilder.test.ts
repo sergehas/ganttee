@@ -51,8 +51,12 @@ suite("chartOptionBuilder", () => {
       ["groups", "tasks", "milestones", "dependencies", "timeline-header", "off-days", "holidays"],
     );
     assert.strictEqual(series[1].data?.length, 2);
-    const yAxis = Array.isArray(option.yAxis) ? option.yAxis[0] : option.yAxis;
+    const yAxis = (Array.isArray(option.yAxis) ? option.yAxis[0] : option.yAxis) as {
+      readonly data?: readonly string[];
+      readonly axisPointer?: { readonly show?: boolean };
+    };
     assert.deepStrictEqual(yAxis?.data, ["Task", "Plain"]);
+    assert.strictEqual(yAxis?.axisPointer?.show, true);
     const tooltip = option.tooltip as { readonly formatter: (params: unknown) => string };
     assert.ok(tooltip.formatter({ data: { task: { id: "task", name: "Task" } } }).includes("Task"));
     const legend = option.legend as { readonly formatter: (name: string) => string };
@@ -132,6 +136,8 @@ suite("chartOptionBuilder", () => {
       ...input,
       rows: input.rows.filter((row) => row.id !== "hidden"),
     });
+    const yAxis = Array.isArray(option.yAxis) ? option.yAxis[0] : option.yAxis;
+    assert.strictEqual(yAxis?.axisPointer?.show, false);
     const series = option.series as readonly {
       readonly name?: string;
       readonly data?: readonly {
@@ -173,6 +179,19 @@ suite("chartOptionBuilder", () => {
     assert.ok(Array.isArray(option.series));
     assert.strictEqual((option.series as readonly { readonly name?: string }[])[1].name, "tasks");
   });
+
+  test("scales both axis margins with the chart width", () => {
+    const project = createProject();
+    const narrowOption = buildChartOption(createInput(project, { chartWidth: 400 }));
+    const wideOption = buildChartOption(createInput(project, { chartWidth: 1000 }));
+    const narrowMinimum = (narrowOption.xAxis as { readonly min: number }).min;
+    const wideMinimum = (wideOption.xAxis as { readonly min: number }).min;
+    const narrowMaximum = (narrowOption.xAxis as { readonly max: number }).max;
+    const wideMaximum = (wideOption.xAxis as { readonly max: number }).max;
+
+    assert.ok(narrowMinimum < wideMinimum);
+    assert.ok(narrowMaximum > wideMaximum);
+  });
 });
 
 /** Creates builder inputs with optional overrides for one presentation. */
@@ -187,6 +206,7 @@ function createInput(
       id,
       label: name,
     })),
+    chartWidth: 800,
     themeData: { color: ["#111111", "#222222", "#333333"] },
     legendVisible: true,
     coloredStyleEnabled: false,

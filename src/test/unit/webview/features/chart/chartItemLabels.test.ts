@@ -9,11 +9,19 @@ suite("chartItemLabels", () => {
     color: [],
     backgroundColor: "#ffffff",
     textStyle: {},
+    categoryAxis: {
+      axisLabel: {
+        color: "#999999",
+        textBorderColor: "rgba(255, 255, 255, 0.9)",
+        textBorderWidth: 8,
+      },
+    },
   };
   const render = withItemLabel(
     bindThemeToRenderer(classicStyle.renderTask, theme),
     ["Alpha", ""],
     2,
+    theme.categoryAxis.axisLabel,
   );
 
   test("draws the row label right of the item, truncated at the grid edge", () => {
@@ -28,6 +36,10 @@ suite("chartItemLabels", () => {
       [label.style?.text, label.style?.width, label.style?.overflow],
       ["Alpha", 240, "truncate"],
     );
+    assert.deepStrictEqual(
+      [label.style?.fill, label.style?.stroke, label.style?.lineWidth, label.style?.strokeFirst],
+      ["#999999", "rgba(255, 255, 255, 0.9)", 8, true],
+    );
   });
 
   test("uses the milestone date as the item end", () => {
@@ -35,6 +47,7 @@ suite("chartItemLabels", () => {
       bindThemeToRenderer(classicStyle.renderMilestone, theme),
       ["Launch"],
       1,
+      theme.categoryAxis.axisLabel,
     );
     const [, label] = asElement(milestone(fakeParams(), fakeApi([0, 10]))).children ?? [];
     assert.strictEqual(label.x, 210);

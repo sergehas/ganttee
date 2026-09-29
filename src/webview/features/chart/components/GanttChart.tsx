@@ -8,6 +8,7 @@ import type {
   ChartExportFormat,
 } from "@webview/features/chart/chartExport.types";
 import { applyLegendSelection, resolveChartClick } from "@webview/features/chart/chartInteractions";
+import type { ChartOptionInput } from "@webview/features/chart/chartOptionBuilder";
 import { buildChartOption } from "@webview/features/chart/chartOptionBuilder";
 import { buildVisibleChartRows, toggleCollapsedGroup } from "@webview/features/chart/chartRows";
 import "@webview/features/chart/components/GanttChart.scss";
@@ -75,6 +76,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
     const l10n = useWebviewL10n();
     const containerRef = useRef<HTMLDivElement | null>(null);
     const chartRef = useRef<echarts.ECharts | null>(null);
+    const chartOptionInputRef = useRef<ChartOptionInput | undefined>(undefined);
     const propsRef = useRef(props);
     propsRef.current = props;
     const [collapsedGroupIds, setCollapsedGroupIds] = useState<ReadonlySet<string>>(
@@ -132,7 +134,18 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
         }
       });
 
-      const resize = () => chart.resize();
+      const resize = () => {
+        chart.resize();
+        const currentInput = chartOptionInputRef.current;
+        if (!currentInput) {
+          return;
+        }
+        const resizedInput = { ...currentInput, chartWidth: chart.getWidth() };
+        chartOptionInputRef.current = resizedInput;
+        const resizedOption = buildChartOption(resizedInput);
+        const xAxis = resizedOption.xAxis as { readonly max?: number };
+        chart.setOption({ xAxis: { max: xAxis.max } });
+      };
       window.addEventListener("resize", resize);
       return () => {
         window.removeEventListener("resize", resize);
@@ -154,21 +167,21 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
       if (!chart) {
         return;
       }
-      chart.setOption(
-        buildChartOption({
-          project: props.project,
-          view: props.view,
-          rows,
-          themeData: props.theme.data,
-          legendVisible: props.legendVisible,
-          coloredStyleEnabled: props.coloredStyleEnabled,
-          locale: l10n.locale,
-          unavailable: translate(l10n, "—"),
-          translate: (source: string, ...values: readonly unknown[]) =>
-            translate(l10n, source, ...values),
-        }),
-        true,
-      );
+      const input: ChartOptionInput = {
+        project: props.project,
+        view: props.view,
+        rows,
+        chartWidth: chart.getWidth(),
+        themeData: props.theme.data,
+        legendVisible: props.legendVisible,
+        coloredStyleEnabled: props.coloredStyleEnabled,
+        locale: l10n.locale,
+        unavailable: translate(l10n, "—"),
+        translate: (source: string, ...values: readonly unknown[]) =>
+          translate(l10n, source, ...values),
+      };
+      chartOptionInputRef.current = input;
+      chart.setOption(buildChartOption(input), true);
       if (containerRef.current) {
         containerRef.current.style.height = `${Math.max(rows.length, 1) * CHART_ROW_HEIGHT + 80}px`;
         chart.resize();

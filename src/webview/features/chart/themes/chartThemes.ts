@@ -9,6 +9,16 @@ export type ChartThemeData = Parameters<typeof registerTheme>[1] & {
   readonly color?: readonly string[];
   /** Chart canvas background color. */
   readonly backgroundColor?: string;
+  /** Theme style for category-axis labels and equivalent custom row labels. */
+  readonly categoryAxis?: {
+    readonly [property: string]: unknown;
+    readonly axisLabel?: {
+      readonly [property: string]: unknown;
+      readonly color?: string;
+      readonly textBorderColor?: string;
+      readonly textBorderWidth?: number;
+    };
+  };
   /** Default text styling. */
   readonly textStyle?: EChartsOption["textStyle"];
 };

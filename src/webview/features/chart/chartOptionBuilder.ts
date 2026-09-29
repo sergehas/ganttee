@@ -2,6 +2,7 @@ import { MS_PER_DAY } from "@common/dates";
 import { DependencyType, ProjectView } from "@common/documents";
 import { ProjectPresentation } from "@common/presentation/project";
 import { renderCalendarArea } from "@webview/features/chart/calendarRenderer";
+import { CHART_ITEM_MAX_OVERHANG } from "@webview/features/chart/chart.constants";
 import { CalendarAreaData, TimelineTickData } from "@webview/features/chart/chart.types";
 import { legendSelection } from "@webview/features/chart/chartInteractions";
 import {
@@ -32,6 +33,8 @@ export interface ChartOptionInput {
   readonly view: ProjectView;
   /** Visible scheduled rows in display order. */
   readonly rows: readonly ChartRow[];
+  /** Width of the chart in pixels, used to keep rendered items inside the plot. */
+  readonly chartWidth: number;
   /** Active color theme data. */
   readonly themeData: ChartTheme["data"];
   /** Whether the session legend is visible. */
@@ -196,7 +199,16 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
   const offDaysAreas = buildOffDaysAreas(project, range);
   const holidayAreas = buildHolidayAreas(project, range);
   const timelineAxis = createTimelineAxisModel(view.zoomLevel, locale);
-  const axisRange = { min: alignTimelineStart(view.zoomLevel, range.min), max: range.max };
+  const gridLeft = view.showItemLabels ? 24 : 160;
+  const gridRight = 24;
+  const axisMin = alignTimelineStart(view.zoomLevel, range.min);
+  const axisSpan = range.max - axisMin;
+  const plotWidth = Math.max(input.chartWidth - gridLeft - gridRight, 1);
+  const axisMargin = (axisSpan * CHART_ITEM_MAX_OVERHANG) / plotWidth;
+  const axisRange = {
+    min: axisMin - axisMargin,
+    max: range.max + axisMargin,
+  };
   const timelineTicks = buildTimelineTicks(view.zoomLevel, locale, axisRange);
   /** Adds labels to a style renderer when item labels are enabled. */
   const labelled = (
@@ -209,6 +221,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
           render,
           items.map((item) => item.name),
           endDimension,
+          input.themeData.categoryAxis?.axisLabel,
         )
       : render;
 
@@ -226,8 +239,8 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
     },
     axisPointer: { show: true, snap: false, link: [{ xAxisIndex: "all" }] },
     grid: {
-      left: view.showItemLabels ? 24 : 160,
-      right: 24,
+      left: gridLeft,
+      right: gridRight,
       top: timelineAxis.formatParent === undefined ? 44 : 68,
       bottom: 40,
     },
@@ -250,6 +263,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
       data: rows.map((row) => row.label),
       axisTick: { show: false },
       axisLabel: { show: !view.showItemLabels },
+      axisPointer: { show: !view.showItemLabels },
       splitLine: { show: false },
     },
     series: [

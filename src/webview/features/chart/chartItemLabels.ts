@@ -1,5 +1,6 @@
 import { AXIS_LABEL_COLOR } from "@webview/features/chart/chart.constants";
 import { itemHeight, timelineGrid } from "@webview/features/chart/styles/styleGeometry";
+import type { ChartThemeData } from "@webview/features/chart/themes/chartThemes";
 import type { CustomSeriesRenderItem } from "echarts";
 
 /** Gap between an item's visual end and its label. */
@@ -11,12 +12,14 @@ const LABEL_GAP = 4;
  * @param render Item renderer from the active visual style.
  * @param labels Row labels indexed like the series data.
  * @param endDimension Data dimension holding the item's end time.
+ * @param axisLabelStyle Theme styling for category-axis labels.
  * @returns A renderer returning the item and its label.
  */
 export function withItemLabel(
   render: CustomSeriesRenderItem,
   labels: readonly string[],
   endDimension: number,
+  axisLabelStyle?: NonNullable<ChartThemeData["categoryAxis"]>["axisLabel"],
 ): CustomSeriesRenderItem {
   return (params, api) => {
     const item = render(params, api);
@@ -44,7 +47,10 @@ export function withItemLabel(
             width,
             overflow: "truncate",
             verticalAlign: "middle",
-            fill: AXIS_LABEL_COLOR,
+            fill: axisLabelStyle?.color ?? AXIS_LABEL_COLOR,
+            stroke: axisLabelStyle?.textBorderColor,
+            lineWidth: axisLabelStyle?.textBorderWidth,
+            strokeFirst: true,
           },
         },
       ],
