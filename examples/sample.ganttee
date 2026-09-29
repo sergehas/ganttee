@@ -217,6 +217,12 @@
       "sourceId": "milestone-launch",
       "targetId": "999cc460-cc6f-4442-8fb0-50ada083c0fe",
       "type": "startAfter"
+    },
+    {
+      "id": "26d27a12-e45d-4b78-9bfe-685d7653d674",
+      "sourceId": "task-v71r1sde",
+      "targetId": "milestone-Release",
+      "type": "startAfter"
     }
   ],
   "sequence": [
@@ -271,10 +277,11 @@
     ]
   },
   "view": {
-    "zoomLevel": "week",
+    "zoomLevel": "month",
     "showDependencies": true,
-    "showOffDays": true,
-    "showHolidays": true,
-    "showCriticalPath": false
+    "showOffDays": false,
+    "showHolidays": false,
+    "showCriticalPath": false,
+    "showItemLabels": false
   }
 }

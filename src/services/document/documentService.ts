@@ -12,19 +12,28 @@ import { assertDocumentRelations } from "@services/document/documentRelationVali
 import {
   GanttParseError,
   validateDocumentShape,
+  ViewDefaultWarningListener,
 } from "@services/document/documentShapeValidationService";
 
-export { GanttParseError } from "@services/document/documentShapeValidationService";
+export {
+  GanttParseError,
+  type ViewDefaultWarning,
+  type ViewDefaultWarningListener,
+} from "@services/document/documentShapeValidationService";
 
 /**
  * Parses raw file text into a validated document, applying schema migrations
  * for older versions. Empty input yields an empty document.
  *
  * @param text The file contents.
+ * @param onWarning Receives each view value replaced by its default.
  * @returns The parsed document.
  * @throws {GanttParseError} When the text is not a valid document.
  */
-export function parseDocument(text: string): ProjectDocument {
+export function parseDocument(
+  text: string,
+  onWarning?: ViewDefaultWarningListener,
+): ProjectDocument {
   const trimmed = text.trim();
   if (trimmed.length === 0) {
     return createEmptyDocument();
@@ -37,7 +46,7 @@ export function parseDocument(text: string): ProjectDocument {
     throw new GanttParseError(`Invalid JSON in .ganttee file: ${(error as Error).message}`);
   }
 
-  const projectDoc = validateDocumentShape(migrateDocument(raw));
+  const projectDoc = validateDocumentShape(migrateDocument(raw), onWarning);
   assertDocumentRelations(projectDoc);
   return projectDoc;
 }

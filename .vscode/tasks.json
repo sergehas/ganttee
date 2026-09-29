@@ -5,13 +5,32 @@
   "tasks": [
     {
       "label": "watch",
-      "dependsOn": ["npm: watch:tsc", "npm: watch:esbuild"],
+      "dependsOn": ["npm: watch:themes", "npm: watch:tsc", "npm: watch:esbuild"],
       "presentation": {
         "reveal": "never"
       },
       "group": {
         "kind": "build",
         "isDefault": true
+      }
+    },
+    {
+      "type": "npm",
+      "script": "watch:themes",
+      "group": "build",
+      "problemMatcher": {
+        "pattern": { "regexp": "^(?!)$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\[themes\\] build started$",
+          "endsPattern": "^\\[themes\\] build finished$"
+        }
+      },
+      "isBackground": true,
+      "label": "npm: watch:themes",
+      "presentation": {
+        "group": "watch",
+        "reveal": "never"
       }
     },
     {
@@ -40,7 +59,7 @@
     },
     {
       "type": "npm",
-      "script": "watch-tests",
+      "script": "watch:test",
       "problemMatcher": "$tsc-watch",
       "isBackground": true,
       "presentation": {
@@ -48,11 +67,6 @@
         "group": "watchers"
       },
       "group": "build"
-    },
-    {
-      "label": "tasks: watch-tests",
-      "dependsOn": ["npm: watch", "npm: watch-tests"],
-      "problemMatcher": []
     }
   ]
 }

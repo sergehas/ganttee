@@ -6,7 +6,15 @@ import globals from "globals";
 import typescript from "typescript-eslint";
 
 export default defineConfig([
-  globalIgnores(["node_modules", ".husky", "coverage/", "out/", "dist/", ".vscode/"]),
+  globalIgnores([
+    "node_modules",
+    ".husky",
+    "coverage/",
+    "out/",
+    "dist/",
+    ".vscode/",
+    "**/*.generated.ts",
+  ]),
   prettierConfig,
   {
     files: ["**/*.{js,mjs,cjs}"],

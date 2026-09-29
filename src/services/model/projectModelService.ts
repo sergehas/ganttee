@@ -95,7 +95,6 @@ function toMilestone(milestone: MilestoneDocument): Milestone {
 function toGroup(group: GroupDocument): Group {
   return new Group({
     ...toProjectItem(group),
-    collapsed: group.collapsed,
     sequence: group.sequence ?? [],
   });
 }
@@ -132,11 +131,7 @@ function fromTask(task: Task): TaskDocument {
 
 /** Projects a {@link Group} back to a plain group record. */
 function fromGroup(group: Group): GroupDocument {
-  const plain: GroupDocument = { ...fromProjectItem(group), sequence: [...group.sequence] };
-  if (group.collapsed !== undefined) {
-    plain.collapsed = group.collapsed;
-  }
-  return plain;
+  return { ...fromProjectItem(group), sequence: [...group.sequence] };
 }
 
 /** Projects a {@link Milestone} back to a plain milestone record. */

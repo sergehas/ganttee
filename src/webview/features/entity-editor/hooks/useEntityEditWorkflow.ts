@@ -4,10 +4,6 @@ import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@commo
 import { buildDependency } from "@services/editing/dependencyFactoryService";
 import { buildUngroupUpdate } from "@services/editing/projectItemRemovalService";
 import { buildSaveUpdate, SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
-import {
-  buildDatePatchUpdate,
-  EntityDatePatch,
-} from "@services/editing/projectItemSchedulePatchService";
 import { useCallback } from "react";
 
 /** Host actions consumed by the shared webview edit workflow. */
@@ -47,17 +43,10 @@ export interface EntityEditWorkflow {
   addDependency: (ownerId: string | undefined, targetId: string, type: DependencyType) => void;
   /** Removes a dependency by identifier. */
   removeDependency: (dependencyId: string) => void;
-  /** Applies a chart date patch and saves the result. */
-  patchEntityDatesFromChart: (
-    document: ProjectContent,
-    entity: EditableEntityRef,
-    patch: EntityDatePatch,
-    options?: SaveEntityOptions,
-  ) => void;
 }
 
 /**
- * Builds a shared edit-workflow API used by both the form panel and timeline.
+ * Builds the shared edit-workflow API used by the form panel.
  *
  * The workflow centralizes save guards and mutation shaping so multiple UI
  * surfaces apply exactly the same rules. It forwards `keepEditorOpen` to App,
@@ -113,27 +102,11 @@ export function useEntityEditWorkflow(actions: HostEditActions): EntityEditWorkf
     [actions],
   );
 
-  const patchEntityDatesFromChart = useCallback(
-    (
-      projectDoc: ProjectContent,
-      entity: EditableEntityRef,
-      patch: EntityDatePatch,
-      options?: SaveEntityOptions,
-    ) => {
-      const update = buildDatePatchUpdate(projectDoc, entity, patch, options);
-      if (update) {
-        actions.onSave(update.kind, update.entity, update.options);
-      }
-    },
-    [actions],
-  );
-
   return {
     saveEntity,
     deleteEntity,
     ungroupEntity,
     addDependency,
     removeDependency,
-    patchEntityDatesFromChart,
   };
 }

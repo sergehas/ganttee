@@ -6,10 +6,11 @@ import type {
   CustomSeriesRenderItemReturn,
 } from "echarts";
 
-/** Shared color for native Y-axis and custom timeline header labels. */
-export const AXIS_LABEL_COLOR = "#6e7079";
-
-/** Creates a renderer for exact calendar grid lines and header labels. */
+/** Creates a renderer for exact calendar grid lines and header labels.
+ * @param formatSelected Formats the selected-level tick label.
+ * @param formatParent Optionally formats the parent-level label.
+ * @returns An ECharts renderer for in-grid timeline ticks.
+ */
 export function createTimelineTickRenderer(
   formatSelected: (value: number) => string,
   formatParent?: (value: number) => string,
@@ -30,7 +31,8 @@ export function createTimelineTickRenderer(
         type: "line",
         shape: { x1: x, y1: grid.y, x2: x, y2: grid.y + grid.height },
         style: {
-          stroke: parentLabel ? "rgba(127, 127, 127, 0.48)" : "rgba(127, 127, 127, 0.24)",
+          //stroke: parentLabel ? "rgba(127, 127, 127, 0.48)" : "rgba(127, 127, 127, 0.24)",
+          stroke: api.visual("color") as string,
           lineWidth: 1,
         },
       },
@@ -40,7 +42,8 @@ export function createTimelineTickRenderer(
         y: grid.y - 12,
         style: {
           text: formatSelected(value),
-          fill: AXIS_LABEL_COLOR,
+          //fill: AXIS_LABEL_COLOR,
+          fill: api.visual("color") as string,
           align: "center",
           verticalAlign: "bottom",
         },
@@ -53,7 +56,8 @@ export function createTimelineTickRenderer(
         y: grid.y - 40,
         style: {
           text: parentLabel,
-          fill: AXIS_LABEL_COLOR,
+          //fill: AXIS_LABEL_COLOR,
+          fill: api.visual("color") as string,
           align: "center",
           verticalAlign: "bottom",
         },

@@ -3,10 +3,7 @@ import { Sortable } from "@common/documents/sortable";
 import { generateId } from "@common/idFactory";
 
 /** A persisted named collection of project items. */
-export interface Group extends ProjectItem, Sortable {
-  /** Whether the group is collapsed in the UI. */
-  collapsed?: boolean;
-}
+export type Group = ProjectItem & Sortable;
 
 /** Creates a new group template with the provided name. */
 export function createDefaultGroup(name: string): Group {

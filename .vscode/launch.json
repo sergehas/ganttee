@@ -24,7 +24,7 @@
       "console": "internalConsole",
       "env": { "FORCE_COLOR": "3" }, // Force truecolor
       "outputCapture": "std",
-      "preLaunchTask": "npm: watch-tests"
+      "preLaunchTask": "npm: watch:test"
     },
     {
       "name": "Coverage check",
@@ -36,7 +36,7 @@
       "console": "internalConsole",
       "env": { "FORCE_COLOR": "3" }, // Force truecolor
       "outputCapture": "std",
-      "preLaunchTask": "npm: watch-tests"
+      "preLaunchTask": "npm: watch:test"
     },
     {
       "name": "Smoke Tests",
@@ -50,7 +50,7 @@
       "env": { "FORCE_COLOR": "3" }, // Force truecolor
       "outputCapture": "std",
 
-      "preLaunchTask": "npm: watch-tests"
+      "preLaunchTask": "npm: watch:test"
     }
   ]
 }

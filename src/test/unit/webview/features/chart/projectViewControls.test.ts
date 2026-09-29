@@ -1,8 +1,7 @@
-import { DEFAULT_PROJECT_VIEW, ProjectView } from "@common/documents";
+import { DEFAULT_PROJECT_VIEW, ProjectView, ZOOM_LEVELS } from "@common/documents";
 import {
-  toggleProjectViewLayer,
-  withZoomLevel,
-  ZOOM_LEVELS,
+  toggleViewFlag,
+  withViewField,
   zoomIn,
   zoomOut,
 } from "@webview/features/chart/projectViewControls";
@@ -20,53 +19,58 @@ suite("projectViewControls", () => {
     assert.strictEqual(zoomOut("year"), "year");
   });
 
-  test("changes only the selected zoom preference", () => {
-    const view = withZoomLevel(DEFAULT_PROJECT_VIEW, "quarter");
+  test("changes only the selected view field", () => {
+    const source = { ...DEFAULT_PROJECT_VIEW };
 
-    assert.deepStrictEqual(view, {
+    assert.deepStrictEqual(withViewField(source, "zoomLevel", "quarter"), {
       ...DEFAULT_PROJECT_VIEW,
       zoomLevel: "quarter",
     });
+    assert.deepStrictEqual(withViewField(source, "style", "metro"), {
+      ...DEFAULT_PROJECT_VIEW,
+      style: "metro",
+    });
+    assert.deepStrictEqual(withViewField(source, "theme", "green"), {
+      ...DEFAULT_PROJECT_VIEW,
+      theme: "green",
+    });
+    assert.deepStrictEqual(withViewField(source, "showItemLabels", true), {
+      ...DEFAULT_PROJECT_VIEW,
+      showItemLabels: true,
+    });
+    assert.deepStrictEqual(source, DEFAULT_PROJECT_VIEW);
+  });
+
+  test("materializes classic, blue, and hidden item labels by default", () => {
     assert.deepStrictEqual(DEFAULT_PROJECT_VIEW, {
       zoomLevel: "week",
       showDependencies: true,
       showOffDays: false,
       showHolidays: false,
       showCriticalPath: false,
+      style: "classic",
+      theme: "blue",
+      showItemLabels: false,
     });
   });
 
-  test("toggles each layer independently and preserves the remaining view", () => {
+  test("toggles each flag independently and preserves the remaining view", () => {
     const view: ProjectView = {
+      ...DEFAULT_PROJECT_VIEW,
       zoomLevel: "month",
-      showDependencies: true,
-      showOffDays: false,
       showHolidays: true,
-      showCriticalPath: false,
     };
+    const snapshot = { ...view };
 
-    assert.deepStrictEqual(toggleProjectViewLayer(view, "showDependencies"), {
-      ...view,
-      showDependencies: false,
-    });
-    assert.deepStrictEqual(toggleProjectViewLayer(view, "showOffDays"), {
-      ...view,
-      showOffDays: true,
-    });
-    assert.deepStrictEqual(toggleProjectViewLayer(view, "showHolidays"), {
-      ...view,
-      showHolidays: false,
-    });
-    assert.deepStrictEqual(toggleProjectViewLayer(view, "showCriticalPath"), {
-      ...view,
-      showCriticalPath: true,
-    });
-    assert.deepStrictEqual(view, {
-      zoomLevel: "month",
-      showDependencies: true,
-      showOffDays: false,
-      showHolidays: true,
-      showCriticalPath: false,
-    });
+    for (const field of [
+      "showDependencies",
+      "showOffDays",
+      "showHolidays",
+      "showCriticalPath",
+      "showItemLabels",
+    ] as const) {
+      assert.deepStrictEqual(toggleViewFlag(view, field), { ...view, [field]: !view[field] });
+    }
+    assert.deepStrictEqual(view, snapshot);
   });
 });

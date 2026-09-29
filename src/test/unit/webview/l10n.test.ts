@@ -12,7 +12,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import * as defaultL10nBundle from "../../../../l10n/bundle.l10n.json";
 
 suite("webview l10n", () => {
-  test("resolves every default-bundle key through the supplied localizer", () => {
+  test("resolves every bundle key through the supplied localizer", () => {
     const localizedSources: string[] = [];
     const catalog = createWebviewL10nCatalog((source) => {
       localizedSources.push(source);
@@ -20,7 +20,16 @@ suite("webview l10n", () => {
     });
 
     assert.deepStrictEqual(localizedSources.sort(), Object.keys(defaultL10nBundle).sort());
-    assert.strictEqual(catalog.Save, "localized: Save");
+    assert.strictEqual(catalog.groups, "localized: groups");
+  });
+
+  test("resolves every forced default-bundle key through the supplied localizer", () => {
+    const catalog = createWebviewL10nCatalog((_source) => {
+      return "never reached";
+    }, true);
+
+    assert.strictEqual(Object.keys(catalog).length, Object.keys(defaultL10nBundle).length);
+    assert.strictEqual(catalog.groups, "Groups");
   });
 
   test("formats placeholders and preserves absent values without throwing", () => {

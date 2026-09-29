@@ -15,7 +15,9 @@ export function activate(context: vscode.ExtensionContext) {
   const store = new GanttStore();
   context.subscriptions.push(store);
 
-  context.subscriptions.push(GanttEditorProvider.register(context, store));
+  const log = vscode.window.createOutputChannel("Ganttee", { log: true });
+  context.subscriptions.push(log);
+  context.subscriptions.push(GanttEditorProvider.register(context, store, log));
 
   const explorer = new GanttExplorerProvider(store, context.extensionUri);
   context.subscriptions.push(vscode.window.onDidChangeActiveColorTheme(() => explorer.refresh()));

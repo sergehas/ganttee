@@ -1,5 +1,14 @@
-import { CURRENT_DOCUMENT_VERSION } from "@common/documents";
-import { validateDocumentShape } from "@services/document/documentShapeValidationService";
+import {
+  CURRENT_DOCUMENT_VERSION,
+  DEFAULT_PROJECT_VIEW,
+  PROJECT_STYLES,
+  ProjectView,
+  ZOOM_LEVELS,
+} from "@common/documents";
+import {
+  validateDocumentShape,
+  ViewDefaultWarning,
+} from "@services/document/documentShapeValidationService";
 import * as assert from "assert";
 
 suite("documentShapeValidationService", () => {
@@ -164,15 +173,13 @@ suite("documentShapeValidationService", () => {
             status: "status-1",
             collapsed: true,
           },
-          { id: "g2", name: "G2", collapsed: "not-a-bool" as unknown as boolean },
         ],
       });
       assert.strictEqual(doc.groups[0].description, "Group description");
       assert.strictEqual(doc.groups[0].groupId, "g0");
       assert.strictEqual(doc.groups[0].state, "closed");
       assert.strictEqual(doc.groups[0].status, "status-1");
-      assert.strictEqual(doc.groups[0].collapsed, true);
-      assert.strictEqual(doc.groups[1].collapsed, undefined);
+      assert.strictEqual("collapsed" in doc.groups[0], false);
     });
   });
 
@@ -416,45 +423,67 @@ suite("documentShapeValidationService", () => {
         () => validateDocumentShape({ view: { unknownKey: true } }),
         /view\.unknownKey is not supported/,
       );
+      assert.throws(
+        () => validateDocumentShape({ view: { toString: true } }),
+        /view\.toString is not supported/,
+      );
     });
 
-    test("validates zoomLevel options", () => {
-      assert.throws(
-        () => validateDocumentShape({ view: { zoomLevel: "decade" } }),
-        /view\.zoomLevel is invalid/,
-      );
+    test("defaults each recognized field holding an invalid value and reports it", () => {
+      const invalidValues: [keyof ProjectView, unknown][] = [
+        ["zoomLevel", "decade"],
+        ["showDependencies", "not-a-bool"],
+        ["showOffDays", 1],
+        ["showHolidays", null],
+        ["showCriticalPath", "yes"],
+        ["style", "neon"],
+        ["theme", ""],
+        ["theme", "   "],
+        ["theme", 3],
+        ["showItemLabels", "yes"],
+      ];
+      for (const [field, value] of invalidValues) {
+        const warnings: ViewDefaultWarning[] = [];
+        const doc = validateDocumentShape({ view: { [field]: value } }, (warning) =>
+          warnings.push(warning),
+        );
+        assert.deepStrictEqual(doc.view, DEFAULT_PROJECT_VIEW, field);
+        assert.deepStrictEqual(warnings, [{ field, defaultValue: DEFAULT_PROJECT_VIEW[field] }]);
+      }
+    });
 
-      for (const zoomLevel of ["day", "week", "month", "quarter", "year"] as const) {
-        const doc = validateDocumentShape({ view: { zoomLevel } });
+    test("defaults invalid values without a warning listener", () => {
+      const doc = validateDocumentShape({ view: { style: "neon" } });
+      assert.strictEqual(doc.view.style, "classic");
+    });
+
+    test("accepts every supported value without warnings", () => {
+      const warnings: ViewDefaultWarning[] = [];
+      for (const zoomLevel of ZOOM_LEVELS) {
+        const doc = validateDocumentShape({ view: { zoomLevel } }, (warning) =>
+          warnings.push(warning),
+        );
         assert.strictEqual(doc.view.zoomLevel, zoomLevel);
       }
-    });
-
-    test("validates view boolean flags", () => {
-      for (const field of [
-        "showDependencies",
-        "showOffDays",
-        "showHolidays",
-        "showCriticalPath",
-      ] as const) {
-        assert.throws(
-          () => validateDocumentShape({ view: { [field]: "not-a-bool" } }),
-          new RegExp(`view\\.${field} must be a boolean`),
-        );
+      for (const style of PROJECT_STYLES) {
+        const doc = validateDocumentShape({ view: { style } }, (warning) => warnings.push(warning));
+        assert.strictEqual(doc.view.style, style);
       }
-
-      const doc = validateDocumentShape({
-        view: {
-          showDependencies: true,
-          showOffDays: false,
-          showHolidays: true,
-          showCriticalPath: false,
-        },
-      });
-      assert.strictEqual(doc.view.showDependencies, true);
-      assert.strictEqual(doc.view.showOffDays, false);
-      assert.strictEqual(doc.view.showHolidays, true);
-      assert.strictEqual(doc.view.showCriticalPath, false);
+      const view: ProjectView = {
+        zoomLevel: "month",
+        showDependencies: false,
+        showOffDays: true,
+        showHolidays: true,
+        showCriticalPath: true,
+        style: "metro",
+        theme: "not-registered-yet",
+        showItemLabels: true,
+      };
+      assert.deepStrictEqual(
+        validateDocumentShape({ view }, (warning) => warnings.push(warning)).view,
+        view,
+      );
+      assert.deepStrictEqual(warnings, []);
     });
   });
 });

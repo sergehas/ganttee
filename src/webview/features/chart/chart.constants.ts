@@ -4,9 +4,14 @@ export const CHART_ROW_HEIGHT = 28;
 /** Fraction of a row used for a rendered task or group bar. */
 export const CHART_BAR_RATIO = 0.6;
 
-/** Visual style for critical-path items. */
-export const CRITICAL_ITEM_STYLE = {
-  color: "#d19a24",
-  borderColor: "#f0c36a",
-  borderWidth: 2,
-};
+/** Smallest rendered item height in pixels, whatever the row density. */
+export const CHART_ITEM_MIN_HEIGHT = 8;
+
+/** Largest rendered item height in pixels, whatever the row density. */
+export const CHART_ITEM_MAX_HEIGHT = 20;
+
+/** Maximum horizontal overhang of a rendered chart item. */
+export const CHART_ITEM_MAX_OVERHANG = CHART_ITEM_MAX_HEIGHT / 2;
+
+/** Shared color for native Y-axis and custom timeline header labels. */
+export const AXIS_LABEL_COLOR = "#6e7079";
