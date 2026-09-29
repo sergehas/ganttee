@@ -10,15 +10,5 @@ export const CHART_ITEM_MIN_HEIGHT = 8;
 /** Largest rendered item height in pixels, whatever the row density. */
 export const CHART_ITEM_MAX_HEIGHT = 20;
 
-/** Visual style for critical-path items. */
-export const CRITICAL_ITEM_STYLE = {
-  // fill: "#d19a24",
-  // stroke: "#f0c36a",
-  // lineWidth: 3,
-  color: "#f65800",
-  borderColor: "#ff0000",
-  borderWidth: 3,
-};
-
 /** Shared color for native Y-axis and custom timeline header labels. */
 export const AXIS_LABEL_COLOR = "#6e7079";

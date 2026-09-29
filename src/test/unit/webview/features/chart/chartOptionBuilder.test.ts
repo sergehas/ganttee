@@ -115,7 +115,18 @@ suite("chartOptionBuilder", () => {
     );
     const input = createInput(project, {
       coloredStyleEnabled: true,
-      themeData: { color: ["#1", "#2", "#3", "#4", "#5", "#6", "#7", "#8"] },
+      themeData: {
+        color: [
+          "#group-color",
+          "#task-color",
+          "#milestone-color",
+          "#dependencies-color",
+          "#timeline-color",
+          "#off-days-color",
+          "#holidays-color",
+          "#critical-color",
+        ],
+      },
     });
     const option = buildChartOption({
       ...input,
@@ -123,17 +134,25 @@ suite("chartOptionBuilder", () => {
     });
     const series = option.series as readonly {
       readonly name?: string;
-      readonly data?: readonly { readonly id?: string; readonly value?: readonly number[] }[];
+      readonly data?: readonly {
+        readonly id?: string;
+        readonly value?: readonly number[];
+        readonly itemStyle?: { readonly color?: string; readonly borderColor?: string };
+      }[];
     }[];
     const layer = (name: string) => series.find((item) => item.name === name)?.data ?? [];
 
     assert.strictEqual(layer("groups").length, 1);
     assert.strictEqual(layer("tasks").length, 2);
     assert.strictEqual(layer("milestones").length, 1);
+    assert.deepStrictEqual(layer("groups")[0]?.itemStyle, { color: "#critical-color" });
+    assert.deepStrictEqual(layer("tasks")[0]?.itemStyle, { color: "#critical-color" });
+    assert.deepStrictEqual(layer("milestones")[0]?.itemStyle, { color: "#critical-color" });
     assert.deepStrictEqual(
       layer("dependencies").map((item) => item?.id),
       ["valid", "colored", "end", undefined],
     );
+    assert.deepStrictEqual(layer("dependencies")[0]?.itemStyle, { color: "#critical-color" });
     assert.strictEqual(layer("off-days").length > 0, true);
     assert.strictEqual(layer("holidays").length, 1);
   });

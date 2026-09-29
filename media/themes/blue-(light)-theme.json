@@ -7,6 +7,7 @@
     "#333333",
     "rgba(127, 127, 127, 0.12)",
     "rgba(127, 127, 127, 0.18)",
+    "#f20001",
     "#fabc16",
     "#1b58c6",
     "#6e6d0c",
@@ -40,45 +41,10 @@
     "symbol": "emptyCircle",
     "smooth": true
   },
-  "radar": {
-    "itemStyle": {
-      "borderWidth": "2"
-    },
-    "lineStyle": {
-      "width": "2"
-    },
-    "symbolSize": "6",
-    "symbol": "emptyCircle",
-    "smooth": true
-  },
   "bar": {
     "itemStyle": {
       "barBorderWidth": 0,
       "barBorderColor": "#333"
-    }
-  },
-  "pie": {
-    "itemStyle": {
-      "borderWidth": 0,
-      "borderColor": "#333"
-    }
-  },
-  "scatter": {
-    "itemStyle": {
-      "borderWidth": 0,
-      "borderColor": "#333"
-    }
-  },
-  "boxplot": {
-    "itemStyle": {
-      "borderWidth": 0,
-      "borderColor": "#333"
-    }
-  },
-  "parallel": {
-    "itemStyle": {
-      "borderWidth": 0,
-      "borderColor": "#333"
     }
   },
   "sankey": {

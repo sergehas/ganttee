@@ -2,7 +2,6 @@ import { MS_PER_DAY } from "@common/dates";
 import { DependencyType, ProjectView } from "@common/documents";
 import { ProjectPresentation } from "@common/presentation/project";
 import { renderCalendarArea } from "@webview/features/chart/calendarRenderer";
-import { CRITICAL_ITEM_STYLE } from "@webview/features/chart/chart.constants";
 import { CalendarAreaData, TimelineTickData } from "@webview/features/chart/chart.types";
 import { legendSelection } from "@webview/features/chart/chartInteractions";
 import {
@@ -69,6 +68,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
   const scheduledGroups = project.groups.filter(isEffectivelyScheduled);
   const criticalNodeIds = new Set(project.criticalPath.nodeIds);
   const criticalDependencyIds = new Set(project.criticalPath.dependencyIds);
+  const criticalColor = themeData.color?.[7];
   const style = VISUAL_STYLES[view.style];
   const metroGroupPaletteColors = coloredStyleEnabled
     ? buildMetroGroupColorMap(project.groups, themeData.color)
@@ -79,9 +79,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
       metroGroupColors.set(
         group.id,
         resolveMetroItemColor(
-          view.showCriticalPath && criticalNodeIds.has(group.id)
-            ? CRITICAL_ITEM_STYLE.color
-            : undefined,
+          view.showCriticalPath && criticalNodeIds.has(group.id) ? criticalColor : undefined,
           metroGroupPaletteColors.get(group.id),
           resolveStatusColor(group, project.settings.statuses),
           themeData.color?.[0],
@@ -114,7 +112,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
     const critical = view.showCriticalPath && criticalNodeIds.has(task.id);
     const color = coloredStyleEnabled
       ? resolveMetroItemColor(
-          critical ? CRITICAL_ITEM_STYLE.color : undefined,
+          critical ? criticalColor : undefined,
           task.groupId === undefined ? undefined : metroGroupColors.get(task.groupId),
           statusColor,
           themeData.color?.[1],
@@ -132,7 +130,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
       task,
       effectiveStart: task.effectiveStart,
       effectiveEnd: task.effectiveEnd,
-      itemStyle: itemStyle(critical, color, statusColor),
+      itemStyle: itemStyle(critical ? criticalColor : undefined, color, statusColor),
       name: task.name,
     };
   });
@@ -141,7 +139,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
     const critical = view.showCriticalPath && criticalNodeIds.has(milestone.id);
     const color = coloredStyleEnabled
       ? resolveMetroItemColor(
-          critical ? CRITICAL_ITEM_STYLE.color : undefined,
+          critical ? criticalColor : undefined,
           undefined,
           statusColor,
           themeData.color?.[2],
@@ -154,7 +152,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
       value: [indexById.get(milestone.id)!, toChartMs(milestone.effectiveStart)],
       milestone,
       effectiveDate: milestone.effectiveStart,
-      itemStyle: itemStyle(critical, color, statusColor),
+      itemStyle: itemStyle(critical ? criticalColor : undefined, color, statusColor),
     };
   });
   const groupData = groups.map((group) => {
@@ -168,7 +166,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
         toChartMs(group.effectiveEnd),
       ],
       group,
-      itemStyle: itemStyle(critical, color, statusColor),
+      itemStyle: itemStyle(critical ? criticalColor : undefined, color, statusColor),
     };
   });
   const scheduledById = new Map(
@@ -189,7 +187,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
       value: [indexById.get(target.id)!, endpoints[0], indexById.get(source.id)!, endpoints[1]],
       itemStyle:
         view.showCriticalPath && criticalDependencyIds.has(dependency.id)
-          ? CRITICAL_ITEM_STYLE
+          ? itemStyle(criticalColor, taskColors.get(dependency.targetId), undefined)
           : coloredStyleEnabled && taskColors.get(dependency.targetId) !== undefined
             ? { color: taskColors.get(dependency.targetId) }
             : undefined,
@@ -327,14 +325,18 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
 }
 
 /** Chooses a critical-path, explicit, or inherited status color.
- * @param critical Whether the item belongs to the enabled critical path.
+ * @param criticalColor Theme color for a critical-path item, when enabled.
  * @param color Resolved style or inherited color.
  * @param statusColor Color assigned to the item's status.
  * @returns The ECharts item style, or `undefined` to use the series palette.
  */
-function itemStyle(critical: boolean, color: string | undefined, statusColor: string | undefined) {
-  if (critical) {
-    return CRITICAL_ITEM_STYLE;
+function itemStyle(
+  criticalColor: string | undefined,
+  color: string | undefined,
+  statusColor: string | undefined,
+) {
+  if (criticalColor !== undefined) {
+    return { color: criticalColor };
   }
   if (color !== undefined) {
     return { color };

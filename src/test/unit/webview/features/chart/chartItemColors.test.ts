@@ -9,15 +9,26 @@ const GROUPS = [{ id: "group-a" }, { id: "group-b" }, { id: "group-c" }] as Grou
 
 suite("chartItemColors", () => {
   test("assigns colors from the eighth palette entry in group order", () => {
-    const colors = ["#0", "#1", "#2", "#3", "#4", "#5", "#6", "#7", "#8"];
+    const colors = [
+      "#group-color",
+      "#task-color",
+      "#milestone-color",
+      "#dependencies-color",
+      "#timeline-color",
+      "#off-days-color",
+      "#holidays-color",
+      "#critical-color",
+      "#8",
+      "#9",
+    ];
     const groupColors = buildMetroGroupColorMap(GROUPS, colors);
 
     assert.deepStrictEqual(
       [...groupColors],
       [
-        ["group-a", "#7"],
-        ["group-b", "#8"],
-        ["group-c", "#7"],
+        ["group-a", "#8"],
+        ["group-b", "#9"],
+        ["group-c", "#8"],
       ],
     );
   });

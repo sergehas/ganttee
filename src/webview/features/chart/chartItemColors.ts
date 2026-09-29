@@ -1,7 +1,7 @@
 import type { GroupPresentation } from "@common/presentation/project/projectItemPresentation";
 
 /** Zero-based palette index of the first color reserved for metro groups. */
-const FIRST_GROUP_COLOR_INDEX = 7;
+const FIRST_GROUP_COLOR_INDEX = 8;
 
 /**
  * Assigns available metro palette colors to groups in project order, cycling as needed.
