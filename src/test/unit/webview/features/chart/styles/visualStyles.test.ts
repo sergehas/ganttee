@@ -13,6 +13,7 @@ import {
   ITEM_COLOR,
   polylinePoints,
   segmentKinds,
+  shapeElements,
 } from "./fakeRenderApi";
 
 const TASK = [0, 5, 15];
@@ -143,6 +144,26 @@ suite("visualStyles", () => {
         ["circle", "circle", "rect"],
       );
     });
+  });
+
+  suite("shape transitions", () => {
+    for (const id of PROJECT_STYLES) {
+      test(`${id} transitions renderer geometry`, () => {
+        const style = bindStyle(VISUAL_STYLES[id]);
+        const renderedItems = [
+          style.renderTask(fakeParams(), fakeApi(TASK)),
+          style.renderGroup(fakeParams(), fakeApi(TASK)),
+          style.renderMilestone(fakeParams(), fakeApi(MILESTONE)),
+          style.renderDependency(fakeParams(), fakeApi(LINK)),
+        ];
+
+        for (const item of renderedItems) {
+          for (const element of shapeElements(asElement(item))) {
+            assert.deepStrictEqual(element.transition, ["shape"]);
+          }
+        }
+      });
+    }
   });
 
   suite("shapes", () => {

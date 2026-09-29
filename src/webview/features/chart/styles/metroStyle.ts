@@ -45,7 +45,14 @@ export const metroStyle: VisualStyle = {
       children: [
         ...(track === undefined
           ? []
-          : [{ type: "rect" as const, shape: track, style: { fill: color } }]),
+          : [
+              {
+                type: "rect" as const,
+                shape: track,
+                style: { fill: color },
+                transition: ["shape" as const],
+              },
+            ]),
         station([bar.x, bar.centerY], bar.height, color, color),
         station([bar.x + bar.width, bar.centerY], bar.height, color, color),
         createTransparentHitTarget(hitArea),
@@ -75,6 +82,7 @@ export const metroStyle: VisualStyle = {
         stroke: itemColor(api),
         lineWidth,
       },
+      transition: ["shape" as const],
     };
   },
 
@@ -146,6 +154,7 @@ function renderRoundedRoute(
         y2: bend.end[1],
       },
       style,
+      transition: ["shape" as const],
     });
     cursor = bend.end;
   }
@@ -207,6 +216,7 @@ function lineElement(from: ChartPoint, to: ChartPoint, style: Record<string, str
     type: "line" as const,
     shape: { x1: from[0], y1: from[1], x2: to[0], y2: to[1] },
     style,
+    transition: ["shape" as const],
   };
 }
 
@@ -240,6 +250,7 @@ function station(center: ChartPoint, height: number, color: string, fill: string
     type: "circle" as const,
     shape: { cx: center[0], cy: center[1], r: (height - lineWidth) / 2 },
     style: { fill, stroke: color, lineWidth },
+    transition: ["shape" as const],
   };
 }
 

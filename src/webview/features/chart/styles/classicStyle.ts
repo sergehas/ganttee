@@ -22,7 +22,12 @@ export const classicStyle: VisualStyle = {
     if (shape === undefined) {
       return undefined;
     }
-    return { type: "rect", shape: { ...shape, r: CORNER_RADIUS }, style: { fill: itemColor(api) } };
+    return {
+      type: "rect",
+      shape: { ...shape, r: CORNER_RADIUS },
+      style: { fill: itemColor(api) },
+      transition: ["shape"],
+    };
   },
 
   /** Draws groups as brackets with a transparent full-size hit target. */
@@ -49,6 +54,7 @@ export const classicStyle: VisualStyle = {
             ],
           },
           style: { fill: itemColor(api) },
+          transition: ["shape"],
         },
         createTransparentHitTarget(shape),
       ],
@@ -74,6 +80,7 @@ export const classicStyle: VisualStyle = {
         ],
       },
       style: { fill: itemColor(api) },
+      transition: ["shape"],
     };
   },
 
@@ -84,6 +91,7 @@ export const classicStyle: VisualStyle = {
       type: "polyline",
       shape: { points: orthogonalRoute(from, to) },
       style: { stroke: itemColor(api), lineWidth: 2, fill: "none" },
+      transition: ["shape"],
     };
   },
 };

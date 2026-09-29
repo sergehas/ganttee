@@ -56,6 +56,8 @@ export interface RenderedElement {
   readonly children?: readonly RenderedElement[];
   /** Whether the element is omitted from rendering and hit testing. */
   readonly ignore?: boolean;
+  /** Geometry properties transitioned by ECharts. */
+  readonly transition?: readonly string[];
   /** Text x position. */
   readonly x?: number;
   /** Text y position. */
@@ -78,6 +80,12 @@ export function boundingBox(item: CustomSeriesRenderItemReturn): Bounds {
 /** Returns every point of a polyline element. */
 export function polylinePoints(item: CustomSeriesRenderItemReturn): number[][] {
   return asElement(item).shape?.points as number[][];
+}
+
+/** Returns every shape-bearing element in a rendered element tree. */
+export function shapeElements(element: RenderedElement): RenderedElement[] {
+  const children = (element.children ?? []).flatMap(shapeElements);
+  return element.shape === undefined ? children : [element, ...children];
 }
 
 /** Classifies each segment of a route as horizontal, vertical, diagonal (45°), or other. */

@@ -23,6 +23,7 @@ export const roundedStyle: VisualStyle = {
       type: "rect",
       shape: { ...shape, r: shape.height / 2 },
       style: { fill: itemColor(api) },
+      transition: ["shape"],
     };
   },
 
@@ -55,6 +56,7 @@ export const roundedStyle: VisualStyle = {
             r: radius,
           },
           style: { fill: itemColor(api) },
+          transition: ["shape"],
         },
         {
           type: "arc" as const,
@@ -67,6 +69,7 @@ export const roundedStyle: VisualStyle = {
             clockwise: true,
           },
           style: lineStyle,
+          transition: ["shape"],
         },
         {
           type: "arc" as const,
@@ -79,6 +82,7 @@ export const roundedStyle: VisualStyle = {
             clockwise: true,
           },
           style: lineStyle,
+          transition: ["shape"],
         },
         createTransparentHitTarget(shape),
       ],
@@ -96,6 +100,7 @@ export const roundedStyle: VisualStyle = {
       type: "circle",
       shape: { cx, cy, r: placement.height / 2 },
       style: { fill: itemColor(api) },
+      transition: ["shape"],
     };
   },
 
@@ -112,6 +117,7 @@ export const roundedStyle: VisualStyle = {
         lineCap: "round",
         fill: "none",
       },
+      transition: ["shape"],
     };
   },
 };

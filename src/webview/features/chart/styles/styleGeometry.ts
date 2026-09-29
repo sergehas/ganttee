@@ -115,6 +115,7 @@ export function createTransparentHitTarget(shape: TimelineRectangle) {
     type: "rect" as const,
     shape,
     style: { fill: "rgba(0, 0, 0, 0)", stroke: "none", lineWidth: 0 },
+    transition: ["shape" as const],
   };
 }
 
