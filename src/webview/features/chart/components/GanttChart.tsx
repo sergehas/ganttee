@@ -9,7 +9,14 @@ import type {
 } from "@webview/features/chart/chartExport.types";
 import { applyLegendSelection, resolveChartClick } from "@webview/features/chart/chartInteractions";
 import type { ChartOptionInput } from "@webview/features/chart/chartOptionBuilder";
-import { buildChartOption } from "@webview/features/chart/chartOptionBuilder";
+import {
+  buildChartControlOption,
+  buildChartDataOption,
+  buildChartOption,
+  buildChartStaticOption,
+  buildChartTimelineOption,
+  buildChartViewportOption,
+} from "@webview/features/chart/chartOptionBuilder";
 import { buildVisibleChartRows, toggleCollapsedGroup } from "@webview/features/chart/chartRows";
 import "@webview/features/chart/components/GanttChart.scss";
 import { CHART_THEMES, ChartTheme } from "@webview/features/chart/themes/chartThemes";
@@ -77,6 +84,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
     const containerRef = useRef<HTMLDivElement | null>(null);
     const chartRef = useRef<echarts.ECharts | null>(null);
     const chartOptionInputRef = useRef<ChartOptionInput | undefined>(undefined);
+    const hasInitialOptionRef = useRef(false);
+    const previousZoomLevelRef = useRef(props.view.zoomLevel);
     const propsRef = useRef(props);
     propsRef.current = props;
     const [collapsedGroupIds, setCollapsedGroupIds] = useState<ReadonlySet<string>>(
@@ -142,9 +151,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
         }
         const resizedInput = { ...currentInput, chartWidth: chart.getWidth() };
         chartOptionInputRef.current = resizedInput;
-        const resizedOption = buildChartOption(resizedInput);
-        const xAxis = resizedOption.xAxis as { readonly max?: number };
-        chart.setOption({ xAxis: { max: xAxis.max } });
+        chart.setOption(buildChartTimelineOption(resizedInput));
       };
       window.addEventListener("resize", resize);
       return () => {
@@ -181,7 +188,15 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
           translate(l10n, source, ...values),
       };
       chartOptionInputRef.current = input;
-      chart.setOption(buildChartOption(input), true);
+      if (!hasInitialOptionRef.current) {
+        chart.setOption(buildChartOption(input), { notMerge: true });
+        hasInitialOptionRef.current = true;
+      } else {
+        chart.setOption(
+          { ...buildChartStaticOption(input), ...buildChartDataOption(input) },
+          { replaceMerge: ["series"] },
+        );
+      }
       if (containerRef.current) {
         containerRef.current.style.height = `${Math.max(rows.length, 1) * CHART_ROW_HEIGHT + 80}px`;
         chart.resize();
@@ -189,12 +204,49 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
     }, [
       l10n,
       props.project,
-      props.view,
-      props.legendVisible,
+      props.view.style,
+      props.view.showCriticalPath,
+      props.view.showItemLabels,
       props.coloredStyleEnabled,
       props.theme,
       rows,
     ]);
+
+    useEffect(() => {
+      const chart = chartRef.current;
+      const currentInput = chartOptionInputRef.current;
+      if (!chart || !currentInput) {
+        return;
+      }
+      const input = { ...currentInput, view: props.view, legendVisible: props.legendVisible };
+      chartOptionInputRef.current = input;
+      chart.setOption(buildChartControlOption(input));
+    }, [
+      l10n,
+      props.legendVisible,
+      props.view.showDependencies,
+      props.view.showOffDays,
+      props.view.showHolidays,
+    ]);
+
+    useEffect(() => {
+      const previousZoomLevel = previousZoomLevelRef.current;
+      previousZoomLevelRef.current = props.view.zoomLevel;
+      if (previousZoomLevel === props.view.zoomLevel) {
+        return;
+      }
+      const chart = chartRef.current;
+      const currentInput = chartOptionInputRef.current;
+      if (!chart || !currentInput) {
+        return;
+      }
+      const input = { ...currentInput, view: props.view, legendVisible: props.legendVisible };
+      chartOptionInputRef.current = input;
+      chart.setOption({
+        ...buildChartTimelineOption(input),
+        ...buildChartViewportOption(input),
+      });
+    }, [props.view.zoomLevel]);
 
     return <div className="ganttee-gantt-chart" ref={containerRef} />;
   },

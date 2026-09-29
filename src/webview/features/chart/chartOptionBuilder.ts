@@ -16,6 +16,7 @@ import { chartTooltipFormatter } from "@webview/features/chart/chartTooltip";
 import { bindThemeToRenderer } from "@webview/features/chart/styles/visualStyle";
 import { VISUAL_STYLES } from "@webview/features/chart/styles/visualStyles";
 import { ChartTheme } from "@webview/features/chart/themes/chartThemes";
+import type { TimelineAxisModel, TimelineTick } from "@webview/features/chart/timelineAxis";
 import {
   alignTimelineStart,
   buildTimelineTicks,
@@ -49,23 +50,61 @@ export interface ChartOptionInput {
   readonly translate: (text: string, ...args: readonly unknown[]) => string;
 }
 
-/** Builds the ECharts option from current project data and chart view state.
+/** Builds options that can remain constant between data and control updates.
+ * @param input Project and localization inputs for the tooltip.
+ * @returns Animation, tooltip, and axis-pointer options.
+ */
+export function buildChartStaticOption(input: ChartOptionInput): EChartsCoreOption {
+  const { project, locale, unavailable, translate } = input;
+  return {
+    animation: true,
+    animationDurationUpdate: 180,
+    tooltip: {
+      trigger: "item",
+      formatter: (params: unknown) =>
+        chartTooltipFormatter(params, locale, unavailable, translate, project.settings.statuses),
+    },
+    axisPointer: { show: true, snap: false, link: [{ xAxisIndex: "all" }] },
+  };
+}
+
+/** Builds the legend presentation from the current chart controls.
+ * @param input Current view, legend visibility, and translation.
+ * @returns The legend option only.
+ */
+export function buildChartControlOption(input: ChartOptionInput): EChartsCoreOption {
+  const { view, legendVisible, translate } = input;
+  return {
+    legend: {
+      id: "chart-legend",
+      show: legendVisible,
+      bottom: 0,
+      selected: legendSelection(view),
+      formatter: (name: string) => translate(name),
+    },
+  };
+}
+
+/** Builds the complete initial option by composing its independent sections.
  * @param input Project, view, visible rows, theme, and localization inputs.
- * @returns The ECharts option for the current chart state.
- * @throws {RangeError} When a scheduled project date is not a valid ISO timestamp.
+ * @returns The composed ECharts option.
  */
 export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
-  const {
-    project,
-    view,
-    rows,
-    themeData,
-    legendVisible,
-    coloredStyleEnabled,
-    locale,
-    unavailable,
-    translate,
-  } = input;
+  return {
+    ...buildChartStaticOption(input),
+    ...buildChartControlOption(input),
+    ...buildChartDataOption(input),
+    ...buildChartViewportOption(input),
+  };
+}
+
+/** Builds data and layout options, excluding static and control state.
+ * @param input Project, view, visible rows, theme, and localization inputs.
+ * @returns Grid, axes, and chart-series options.
+ * @throws {RangeError} When a scheduled project date is not a valid ISO timestamp.
+ */
+export function buildChartDataOption(input: ChartOptionInput): EChartsCoreOption {
+  const { project, view, rows, themeData, coloredStyleEnabled, locale } = input;
   const scheduledTasks = project.tasks.filter(isEffectivelyScheduled);
   const scheduledMilestones = project.milestones.filter(isEffectivelyScheduled);
   const scheduledGroups = project.groups.filter(isEffectivelyScheduled);
@@ -97,18 +136,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
   const tasks = scheduledTasks.filter(isVisible);
   const milestones = scheduledMilestones.filter(isVisible);
   const groups = scheduledGroups.filter(isVisible);
-  const timestamps = [
-    ...scheduledTasks.flatMap((task) => [
-      toChartMs(task.effectiveStart),
-      toChartMs(task.effectiveEnd),
-    ]),
-    ...scheduledMilestones.map((milestone) => toChartMs(milestone.effectiveStart)),
-    ...scheduledGroups.flatMap((group) => [
-      toChartMs(group.effectiveStart),
-      toChartMs(group.effectiveEnd),
-    ]),
-  ];
-  const range = chartRange(timestamps);
+  const range = chartRange(scheduledChartTimestamps(project));
   const taskColors = new Map<string, string | undefined>();
   const taskData = tasks.map((task) => {
     const statusColor = resolveStatusColor(task, project.settings.statuses);
@@ -125,6 +153,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
       taskColors.set(task.id, color);
     }
     return {
+      id: task.id,
       value: [
         indexById.get(task.id)!,
         toChartMs(task.effectiveStart),
@@ -152,6 +181,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
       taskColors.set(milestone.id, color);
     }
     return {
+      id: milestone.id,
       value: [indexById.get(milestone.id)!, toChartMs(milestone.effectiveStart)],
       milestone,
       effectiveDate: milestone.effectiveStart,
@@ -163,6 +193,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
     const critical = coloredStyleEnabled && view.showCriticalPath && criticalNodeIds.has(group.id);
     const color = coloredStyleEnabled ? metroGroupColors.get(group.id) : undefined;
     return {
+      id: group.id,
       value: [
         indexById.get(group.id)!,
         toChartMs(group.effectiveStart),
@@ -201,14 +232,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
   const timelineAxis = createTimelineAxisModel(view.zoomLevel, locale);
   const gridLeft = view.showItemLabels ? 24 : 160;
   const gridRight = 24;
-  const axisMin = alignTimelineStart(view.zoomLevel, range.min);
-  const axisSpan = range.max - axisMin;
-  const plotWidth = Math.max(input.chartWidth - gridLeft - gridRight, 1);
-  const axisMargin = (axisSpan * CHART_ITEM_MAX_OVERHANG) / plotWidth;
-  const axisRange = {
-    min: axisMin - axisMargin,
-    max: range.max + axisMargin,
-  };
+  const axisRange = chartAxisRange(input, range);
   const timelineTicks = buildTimelineTicks(view.zoomLevel, locale, axisRange);
   /** Adds labels to a style renderer when item labels are enabled. */
   const labelled = (
@@ -216,49 +240,24 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
     items: readonly { readonly name: string }[],
     endDimension: number,
   ) =>
-    view.showItemLabels
-      ? withItemLabel(
-          render,
-          items.map((item) => item.name),
-          endDimension,
-          input.themeData.categoryAxis?.axisLabel,
-        )
-      : render;
+    withItemLabel(
+      render,
+      items.map((item) => item.name),
+      endDimension,
+      input.themeData.categoryAxis?.axisLabel,
+      view.showItemLabels,
+    );
 
   return {
-    animation: false,
-    tooltip: {
-      trigger: "item",
-      formatter: (params: unknown) =>
-        chartTooltipFormatter(params, locale, unavailable, translate, project.settings.statuses),
-    },
-    legend: {
-      show: legendVisible,
-      bottom: 0,
-      selected: legendSelection(view),
-      formatter: (name: string) => translate(name),
-    },
-    axisPointer: { show: true, snap: false, link: [{ xAxisIndex: "all" }] },
     grid: {
       left: gridLeft,
       right: gridRight,
       top: timelineAxis.formatParent === undefined ? 44 : 68,
       bottom: 40,
     },
-    dataZoom: [
-      {
-        type: "inside",
-        xAxisIndex: 0,
-        filterMode: "weakFilter",
-        start: 0,
-        end: Math.min(
-          100,
-          (timelineAxis.visibleDuration / Math.max(axisRange.max - axisRange.min, 1)) * 100,
-        ),
-      },
-    ],
-    xAxis: createTimeAxis(axisRange),
+    xAxis: { id: "timeline-x-axis", ...createTimeAxis(axisRange) },
     yAxis: {
+      id: "chart-y-axis",
       type: "category",
       inverse: true,
       data: rows.map((row) => row.label),
@@ -269,6 +268,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
     },
     series: [
       {
+        id: "groups",
         type: "custom",
         name: "groups",
         renderItem: labelled(bindThemeToRenderer(style.renderGroup, input.themeData), groups, 2),
@@ -278,6 +278,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
         zlevel: 3,
       },
       {
+        id: "tasks",
         type: "custom",
         name: "tasks",
         renderItem: labelled(bindThemeToRenderer(style.renderTask, input.themeData), tasks, 2),
@@ -287,6 +288,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
         zlevel: 3,
       },
       {
+        id: "milestones",
         type: "custom",
         name: "milestones",
         renderItem: labelled(
@@ -300,6 +302,7 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
         zlevel: 3,
       },
       {
+        id: "dependencies",
         type: "custom",
         name: "dependencies",
         renderItem: bindThemeToRenderer(style.renderDependency, input.themeData),
@@ -309,23 +312,12 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
         zlevel: 1,
         silent: true,
       },
-      {
-        type: "custom",
-        name: "timeline-header",
-        renderItem: createTimelineTickRenderer(
-          timelineAxis.formatSelected,
-          timelineAxis.formatParent,
-        ),
-        encode: { x: 0 },
-        data: timelineTicks.map((tick): TimelineTickData => ({ value: [tick.value, 0] })),
-        clip: false,
-        zlevel: 0,
-        silent: true,
-      },
+      createTimelineHeaderSeries(timelineAxis, timelineTicks),
       ...[
-        { name: "off-days", data: offDaysAreas },
-        { name: "holidays", data: holidayAreas },
-      ].map(({ name, data }) => ({
+        { id: "off-days", name: "off-days", data: offDaysAreas },
+        { id: "holidays", name: "holidays", data: holidayAreas },
+      ].map(({ id, name, data }) => ({
+        id,
         type: "custom" as const,
         name,
         renderItem: renderCalendarArea,
@@ -337,6 +329,119 @@ export function buildChartOption(input: ChartOptionInput): EChartsCoreOption {
       })),
     ],
   };
+}
+
+/** Builds data-zoom state for the selected zoom level.
+ * @param input Current project, view, chart width, and timeline inputs.
+ * @returns The data-zoom option only.
+ */
+export function buildChartViewportOption(input: ChartOptionInput): EChartsCoreOption {
+  const range = chartRange(scheduledChartTimestamps(input.project));
+  const axisRange = chartAxisRange(input, range);
+  const timelineAxis = createTimelineAxisModel(input.view.zoomLevel, input.locale);
+  return {
+    dataZoom: [
+      {
+        id: "chart-viewport",
+        type: "inside",
+        xAxisIndex: 0,
+        filterMode: "weakFilter",
+        start: 0,
+        end: Math.min(
+          100,
+          (timelineAxis.visibleDuration / Math.max(axisRange.max - axisRange.min, 1)) * 100,
+        ),
+      },
+    ],
+  };
+}
+
+/** Builds timeline-only options for zoom changes without rebuilding entity series.
+ * @param input Current project, zoom level, and chart dimensions.
+ * @returns Timeline grid, axis, and header-series options.
+ */
+export function buildChartTimelineOption(input: ChartOptionInput): EChartsCoreOption {
+  const range = chartRange(scheduledChartTimestamps(input.project));
+  const axisRange = chartAxisRange(input, range);
+  const timelineAxis = createTimelineAxisModel(input.view.zoomLevel, input.locale);
+  return {
+    grid: { top: timelineAxis.formatParent === undefined ? 44 : 68 },
+    xAxis: { id: "timeline-x-axis", ...createTimeAxis(axisRange) },
+    series: [
+      createTimelineHeaderSeries(
+        timelineAxis,
+        buildTimelineTicks(input.view.zoomLevel, input.locale, axisRange),
+      ),
+    ],
+  };
+}
+
+/** Builds only the axis bounds affected by chart resizing.
+ * @param input Current project, view, and chart width.
+ * @returns The X-axis range option only.
+ */
+export function buildChartAxisOption(input: ChartOptionInput): EChartsCoreOption {
+  const range = chartRange(scheduledChartTimestamps(input.project));
+  return {
+    xAxis: { id: "timeline-x-axis", ...createTimeAxis(chartAxisRange(input, range)) },
+  };
+}
+
+/** Creates stable timeline-header series data for initial and zoom-only updates. */
+function createTimelineHeaderSeries(
+  timelineAxis: TimelineAxisModel,
+  ticks: readonly TimelineTick[],
+) {
+  return {
+    id: "timeline-header",
+    type: "custom" as const,
+    name: "timeline-header",
+    renderItem: createTimelineTickRenderer(timelineAxis.formatSelected, timelineAxis.formatParent),
+    encode: { x: 0 },
+    data: ticks.map((tick): TimelineTickData => ({
+      id: String(tick.value),
+      value: [tick.value, 0],
+    })),
+    clip: false,
+    zlevel: 0,
+    silent: true,
+  };
+}
+
+/** Computes axis bounds with enough pixel-scaled room for chart-item overhang.
+ * @param input Current view and chart width.
+ * @param range Padded project range.
+ * @returns The X-axis minimum and maximum.
+ */
+function chartAxisRange(
+  input: ChartOptionInput,
+  range: { readonly min: number; readonly max: number },
+): { min: number; max: number } {
+  const gridLeft = input.view.showItemLabels ? 24 : 160;
+  const gridRight = 24;
+  const min = alignTimelineStart(input.view.zoomLevel, range.min);
+  const span = range.max - min;
+  const plotWidth = Math.max(input.chartWidth - gridLeft - gridRight, 1);
+  const margin = (span * CHART_ITEM_MAX_OVERHANG) / plotWidth;
+  return { min: min - margin, max: range.max + margin };
+}
+
+/** Returns scheduled endpoints for constructing the shared chart range.
+ * @param project Current project presentation.
+ * @returns Timestamps for scheduled task, milestone, and group endpoints.
+ */
+function scheduledChartTimestamps(project: ProjectPresentation): number[] {
+  return [
+    ...project.tasks
+      .filter(isEffectivelyScheduled)
+      .flatMap((task) => [toChartMs(task.effectiveStart), toChartMs(task.effectiveEnd)]),
+    ...project.milestones
+      .filter(isEffectivelyScheduled)
+      .map((milestone) => toChartMs(milestone.effectiveStart)),
+    ...project.groups
+      .filter(isEffectivelyScheduled)
+      .flatMap((group) => [toChartMs(group.effectiveStart), toChartMs(group.effectiveEnd)]),
+  ];
 }
 
 /** Chooses a critical-path, explicit, or inherited status color.

@@ -8,6 +8,8 @@ export interface CalendarAreaData {
 
 /** Timestamp and placeholder row coordinate used by the custom series. */
 export interface TimelineTickData {
+  /** Stable timestamp key used to match timeline labels across option updates. */
+  readonly id: string;
   /** Timestamp and placeholder row coordinate. */
   readonly value: readonly [number, number];
 }

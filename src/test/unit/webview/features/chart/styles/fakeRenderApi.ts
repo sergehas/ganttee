@@ -54,6 +54,8 @@ export interface RenderedElement {
   readonly style?: Record<string, unknown>;
   /** Group children. */
   readonly children?: readonly RenderedElement[];
+  /** Whether the element is omitted from rendering and hit testing. */
+  readonly ignore?: boolean;
   /** Text x position. */
   readonly x?: number;
   /** Text y position. */

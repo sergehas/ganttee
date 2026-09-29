@@ -13,6 +13,7 @@ const LABEL_GAP = 4;
  * @param labels Row labels indexed like the series data.
  * @param endDimension Data dimension holding the item's end time.
  * @param axisLabelStyle Theme styling for category-axis labels.
+ * @param showLabels Whether the text child should be visible.
  * @returns A renderer returning the item and its label.
  */
 export function withItemLabel(
@@ -20,6 +21,7 @@ export function withItemLabel(
   labels: readonly string[],
   endDimension: number,
   axisLabelStyle?: NonNullable<ChartThemeData["categoryAxis"]>["axisLabel"],
+  showLabels = true,
 ): CustomSeriesRenderItem {
   return (params, api) => {
     const item = render(params, api);
@@ -31,9 +33,6 @@ export function withItemLabel(
     const [endX, centerY] = api.coord([api.value(endDimension), api.value(0)]);
     const x = Math.max(endX, grid.x) + itemHeight(api) / 2 + LABEL_GAP;
     const width = grid.x + grid.width - x;
-    if (width <= 0) {
-      return item;
-    }
     return {
       type: "group",
       children: [
@@ -42,9 +41,10 @@ export function withItemLabel(
           type: "text",
           x,
           y: centerY,
+          ignore: !showLabels || width <= 0,
           style: {
             text,
-            width,
+            width: Math.max(width, 0),
             overflow: "truncate",
             verticalAlign: "middle",
             fill: axisLabelStyle?.color ?? AXIS_LABEL_COLOR,

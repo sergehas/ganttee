@@ -1,6 +1,15 @@
 import { createEmptyDocument } from "@common/documents";
 import { ProjectPresentation } from "@common/presentation/project";
-import { buildChartOption, ChartOptionInput } from "@webview/features/chart/chartOptionBuilder";
+import {
+  buildChartAxisOption,
+  buildChartControlOption,
+  buildChartDataOption,
+  buildChartOption,
+  buildChartStaticOption,
+  buildChartTimelineOption,
+  buildChartViewportOption,
+  ChartOptionInput,
+} from "@webview/features/chart/chartOptionBuilder";
 import * as assert from "assert";
 
 /** Builds a project presentation containing one scheduled task. */
@@ -194,6 +203,27 @@ suite("chartOptionBuilder", () => {
 
     assert.ok(narrowMinimum < wideMinimum);
     assert.ok(narrowMaximum > wideMaximum);
+  });
+
+  test("builds static, control, data, viewport, and resize options separately", () => {
+    const input = createInput(createProject());
+    const staticOption = buildChartStaticOption(input);
+    const controlOption = buildChartControlOption(input);
+    const dataOption = buildChartDataOption(input);
+    const timelineOption = buildChartTimelineOption(input);
+    const viewportOption = buildChartViewportOption(input);
+    const resizeOption = buildChartAxisOption(input);
+
+    assert.strictEqual(staticOption.animation, true);
+    assert.deepStrictEqual(Object.keys(controlOption), ["legend"]);
+    assert.deepStrictEqual(Object.keys(dataOption), ["grid", "xAxis", "yAxis", "series"]);
+    assert.deepStrictEqual(Object.keys(timelineOption), ["grid", "xAxis", "series"]);
+    assert.deepStrictEqual(
+      (timelineOption.series as readonly { readonly id?: string }[]).map(({ id }) => id),
+      ["timeline-header"],
+    );
+    assert.deepStrictEqual(Object.keys(viewportOption), ["dataZoom"]);
+    assert.deepStrictEqual(Object.keys(resizeOption), ["xAxis"]);
   });
 });
 
