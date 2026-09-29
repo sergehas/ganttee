@@ -1,5 +1,5 @@
 ---
-Status: Draft
+Status: Reviewed
 Owner: Spec Writer
 Last updated: 2026-09-29
 Related ADRs: none
@@ -7,7 +7,7 @@ Related ADRs: none
 
 # Feature: Settings editor
 
-![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)
+![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
 
 ## 1. Summary
 
@@ -23,16 +23,15 @@ editing document JSON. This feature provides a dedicated Settings editor view fo
   or an editor action.
 - Edit working days, working hours, and working-day start time.
 - Add and delete inclusive holiday date ranges.
-- Add statuses, show their usage counts by item kind, and delete them with confirmation when they
-  are in use.
+- Add and edit statuses, show one aggregate usage count across item kinds, and delete statuses with
+  confirmation when they are in use.
 - Provide a reusable Boolean toggle field with either label placement.
 - Preserve the `.ganttee` TextDocument as the single source of truth.
 
 ### Non-goals
 
 - Add settings that are not listed in this spec.
-- Edit an existing holiday range or status definition; this version supports adding and deleting
-  entries only.
+- Edit an existing holiday range; this version supports adding and deleting holiday entries only.
 - Change scheduling semantics, status lifecycle values, or the document schema.
 - Replace the Gantt chart editor or change its default status for `.ganttee` files.
 
@@ -59,6 +58,10 @@ consistent with the saved project document.
   hours for this project.
   - Given valid settings When I change days off, working hours, or start time Then the updated
     values are written to this document and reflected in all open views.
+  - Given the working calendar is displayed When I view its days-off setting Then it shows seven
+    labeled toggles in Monday-to-Sunday order, with each toggle on when that weekday is a day off.
+  - Given I turn a weekday toggle on or off When the change is accepted Then that weekday is added
+    to or removed from `daysOff` respectively.
   - Given a day-off selection contains a value outside ISO weekdays 1 through 7 When I apply the
     change Then the host rejects it and retains the last valid document state.
   - Given working hours are not greater than 0 or exceed 24, or start time is outside 0 through less
@@ -78,12 +81,17 @@ consistent with the saved project document.
   - Given a holiday exists When I delete it Then only that holiday range is removed from the
     document.
 
-- As a planner, I want to add project statuses and see where they are used, so that I can manage
-  status definitions without losing track of assignments.
+- As a planner, I want to add and edit project statuses and see where they are used, so that I can
+  manage status definitions without losing track of assignments.
   - Given I enter a status name and color and optionally select a lifecycle state When I add the
     status Then the document stores a status definition with a unique identifier.
-  - Given a status is listed When its usage is displayed Then the counts separately include groups,
-    tasks, and milestones whose status reference matches that status identifier.
+  - Given a status is listed When its usage is displayed Then one aggregate counter shows the number
+    of groups, tasks, and milestones that reference that status.
+  - Given I edit an existing status's name, color, or optional lifecycle state When the change is
+    accepted Then the updated definition is saved with the same identifier and its existing item
+    assignments remain intact.
+  - Given I edit an existing status's enforced lifecycle state When the change is accepted Then
+    items already assigned to that status keep their current lifecycle states.
   - Given a status has no enforced state When it is added Then its state remains unset; when a state
     is selected it is limited to `open` or `closed`.
   - Given a status name or color is missing, or its selected state is invalid When I add the status
@@ -117,8 +125,9 @@ consistent with the saved project document.
   stored as extension-wide configuration.
 - The existing `ProjectSettings` fields remain authoritative for `daysOff`, `workingDayHours`,
   `workingDayStart`, `holidays`, and `statuses`.
-- Days off use ISO weekday numbers from 1 through 7. At least one weekday must remain available for
-  scheduling.
+- Days off use ISO weekday numbers from 1 through 7. The Settings editor presents seven toggles in
+  Monday-to-Sunday order; a toggle is on when its weekday is a day off. At least one weekday must
+  remain available for scheduling.
 - Working hours are greater than 0 and no greater than 24. Working-day start is at least 0 and less
   than 24; both values use decimal hours.
 - Holiday ranges use inclusive UTC date-only values. Their end must not precede their start.
@@ -126,14 +135,19 @@ consistent with the saved project document.
 - A status has a unique document-local identifier, a non-empty name, a color, and an optional
   lifecycle state. The allowed lifecycle values are `open` and `closed`; an unset state enforces no
   lifecycle value on assignment.
-- Status usage counts are derived from current document references and are not persisted.
+- Editing a status changes its name, color, or optional enforced state without changing its
+  identifier or existing item assignments. An enforced-state edit does not change the lifecycle
+  state of items already assigned to that status.
+- Each status has one aggregate usage count derived from current references across groups, tasks,
+  and milestones. Each referencing item is counted once; the count is not persisted.
 - Confirmed status deletion removes the status definition and clears matching references from all
   groups, tasks, and milestones atomically. It does not delete those items or change their lifecycle
   states.
 - Every accepted edit is validated by the host and persisted through the document edit workflow. The
   webview does not write document text directly.
-- Stale edit proposals are rejected rather than overwriting a newer document revision; open views
-  then reflect the authoritative document.
+- Edit proposals for the same document are serialized. Before applying each proposal, the host
+  rechecks its base revision; a proposal made stale by an earlier edit is rejected, and open views
+  reflect the authoritative document.
 - User-facing labels, actions, confirmation text, and validation messages are localized.
 
 ## 6. Domain & Data Model Impact
@@ -158,6 +172,8 @@ consistent with the saved project document.
 - Extend [`protocol.ts`](../../../src/common/protocol.ts) with a typed Settings update proposal and
   a correlated result indicating acceptance or rejection. Proposals include the document revision
   they are based on.
+- Serialize proposals per document and recheck each proposal's base revision immediately before
+  applying its `WorkspaceEdit`. Reject proposals made stale while waiting for an earlier edit.
 - Initial and subsequent Settings view data comes from the host's current project presentation.
   After an accepted edit, the existing authoritative document-change flow updates the chart,
   sidebar, and every open Settings view.
@@ -171,13 +187,15 @@ consistent with the saved project document.
   Command Palette command and an action in the Gantt editor. Keep the Gantt chart as the default
   editor. Users can place the Settings view beside the chart using normal VS Code editor-group
   behavior.
-- **Working calendar:** Group days off, working hours, and start time together. Use weekday
-  selection and numeric fields appropriate to each value.
+- **Working calendar:** Group days off, working hours, and start time together. Present days off as
+  seven labeled toggles ordered Monday through Sunday; an enabled toggle means that weekday is
+  non-working. Use numeric fields appropriate to working hours and start time.
 - **Holidays:** Show existing inclusive ranges with a delete action and a separate add row for start
   date, end date, and add action.
-- **Statuses:** Show each name, color, optional enforced state, and usage counts by group, task, and
-  milestone. Provide an add row with name, color, state, and add action. Ask for confirmation with
-  counts before removing an in-use status.
+- **Statuses:** Show each name, color, optional enforced state, and one aggregate usage count across
+  groups, tasks, and milestones. Provide controls to add a status and edit each existing status's
+  name, color, or enforced state. Ask for confirmation with the aggregate count before removing an
+  in-use status.
 - **Boolean toggle field:** Keep its label and switch at opposite ends of the field row. Support
   label-left/toggle-right and label-right/toggle-left placements; expose the label as the control's
   accessible name.
@@ -198,16 +216,20 @@ consistent with the saved project document.
   for status definitions, optional state, invalid settings, date boundaries, and calendar bounds.
   Extend
   [`documentRelationValidationService.test.ts`](../../../src/test/unit/services/document/documentRelationValidationService.test.ts)
-  for existing valid and missing status-reference behavior. Add focused tests for usage-count
-  derivation and atomic status deletion with unassignment across all item kinds. Verify overlapping
-  and adjacent holiday ranges preserve current union scheduling behavior.
+  for existing valid and missing status-reference behavior. Add focused tests for the aggregate
+  usage count, status edits preserving identifiers and assignments, unchanged lifecycle states on
+  enforced-state edits, and atomic status deletion with unassignment across all item kinds. Verify
+  overlapping and adjacent holiday ranges preserve current union scheduling behavior.
 - **Integration (commands/editor):** Extend
   [`editor.smoke.test.ts`](../../../src/test/smoke/editor.smoke.test.ts) to verify Settings command
   and editor-action registration and opening the view for the same document. Add document-write
-  coverage for accepted, rejected, stale, and canceled edits, including atomic status deletion.
-- **Webview interaction:** Cover initial settings rendering, field changes, holiday and status
-  add/delete flows, usage counts, delete confirmation and cancellation, protocol rejection,
-  synchronization between open views, and both Boolean toggle label placements and emitted values.
+  coverage for accepted, rejected, stale, and canceled edits, including two same-revision proposals
+  where the serialized first edit succeeds and the now-stale second edit is rejected, plus atomic
+  status deletion.
+- **Webview interaction:** Cover initial settings rendering, Monday-to-Sunday day-off toggles, field
+  changes, holiday and status add/edit/delete flows, aggregate usage count, delete confirmation and
+  cancellation, protocol rejection, synchronization between open views, and both Boolean toggle
+  label placements and emitted values.
 - **Localization:** Verify new Settings labels, status/holiday actions, confirmations, and
   validation feedback use localized strings.
 - **Coverage:** Add focused tests for the new flows; branch coverage must remain at least 90% for
@@ -218,16 +240,54 @@ consistent with the saved project document.
 ### 🟡 Medium
 
 - 🟡 **R-01** — The chart and Settings views can submit edits against the same document
-  concurrently. Require revision checks, reject stale proposals, and refresh each view from the
-  authoritative document after accepted edits.
-  - Status: **Open**
+  concurrently.
+  - Status: **Resolved** — Serialize proposals per document and recheck the base revision directly
+    before applying each edit; reject a proposal made stale by an earlier edit and broadcast the
+    accepted document state to every open view.
 - 🟡 **R-02** — Status deletion intentionally removes references across three item collections. Show
-  per-kind usage counts, require confirmation when referenced, and apply the definition removal and
-  all unassignments as one validated document edit.
-  - Status: **Open**
+  the aggregate usage count, require confirmation when referenced, and apply the definition removal
+  and all unassignments as one validated document edit.
+  - Status: **Resolved** — A single pure workflow removes the status and clears its references from
+    groups, tasks, and milestones; one validated full-document `WorkspaceEdit` applies the result,
+    and focused tests verify all-or-nothing behavior.
 
 ## 11. Open Questions
 
 None. The editor entry points, document-scoped persistence, status lifecycle values, existing
 validation rules, deletion confirmation, and holiday overlap behavior are defined in this
 specification.
+
+## 12. Implementation Notes
+
+- Keep the `.ganttee` `TextDocument` as the sole source of truth. Reuse the existing parse,
+  validation, serialization, revision, and `WorkspaceEdit` paths rather than maintaining separate
+  settings state.
+- Follow the existing layer boundaries: persisted and protocol contracts belong in `src/common/`,
+  pure settings workflows and mutations in `src/services/`, VS Code editor and controller
+  integration in `src/views/`, and browser-only interaction and rendering in
+  `src/webview/features/settings/`. Keep `vscode` imports out of `common/` and `services/`, and
+  route webview communication through the typed protocol.
+- Reuse existing project-settings types, validation helpers, document presentation, localization,
+  and editor patterns when they fit. Centralize shared settings mutations and validation in the
+  workflow rather than duplicating them in the chart and Settings surfaces.
+- Apply SOLID and DRY pragmatically: keep classes and modules focused on a single responsibility,
+  separate VS Code orchestration from pure domain transformations and UI rendering, and prefer the
+  simplest design that fits an actual reuse need. Avoid speculative abstractions and duplicated
+  business rules.
+- Keep status usage counts derived from the current parsed document. Status deletion must remove the
+  definition and unassign every matching item in one transformation; changing an enforced state must
+  not rewrite lifecycle states on already-assigned items.
+- The settings editor uses existing document version 2 fields; no schema migration is introduced.
+
+## 13. Review Outcome
+
+- Resolved R-01 inline: serialize same-document edit proposals and recheck each base revision just
+  before applying it. A proposal made stale by an earlier edit is rejected, and accepted document
+  changes are broadcast to open views.
+- Resolved R-02 inline: status removal and reference clearing are one pure transformation applied
+  through a single validated full-document `WorkspaceEdit`; tests cover all item kinds and
+  all-or-nothing behavior.
+- Added Implementation Notes for existing layer boundaries, reuse, localization and protocol
+  boundaries, and pragmatic SOLID/DRY guidance with simple single-responsibility units.
+- No ADR was required; the risk treatments follow the existing document source-of-truth and edit
+  workflow.

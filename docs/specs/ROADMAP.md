@@ -19,7 +19,7 @@ mirrors each spec's status badge.
 | 12  | [TreeView enhancements](./treeview-enhancements/SPEC.md)                                  | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
 | 13  | [Global sort](./global-sort/SPEC.md)                                                      | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
 | 14  | [Scheduling holidays](./scheduling-holidays/SPEC.md)                                      | Implemented | ![Status: Implemented](https://img.shields.io/badge/status-Implemented-2B8A3E?style=for-the-badge) |
-| 15  | [Settings editor](./settings-editor/SPEC.md)                                              | Draft       | ![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)             |
+| 15  | [Settings editor](./settings-editor/SPEC.md)                                              | Reviewed    | ![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)       |
 | 16  | [Collapsible off-days and holidays](./chart-view-collapsible-calendar/INTENT.md)          | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
 | 17  | [Diagnostics and problems view](./diagnostics-problems-view/INTENT.md)                    | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
 | 18  | [Vitest test backbone for pure tests](./vitest-test-backbone/INTENT.md)                   | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
