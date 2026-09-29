@@ -1,8 +1,20 @@
 const esbuild = require("esbuild");
 const { sassPlugin } = require("esbuild-sass-plugin");
+const { execFileSync } = require("child_process");
+const path = require("path");
 
 const production = process.argv.includes("--production");
 const watch = process.argv.includes("--watch");
+
+/**
+ * Generates the theme asset module the webview bundle imports.
+ * The generated file is not committed, so the bundle must produce it before esbuild resolves imports.
+ */
+function generateThemeAssets() {
+  execFileSync(process.execPath, [path.join(__dirname, "scripts", "generate-theme-assets.mjs")], {
+    stdio: "inherit",
+  });
+}
 
 /**
  * @type {import('esbuild').Plugin}
@@ -25,6 +37,8 @@ const esbuildProblemMatcherPlugin = {
 };
 
 async function main() {
+  generateThemeAssets();
+
   const extensionCtx = await esbuild.context({
     entryPoints: ["src/extension.ts"],
     bundle: true,
