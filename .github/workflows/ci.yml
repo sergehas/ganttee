@@ -94,7 +94,7 @@ jobs:
           name: dist
           path: dist/
 
-      - run: npm run compile-tests
+      - run: npm run compile:tests
 
       - run: npm run test:integration
 
@@ -123,7 +123,7 @@ jobs:
           name: dist
           path: dist/
 
-      - run: npm run compile-tests
+      - run: npm run compile:tests
 
       # Bound cache staleness to a day since the "insiders" build changes frequently.
       - name: Compute cache key date
