@@ -39,6 +39,8 @@ interface ChartViewProps {
    * @returns Nothing.
    */
   readonly onExportError: (message: string | null) => void;
+  /** Opens Settings for the current project document. */
+  readonly onOpenSettings: () => void;
 }
 
 /**
@@ -119,6 +121,7 @@ export function ChartView(props: ChartViewProps): React.JSX.Element {
         onToggleColoredStyle={() => setColoredStyleEnabled((enabled) => !enabled)}
         onFitToWindow={fitToWindow}
         onExport={exportImage}
+        onOpenSettings={props.onOpenSettings}
       />
       {props.toolbarFeedback}
       {props.isEmpty ? (

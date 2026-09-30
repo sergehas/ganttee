@@ -7,9 +7,11 @@ interface IconButtonProps {
   /** Codicon name without the `codicon-` prefix. */
   readonly icon: string;
   /** Accessible and tooltip label. */
-  readonly label: string;
+  readonly label?: string;
   /** Whether the action represents an active state. */
   readonly pressed?: boolean;
+  /** Whether the action is currently unavailable. */
+  readonly disabled?: boolean;
   /** Runs when the button is selected. */
   readonly onClick?: () => void;
   /** Indicates that the button controls a popup menu. */
@@ -31,6 +33,7 @@ export function IconButton({
   icon,
   label,
   pressed,
+  disabled = false,
   onClick,
   hasPopup = false,
   expanded,
@@ -43,6 +46,7 @@ export function IconButton({
       className={className ? `ganttee-icon-button ${className}` : "ganttee-icon-button"}
       aria-label={label}
       aria-pressed={pressed}
+      disabled={disabled}
       aria-haspopup={hasPopup ? "menu" : undefined}
       aria-expanded={hasPopup ? expanded : undefined}
       title={label}

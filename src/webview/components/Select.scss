@@ -1,7 +1,7 @@
 .ganttee-select {
   width: 100%;
   box-sizing: border-box;
-  padding: var(--vscode-spacing-size60, 6px) var(--vscode-spacing-size80, 8px);
+  padding: calc(var(--vscode-spacing-size60, 6px) - 0.5px) var(--vscode-spacing-size80, 8px);
   color: var(--vscode-input-foreground);
   background-color: var(--vscode-input-background);
   border: var(--vscode-strokeThickness, 1px) solid var(--vscode-input-border, transparent);
@@ -71,5 +71,9 @@
     background-color: var(--vscode-dropdown-background, transparent);
     border-color: var(--vscode-dropdown-border, var(--vscode-panel-border));
     line-height: calc(1em - 1px);
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
   }
 }

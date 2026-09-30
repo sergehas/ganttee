@@ -5,10 +5,10 @@ import {
 } from "@services/schedule/scheduleConstraintService";
 import "@webview/components/Form.scss";
 import { FormField } from "@webview/components/FormField";
+import { StatusNotice } from "@webview/components/StatusNotice";
 import { CommonTextFields } from "@webview/features/entity-editor/components/CommonTextFields";
 import { DependencyFields } from "@webview/features/entity-editor/components/DependencyFields";
 import "@webview/features/entity-editor/components/MilestoneFields.scss";
-import { ValidationMessage } from "@webview/features/entity-editor/components/ValidationMessage";
 import { MilestoneFieldsProps } from "@webview/features/entity-editor/entityEditor.types";
 import { milestoneValidationMessages } from "@webview/features/entity-editor/entityEditorPresentation";
 import { makeUpdater } from "@webview/features/entity-editor/hooks/useFieldUpdater";
@@ -48,9 +48,9 @@ export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element 
       </FormField>
 
       {milestoneValidationMessages(diagnostic).map((message) => (
-        <ValidationMessage severity={message.severity} key={message.source}>
+        <StatusNotice severity={message.severity} key={message.source}>
           {t(message.source)}
-        </ValidationMessage>
+        </StatusNotice>
       ))}
 
       <DependencyFields {...depProps} />

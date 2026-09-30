@@ -95,6 +95,16 @@ suite("documentRelationValidationService", () => {
     );
   });
 
+  test("rejects duplicate status identifiers", () => {
+    const document = createEmptyDocument();
+    document.settings.statuses = [
+      { id: "duplicate", name: "First", color: "#008000ff" },
+      { id: "duplicate", name: "Second", color: "#0000ffff" },
+    ];
+
+    assert.throws(() => assertDocumentRelations(document), /Status id "duplicate" must be unique/);
+  });
+
   test("converts graph integrity errors to parse errors", () => {
     const selfLoop = createEmptyDocument();
     selfLoop.tasks = [{ id: "task", name: "Task" }];

@@ -6,6 +6,10 @@ import {
 } from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
 import { serializeDocument } from "@services/document/documentService";
+import {
+  GANTTEE_CHART_EDITOR_VIEW_TYPE,
+  GANTTEE_SETTINGS_EDITOR_VIEW_TYPE,
+} from "@views/editor/editorViewTypes";
 import { GanttEditorProvider } from "@views/editor/ganttEditorProvider";
 import { entityRefOf, GanttExplorerProvider } from "@views/sidebar/ganttExplorerProvider";
 import * as vscode from "vscode";
@@ -45,6 +49,38 @@ function registerCommands(
     context.subscriptions.push(vscode.commands.registerCommand(command, handler));
 
   register("ganttee.refreshExplorer", () => explorer.refresh());
+
+  register("ganttee.openSettings", async () => {
+    const activeInput = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    const customEditorInput =
+      activeInput instanceof vscode.TabInputCustom ? activeInput : undefined;
+    const activeTextEditor = vscode.window.activeTextEditor;
+    const documentUri = customEditorInput
+      ? customEditorInput.viewType === GANTTEE_CHART_EDITOR_VIEW_TYPE ||
+        customEditorInput.viewType === GANTTEE_SETTINGS_EDITOR_VIEW_TYPE
+        ? customEditorInput.uri
+        : undefined
+      : activeInput instanceof vscode.TabInputText &&
+          activeTextEditor?.document.languageId === "ganttee" &&
+          activeTextEditor.document.uri.toString() === activeInput.uri.toString()
+        ? activeTextEditor.document.uri
+        : undefined;
+    if (!documentUri) {
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t("Open a Gantt chart to configure project settings."),
+      );
+      return;
+    }
+    if (customEditorInput?.viewType === GANTTEE_SETTINGS_EDITOR_VIEW_TYPE) {
+      return;
+    }
+    await vscode.commands.executeCommand(
+      "vscode.openWith",
+      documentUri,
+      GANTTEE_SETTINGS_EDITOR_VIEW_TYPE,
+      vscode.ViewColumn.Beside,
+    );
+  });
 
   register("ganttee.revealEntity", (entity) => {
     if (isEntityRef(entity)) {

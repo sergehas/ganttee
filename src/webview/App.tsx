@@ -1,13 +1,27 @@
-import { Dependency, Group, Milestone, ProjectView, Task } from "@common/documents";
+import {
+  Dependency,
+  Group,
+  Milestone,
+  ProjectSettings,
+  ProjectStatus,
+  ProjectView,
+  Task,
+} from "@common/documents";
 import { ProjectPresentation } from "@common/presentation/project";
-import { EditableEntityKind, EditableEntityMap, EditableEntityRef } from "@common/protocol";
+import {
+  EditableEntityKind,
+  EditableEntityMap,
+  EditableEntityRef,
+  ProjectEditorSurface,
+} from "@common/protocol";
 import { SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
 import "@webview/App.scss";
 import { IconBaseUriProvider } from "@webview/components/Icon";
+import { StatusNotice } from "@webview/components/StatusNotice";
 import { ChartView } from "@webview/features/chart/components/ChartView";
 import { EntityEditor } from "@webview/features/entity-editor/components/EntityEditor";
-import { ValidationMessage } from "@webview/features/entity-editor/components/ValidationMessage";
 import { useEntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
+import { SettingsEditor } from "@webview/features/settings/components/SettingsEditor";
 import { translate, WebviewL10n, WebviewL10nContext } from "@webview/l10n";
 import { createGanttViewState, GanttViewState } from "@webview/viewState";
 import { onHostMessage, postToHost } from "@webview/vscodeApi";
@@ -21,9 +35,20 @@ interface PendingEntityUpdate {
   keepEditorOpen: boolean;
 }
 
+/** Settings proposal payloads that receive a host-generated request id and revision. */
+type SettingsEditProposal =
+  | { type: "updateSettings"; settings: ProjectSettings }
+  | { type: "addProjectStatus"; status: Omit<ProjectStatus, "id"> }
+  | { type: "updateProjectStatus"; status: ProjectStatus }
+  | { type: "deleteProjectStatus"; statusId: string };
+
 /** Root editor UI: the ECharts timeline and the entity edit panel. */
 export function App(): React.JSX.Element {
   const [viewState, setViewState] = useState<GanttViewState | null>(null);
+  const [surface, setSurface] = useState<ProjectEditorSurface | null>(null);
+  const [documentError, setDocumentError] = useState<string | null>(null);
+  const [settingsBusy, setSettingsBusy] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   const [l10n, setL10n] = useState<WebviewL10n | null>(null);
   const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(null);
   const [closingEditingTarget, setClosingEditingTarget] = useState<ResolvedEditingEntity | null>(
@@ -37,6 +62,8 @@ export function App(): React.JSX.Element {
   const editorSessionVersionRef = useRef(0);
   const nextUpdateRequestIdRef = useRef(0);
   const pendingEntityUpdatesRef = useRef(new Map<number, PendingEntityUpdate>());
+  const nextSettingsRequestIdRef = useRef(0);
+  const pendingSettingsRequestIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     const unsubscribe = onHostMessage((message) => {
@@ -46,6 +73,9 @@ export function App(): React.JSX.Element {
           break;
         case "init":
           setIconBaseUri(message.iconBaseUri);
+          setSurface(message.surface);
+          setDocumentError(null);
+          setSettingsError(null);
           try {
             const nextViewState = createGanttViewState(message.project, message.revision);
             setPendingView(null);
@@ -56,6 +86,7 @@ export function App(): React.JSX.Element {
           }
           break;
         case "documentChanged":
+          setDocumentError(null);
           try {
             const nextViewState = createGanttViewState(message.project, message.revision);
             const currentEditingEntity = editingEntityRef.current;
@@ -73,6 +104,19 @@ export function App(): React.JSX.Element {
             setViewState(nextViewState);
           } catch {
             setViewState(null);
+          }
+          break;
+        case "documentError":
+          setViewState(null);
+          setDocumentError(message.message);
+          pendingSettingsRequestIdRef.current = null;
+          setSettingsBusy(false);
+          break;
+        case "settingsEditResult":
+          if (message.requestId === pendingSettingsRequestIdRef.current) {
+            pendingSettingsRequestIdRef.current = null;
+            setSettingsBusy(false);
+            setSettingsError(message.accepted ? null : (message.message ?? ""));
           }
           break;
         case "editEntity":
@@ -138,6 +182,19 @@ export function App(): React.JSX.Element {
     postToHost({ type: "deleteEntity", entity, baseRevision: viewState.revision });
   };
 
+  /** Sends one settings proposal and prevents another until its authoritative result arrives. */
+  function updateSettingsToHost(proposal: SettingsEditProposal): void {
+    if (!viewState || pendingSettingsRequestIdRef.current !== null) {
+      return;
+    }
+    const requestId = nextSettingsRequestIdRef.current;
+    nextSettingsRequestIdRef.current += 1;
+    pendingSettingsRequestIdRef.current = requestId;
+    setSettingsBusy(true);
+    setSettingsError(null);
+    postToHost({ ...proposal, requestId, baseRevision: viewState.revision });
+  }
+
   /** Asks the host to route an entity edit command back through the shared toggle path. */
   const requestEditEntity = (entity: EditableEntityRef) => {
     postToHost({ type: "requestEditEntity", entity });
@@ -198,6 +255,14 @@ export function App(): React.JSX.Element {
     return <div className="ganttee-app__empty" aria-busy="true" />;
   }
 
+  if (documentError) {
+    return (
+      <div className="ganttee-app__empty" role="alert">
+        {documentError}
+      </div>
+    );
+  }
+
   if (!viewState) {
     return (
       <div className="ganttee-app__empty" aria-busy="true">
@@ -209,6 +274,26 @@ export function App(): React.JSX.Element {
   const editingTarget = resolveEntity(viewState.project, editingEntity);
   const displayedEditingTarget = editingTarget ?? closingEditingTarget;
   const chartView = pendingView ?? viewState.project.view;
+
+  if (surface === "settings") {
+    return (
+      <WebviewL10nContext.Provider value={l10n}>
+        <SettingsEditor
+          project={viewState.project}
+          busy={settingsBusy}
+          error={settingsError}
+          onUpdateSettings={(settings) =>
+            updateSettingsToHost({ type: "updateSettings", settings })
+          }
+          onAddStatus={(status) => updateSettingsToHost({ type: "addProjectStatus", status })}
+          onUpdateStatus={(status) => updateSettingsToHost({ type: "updateProjectStatus", status })}
+          onDeleteStatus={(statusId) =>
+            updateSettingsToHost({ type: "deleteProjectStatus", statusId })
+          }
+        />
+      </WebviewL10nContext.Provider>
+    );
+  }
 
   /** Sends a complete chart view proposal through the revision-safe host path. */
   const updateView = (view: ProjectView) => {
@@ -237,13 +322,12 @@ export function App(): React.JSX.Element {
                 </div>
               }
               toolbarFeedback={
-                exportError ? (
-                  <ValidationMessage severity="error">{exportError}</ValidationMessage>
-                ) : null
+                exportError ? <StatusNotice severity="error">{exportError}</StatusNotice> : null
               }
               onViewChange={updateView}
               onEditEntity={toggleEntityEditor}
               onExportError={setExportError}
+              onOpenSettings={() => postToHost({ type: "openSettings" })}
             />
           </div>
           {displayedEditingTarget && (

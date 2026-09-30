@@ -26,6 +26,16 @@
           }
         ],
         "priority": "default"
+      },
+      {
+        "viewType": "ganttee.settingsEditor",
+        "displayName": "%customEditor.settingsEditor.displayName%",
+        "selector": [
+          {
+            "filenamePattern": "*.ganttee"
+          }
+        ],
+        "priority": "option"
       }
     ],
     "languages": [
@@ -72,6 +82,12 @@
         "title": "%command.newTask.title%",
         "category": "%extension.displayName%",
         "icon": "$(checklist)"
+      },
+      {
+        "command": "ganttee.openSettings",
+        "title": "%command.openSettings.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(settings-gear)"
       },
       {
         "command": "ganttee.newProject",

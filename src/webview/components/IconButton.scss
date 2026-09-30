@@ -24,4 +24,9 @@
     outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
     outline-offset: 0;
   }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
 }

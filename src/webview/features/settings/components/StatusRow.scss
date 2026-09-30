@@ -1,0 +1,47 @@
+.ganttee-settings__status-row {
+  display: grid;
+  gap: var(--vscode-spacing-size120, 12px);
+  padding-bottom: var(--vscode-spacing-size240, 24px);
+}
+
+.ganttee-settings__status-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  align-items: end;
+  margin: 0;
+  padding-top: var(--vscode-spacing-size60, 6px);
+  padding-bottom: var(--vscode-spacing-size60, 6px);
+  padding-left: var(--vscode-spacing-size20, 2px);
+  padding-right: var(--vscode-spacing-size80, 8px);
+  border-radius: var(--vscode-cornerRadius-small, 4px);
+  gap: var(--vscode-spacing-size80, 8px);
+
+  &:hover {
+    color: var(--vscode-list-hoverForeground);
+    background-color: var(--vscode-list-hoverBackground);
+  }
+
+  span {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--vscode-descriptionForeground);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-left: var(--vscode-spacing-size40, 4px);
+  }
+}
+
+.ganttee-settings__status-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--vscode-spacing-size60, 6px);
+}
+
+@media (max-width: 560px) {
+  .ganttee-settings__status-actions {
+    flex-wrap: wrap;
+  }
+}

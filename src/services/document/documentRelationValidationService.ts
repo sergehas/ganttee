@@ -23,6 +23,7 @@ export function assertDocumentRelations(projectDoc: ProjectDocument): void {
   assertGroupHierarchy(projectDoc.groups);
   assertGroupReferences(projectDoc);
   assertSequenceIntegrity(projectDoc);
+  assertUniqueStatusIds(projectDoc);
   assertStatusReferences(projectDoc);
   try {
     assertGraphIntegrity(projectDoc);
@@ -31,6 +32,17 @@ export function assertDocumentRelations(projectDoc: ProjectDocument): void {
       throw new GanttParseError(error.message);
     }
     throw error;
+  }
+}
+
+/** Asserts that each configured status id is unique within the document. */
+function assertUniqueStatusIds(projectDoc: ProjectDocument): void {
+  const seen = new Set<string>();
+  for (const status of projectDoc.settings.statuses) {
+    if (seen.has(status.id)) {
+      throw new GanttParseError(`Status id "${status.id}" must be unique.`);
+    }
+    seen.add(status.id);
   }
 }
 

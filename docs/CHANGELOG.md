@@ -9,6 +9,8 @@ file.
 
 ### Added
 
+- Open a document-scoped Settings editor to configure working calendars, holidays, and statuses,
+  including aggregate usage counts and confirmed status deletion with unassignment.
 - Item lifecycle state is now separated from document-defined status metadata: tasks, groups, and
   milestones use the `state` field with `open` and `closed` values, while document `statuses` can
   assign a named status with an optional enforced lifecycle state and status color.
