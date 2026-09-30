@@ -3,7 +3,7 @@ import "@webview/components/FormField.scss";
 /** Props for a labeled form field wrapper. */
 interface FormFieldProps {
   /** Visible field label. */
-  readonly label: string;
+  readonly label?: string;
   /** Form control and optional derived value. */
   readonly children: React.ReactNode;
   /** Whether field uses horizontal checkbox layout. */
@@ -18,7 +18,7 @@ export function FormField({
 }: FormFieldProps): React.JSX.Element {
   return (
     <label className={`ganttee-form-field${checkbox ? " ganttee-form-field--checkbox" : ""}`}>
-      <span>{label}</span>
+      {label && <span>{label}</span>}
       {children}
     </label>
   );

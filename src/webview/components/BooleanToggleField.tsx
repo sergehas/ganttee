@@ -1,4 +1,4 @@
-import "./BooleanToggleField.scss";
+import "@webview/components/BooleanToggleField.scss";
 
 /** Label placement for a Boolean switch field. */
 type BooleanToggleLabelPosition = "left" | "right";
@@ -47,8 +47,8 @@ export function BooleanToggleField({
     <label
       className={`ganttee-boolean-toggle-field ganttee-boolean-toggle-field--label-${labelPosition}`}
     >
-      {labelPosition === "left" ? labelElement : toggleElement}
-      {labelPosition === "left" ? toggleElement : labelElement}
+      {labelElement}
+      {toggleElement}
     </label>
   );
 }

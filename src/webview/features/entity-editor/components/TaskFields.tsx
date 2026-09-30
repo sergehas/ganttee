@@ -5,13 +5,13 @@ import {
 } from "@services/schedule/scheduleConstraintService";
 import "@webview/components/Form.scss";
 import { FormField } from "@webview/components/FormField";
+import { StatusNotice } from "@webview/components/StatusNotice";
 import { TaskFieldsProps } from "@webview/features/entity-editor/entityEditor.types";
 import { useTranslate, useWebviewL10n } from "@webview/l10n";
 
 import { CommonTextFields } from "@webview/features/entity-editor/components/CommonTextFields";
 import { DependencyFields } from "@webview/features/entity-editor/components/DependencyFields";
 import "@webview/features/entity-editor/components/TaskFields.scss";
-import { ValidationMessage } from "@webview/features/entity-editor/components/ValidationMessage";
 import { taskValidationMessages } from "@webview/features/entity-editor/entityEditorPresentation";
 import { makeUpdater } from "@webview/features/entity-editor/hooks/useFieldUpdater";
 
@@ -89,9 +89,9 @@ export function TaskFields(props: TaskFieldsProps): React.JSX.Element {
         </FormField>
       </div>
       {taskValidationMessages(diagnostic).map((message) => (
-        <ValidationMessage severity={message.severity} key={message.source}>
+        <StatusNotice severity={message.severity} key={message.source}>
           {t(message.source, ...(message.values ?? []))}
-        </ValidationMessage>
+        </StatusNotice>
       ))}
 
       <DependencyFields {...depProps} />

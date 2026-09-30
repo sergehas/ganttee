@@ -34,8 +34,15 @@
 .ganttee-settings__section {
   display: grid;
   gap: var(--vscode-spacing-size160, 16px);
-  padding-bottom: var(--vscode-spacing-size240, 24px);
-  border-bottom: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
+  padding-top: var(--vscode-spacing-size60, 6px);
+  padding-bottom: var(--vscode-spacing-size120, 12px);
+  border-top: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
+  &:first-of-type {
+    margin-top: var(--vscode-spacing-size60, 6px);
+  }
+  &:last-of-type {
+    padding-bottom: 0;
+  }
 }
 
 .ganttee-settings__weekday-list {
@@ -44,17 +51,31 @@
   gap: var(--vscode-spacing-size80, 8px) var(--vscode-spacing-size160, 16px);
 }
 
-.ganttee-settings__field-grid,
-.ganttee-settings__add-row {
+.ganttee-settings__field-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   align-items: end;
   gap: var(--vscode-spacing-size120, 12px);
 }
 
+.ganttee-settings__controls {
+  display: flex;
+  align-items: end;
+  gap: var(--vscode-spacing-size80, 8px);
+  margin: 0;
+  padding-top: var(--vscode-spacing-size60, 6px);
+  padding-bottom: var(--vscode-spacing-size60, 6px);
+  padding-left: var(--vscode-spacing-size20, 2px);
+  padding-right: var(--vscode-spacing-size80, 8px);
+
+  & > .ganttee-form-field {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+}
+
 .ganttee-settings__list,
 .ganttee-settings__status-list {
-  display: grid;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -66,72 +87,28 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--vscode-spacing-size120, 12px);
-}
-
-.ganttee-settings__list-row {
-  min-height: 36px;
-  border-bottom: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
-}
-
-.ganttee-settings button,
-.ganttee-settings select {
-  min-height: 32px;
-  box-sizing: border-box;
-  padding: var(--vscode-spacing-size40, 4px) var(--vscode-spacing-size100, 10px);
-  color: var(--vscode-button-foreground);
-  background-color: var(--vscode-button-background);
-  border: var(--vscode-strokeThickness, 1px) solid var(--vscode-button-border, transparent);
+  margin: 0;
+  padding: var(--vscode-spacing-size60, 6px) var(--vscode-spacing-size80, 8px);
   border-radius: var(--vscode-cornerRadius-small, 4px);
-  font: inherit;
-}
 
-.ganttee-settings select {
-  width: 100%;
-  color: var(--vscode-dropdown-foreground);
-  background-color: var(--vscode-dropdown-background);
-  border-color: var(--vscode-dropdown-border);
-}
-
-.ganttee-settings button:hover:not(:disabled) {
-  background-color: var(--vscode-button-hoverBackground);
-}
-
-.ganttee-settings button:focus-visible,
-.ganttee-settings select:focus-visible {
-  outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
-  outline-offset: 1px;
-}
-
-.ganttee-settings button:disabled,
-.ganttee-settings input:disabled,
-.ganttee-settings select:disabled {
-  cursor: not-allowed;
-  opacity: 0.65;
-}
-
-.ganttee-settings .ganttee-settings__quiet-button {
-  color: var(--vscode-foreground);
-  background: transparent;
-  border-color: var(--vscode-panel-border);
-}
-
-.ganttee-settings input[type="color"] {
-  width: 100%;
-  min-height: 32px;
-  box-sizing: border-box;
-  padding: var(--vscode-spacing-size20, 2px);
-}
-
-.ganttee-settings__add-row > button {
-  align-self: end;
-}
-
-.ganttee-settings__error {
-  color: var(--vscode-errorForeground);
+  & > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &:hover {
+    color: var(--vscode-list-hoverForeground);
+    background-color: var(--vscode-list-hoverBackground);
+  }
 }
 
 @media (max-width: 560px) {
   .ganttee-settings {
     padding: var(--vscode-spacing-size160, 16px);
+  }
+
+  .ganttee-settings__controls {
+    flex-wrap: wrap;
   }
 }

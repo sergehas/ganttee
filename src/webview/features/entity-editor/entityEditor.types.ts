@@ -25,7 +25,7 @@ export interface TaskFormEditingEntity {
 }
 
 /** Props for the TaskForm orchestrator component. */
-export interface TaskFormProps {
+export interface EntityEditorProps {
   /** Entity selected for editing. */
   editingEntity: TaskFormEditingEntity;
   /** Current parsed Gantt document. */

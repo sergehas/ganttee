@@ -1,56 +1,63 @@
 .ganttee-boolean-toggle-field {
   display: flex;
-  min-height: 32px;
   align-items: center;
-  justify-content: space-between;
   gap: var(--vscode-spacing-size120, 12px);
   color: var(--vscode-foreground);
   cursor: pointer;
-}
+  line-height: 16px;
+  justify-content: flex-end;
 
-.ganttee-boolean-toggle-field input[type="checkbox"] {
-  position: relative;
-  width: 32px;
-  height: 18px;
-  flex: 0 0 32px;
-  margin: 0;
-  appearance: none;
-  border: var(--vscode-strokeThickness, 1px) solid var(--vscode-checkbox-border);
-  border-radius: var(--vscode-cornerRadius-circle, 9999px);
-  background-color: var(--vscode-checkbox-background);
-  cursor: inherit;
-}
+  &.ganttee-boolean-toggle-field--label-right {
+    flex-direction: row-reverse;
+  }
+  &.ganttee-boolean-toggle-field--label-left {
+    flex-direction: row;
+  }
 
-.ganttee-boolean-toggle-field input[type="checkbox"]::before {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: var(--vscode-checkbox-foreground);
-  content: "";
-  transition: transform 100ms ease-out;
-}
+  input[type="checkbox"] {
+    position: relative;
+    width: var(--vscode-spacing-size320, 32px);
+    height: 18px;
+    flex: 0 0 var(--vscode-spacing-size320, 32px);
+    margin: 0;
+    appearance: none;
+    border: var(--vscode-strokeThickness, 1px) solid var(--vscode-checkbox-border);
+    border-radius: var(--vscode-cornerRadius-circle, 9999px);
+    background-color: var(--vscode-checkbox-background);
+    cursor: inherit;
 
-.ganttee-boolean-toggle-field input[type="checkbox"]:checked {
-  border-color: var(--vscode-button-background);
-  background-color: var(--vscode-button-background);
-}
+    &::before {
+      position: absolute;
+      top: var(--vscode-spacing-size20, 2px);
+      left: var(--vscode-spacing-size20, 2px);
+      width: var(--vscode-spacing-size120, 12px);
+      height: var(--vscode-spacing-size120, 12px);
+      border-radius: 50%;
+      background-color: var(--vscode-checkbox-foreground);
+      content: "";
+      transition: transform 100ms ease-out;
+    }
 
-.ganttee-boolean-toggle-field input[type="checkbox"]:checked::before {
-  background-color: var(--vscode-button-foreground);
-  transform: translateX(14px);
-}
+    &:checked {
+      border-color: var(--vscode-button-background);
+      background-color: var(--vscode-button-background);
+    }
 
-.ganttee-boolean-toggle-field input[type="checkbox"]:focus-visible {
-  outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
-  outline-offset: 2px;
-}
+    &:checked::before {
+      background-color: var(--vscode-button-foreground);
+      transform: translateX(14px);
+    }
 
-.ganttee-boolean-toggle-field input[type="checkbox"]:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+    &:focus-visible {
+      outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
+      outline-offset: var(--vscode-spacing-size20, 2px);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

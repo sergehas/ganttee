@@ -17,9 +17,9 @@ import {
 import { SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
 import "@webview/App.scss";
 import { IconBaseUriProvider } from "@webview/components/Icon";
+import { StatusNotice } from "@webview/components/StatusNotice";
 import { ChartView } from "@webview/features/chart/components/ChartView";
 import { EntityEditor } from "@webview/features/entity-editor/components/EntityEditor";
-import { ValidationMessage } from "@webview/features/entity-editor/components/ValidationMessage";
 import { useEntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
 import { SettingsEditor } from "@webview/features/settings/components/SettingsEditor";
 import { translate, WebviewL10n, WebviewL10nContext } from "@webview/l10n";
@@ -322,9 +322,7 @@ export function App(): React.JSX.Element {
                 </div>
               }
               toolbarFeedback={
-                exportError ? (
-                  <ValidationMessage severity="error">{exportError}</ValidationMessage>
-                ) : null
+                exportError ? <StatusNotice severity="error">{exportError}</StatusNotice> : null
               }
               onViewChange={updateView}
               onEditEntity={toggleEntityEditor}

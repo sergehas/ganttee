@@ -1,6 +1,6 @@
 import { Group, Milestone, ProjectContent, Task } from "@common/documents";
 import { EditableEntityKind, EditableEntityMap } from "@common/protocol";
-import { TaskFormProps } from "@webview/features/entity-editor/entityEditor.types";
+import { EntityEditorProps } from "@webview/features/entity-editor/entityEditor.types";
 import { SyntheticEvent } from "react";
 
 /** Inputs required to route an entity editor form submission. */
@@ -14,7 +14,7 @@ export interface EntityEditorSubmitOptions {
   /** Current group draft, when present. */
   readonly groupDraft: Group | null;
   /** Sends the edited entity through the shared workflow. */
-  readonly onSave: TaskFormProps["onSave"];
+  readonly onSave: EntityEditorProps["onSave"];
 }
 
 /**

@@ -113,8 +113,9 @@ export function ChartMenuBar(props: ChartMenuBarProps): React.JSX.Element {
         <IconAction action={presentation.zoomActions[2]} />
       </div>
       <div className="ganttee-chart-menu-bar__group" aria-label={translate("Export controls")}>
-        <IconAction action={presentation.settingsAction} />
         <IconActionMenu action={presentation.exportAction} />
+        <div className="ganttee-chart-menu-bar__filler" />
+        <IconAction action={presentation.settingsAction} />
       </div>
     </nav>
   );

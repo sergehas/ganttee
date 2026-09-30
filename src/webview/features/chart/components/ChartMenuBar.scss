@@ -5,15 +5,21 @@
   gap: var(--vscode-spacing-size40, 4px);
   padding-bottom: var(--vscode-spacing-size80, 8px);
   //border-bottom: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
-}
 
-.ganttee-chart-menu-bar__group {
-  display: flex;
-  align-items: center;
-  gap: var(--vscode-spacing-size40, 4px);
+  & > :last-child {
+    flex: 1;
+  }
+  .ganttee-chart-menu-bar__group {
+    display: flex;
+    align-items: center;
+    gap: var(--vscode-spacing-size40, 4px);
 
-  & + & {
-    padding-left: var(--vscode-spacing-size40, 40px);
-    border-left: var(--vscode-strokeThickness, 1px) solid var(--vscode-disabledForeground);
+    & + & {
+      padding-left: var(--vscode-spacing-size40, 40px);
+      border-left: var(--vscode-strokeThickness, 1px) solid var(--vscode-disabledForeground);
+    }
+    .ganttee-chart-menu-bar__filler {
+      flex: 1 1 auto;
+    }
   }
 }

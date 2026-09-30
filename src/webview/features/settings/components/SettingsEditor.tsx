@@ -3,6 +3,9 @@ import { ProjectPresentation } from "@common/presentation/project";
 import { updateProjectDayOff } from "@services/settings/projectSettingsWorkflow";
 import { BooleanToggleField } from "@webview/components/BooleanToggleField";
 import { FormField } from "@webview/components/FormField";
+import { IconButton } from "@webview/components/IconButton";
+import { Select } from "@webview/components/Select";
+import { StatusNotice } from "@webview/components/StatusNotice";
 import { StatusRow } from "@webview/features/settings/components/StatusRow";
 import {
   createHolidayRange,
@@ -152,6 +155,7 @@ export function SettingsEditor({
       <BooleanToggleField
         key={weekday.weekday}
         label={weekday.label}
+        labelPosition="right"
         checked={weekday.isDayOff}
         disabled={busy}
         onChange={handleWeekdayChange}
@@ -169,15 +173,12 @@ export function SettingsEditor({
     return (
       <li className="ganttee-settings__list-row" key={holiday.key}>
         <span>{holiday.label}</span>
-        <button
-          type="button"
-          className="ganttee-settings__quiet-button"
-          aria-label={holiday.deleteLabel}
+        <IconButton
+          icon="trash"
+          label={holiday.deleteLabel}
           disabled={busy}
           onClick={handleDeleteHoliday}
-        >
-          {translate("Delete")}
-        </button>
+        />
       </li>
     );
   }
@@ -199,22 +200,23 @@ export function SettingsEditor({
   return (
     <main className="ganttee-settings">
       <div className="ganttee-settings__content">
-        <h1>{translate("Project settings")}</h1>
-        {error && (
-          <p className="ganttee-settings__error" role="alert">
-            {error}
-          </p>
-        )}
-        <section className="ganttee-settings__section" aria-labelledby="working-calendar-heading">
-          <h2 id="working-calendar-heading">{translate("Working calendar")}</h2>
+        <header>
+          <h1>{translate("Project settings")}</h1>
+        </header>
+        {error && <StatusNotice severity="error">{error}</StatusNotice>}
+        <section className="ganttee-settings__section" aria-labelledby="off-days-heading">
+          <h2 id="off-days-heading">{translate("Off-days")}</h2>
           <div className="ganttee-settings__weekday-list">
             {presentation.weekdays.map(renderWeekday)}
           </div>
+        </section>
+        <section className="ganttee-settings__section" aria-labelledby="working-hours-heading">
+          <h2 id="working-hours-heading">{translate("Working hours")}</h2>
           <div className="ganttee-settings__field-grid">
             <FormField label={translate("Working hours per day")}>
               <input
                 type="number"
-                min="0.01"
+                min="0.00"
                 max="24"
                 step="0.25"
                 value={settings.workingDayHours}
@@ -238,8 +240,8 @@ export function SettingsEditor({
 
         <section className="ganttee-settings__section" aria-labelledby="holidays-heading">
           <h2 id="holidays-heading">{translate("Holidays")}</h2>
-          <ul className="ganttee-settings__list">{presentation.holidays.map(renderHoliday)}</ul>
-          <form className="ganttee-settings__add-row" onSubmit={submitHoliday}>
+          {holidayError && <StatusNotice severity="error">{holidayError}</StatusNotice>}
+          <form className="ganttee-settings__controls" onSubmit={submitHoliday}>
             <FormField label={translate("Holiday start")}>
               <input
                 type="date"
@@ -258,23 +260,15 @@ export function SettingsEditor({
                 onChange={updateHolidayEnd}
               />
             </FormField>
-            <button type="submit" disabled={busy}>
-              {translate("Add holiday")}
-            </button>
+            <IconButton icon="add" label={translate("Add holiday")} type="submit" disabled={busy} />
           </form>
-          {holidayError && (
-            <p className="ganttee-settings__error" role="alert">
-              {holidayError}
-            </p>
-          )}
+          <ul className="ganttee-settings__list">{presentation.holidays.map(renderHoliday)}</ul>
         </section>
 
         <section className="ganttee-settings__section" aria-labelledby="statuses-heading">
           <h2 id="statuses-heading">{translate("Statuses")}</h2>
-          <ul className="ganttee-settings__status-list">
-            {presentation.statuses.map(renderStatus)}
-          </ul>
-          <form className="ganttee-settings__add-row" onSubmit={submitStatus}>
+          {statusError && <StatusNotice severity="error">{statusError}</StatusNotice>}
+          <form className="ganttee-settings__controls" onSubmit={submitStatus}>
             <FormField label={translate("Status name")}>
               <input
                 type="text"
@@ -293,21 +287,19 @@ export function SettingsEditor({
               />
             </FormField>
             <FormField label={translate("Enforced state")}>
-              <select value={statusState} disabled={busy} onChange={updateNewStatusState}>
-                <option value="">{translate("No enforced state")}</option>
+              <Select value={statusState} disabled={busy} onChange={updateNewStatusState}>
+                <option value="">{translate("(none)")}</option>
                 <option value="open">{translate("Open")}</option>
                 <option value="closed">{translate("Closed")}</option>
-              </select>
+              </Select>
             </FormField>
-            <button type="submit" disabled={busy}>
-              {translate("Add status")}
-            </button>
+            <IconButton icon="blank" disabled={true} />
+
+            <IconButton icon="add" label={translate("Add status")} type="submit" disabled={busy} />
           </form>
-          {statusError && (
-            <p className="ganttee-settings__error" role="alert">
-              {statusError}
-            </p>
-          )}
+          <ul className="ganttee-settings__status-list">
+            {presentation.statuses.map(renderStatus)}
+          </ul>
         </section>
       </div>
     </main>

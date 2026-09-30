@@ -1,5 +1,8 @@
 import { ProjectItemState, ProjectStatus } from "@common/documents";
+import { ConfirmationDialog } from "@webview/components/ConfirmationDialog";
 import { FormField } from "@webview/components/FormField";
+import { IconButton } from "@webview/components/IconButton";
+import { Select } from "@webview/components/Select";
 import {
   statusColorInputValue,
   updateStatusDraft,
@@ -89,50 +92,43 @@ export function StatusRow({
   return (
     <li className="ganttee-settings__status-row">
       <div className="ganttee-settings__status-fields">
-        <FormField label={translate("Status name")}>
+        <FormField>
           <input type="text" required value={name} disabled={busy} onChange={updateName} />
         </FormField>
-        <FormField label={translate("Color")}>
+        <FormField>
           <input type="color" value={color} disabled={busy} onChange={updateColor} />
         </FormField>
-        <FormField label={translate("Enforced state")}>
-          <select value={state} disabled={busy} onChange={updateState}>
+        <FormField>
+          <Select value={state} disabled={busy} onChange={updateState}>
             <option value="">{translate("No enforced state")}</option>
             <option value="open">{translate("Open")}</option>
             <option value="closed">{translate("Closed")}</option>
-          </select>
+          </Select>
         </FormField>
-      </div>
-      <div className="ganttee-settings__status-actions">
+        <div className="ganttee-settings__status-actions">
+          <IconButton icon="save" label={translate("Save")} disabled={busy} onClick={saveStatus} />
+          <IconButton
+            icon="trash"
+            label={translate("Delete")}
+            disabled={busy}
+            onClick={requestDelete}
+          />
+        </div>
         <span>{translate("Used by {0} items", usageCount)}</span>
-        <button type="button" disabled={busy} onClick={saveStatus}>
-          {translate("Save")}
-        </button>
-        <button
-          type="button"
-          className="ganttee-settings__quiet-button"
-          disabled={busy}
-          onClick={requestDelete}
-        >
-          {translate("Delete")}
-        </button>
       </div>
       {confirmingDelete && (
-        <div
-          className="ganttee-settings__confirmation"
-          role="alertdialog"
-          aria-label={translate("Delete status")}
-        >
-          <p>
-            {translate("This status is used by {0} items. Delete and unassign it?", usageCount)}
-          </p>
-          <button type="button" disabled={busy} onClick={confirmDelete}>
-            {translate("Delete status")}
-          </button>
-          <button type="button" disabled={busy} onClick={cancelDelete}>
-            {translate("Cancel")}
-          </button>
-        </div>
+        <ConfirmationDialog
+          title={translate("Delete status")}
+          message={translate(
+            "This status is used by {0} items. Delete and unassign it?",
+            usageCount,
+          )}
+          confirmLabel={translate("Delete")}
+          cancelLabel={translate("Cancel")}
+          disabled={busy}
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
       )}
     </li>
   );
