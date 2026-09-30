@@ -42,4 +42,47 @@ suite("editor smoke", () => {
       "ganttee.deleteProjectItem not registered",
     );
   });
+
+  test("ganttee.openSettings command is registered", async () => {
+    const all = await vscode.commands.getCommands(true);
+    assert.ok(all.includes("ganttee.openSettings"), "ganttee.openSettings not registered");
+  });
+
+  test("ganttee.openSettings opens the Settings editor for the active document", async () => {
+    const uri = await openGantteeEditor("v2-simple.ganttee");
+    await vscode.commands.executeCommand("ganttee.openSettings");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    assert.ok(input instanceof vscode.TabInputCustom);
+    assert.strictEqual(input.viewType, "ganttee.settingsEditor");
+    assert.strictEqual(input.uri.toString(), uri.toString());
+  });
+
+  test("ganttee.openSettings ignores a chart when an unrelated editor is active", async () => {
+    const uri = await openGantteeEditor("v2-simple.ganttee");
+    const textDocument = await vscode.workspace.openTextDocument({
+      language: "plaintext",
+      content: "unrelated",
+    });
+    await vscode.window.showTextDocument(textDocument);
+
+    await vscode.commands.executeCommand("ganttee.openSettings");
+    const settingsTabs = vscode.window.tabGroups.all
+      .flatMap((group) => group.tabs)
+      .filter(
+        (tab) =>
+          tab.input instanceof vscode.TabInputCustom &&
+          tab.input.viewType === "ganttee.settingsEditor" &&
+          tab.input.uri.toString() === uri.toString(),
+      );
+
+    assert.strictEqual(settingsTabs.length, 0);
+  });
+
+  test("ganttee.settingsEditor opens the same project document", async () => {
+    const uri = await openGantteeEditor("v2-simple.ganttee");
+
+    await vscode.commands.executeCommand("vscode.openWith", uri, "ganttee.settingsEditor");
+  });
 });

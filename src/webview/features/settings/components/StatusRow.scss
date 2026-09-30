@@ -1,0 +1,51 @@
+.ganttee-settings__status-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: end;
+  gap: var(--vscode-spacing-size120, 12px);
+}
+
+.ganttee-settings__status-row {
+  display: grid;
+  gap: var(--vscode-spacing-size120, 12px);
+  padding: var(--vscode-spacing-size160, 16px) 0;
+  border-bottom: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
+}
+
+.ganttee-settings__status-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vscode-spacing-size120, 12px);
+}
+
+.ganttee-settings__status-actions > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--vscode-descriptionForeground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ganttee-settings__confirmation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vscode-spacing-size80, 8px);
+  padding: var(--vscode-spacing-size120, 12px);
+  background-color: var(--vscode-editorWidget-background);
+  border: var(--vscode-strokeThickness, 1px) solid var(--vscode-editorWidget-border);
+  border-radius: var(--vscode-cornerRadius-medium, 6px);
+}
+
+.ganttee-settings__confirmation p {
+  flex: 1 1 100%;
+}
+
+@media (max-width: 560px) {
+  .ganttee-settings__status-actions {
+    flex-wrap: wrap;
+  }
+}

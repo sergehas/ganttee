@@ -35,6 +35,8 @@ interface ChartMenuBarProps {
   readonly onFitToWindow: () => void;
   /** Exports the currently rendered chart image. */
   readonly onExport: (format: ChartExportFormat, destination: ChartExportDestination) => void;
+  /** Opens Settings for the current project document. */
+  readonly onOpenSettings: () => void;
 }
 
 /** View fields edited through a select. */
@@ -111,6 +113,7 @@ export function ChartMenuBar(props: ChartMenuBarProps): React.JSX.Element {
         <IconAction action={presentation.zoomActions[2]} />
       </div>
       <div className="ganttee-chart-menu-bar__group" aria-label={translate("Export controls")}>
+        <IconAction action={presentation.settingsAction} />
         <IconActionMenu action={presentation.exportAction} />
       </div>
     </nav>

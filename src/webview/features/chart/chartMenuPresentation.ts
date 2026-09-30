@@ -52,6 +52,8 @@ export interface ChartMenuHandlers {
   readonly onToggleLegend: () => void;
   /** Toggles the session colored-style mode. */
   readonly onToggleColoredStyle: () => void;
+  /** Opens Settings for the current project document. */
+  readonly onOpenSettings: () => void;
 }
 
 /** Plain action groups used to render the chart menu bar. */
@@ -68,6 +70,8 @@ export interface ChartMenuPresentation {
   readonly themeOptions: readonly SelectOptionPresentation<ProjectTheme>[];
   /** Export format and destination action. */
   readonly exportAction: IconActionPresentation;
+  /** Opens project settings in a separate editor. */
+  readonly settingsAction: IconActionPresentation;
 }
 
 /**
@@ -133,6 +137,12 @@ export function createChartMenuPresentation(
       label: translate(theme.label),
     })),
     exportAction: createExportAction(translate, handlers.onExport),
+    settingsAction: createAction(
+      "settings",
+      "settings-gear",
+      translate("Open project settings"),
+      handlers.onOpenSettings,
+    ),
   };
 }
 

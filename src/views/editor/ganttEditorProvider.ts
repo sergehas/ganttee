@@ -1,10 +1,17 @@
+import { ProjectEditorSurface } from "@common/protocol";
 import { GanttStore } from "@src/ganttStore";
+import { DocumentEditQueue } from "@views/editor/documentEditQueue";
+import {
+  GANTTEE_CHART_EDITOR_VIEW_TYPE,
+  GANTTEE_SETTINGS_EDITOR_VIEW_TYPE,
+} from "@views/editor/editorViewTypes";
 import { GanttEditorController } from "@views/editor/ganttEditorController";
 import * as vscode from "vscode";
 
 /** Registers the Gantt chart custom editor for `.ganttee` files. */
 export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
-  static readonly viewType = "ganttee.chartEditor";
+  static readonly viewType = GANTTEE_CHART_EDITOR_VIEW_TYPE;
+  static readonly settingsViewType = GANTTEE_SETTINGS_EDITOR_VIEW_TYPE;
 
   /**
    * Registers the provider.
@@ -18,16 +25,33 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
     store: GanttStore,
     log: vscode.LogOutputChannel,
   ): vscode.Disposable {
-    const provider = new GanttEditorProvider(context, store, log);
-    return vscode.window.registerCustomEditorProvider(GanttEditorProvider.viewType, provider, {
-      webviewOptions: { retainContextWhenHidden: true },
-    });
+    const editQueue = new DocumentEditQueue();
+    const chartProvider = new GanttEditorProvider(context, store, log, editQueue, "chart");
+    const settingsProvider = new GanttEditorProvider(
+      context,
+      undefined,
+      log,
+      editQueue,
+      "settings",
+    );
+    return vscode.Disposable.from(
+      vscode.window.registerCustomEditorProvider(GanttEditorProvider.viewType, chartProvider, {
+        webviewOptions: { retainContextWhenHidden: true },
+      }),
+      vscode.window.registerCustomEditorProvider(
+        GanttEditorProvider.settingsViewType,
+        settingsProvider,
+        { webviewOptions: { retainContextWhenHidden: true } },
+      ),
+    );
   }
 
   private constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly store: GanttStore,
+    private readonly store: GanttStore | undefined,
     private readonly log: vscode.LogOutputChannel,
+    private readonly editQueue: DocumentEditQueue,
+    private readonly surface: ProjectEditorSurface,
   ) {}
 
   resolveCustomTextEditor(document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel): void {
@@ -48,25 +72,31 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
       webviewPanel,
       iconBaseUri.toString(),
       this.log,
+      this.editQueue,
+      this.surface,
     );
-    this.store.setActive(controller);
+    this.store?.setActive(controller);
 
-    const modelSubscription = controller.onDidChangeModel(() => {
-      if (this.store.active === controller) {
-        this.store.notifyModelChanged();
-      }
-    });
+    const modelSubscription = this.store
+      ? controller.onDidChangeModel(() => {
+          if (this.store?.active === controller) {
+            this.store.notifyModelChanged();
+          }
+        })
+      : undefined;
 
-    const viewStateSubscription = webviewPanel.onDidChangeViewState((event) => {
-      if (event.webviewPanel.active) {
-        this.store.setActive(controller);
-      }
-    });
+    const viewStateSubscription = this.store
+      ? webviewPanel.onDidChangeViewState((event) => {
+          if (event.webviewPanel.active) {
+            this.store?.setActive(controller);
+          }
+        })
+      : undefined;
 
     webviewPanel.onDidDispose(() => {
-      modelSubscription.dispose();
-      viewStateSubscription.dispose();
-      this.store.clear(controller);
+      modelSubscription?.dispose();
+      viewStateSubscription?.dispose();
+      this.store?.clear(controller);
       controller.dispose();
     });
   }
@@ -94,7 +124,7 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
   <meta http-equiv="Content-Security-Policy" content="${csp}" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="${styleUri}" rel="stylesheet" />
-  <title>${vscode.l10n.t("Gantt Chart")}</title>
+  <title>${vscode.l10n.t(this.surface === "settings" ? "Project Settings" : "Gantt Chart")}</title>
 </head>
 <body>
   <div id="root"></div>

@@ -40,6 +40,31 @@ suite("chartMenuPresentation", () => {
     assert.deepStrictEqual(ids, ["critical-path", "item-labels", "legend", "colored-style"]);
   });
 
+  test("exposes a localized Settings action that opens the current project settings", () => {
+    let opened = false;
+    const model = createChartMenuPresentation(
+      {
+        view: DEFAULT_PROJECT_VIEW,
+        legendVisible: true,
+        coloredStyleEnabled: false,
+        themes: THEMES,
+      },
+      (source) => `[${source}]`,
+      createHandlers({
+        onOpenSettings: () => {
+          opened = true;
+        },
+      }),
+    );
+
+    assert.deepStrictEqual(
+      [model.settingsAction.id, model.settingsAction.icon, model.settingsAction.label],
+      ["settings", "settings-gear", "[Open project settings]"],
+    );
+    model.settingsAction.onSelect?.();
+    assert.strictEqual(opened, true);
+  });
+
   test("always exposes colored-style and reflects the selected style default", () => {
     const metroView = { ...DEFAULT_PROJECT_VIEW, style: "metro" as const };
     const metroAction = createModel(metroView, true, true).toggleActions.find(
@@ -187,6 +212,7 @@ function createHandlers(overrides: Partial<ChartMenuHandlers>): ChartMenuHandler
     onExport: () => undefined,
     onToggleLegend: () => undefined,
     onToggleColoredStyle: () => undefined,
+    onOpenSettings: () => undefined,
     ...overrides,
   };
 }
