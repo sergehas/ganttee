@@ -204,23 +204,23 @@ suite("visualStyles", () => {
       assert.strictEqual(band.type, "rect");
       assert.deepStrictEqual(
         [leftArc.type, leftArc.shape?.cx, leftArc.shape?.cy, leftArc.shape?.r],
-        ["arc", 156, 10, 4.5],
+        ["arc", 156, 10, 5],
       );
       assert.deepStrictEqual(
         [leftArc.shape?.startAngle, leftArc.shape?.endAngle],
-        [Math.PI / 2, (3 * Math.PI) / 2],
+        [(2 * Math.PI) / 3, (4 * Math.PI) / 3],
       );
       assert.deepStrictEqual(
         [rightArc.type, rightArc.shape?.cx, rightArc.shape?.cy, rightArc.shape?.r],
-        ["arc", 244, 10, 4.5],
+        ["arc", 244, 10, 5],
       );
       assert.deepStrictEqual(
         [rightArc.shape?.startAngle, rightArc.shape?.endAngle],
-        [-Math.PI / 2, Math.PI / 2],
+        [-Math.PI / 3, Math.PI / 3],
       );
       assert.deepStrictEqual(
         [leftArc.style?.stroke, leftArc.style?.lineWidth, leftArc.style?.fill],
-        [ITEM_COLOR, 3, "none"],
+        [ITEM_COLOR, 2, "none"],
       );
       assert.deepStrictEqual(hitTarget.shape, { x: 150, y: 4, width: 100, height: 12 });
       assert.strictEqual(
