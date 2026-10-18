@@ -173,6 +173,9 @@ timeline rows that matter now.
   collapse or expand in the chart.
 - Given a group is collapsed, when the user ctrl-clicks it again, then its child rows become visible
   without changing group or child project data.
+- Given a group is collapsed, when classic or metro renders it, then its strokes are dashed; when
+  rounded renders it, then the horizontal band is dashed and its curved ends remain solid. Expanded
+  groups keep their normal rendering.
 - Given the user reloads the webview or reopens the editor, when the chart initializes, then group
   collapse state starts from the chart's default UI state and is not loaded from `settings.view`.
 - Given the user clicks a group without ctrl, when the chart handles the click, then existing chart
@@ -200,6 +203,8 @@ timeline rows that matter now.
   validation rules, or sidebar data.
 - Legend interactions for dependencies, off-days, and holidays update the same persisted view
   properties used by document load and save.
+- Classic and metro render collapsed groups with dashed strokes; rounded uses a dashed horizontal
+  band with solid curved ends. Expanded group rendering remains unchanged.
 - All new menu labels, style names, theme names, and accessibility labels are localized through the
   webview localization bridge.
 - Group collapse state is UI-only and is not stored in group data, `ProjectView`, or the `.ganttee`
@@ -273,7 +278,7 @@ timeline rows that matter now.
   consumes existing chart coordinates and returns inspectable ECharts graphic data while preserving
   clipping and omission behavior. Theme selection applies the selected ECharts theme. Graph-item
   labels use one clear placement mode at a time. Ctrl-click on a group toggles visibility of its
-  descendant rows for current webview session.
+  descendant rows for current webview session and changes its rendering to show the collapsed state.
 - Chart menu bar: Add compact localized controls for visual style, color theme, graph-item labels,
   and legend visibility. Remove dependency, off-day, and holiday toggle actions from the menu bar.
   Keep critical-path and existing zoom/export controls.

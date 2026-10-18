@@ -61,7 +61,7 @@ export const metroStyle: VisualStyle = {
   },
 
   /** Draws groups as outlined interchange capsules. */
-  renderGroup: (params, api, theme) => {
+  renderGroup: (params, api, theme, context) => {
     const bar = barPlacement(api);
     const shape = clipBar(params, bar, bar.height, bar.height / 2);
     if (shape === undefined) {
@@ -81,6 +81,7 @@ export const metroStyle: VisualStyle = {
         fill: theme.backgroundColor ?? STATION_FILL,
         stroke: itemColor(api),
         lineWidth,
+        ...(context.collapsed ? { lineDash: "dashed" as const, lineCap: "round" as const } : {}),
       },
       transition: ["shape" as const],
     };

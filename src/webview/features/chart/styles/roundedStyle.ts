@@ -28,7 +28,7 @@ export const roundedStyle: VisualStyle = {
   },
 
   /** Draws groups as parenthesized bands with a full-size hit target. */
-  renderGroup: (params, api) => {
+  renderGroup: (params, api, _theme, context) => {
     const shape = clipBar(params, barPlacement(api));
     if (shape === undefined) {
       return undefined;
@@ -46,18 +46,25 @@ export const roundedStyle: VisualStyle = {
     return {
       type: "group",
       children: [
-        {
-          type: "rect" as const,
-          shape: {
-            x: shape.x,
-            y: centerY - stroke / 2,
-            width: shape.width,
-            height: stroke,
-            r: radius,
-          },
-          style: { fill: itemColor(api) },
-          transition: ["shape"],
-        },
+        context.collapsed
+          ? {
+              type: "line" as const,
+              shape: { x1: shape.x, y1: centerY, x2: shape.x + shape.width, y2: centerY },
+              style: { ...lineStyle, lineDash: "dashed" as const },
+              transition: ["shape"],
+            }
+          : {
+              type: "rect" as const,
+              shape: {
+                x: shape.x,
+                y: centerY - stroke / 2,
+                width: shape.width,
+                height: stroke,
+                r: radius,
+              },
+              style: { fill: itemColor(api) },
+              transition: ["shape"],
+            },
         {
           type: "arc" as const,
           shape: {
