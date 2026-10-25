@@ -3,11 +3,13 @@
 [![CI – main](https://github.com/sergehas/ganttee/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sergehas/ganttee/actions/workflows/ci.yml)
 [![CI – develop](https://github.com/sergehas/ganttee/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/sergehas/ganttee/actions/workflows/ci.yml)
 
+![Ganttee logo](docs/images/ganttee-color_64.png)
+
 Plan projects without leaving VS Code. Ganttee is an interactive Gantt chart editor for `.ganttee`
 files: tasks, groups, milestones, dependencies, working calendars, and a critical path, all in a
 plain JSON file that you can version with your code.
 
-![Ganttee timeline with tasks, groups, milestones, and dependencies](docs/images/timeline.png)
+![Ganttee core features overview](docs/images/core-feature.gif)
 
 ## Quick Start
 
@@ -21,6 +23,8 @@ plain JSON file that you can version with your code.
 ## Features
 
 ### Interactive Timeline
+
+![Ganttee timeline with tasks, groups, milestones, and dependencies](docs/images/timeline.png)
 
 - **Tasks, groups, and milestones** on one timeline. Group bars span all their descendants.
 - **Drag task bars** to move them in time. **Double-click** any item to open its edit form.
@@ -170,4 +174,4 @@ under GPLv3.
 ---
 
 _Note: In accordance with the AGPL-3.0, if you modify this software and run it on a server to offer
-network services to the public, you must make your modified source code available to your users._
+network services to the public, you must make your modified source code available._

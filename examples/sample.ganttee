@@ -6,8 +6,7 @@
       "name": "Design",
       "description": "Wireframe and visual design.",
       "groupId": "group-discovery",
-      "state": "closed",
-      "status": "status-done",
+      "state": "open",
       "start": "2026-01-05",
       "duration": 7,
       "progress": 1
@@ -17,7 +16,6 @@
       "name": "Implement",
       "groupId": "group-Build",
       "state": "open",
-      "status": "status-in-progress",
       "duration": 6,
       "progress": 0.4
     },
@@ -47,7 +45,6 @@
       "description": "Design system integration tests",
       "groupId": "group-discovery",
       "state": "closed",
-      "status": "status-done",
       "start": "2026-01-15",
       "end": "2026-01-26",
       "progress": 0
@@ -113,7 +110,6 @@
       "name": "Test",
       "groupId": "group-delivery",
       "state": "closed",
-      "status": "status-done",
       "sequence": [
         "task-test",
         "task-9kcoliei"
@@ -142,7 +138,6 @@
       "name": "Release",
       "groupId": "group-delivery",
       "state": "closed",
-      "status": "status-done",
       "date": "2026-02-28"
     },
     {
@@ -265,7 +260,7 @@
       {
         "id": "status-in-progress",
         "name": "In progress",
-        "color": "#00FF0088",
+        "color": "#fff70588",
         "state": "open"
       },
       {
@@ -282,6 +277,8 @@
     "showOffDays": false,
     "showHolidays": false,
     "showCriticalPath": false,
+    "style": "classic",
+    "theme": "blue",
     "showItemLabels": false
   }
 }
