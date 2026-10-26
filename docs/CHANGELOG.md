@@ -54,6 +54,7 @@ file.
   chart menu bar, show entity labels next to chart items instead of on the Y axis, and show or hide
   the legend for the current session. Style, theme, and label placement are saved in the document
   view. Themes are registered from every bundled `media/themes/*-theme.json` asset.
+- Add Green chart themes for light and dark appearances.
 - Ctrl-click (Cmd-click on macOS) a group in the chart to collapse or expand its rows for the
   current session.
 - Invalid `view` values are replaced by their defaults and logged to the Ganttee output channel
