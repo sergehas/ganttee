@@ -46,6 +46,18 @@ omitted. Feature PRs may use squash merges.
 ---
 config:
   theme: 'neutral'
+  themeVariables:
+    'git0': '#406497'
+    'git1': '#60A5FA'
+    tagLabelColor: '#000'
+    tagLabelBackground: '#F471E1'
+    tagLabelBorder: '#F471E1'
+    'git2': '#34D399'
+    'git3': '#FBBF24'
+    'git4': '#A78BFA'
+    'git5': '#F69866'
+    'git6': '#22D3EE'
+    'git7': '#95E633'
 ---
 gitGraph
       commit id: "Previous release" tag: "v1.1.0"
@@ -79,6 +91,17 @@ The example assumes `main` still points to `v1.2.0`. The preparation node is a r
 existing workflow; **Release** creates `v1.2.1`.
 
 ```mermaid
+---
+config:
+  theme: 'neutral'
+  themeVariables:
+    'git0': '#406497'
+    'git1': '#60A5FA'
+    tagLabelColor: '#000'
+    tagLabelBackground: '#F471E1'
+    tagLabelBorder: '#F471E1'
+    'git2': '#E91202'
+---
 gitGraph
       commit id: "Affected release" tag: "v1.2.0"
       branch develop
@@ -207,6 +230,43 @@ sequenceDiagram
       User->>Rel: approve marketplace
       Rel->>Rel: publish uploads VSIX with OIDC
    end
+```
+
+The graph shows the release branches and merges; Marketplace publishing is shown above because it
+does not change Git history.
+
+```mermaid
+---
+config:
+   theme: 'neutral'
+   themeVariables:
+      'git0': '#406497'
+      'git1': '#60A5FA'
+      tagLabelColor: '#000'
+      tagLabelBackground: '#F471E1'
+      tagLabelBorder: '#F471E1'
+      'git2': '#34D399'
+      'git3': '#FBBF24'
+      'git4': '#A78BFA'
+      'git5': '#F69866'
+      'git6': '#22D3EE'
+      'git7': '#95E633'
+---
+gitGraph
+         commit id: "Previous release" tag: "v1.1.0"
+         branch develop
+         commit id: "Next release work"
+         branch release/1.2.0
+         commit id: "Version and changelog"
+         commit id: "Stabilize release"
+         checkout main
+         merge release/1.2.0 id: "Release PR" tag: "v1.2.0"
+         branch release/1.3.0-dev.0
+         commit id: "Next development version"
+         checkout main
+         merge release/1.3.0-dev.0 id: "Automated bump PR"
+         checkout develop
+         merge main id: "Automated back-merge PR"
 ```
 
 ### Release Jobs
