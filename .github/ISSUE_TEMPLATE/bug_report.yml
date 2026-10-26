@@ -1,0 +1,69 @@
+name: Bug report
+description: Report something that does not work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. Do not report security problems here: see the [security policy](https://github.com/sergehas/ganttee/blob/main/docs/SECURITY.md).
+  - type: input
+    id: ganttee-version
+    attributes:
+      label: Ganttee version
+      description: Extensions view > Ganttee.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: vscode-version
+    attributes:
+      label: VS Code version
+      description: Help > About.
+      placeholder: "1.138.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a .ganttee file
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include error messages and screenshots if possible.
+    validations:
+      required: true
+  - type: textarea
+    id: document
+    attributes:
+      label: Minimal .ganttee file
+      description: The smallest document that shows the problem. Remove private data.
+      render: json
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Output from Help > Toggle Developer Tools > Console, if relevant.
+      render: text

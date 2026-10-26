@@ -24,7 +24,9 @@ Run each step; stop and report on the first hard failure (types/lint/build/tests
 1. **Full validation:** `npm test` — its `pretest` lifecycle compiles tests, type-checks, lints,
    builds both bundles, and runs all tests.
 2. **Production build:** `npm run package` — required when verifying a release artifact; this
-   repeats the compile checks as part of packaging.
+   repeats the compile checks as part of packaging. For a release, also run `npm run vsix` and check
+   `npm run vsce -- ls --no-dependencies` lists only `dist/`, `media/`, `l10n/`, `examples/`, and
+   the root manifest, README, and LICENSE files.
 3. **Multi-surface edit parity:** when chart and form both edit entities, verify they route through
    the same shared workflow contract and parity scenarios pass.
 4. **Branch coverage ≥ 90%:** verify coverage; if unavailable, confirm every new branch
@@ -37,7 +39,7 @@ Run each step; stop and report on the first hard failure (types/lint/build/tests
    `dist/`.
 8. **Boundaries:** no `vscode`/Node imports in `common/`, `services/`, or `webview/` (delegate to
    the **Architecture Guard** agent if unsure).
-9. **Changelog:** the change has an entry under `## [Unreleased]` in `CHANGELOG.md`.
+9. **Changelog:** the change has an entry under `## [Unreleased]` in `docs/CHANGELOG.md`.
 
 ## Output Format
 

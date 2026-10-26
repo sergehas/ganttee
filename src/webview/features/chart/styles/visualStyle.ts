@@ -14,6 +14,20 @@ export type ThemeAwareRenderItem = (
   theme: ChartThemeData,
 ) => CustomSeriesRenderItemReturn;
 
+/** Transient rendering state for a group item. */
+export interface GroupRenderContext {
+  /** Whether the group is currently collapsed in the chart. */
+  readonly collapsed: boolean;
+}
+
+/** Theme-aware renderer for a group, including its transient collapse state. */
+export type ThemeAwareGroupRenderItem = (
+  params: CustomSeriesRenderItemParams,
+  api: CustomSeriesRenderItemAPI,
+  theme: ChartThemeData,
+  context: GroupRenderContext,
+) => CustomSeriesRenderItemReturn;
+
 /**
  * Rendering contract of one chart visual style. Each renderer receives the existing ECharts
  * custom-series coordinates and returns inspectable graphic data, or `undefined` when the item
@@ -26,8 +40,8 @@ export interface VisualStyle {
   readonly colored?: boolean;
   /** Renders a task bar from `[row, start, end]` values. */
   readonly renderTask: ThemeAwareRenderItem;
-  /** Renders a group bar from `[row, start, end]` values. */
-  readonly renderGroup: ThemeAwareRenderItem;
+  /** Renders a group bar using its chart-local collapse state. */
+  readonly renderGroup: ThemeAwareGroupRenderItem;
   /** Renders a milestone marker from `[row, date]` values. */
   readonly renderMilestone: ThemeAwareRenderItem;
   /** Renders a dependency link from `[fromRow, fromTime, toRow, toTime]` values. */

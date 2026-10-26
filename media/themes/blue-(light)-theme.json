@@ -1,24 +1,21 @@
 {
   "color": [
-    "#516b91",
-    "#59c4e6",
-    "#edafda",
-    "#93b7e3",
+    "#6890ef",
+    "#2563eb",
+    "#db29b4",
+    "#a9bdeb",
     "#666666",
     "rgba(127, 127, 127, 0.12)",
     "rgba(127, 127, 127, 0.18)",
-    "#f20001",
-    "#fabc16",
-    "#1b58c6",
-    "#6e6d0c",
-    "#8ac9e6",
-    "#9a056c",
-    "#8cdb78",
-    "#cd83bc",
-    "#d1d020",
-    "#1a643e",
-    "#600a80",
-    "#6b481f"
+    "#ff1717",
+    "#2563eb",
+    "#db29b4",
+    "#059669",
+    "#e0a906",
+    "#7c3aed",
+    "#ff6f0f",
+    "#0891b2",
+    "#337b0f"
   ],
   "backgroundColor": "#ffffff",
   "textStyle": {},
@@ -33,7 +30,7 @@
   "axisPointer": {
     "label": {
       "color": "#222",
-      "backgroundColor": "#59c4e6"
+      "backgroundColor": "#2563eb"
     },
     "lineStyle": {
       "color": "#cccccc",

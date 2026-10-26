@@ -178,6 +178,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
         project: props.project,
         view: props.view,
         rows,
+        collapsedGroupIds,
         chartWidth: chart.getWidth(),
         themeData: props.theme.data,
         legendVisible: props.legendVisible,
@@ -210,6 +211,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(
       props.coloredStyleEnabled,
       props.theme,
       rows,
+      collapsedGroupIds,
     ]);
 
     useEffect(() => {

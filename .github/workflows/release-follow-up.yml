@@ -1,0 +1,140 @@
+name: Release follow-up
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  pull_request_target:
+    branches: [main]
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  merge:
+    name: Merge release follow-up after CI
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      HEAD: ${{ github.event.workflow_run.head_branch }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Merge matching automation PR
+        shell: bash
+        run: |
+          if [[ "$HEAD" =~ ^release/[0-9]+\.[0-9]+\.[0-9]+-dev\.0$ ]]; then
+            base=main
+          elif [ "$HEAD" = main ]; then
+            base=develop
+          else
+            exit 0
+          fi
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::RELEASE_TOKEN is required for automated merges."
+            exit 1
+          fi
+          login="$(gh api user --jq .login)"
+          prs="$(gh pr list --repo "$GH_REPO" --base "$base" --head "$HEAD" --state open --json number,headRefOid,headRepository,headRepositoryOwner,author,title)"
+          number="$(printf '%s' "$prs" | jq -r --arg sha "$HEAD_SHA" --arg login "$login" --arg repo "$GH_REPO" '
+            .[] | select(.headRefOid == $sha and .author.login == $login)
+            | select((.headRepositoryOwner.login + "/" + .headRepository.name) == $repo)
+            | select(.title | startswith("chore(release): ")) | .number')"
+          if [ -z "$number" ]; then
+            exit 0
+          fi
+          if [[ "$number" == *$'\n'* ]]; then
+            echo "::error::More than one matching release follow-up PR."
+            exit 1
+          fi
+          if [ "$base" = main ]; then
+            files="$(gh api "repos/$GH_REPO/pulls/$number/files" --paginate --jq '.[].filename' | sort)"
+            if [ "$files" != $'package-lock.json\npackage.json' ]; then
+              echo "::error::Development bump PR must change only the two package files."
+              exit 1
+            fi
+            version="$(gh api "repos/$GH_REPO/contents/package.json?ref=$HEAD_SHA" --jq .content | base64 --decode | jq -r .version)"
+            if [ "$HEAD" != "release/$version" ]; then
+              echo "::error::Development version does not match the branch name."
+              exit 1
+            fi
+          elif ! gh pr view "$number" --json title --jq .title | grep -Eq '^chore\(release\): merge release/[0-9]+\.[0-9]+\.[0-9]+-dev\.0 back into develop$'; then
+            exit 0
+          fi
+          # The admin bypass covers checks too, so verify them before using it.
+          gh pr checks "$number" --required
+          gh pr merge "$number" --merge --admin --match-head-commit "$HEAD_SHA"
+
+  cleanup:
+    name: Delete merged release branch and synchronize develop
+    permissions:
+      contents: write
+      pull-requests: write
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_REPO: ${{ github.repository }}
+      HEAD: ${{ github.event.pull_request.head.ref }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      AUTHOR: ${{ github.event.pull_request.user.login }}
+    steps:
+      - name: Require release automation token for development back-merge
+        if: contains(github.event.pull_request.head.ref, '-dev.0')
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo "::error::RELEASE_TOKEN is required to open the development back-merge PR."
+            exit 1
+          fi
+
+      - name: Delete only the merged release branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+        run: |
+          current="$(gh api "repos/$GH_REPO/git/ref/heads/$HEAD" --jq .object.sha 2>/dev/null || true)"
+          if [ -n "$current" ] && [ "$current" = "$HEAD_SHA" ]; then
+            gh api --method DELETE "repos/$GH_REPO/git/refs/heads/$HEAD"
+          elif [ -n "$current" ]; then
+            echo "::warning::Branch $HEAD has new commits; it will not be deleted."
+          fi
+
+      - name: Open development back-merge PR after a development bump
+        if: contains(github.event.pull_request.head.ref, '-dev.0')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if ! [[ "$HEAD" =~ ^release/[0-9]+\.[0-9]+\.[0-9]+-dev\.0$ ]]; then
+            exit 0
+          fi
+          login="$(gh api user --jq .login)"
+          if [ "$AUTHOR" != "$login" ]; then
+            echo "::error::Development bump PR was not created by RELEASE_TOKEN's owner."
+            exit 1
+          fi
+          version="$(gh api "repos/$GH_REPO/contents/package.json?ref=$MERGE_SHA" --jq .content | base64 --decode | jq -r .version)"
+          if [ "$HEAD" != "release/$version" ]; then
+            echo "::error::Merged development version does not match the branch."
+            exit 1
+          fi
+          existing="$(gh pr list --base develop --head main --state open --json number --jq '.[0].number // empty')"
+          if [ -z "$existing" ]; then
+            gh pr create --base develop --head main \
+              --title "chore(release): merge $HEAD back into develop" \
+              --body "Synchronize the release and development bump into develop. Release follow-up merges this PR after CI succeeds."
+          fi

@@ -127,8 +127,9 @@ Avoid uppercase, spaces, or a missing prefix (e.g. `my-branch`, `Feature/X`).
 - 🚫 Never run destructive git commands without explicit confirmation: `git push --force`,
   `git reset --hard`, `git rebase` on shared branches, branch/tag deletion, `commit --amend` on
   pushed commits.
-- 🚫 Never run the release scripts (`release:patch|minor|major`, `increment`, `postrelease`) — CI
-  owns versioning and tagging.
+- 🚫 Never bump the version, create release tags, or publish by hand — CI owns versioning and
+  tagging through the **Start release** (`release-start.yml`), **Release** (`release.yml`), and
+  **Publish** (`publish.yml`) workflows. See [CONTRIBUTING.md](../../docs/CONTRIBUTING.md#releases).
 - 🚫 Never commit secrets, credentials, or `.env` values.
 - Project rule: do not stage or commit on the user's behalf unless asked.
 
