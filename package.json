@@ -2,7 +2,7 @@
   "name": "ganttee",
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
-  "version": "1.0.0-dev.0",
+  "version": "1.0.0",
   "publisher": "the-skware",
   "icon": "media/ganttee-color.png",
   "license": "AGPL-3.0-or-later",
