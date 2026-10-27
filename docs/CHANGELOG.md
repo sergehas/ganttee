@@ -7,6 +7,8 @@ file.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-27
+
 ### Added
 
 - Open a document-scoped Settings editor to configure working calendars, holidays, and statuses,
