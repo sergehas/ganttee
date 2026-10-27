@@ -1,0 +1,101 @@
+name: Start release
+
+# Step 1 of the gitflow release: run on `develop` to cut `release/X.Y.Z` and open its PR to `main`.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version increment"
+        type: choice
+        required: true
+        default: minor
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  start-release:
+    name: Create release branch and PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BUMP: ${{ inputs.bump }}
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+      HAS_RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN != '' }}
+    steps:
+      - name: Require develop branch
+        if: github.ref != 'refs/heads/develop'
+        run: |
+          echo "::error::Run this workflow on the develop branch (current: $GITHUB_REF)."
+          exit 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: version
+        run: |
+          npm version "$BUMP" --no-git-tag-version
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Check release branch and tag are free
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --heads origin "release/$VERSION" > /dev/null; then
+            echo "::error::Branch release/$VERSION already exists."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
+            echo "::error::Tag v$VERSION already exists."
+            exit 1
+          fi
+
+      - name: Promote changelog
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: node scripts/release-changelog.mjs promote "$VERSION"
+
+      - name: Commit and push release branch
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git switch -c "release/$VERSION"
+          git add package.json package-lock.json docs/CHANGELOG.md
+          git commit -m "chore(release): $VERSION"
+          git push origin "release/$VERSION"
+
+      - name: Open pull request to main
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "release/$VERSION" \
+            --title "chore(release): $VERSION" \
+            --body "Release $VERSION. Stabilize on this branch, merge to \`main\`, then run the **Release** workflow on \`main\`."
+
+      - name: Warn when CI will not start on the PR
+        if: env.HAS_RELEASE_TOKEN != 'true'
+        run: >-
+          echo "::warning::RELEASE_TOKEN is not set: PRs opened with GITHUB_TOKEN do not start CI.
+          Close and reopen the PR to start the required checks."

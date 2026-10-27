@@ -1,0 +1,46 @@
+.ganttee-text-button {
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  padding: var(--vscode-spacing-size40, 4px) var(--vscode-spacing-size80, 8px);
+  border: var(--vscode-strokeThickness, 1px) solid transparent;
+  border-radius: var(--vscode-cornerRadius-small, 4px);
+  font-size: var(--vscode-fontSize-label1, 12px);
+  line-height: 16px;
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: normal;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
+    outline-offset: 1px;
+  }
+
+  &[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.65;
+    pointer-events: none;
+  }
+
+  &--primary {
+    color: var(--vscode-button-foreground);
+    background-color: var(--vscode-button-background);
+    border-color: var(--vscode-button-border, transparent);
+
+    &:hover:not([aria-disabled="true"]) {
+      background-color: var(--vscode-button-hoverBackground);
+    }
+  }
+
+  &--secondary {
+    color: var(--vscode-button-secondaryForeground);
+    background-color: var(--vscode-button-secondaryBackground);
+    border: 1px solid var(--vscode-button-secondaryBorder);
+
+    &:hover:not([aria-disabled="true"]) {
+      background-color: var(--vscode-button-secondaryHoverBackground);
+    }
+  }
+}

@@ -1,0 +1,62 @@
+.ganttee-form-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--vscode-spacing-size40, 4px);
+
+  > span {
+    color: var(--vscode-descriptionForeground);
+    font-size: var(--vscode-fontSize-label1, 12px);
+  }
+
+  &--checkbox {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--vscode-spacing-size80, 8px);
+
+    > span {
+      color: var(--vscode-foreground);
+    }
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: var(--vscode-spacing-size60, 6px) var(--vscode-spacing-size80, 8px);
+    color: var(--vscode-input-foreground);
+    background-color: var(--vscode-input-background);
+    border: var(--vscode-strokeThickness, 1px) solid var(--vscode-input-border, transparent);
+    border-radius: var(--vscode-cornerRadius-small, 4px);
+    font: inherit;
+    line-height: 16px;
+
+    &:focus-visible {
+      outline: var(--vscode-strokeThickness, 1px) solid var(--vscode-focusBorder);
+      outline-offset: 0;
+    }
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+  }
+
+  input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+  }
+
+  input[type="date"],
+  input[type="datetime"],
+  input[type="time"],
+  input[type="color"] {
+    padding: calc(var(--vscode-spacing-size60, 6px) - 1px) var(--vscode-spacing-size80, 8px);
+  }
+
+  input[type="color"] {
+    min-height: 30px;
+    box-sizing: border-box;
+    padding: var(--vscode-spacing-size20, 2px);
+  }
+}

@@ -1,0 +1,446 @@
+/**
+ * Coercion of untrusted JSON into the typed document shape.
+ *
+ * Everything here works on `unknown` because the input is whatever was on
+ * disk. Cross-entity rules that need the whole document live in
+ * `documentRelationValidationService`.
+ */
+
+import { DateRange, parseIsoDate } from "@common/dates";
+import {
+  CURRENT_DOCUMENT_VERSION,
+  DEFAULT_PROJECT_VIEW,
+  Dependency,
+  DEPENDENCY_TYPES,
+  DependencyType,
+  Group,
+  Milestone,
+  PROJECT_ITEM_STATES,
+  PROJECT_STYLES,
+  ProjectDocument,
+  ProjectItem,
+  ProjectItemState,
+  ProjectSettings,
+  ProjectStatus,
+  ProjectView,
+  resolveProjectSettings,
+  resolveProjectView,
+  Task,
+  WorkingCalendar,
+  ZOOM_LEVELS,
+} from "@common/documents";
+
+/** Raised when a `.ganttee` document cannot be parsed or is structurally invalid. */
+export class GanttParseError extends Error {}
+
+/** A recognized view field whose invalid value was replaced by its default. */
+export interface ViewDefaultWarning {
+  /** The `view` property that held an invalid value. */
+  readonly field: keyof ProjectView;
+  /** The default value used instead. */
+  readonly defaultValue: ProjectView[keyof ProjectView];
+}
+
+/** Receives a warning each time a view value is replaced by its default. */
+export type ViewDefaultWarningListener = (warning: ViewDefaultWarning) => void;
+
+/** Value checks for every recognized view property. */
+const VIEW_FIELD_VALIDATORS: { readonly [K in keyof ProjectView]: (value: unknown) => boolean } = {
+  zoomLevel: (value) => (ZOOM_LEVELS as readonly unknown[]).includes(value),
+  showDependencies: isBoolean,
+  showOffDays: isBoolean,
+  showHolidays: isBoolean,
+  showCriticalPath: isBoolean,
+  style: (value) => (PROJECT_STYLES as readonly unknown[]).includes(value),
+  theme: (value) => typeof value === "string" && value.trim().length > 0,
+  showItemLabels: isBoolean,
+};
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Coerces a parsed JSON payload into a document, normalizing optional
+ * collections and dropping unknown settings keys.
+ *
+ * @param raw The payload read from disk.
+ * @param onWarning Receives each view value replaced by its default.
+ * @returns The typed document.
+ * @throws {GanttParseError} When a field has the wrong shape.
+ */
+export function validateDocumentShape(
+  raw: unknown,
+  onWarning: ViewDefaultWarningListener = () => undefined,
+): ProjectDocument {
+  if (!isRecord(raw)) {
+    throw new GanttParseError("Document root must be an object.");
+  }
+
+  const projectDoc: ProjectDocument = {
+    version: typeof raw.version === "number" ? raw.version : CURRENT_DOCUMENT_VERSION,
+    tasks: asArray(raw.tasks, "tasks").map(validateTask),
+    groups: asArray(raw.groups, "groups").map(validateGroup),
+    milestones: asArray(raw.milestones, "milestones").map(validateMilestone),
+    dependencies: asArray(raw.dependencies, "dependencies").map(validateDependency),
+    sequence: requireStringArray(raw.sequence, "sequence"),
+    settings: validateSettings(raw.settings),
+    view: validateView(raw.view, onWarning),
+  };
+  return projectDoc;
+}
+
+/**
+ * Validates and resolves project settings while dropping unknown keys.
+ */
+function validateSettings(raw: unknown): ProjectSettings {
+  if (!isRecord(raw)) {
+    return resolveProjectSettings();
+  }
+  const settings: Partial<ProjectSettings> = {};
+  if (isRecord(raw.workingCalendar)) {
+    settings.workingCalendar = validateWorkingCalendar(raw.workingCalendar);
+  }
+  if (raw.workingDayHours !== undefined) {
+    settings.workingDayHours = requireNumberInRange(
+      raw.workingDayHours,
+      "settings.workingDayHours",
+      0,
+      24,
+      false,
+      true,
+    );
+  }
+  if (raw.workingDayStart !== undefined) {
+    settings.workingDayStart = requireNumberInRange(
+      raw.workingDayStart,
+      "settings.workingDayStart",
+      0,
+      24,
+      true,
+      false,
+    );
+  }
+  if (raw.holidays !== undefined) {
+    if (!Array.isArray(raw.holidays)) {
+      throw new GanttParseError("settings.holidays must be an array.");
+    }
+    settings.holidays = raw.holidays.map((holiday, index) =>
+      validateDateRange(holiday, `settings.holidays[${index}]`),
+    );
+  }
+  if (raw.statuses !== undefined) {
+    if (!Array.isArray(raw.statuses)) {
+      throw new GanttParseError("settings.statuses must be an array.");
+    }
+    settings.statuses = raw.statuses.map((status, index) =>
+      validateStatus(status, `settings.statuses[${index}]`),
+    );
+  }
+  return resolveProjectSettings(settings);
+}
+
+/** Validates a configured project status entry. */
+function validateStatus(raw: unknown, field: string): ProjectStatus {
+  if (!isRecord(raw)) {
+    throw new GanttParseError(`${field} must be an object.`);
+  }
+  const status: ProjectStatus = {
+    id: requireString(raw.id, `${field}.id`),
+    name: requireString(raw.name, `${field}.name`),
+    color: requireString(raw.color, `${field}.color`),
+  };
+  if (raw.state !== undefined) {
+    if (!isProjectItemState(raw.state)) {
+      throw new GanttParseError(`${field}.state must be "open" or "closed".`);
+    }
+    status.state = raw.state;
+  }
+  return status;
+}
+
+/**
+ * Validates an optional view section. Recognized properties with invalid values fall back to
+ * their defaults and are reported; unknown properties are rejected.
+ */
+function validateView(raw: unknown, onWarning: ViewDefaultWarningListener): ProjectView {
+  if (raw === undefined) {
+    return resolveProjectView();
+  }
+  if (!isRecord(raw)) {
+    throw new GanttParseError("view must be an object.");
+  }
+  for (const key of Object.keys(raw)) {
+    if (!Object.hasOwn(VIEW_FIELD_VALIDATORS, key)) {
+      throw new GanttParseError(`view.${key} is not supported.`);
+    }
+  }
+  const view: Record<string, unknown> = {};
+  for (const field of Object.keys(VIEW_FIELD_VALIDATORS) as (keyof ProjectView)[]) {
+    const value = raw[field];
+    if (value === undefined) {
+      continue;
+    }
+    if (VIEW_FIELD_VALIDATORS[field](value)) {
+      view[field] = value;
+    } else {
+      onWarning({ field, defaultValue: DEFAULT_PROJECT_VIEW[field] });
+    }
+  }
+  return resolveProjectView(view as Partial<ProjectView>);
+}
+
+/** Returns whether a value is a boolean. */
+function isBoolean(value: unknown): boolean {
+  return typeof value === "boolean";
+}
+
+/** Validates an inclusive date-only range. */
+function validateDateRange(raw: unknown, field: string): DateRange {
+  if (!isRecord(raw)) {
+    throw new GanttParseError(`${field} must be an object.`);
+  }
+  const keys = Object.keys(raw);
+  if (keys.some((key) => key !== "start" && key !== "end")) {
+    throw new GanttParseError(`${field} contains an unsupported property.`);
+  }
+  const start = requireDate(raw.start, `${field}.start`);
+  const end = requireDate(raw.end, `${field}.end`);
+  if (parseIsoDate(end).getTime() < parseIsoDate(start).getTime()) {
+    throw new GanttParseError(`${field}.end must not precede ${field}.start.`);
+  }
+  return { start, end };
+}
+
+/**
+ * Validates and normalizes the reserved working calendar, dropping unknown keys.
+ */
+function validateWorkingCalendar(raw: Record<string, unknown>): WorkingCalendar {
+  const calendar = resolveProjectSettings().workingCalendar;
+  if (Array.isArray(raw.daysOff)) {
+    calendar.daysOff = raw.daysOff.map((day, index) =>
+      requireIsoWeekday(day, `settings.workingCalendar.daysOff[${index}]`),
+    );
+  }
+  return calendar;
+}
+
+/**
+ * Validates and normalizes a task entry.
+ */
+function validateTask(raw: unknown, index: number): Task {
+  if (!isRecord(raw)) {
+    throw new GanttParseError(`tasks[${index}] must be an object.`);
+  }
+  const task: Task = {
+    ...validateProjectItem(raw, `tasks[${index}]`),
+  };
+  if (raw.start !== undefined) {
+    task.start = requireDate(raw.start, `tasks[${index}].start`);
+  }
+  if (raw.end !== undefined) {
+    task.end = requireDate(raw.end, `tasks[${index}].end`);
+  }
+  if (raw.duration !== undefined) {
+    task.duration = requireNonNegativeNumber(raw.duration, `tasks[${index}].duration`);
+  }
+  if (raw.progress !== undefined) {
+    task.progress = clampProgress(raw.progress);
+  }
+  return task;
+}
+
+/**
+ * Validates and normalizes a group entry.
+ */
+function validateGroup(raw: unknown, index: number): Group {
+  if (!isRecord(raw)) {
+    throw new GanttParseError(`groups[${index}] must be an object.`);
+  }
+  const group: Group = {
+    ...validateProjectItem(raw, `groups[${index}]`),
+    sequence: requireStringArray(raw.sequence, `groups[${index}].sequence`),
+  };
+  return group;
+}
+
+/**
+ * Validates and normalizes a milestone entry.
+ */
+function validateMilestone(raw: unknown, index: number): Milestone {
+  if (!isRecord(raw)) {
+    throw new GanttParseError(`milestones[${index}] must be an object.`);
+  }
+  const milestone: Milestone = {
+    ...validateProjectItem(raw, `milestones[${index}]`),
+  };
+  if (raw.date !== undefined) {
+    milestone.date = requireDate(raw.date, `milestones[${index}].date`);
+  }
+  if (raw.duration !== undefined && raw.duration !== 0) {
+    throw new GanttParseError(
+      `milestones[${index}].duration must be 0; milestones are zero-duration.`,
+    );
+  }
+  return milestone;
+}
+
+/**
+ * Validates and normalizes fields inherited by every persisted project item.
+ */
+function validateProjectItem(raw: Record<string, unknown>, field: string): ProjectItem {
+  const projectItem: ProjectItem = {
+    id: requireString(raw.id, `${field}.id`),
+    name: requireString(raw.name, `${field}.name`),
+  };
+  if (raw.description !== undefined) {
+    projectItem.description = requireString(raw.description, `${field}.description`);
+  }
+  if (raw.groupId !== undefined) {
+    projectItem.groupId = requireString(raw.groupId, `${field}.groupId`);
+  }
+  if (raw.state !== undefined && isProjectItemState(raw.state)) {
+    projectItem.state = raw.state;
+  }
+  if (raw.status !== undefined) {
+    projectItem.status = requireString(raw.status, `${field}.status`);
+  }
+  return projectItem;
+}
+
+/**
+ * Validates and normalizes a dependency entry.
+ */
+function validateDependency(raw: unknown, index: number): Dependency {
+  if (!isRecord(raw)) {
+    throw new GanttParseError(`dependencies[${index}] must be an object.`);
+  }
+  const type = raw.type;
+  if (!isDependencyType(type)) {
+    throw new GanttParseError(`dependencies[${index}].type is invalid.`);
+  }
+  return {
+    id: requireString(raw.id, `dependencies[${index}].id`),
+    sourceId: requireString(raw.sourceId, `dependencies[${index}].sourceId`),
+    targetId: requireString(raw.targetId, `dependencies[${index}].targetId`),
+    type,
+  };
+}
+
+/**
+ * Returns whether the input is a plain object record.
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Returns the input as an array or throws for invalid collection fields.
+ */
+function asArray(value: unknown, field: string): unknown[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    throw new GanttParseError(`${field} must be an array.`);
+  }
+  return value;
+}
+
+/**
+ * Requires a non-empty string field.
+ */
+function requireString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new GanttParseError(`${field} must be a non-empty string.`);
+  }
+  return value;
+}
+
+/**
+ * Requires an array of strings, defaulting to an empty array when the field
+ * is absent (sequence repair normally fills it before this runs).
+ */
+function requireStringArray(value: unknown, field: string): string[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value) || !value.every((entry) => typeof entry === "string")) {
+    throw new GanttParseError(`${field} must be an array of strings.`);
+  }
+  return value;
+}
+
+/**
+ * Requires an ISO date string in YYYY-MM-DD form.
+ */
+function requireDate(value: unknown, field: string): string {
+  const date = requireString(value, field);
+  const parsed = parseIsoDate(date);
+  if (
+    !ISO_DATE.test(date) ||
+    Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== date
+  ) {
+    throw new GanttParseError(`${field} must be an ISO date (YYYY-MM-DD).`);
+  }
+  return date;
+}
+
+/**
+ * Requires a finite, non-negative number field.
+ */
+function requireNonNegativeNumber(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new GanttParseError(`${field} must be a non-negative number.`);
+  }
+  return value;
+}
+
+/** Requires a finite number inside the configured lower and upper bounds. */
+function requireNumberInRange(
+  value: unknown,
+  field: string,
+  minimum: number,
+  maximum: number,
+  includeMinimum: boolean,
+  includeMaximum: boolean,
+): number {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    (includeMinimum ? value < minimum : value <= minimum) ||
+    (includeMaximum ? value > maximum : value >= maximum)
+  ) {
+    throw new GanttParseError(`${field} is outside its supported range.`);
+  }
+  return value;
+}
+
+/** Requires an ISO weekday integer from Monday 1 through Sunday 7. */
+function requireIsoWeekday(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 7) {
+    throw new GanttParseError(`${field} must be an ISO weekday from 1 to 7.`);
+  }
+  return value;
+}
+
+/**
+ * Clamps task progress into the supported inclusive range.
+ */
+function clampProgress(value: unknown): number {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return 0;
+  }
+  return Math.min(1, Math.max(0, value));
+}
+
+/** Returns whether the value is a supported task state. */
+function isProjectItemState(value: unknown): value is ProjectItemState {
+  return typeof value === "string" && PROJECT_ITEM_STATES.includes(value as ProjectItemState);
+}
+
+/**
+ * Returns whether the value is a supported dependency type.
+ */
+function isDependencyType(value: unknown): value is DependencyType {
+  return typeof value === "string" && DEPENDENCY_TYPES.includes(value as DependencyType);
+}

@@ -1,0 +1,98 @@
+# Change Log
+
+All notable changes to the "ganttee" extension will be documented in this file.
+
+Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this
+file.
+
+## [Unreleased]
+
+## [1.0.0] - 2026-10-27
+
+### Added
+
+- Open a document-scoped Settings editor to configure working calendars, holidays, and statuses,
+  including aggregate usage counts and confirmed status deletion with unassignment.
+- Item lifecycle state is now separated from document-defined status metadata: tasks, groups, and
+  milestones use the `state` field with `open` and `closed` values, while document `statuses` can
+  assign a named status with an optional enforced lifecycle state and status color.
+- Holiday-aware scheduling now skips inclusive project holiday ranges during date normalization,
+  forward and reverse traversal, fractional duration calculation, and overnight interval ownership.
+  Invalid calendars and malformed holiday dates are rejected before scheduling.
+- Sidebar project-management workflow: create projects, tasks, groups, and milestones from the
+  explorer toolbar; native inline Move Up, Move Down, and Delete row actions; multi-selection bulk
+  delete with one confirmation; drag-and-drop grouping/ungrouping with silent rejection of invalid
+  or cyclic moves; a toolbar Sort action with explicit Ascending/Descending choices over effective
+  dates and name; and a literal, case-insensitive name search field above the tree.
+- `.ganttee` editor tabs now use the Ganttee color icon for quick identification.
+- Add GNU Affero General Public License v3 licensing metadata and terms.
+- Localized editor webview strings through the extension l10n bundle, with locale-aware dates and
+  native codicon controls for compact form actions.
+- Agent workflow and productivity skills with supporting engineering guidance.
+- Structural DAG validation at hydration time for self-loop, parallel-edge, and directed-cycle
+  rejection.
+- Shared date utilities for parse/format and calendar-day arithmetic.
+- End-to-end editing support for tasks, milestones, and groups from timeline and sidebar entry
+  points, including kind-aware edit routing.
+- Milestone dependency editing parity with task dependency behavior and host-side cycle rejection.
+- Schedule validation now detects circular dependencies, duplicate dependency links, self-links,
+  invalid dependency endpoints, ambiguous task and milestone constraints, and schedule components
+  without an absolute date anchor.
+- The editor now reports schedule problems in the sidebar, edit forms, and localized notifications,
+  while allowing warning-only constraint conflicts to be saved for later resolution.
+- Invalid dependencies and unanchored components are automatically removed when a document is
+  opened. Edits that would create these invalid states are blocked before they are saved.
+- Task, milestone, and group editing is supported from both the timeline and sidebar, with milestone
+  dependency editing and cycle prevention.
+- Groups now display schedule information derived from their member items, including duration
+  calculated using calendar days.
+- Chart editor menu bar with persisted view preferences (zoom level, dependency/off-day/holiday/
+  critical-path visibility) stored in the document.
+- Export Gantt charts as images through the chart actions menu, with download and clipboard output
+  options.
+- Critical-path projection computed from the scheduled dependency graph.
+- Project settings support for calendar, holidays, and view preferences.
+- Gantt chart styles: choose a Classic, Rounded, or Metro visual style and a color theme from the
+  chart menu bar, show entity labels next to chart items instead of on the Y axis, and show or hide
+  the legend for the current session. Style, theme, and label placement are saved in the document
+  view. Themes are registered from every bundled `media/themes/*-theme.json` asset.
+- Add Green chart themes for light and dark appearances.
+- Ctrl-click (Cmd-click on macOS) a group in the chart to collapse or expand its rows for the
+  current session.
+- Invalid `view` values are replaced by their defaults and logged to the Ganttee output channel
+  instead of blocking the document.
+
+### Changed
+
+- Upgrade React and related dependencies to version 19.
+- **Breaking change:** The `endBefore` dependency type is no longer supported. Documents containing
+  it cannot be opened until the dependency is removed or replaced.
+- Dependency names and direction semantics were updated to use `endWith` and the current endpoint
+  model.
+- Task and milestone constraints now use endpoint-aware scheduling rules, with derived dates where
+  the selected constraints provide enough information.
+- Task and milestone names, and group membership fields, now use the current document format (`name`
+  and `groupId`).
+- Group hierarchy validation now rejects self-parenting and circular ancestry.
+- CI now runs dependency security audits, formatting, type checks, linting, builds, integration
+  tests, unit tests, smoke tests, and branch-coverage checks across supported operating systems for
+  pull requests.
+- Commits pushed to feature and bugfix branches receive standalone quality and unit-test checks,
+  with duplicate checks skipped when an open pull request already covers the commit.
+- Dependency updates for npm packages and GitHub Actions are now grouped and proposed weekly by
+  Dependabot.
+- bump fast-uri from 3.1.5 to 3.1.7 (fix vulnerability report)
+- Reworked the chart editor around a clearer layer structure (task-list column, two-level timeline
+  header) and a more organized control bar.
+- Refactored the webview into reusable components with a more consistent React/SCSS structure.
+- Improved dependency and group rendering in the chart, including schedule-driven group boundaries.
+- Dependency, off-day, and holiday visibility moved from the chart menu bar to the chart legend, and
+  still persist in the document view. Item heights are clamped to a minimum and maximum size.
+- Removed the group `collapsed` attribute and its edit-form checkbox; existing values are ignored.
+- Removed the ctrl-click one-day date shift on chart items.
+
+### Fixed
+
+- Clearing a milestone's date field no longer fails to save; the field is now omitted instead of
+  being written as an empty string, so a milestone with a dependency-derived date can drop its
+  explicit date.

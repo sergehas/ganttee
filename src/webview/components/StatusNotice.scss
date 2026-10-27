@@ -1,0 +1,50 @@
+.ganttee-status-notice {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: var(--vscode-spacing-size80, 8px);
+  padding: var(--vscode-spacing-size80, 8px);
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-editorWidget-background);
+  border: var(--vscode-strokeThickness, 1px) solid var(--vscode-editorWidget-border);
+  border-radius: var(--vscode-cornerRadius-medium, 6px);
+  font-size: var(--vscode-fontSize-label1, 12px);
+  line-height: 17px;
+
+  &__content {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: var(--vscode-spacing-size80, 8px);
+  }
+
+  &__icon {
+    flex: 0 0 auto;
+    font-size: var(--vscode-codiconFontSize, 16px);
+  }
+
+  &__text {
+    min-width: 0;
+    margin: 0;
+  }
+
+  &__close {
+    flex: 0 0 auto;
+  }
+
+  &--success &__icon.codicon.codicon-pass {
+    color: var(--vscode-testing-iconPassed, var(--vscode-terminal-ansiGreen));
+  }
+
+  &--info &__icon.codicon.codicon-info {
+    color: var(--vscode-notificationsInfoIcon-foreground);
+  }
+
+  &--warning &__icon.codicon.codicon-warning {
+    color: var(--vscode-notificationsWarningIcon-foreground);
+  }
+
+  &--error &__icon.codicon.codicon-error {
+    color: var(--vscode-notificationsErrorIcon-foreground);
+  }
+}

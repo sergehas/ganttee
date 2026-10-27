@@ -1,28 +1,145 @@
-import { useEffect, useState } from "react";
-import { Dependency, GanttDocument, Task } from "../common/models";
-import { GanttChart } from "./GanttChart";
-import { TaskForm } from "./TaskForm";
-import { onHostMessage, postToHost } from "./vscodeApi";
+import {
+  Dependency,
+  Group,
+  Milestone,
+  ProjectSettings,
+  ProjectStatus,
+  ProjectView,
+  Task,
+} from "@common/documents";
+import { ProjectPresentation } from "@common/presentation/project";
+import {
+  EditableEntityKind,
+  EditableEntityMap,
+  EditableEntityRef,
+  ProjectEditorSurface,
+} from "@common/protocol";
+import { SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
+import "@webview/App.scss";
+import { IconBaseUriProvider } from "@webview/components/Icon";
+import { StatusNotice } from "@webview/components/StatusNotice";
+import { ChartView } from "@webview/features/chart/components/ChartView";
+import { EntityEditor } from "@webview/features/entity-editor/components/EntityEditor";
+import { useEntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
+import { SettingsEditor } from "@webview/features/settings/components/SettingsEditor";
+import { translate, WebviewL10n, WebviewL10nContext } from "@webview/l10n";
+import { createGanttViewState, GanttViewState } from "@webview/viewState";
+import { onHostMessage, postToHost } from "@webview/vscodeApi";
+import { useEffect, useRef, useState } from "react";
 
-/** Root editor UI: the ECharts timeline and the task edit panel. */
-export function App(): JSX.Element {
-  const [document, setDocument] = useState<GanttDocument | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+/** Webview-only behavior retained until the host acknowledges an entity update. */
+interface PendingEntityUpdate {
+  /** Editor session that originated the update. */
+  editorSessionVersion: number;
+  /** Whether successful persistence should leave the editor open. */
+  keepEditorOpen: boolean;
+}
+
+/** Settings proposal payloads that receive a host-generated request id and revision. */
+type SettingsEditProposal =
+  | { type: "updateSettings"; settings: ProjectSettings }
+  | { type: "addProjectStatus"; status: Omit<ProjectStatus, "id"> }
+  | { type: "updateProjectStatus"; status: ProjectStatus }
+  | { type: "deleteProjectStatus"; statusId: string };
+
+/** Root editor UI: the ECharts timeline and the entity edit panel. */
+export function App(): React.JSX.Element {
+  const [viewState, setViewState] = useState<GanttViewState | null>(null);
+  const [surface, setSurface] = useState<ProjectEditorSurface | null>(null);
+  const [documentError, setDocumentError] = useState<string | null>(null);
+  const [settingsBusy, setSettingsBusy] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [l10n, setL10n] = useState<WebviewL10n | null>(null);
+  const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(null);
+  const [closingEditingTarget, setClosingEditingTarget] = useState<ResolvedEditingEntity | null>(
+    null,
+  );
+  const [pendingView, setPendingView] = useState<ProjectView | null>(null);
+  const [iconBaseUri, setIconBaseUri] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const projectRef = useRef<ProjectPresentation | null>(null);
+  const editingEntityRef = useRef<EditableEntityRef | null>(null);
+  const editorSessionVersionRef = useRef(0);
+  const nextUpdateRequestIdRef = useRef(0);
+  const pendingEntityUpdatesRef = useRef(new Map<number, PendingEntityUpdate>());
+  const nextSettingsRequestIdRef = useRef(0);
+  const pendingSettingsRequestIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     const unsubscribe = onHostMessage((message) => {
       switch (message.type) {
+        case "l10nCatalog":
+          setL10n({ locale: message.locale, strings: message.strings });
+          break;
         case "init":
+          setIconBaseUri(message.iconBaseUri);
+          setSurface(message.surface);
+          setDocumentError(null);
+          setSettingsError(null);
+          try {
+            const nextViewState = createGanttViewState(message.project, message.revision);
+            setPendingView(null);
+            projectRef.current = nextViewState.project;
+            setViewState(nextViewState);
+          } catch {
+            setViewState(null);
+          }
+          break;
         case "documentChanged":
-          setDocument(message.document);
+          setDocumentError(null);
+          try {
+            const nextViewState = createGanttViewState(message.project, message.revision);
+            const currentEditingEntity = editingEntityRef.current;
+            setPendingView(null);
+            if (
+              currentEditingEntity &&
+              !resolveEntity(nextViewState.project, currentEditingEntity)
+            ) {
+              setClosingEditingTarget(
+                resolveEntity(projectRef.current ?? undefined, currentEditingEntity),
+              );
+              updateEditingEntity(null);
+            }
+            projectRef.current = nextViewState.project;
+            setViewState(nextViewState);
+          } catch {
+            setViewState(null);
+          }
           break;
-        case "selectTask":
-          setSelectedTaskId(message.taskId);
+        case "documentError":
+          setViewState(null);
+          setDocumentError(message.message);
+          pendingSettingsRequestIdRef.current = null;
+          setSettingsBusy(false);
           break;
-        case "editTask":
-          setSelectedTaskId(message.taskId);
-          setEditingTaskId(message.taskId);
+        case "settingsEditResult":
+          if (message.requestId === pendingSettingsRequestIdRef.current) {
+            pendingSettingsRequestIdRef.current = null;
+            setSettingsBusy(false);
+            setSettingsError(message.accepted ? null : (message.message ?? ""));
+          }
+          break;
+        case "editEntity":
+          toggleEntityEditor(message.entity);
+          break;
+        case "updateEntityResult": {
+          const pendingUpdate = pendingEntityUpdatesRef.current.get(message.requestId);
+          pendingEntityUpdatesRef.current.delete(message.requestId);
+          if (
+            message.updated &&
+            pendingUpdate &&
+            !pendingUpdate.keepEditorOpen &&
+            pendingUpdate.editorSessionVersion === editorSessionVersionRef.current &&
+            isSameEntity(editingEntityRef.current, message.entity)
+          ) {
+            closeEntityEditor();
+          }
+          break;
+        }
+        case "deleteEntityResult":
+          if (message.deleted && isSameEntity(editingEntityRef.current, message.entity)) {
+            closeEntityEditor();
+          }
           break;
       }
     });
@@ -30,57 +147,269 @@ export function App(): JSX.Element {
     return unsubscribe;
   }, []);
 
-  if (!document) {
-    return <div className="ganttee-empty">Loading Gantt chart…</div>;
+  /**
+   * Sends a revision-bound entity proposal and records its editor behavior by request id.
+   * The current UI remains mounted until the host reports whether persistence succeeded.
+   */
+  const saveEntityToHost = (
+    kind: EditableEntityKind,
+    entity: EditableEntityMap[EditableEntityKind],
+    options?: SaveEntityOptions,
+  ) => {
+    if (!viewState) {
+      return;
+    }
+    const requestId = nextUpdateRequestIdRef.current;
+    nextUpdateRequestIdRef.current += 1;
+    pendingEntityUpdatesRef.current.set(requestId, {
+      editorSessionVersion: editorSessionVersionRef.current,
+      keepEditorOpen: options?.keepEditorOpen === true,
+    });
+    postToHost({
+      type: "updateEntity",
+      requestId,
+      kind,
+      entity,
+      baseRevision: viewState.revision,
+    });
+  };
+
+  /** Requests deletion; a successful host result closes the matching editor session. */
+  const deleteEntityToHost = (entity: EditableEntityRef) => {
+    if (!viewState) {
+      return;
+    }
+    postToHost({ type: "deleteEntity", entity, baseRevision: viewState.revision });
+  };
+
+  /** Sends one settings proposal and prevents another until its authoritative result arrives. */
+  function updateSettingsToHost(proposal: SettingsEditProposal): void {
+    if (!viewState || pendingSettingsRequestIdRef.current !== null) {
+      return;
+    }
+    const requestId = nextSettingsRequestIdRef.current;
+    nextSettingsRequestIdRef.current += 1;
+    pendingSettingsRequestIdRef.current = requestId;
+    setSettingsBusy(true);
+    setSettingsError(null);
+    postToHost({ ...proposal, requestId, baseRevision: viewState.revision });
   }
 
-  const editingTask = document.tasks.find((task) => task.id === editingTaskId);
-
-  const saveTask = (task: Task) => {
-    postToHost({ type: "updateTask", task });
-    setEditingTaskId(null);
+  /** Asks the host to route an entity edit command back through the shared toggle path. */
+  const requestEditEntity = (entity: EditableEntityRef) => {
+    postToHost({ type: "requestEditEntity", entity });
   };
 
-  const deleteTask = (taskId: string) => {
-    postToHost({ type: "deleteTask", taskId });
-    setEditingTaskId(null);
+  /** Toggles the requested entity editor against the current editor identity. */
+  function toggleEntityEditor(entity: EditableEntityRef): void {
+    const currentEntity = editingEntityRef.current;
+    if (currentEntity?.kind === entity.kind && currentEntity.id === entity.id) {
+      closeEntityEditor();
+      return;
+    }
+    setClosingEditingTarget(null);
+    updateEditingEntity(entity);
+  }
+
+  /** Closes the entity editor after preserving its content for the exit animation. */
+  function closeEntityEditor(): void {
+    setClosingEditingTarget(
+      resolveEntity(projectRef.current ?? undefined, editingEntityRef.current),
+    );
+    updateEditingEntity(null);
+  }
+
+  /**
+   * Updates the rendered editor identity and advances the session used to reject late save results.
+   */
+  function updateEditingEntity(entity: EditableEntityRef | null): void {
+    editorSessionVersionRef.current += 1;
+    editingEntityRef.current = entity;
+    setEditingEntity(entity);
+  }
+
+  /** Sends a new dependency to the extension host. */
+  const addDependency = (dependency: Dependency) => {
+    if (!viewState) {
+      return;
+    }
+    postToHost({ type: "addDependency", dependency, baseRevision: viewState.revision });
   };
 
-  const addDependency = (dependency: Dependency) =>
-    postToHost({ type: "addDependency", dependency });
+  /** Sends a dependency deletion to the extension host. */
+  const removeDependency = (dependencyId: string) => {
+    if (!viewState) {
+      return;
+    }
+    postToHost({ type: "removeDependency", dependencyId, baseRevision: viewState.revision });
+  };
 
-  const removeDependency = (dependencyId: string) =>
-    postToHost({ type: "removeDependency", dependencyId });
+  const workflow = useEntityEditWorkflow({
+    onSave: saveEntityToHost,
+    onDelete: deleteEntityToHost,
+    onAddDependency: addDependency,
+    onRemoveDependency: removeDependency,
+  });
+
+  if (!l10n) {
+    return <div className="ganttee-app__empty" aria-busy="true" />;
+  }
+
+  if (documentError) {
+    return (
+      <div className="ganttee-app__empty" role="alert">
+        {documentError}
+      </div>
+    );
+  }
+
+  if (!viewState) {
+    return (
+      <div className="ganttee-app__empty" aria-busy="true">
+        {translate(l10n, "Loading Gantt chart...")}
+      </div>
+    );
+  }
+
+  const editingTarget = resolveEntity(viewState.project, editingEntity);
+  const displayedEditingTarget = editingTarget ?? closingEditingTarget;
+  const chartView = pendingView ?? viewState.project.view;
+
+  if (surface === "settings") {
+    return (
+      <WebviewL10nContext.Provider value={l10n}>
+        <SettingsEditor
+          project={viewState.project}
+          busy={settingsBusy}
+          error={settingsError}
+          onUpdateSettings={(settings) =>
+            updateSettingsToHost({ type: "updateSettings", settings })
+          }
+          onAddStatus={(status) => updateSettingsToHost({ type: "addProjectStatus", status })}
+          onUpdateStatus={(status) => updateSettingsToHost({ type: "updateProjectStatus", status })}
+          onDeleteStatus={(statusId) =>
+            updateSettingsToHost({ type: "deleteProjectStatus", statusId })
+          }
+        />
+      </WebviewL10nContext.Provider>
+    );
+  }
+
+  /** Sends a complete chart view proposal through the revision-safe host path. */
+  const updateView = (view: ProjectView) => {
+    setPendingView(view);
+    postToHost({
+      type: "updateView",
+      view,
+      baseRevision: viewState.revision,
+    });
+  };
 
   return (
-    <div className="ganttee-layout">
-      <div className="ganttee-timeline">
-        {document.tasks.length === 0 && document.milestones.length === 0 ? (
-          <div className="ganttee-empty">
-            No tasks yet. Use the Ganttee sidebar to add one.
+    <IconBaseUriProvider baseUri={iconBaseUri ?? ""}>
+      <WebviewL10nContext.Provider value={l10n}>
+        <div className="ganttee-app">
+          <div className="ganttee-app__timeline">
+            <ChartView
+              project={viewState.project}
+              view={chartView}
+              isEmpty={
+                viewState.project.tasks.length === 0 && viewState.project.milestones.length === 0
+              }
+              emptyState={
+                <div className="ganttee-app__empty">
+                  {translate(l10n, "No tasks yet. Use the Ganttee sidebar to add one.")}
+                </div>
+              }
+              toolbarFeedback={
+                exportError ? <StatusNotice severity="error">{exportError}</StatusNotice> : null
+              }
+              onViewChange={updateView}
+              onEditEntity={toggleEntityEditor}
+              onExportError={setExportError}
+              onOpenSettings={() => postToHost({ type: "openSettings" })}
+            />
           </div>
-        ) : (
-          <GanttChart
-            document={document}
-            selectedTaskId={selectedTaskId}
-            onSelectTask={setSelectedTaskId}
-            onEditTask={setEditingTaskId}
-          />
-        )}
-      </div>
-      {editingTask && (
-        <aside className="ganttee-panel">
-          <TaskForm
-            task={editingTask}
-            document={document}
-            onSave={saveTask}
-            onDelete={deleteTask}
-            onClose={() => setEditingTaskId(null)}
-            onAddDependency={addDependency}
-            onRemoveDependency={removeDependency}
-          />
-        </aside>
-      )}
-    </div>
+          {displayedEditingTarget && (
+            <aside
+              className={`ganttee-app__panel ${editingTarget ? "is-open" : "is-closing"}`}
+              onAnimationEnd={(event) => {
+                if (event.target === event.currentTarget && !editingTarget) {
+                  setClosingEditingTarget(null);
+                }
+              }}
+            >
+              <EntityEditor
+                editingEntity={displayedEditingTarget}
+                document={viewState.project}
+                onSave={workflow.saveEntity}
+                onDelete={workflow.deleteEntity}
+                onClose={closeEntityEditor}
+                onAddDependency={workflow.addDependency}
+                onRemoveDependency={workflow.removeDependency}
+                onUngroupEntity={(entity, options) =>
+                  workflow.ungroupEntity(viewState.project, entity, options)
+                }
+                onRequestEditEntity={requestEditEntity}
+              />
+            </aside>
+          )}
+        </div>
+      </WebviewL10nContext.Provider>
+    </IconBaseUriProvider>
   );
+}
+
+interface ResolvedEditingEntity {
+  /** Entity kind used to select the form section. */
+  kind: EditableEntityKind;
+  /** Current entity data resolved from the document. */
+  entity: EditableEntityMap[EditableEntityKind];
+}
+
+/** Returns whether two entity references identify the same project item. */
+function isSameEntity(left: EditableEntityRef | null, right: EditableEntityRef): boolean {
+  return left?.kind === right.kind && left.id === right.id;
+}
+
+/** Resolves an editable entity reference against the current document. */
+function resolveEntity(
+  project: ProjectPresentation | undefined,
+  ref: EditableEntityRef | null,
+): ResolvedEditingEntity | null {
+  if (!project || !ref) {
+    return null;
+  }
+  switch (ref.kind) {
+    case "task": {
+      const entity = project.tasks.find((task) => task.id === ref.id);
+      return entity ? { kind: "task", entity: authoredTask(entity) } : null;
+    }
+    case "milestone": {
+      const entity = project.milestones.find((milestone) => milestone.id === ref.id);
+      return entity ? { kind: "milestone", entity: authoredMilestone(entity) } : null;
+    }
+    case "group": {
+      const entity = project.groups.find((group) => group.id === ref.id);
+      return entity ? { kind: "group", entity: authoredGroup(entity) } : null;
+    }
+  }
+}
+
+/** Removes computed fields before a task enters the authoring workflow. */
+function authoredTask(task: ProjectPresentation["tasks"][number]): Task {
+  const { effectiveStart, effectiveEnd, effectiveDuration, ...authored } = task;
+  return authored;
+}
+
+/** Removes computed fields before a milestone enters the authoring workflow. */
+function authoredMilestone(milestone: ProjectPresentation["milestones"][number]): Milestone {
+  const { effectiveStart, effectiveEnd, effectiveDuration, ...authored } = milestone;
+  return authored;
+}
+
+/** Removes computed fields before a group enters the authoring workflow. */
+function authoredGroup(group: ProjectPresentation["groups"][number]): Group {
+  const { effectiveStart, effectiveEnd, effectiveDuration, ...authored } = group;
+  return authored;
 }

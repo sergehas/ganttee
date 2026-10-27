@@ -1,78 +1,284 @@
 {
-  "version": 1,
+  "version": 2,
   "tasks": [
     {
       "id": "task-design",
-      "title": "Design",
+      "name": "Design",
+      "description": "Wireframe and visual design.",
+      "groupId": "group-discovery",
+      "state": "open",
       "start": "2026-01-05",
-      "end": "2026-01-12",
-      "description": "Wireframes and visual design.",
-      "progress": 1,
-      "status": "done",
-      "groupId": "group-discovery"
+      "duration": 7,
+      "progress": 1
     },
     {
       "id": "task-build",
-      "title": "Build",
-      "start": "2026-01-13",
-      "end": "2026-01-27",
-      "progress": 0.4,
-      "status": "inProgress",
-      "groupId": "group-delivery"
+      "name": "Implement",
+      "groupId": "group-Build",
+      "state": "open",
+      "duration": 6,
+      "progress": 0.4
     },
     {
       "id": "task-test",
-      "title": "Test",
+      "name": "QA",
+      "description": "# quality acceptance tests\nrun & results must be  tracked\nmus comply to test scenarios",
+      "groupId": "group-Test",
+      "state": "open",
       "start": "2026-01-28",
       "end": "2026-02-04",
-      "progress": 0,
-      "status": "todo",
-      "groupId": "group-delivery"
+      "progress": 0
     },
     {
       "id": "task-9kcoliei",
-      "title": "New Task",
-      "start": "2026-07-14",
-      "end": "2026-07-17",
-      "progress": 0,
-      "status": "todo"
+      "name": "Integration tests",
+      "description": "# content\nThis phase is dedicated to **user acceptance** test\nit must be conclude by a sign-of",
+      "groupId": "group-Test",
+      "state": "closed",
+      "start": "2026-02-08",
+      "end": "2026-02-26",
+      "progress": 0
+    },
+    {
+      "id": "task-mlf0py0m",
+      "name": "SIT design",
+      "description": "Design system integration tests",
+      "groupId": "group-discovery",
+      "state": "closed",
+      "start": "2026-01-15",
+      "end": "2026-01-26",
+      "progress": 0
+    },
+    {
+      "id": "task-4p1xeki1",
+      "name": "UAT 1",
+      "groupId": "group-UAT",
+      "state": "open",
+      "end": "2026-03-10",
+      "progress": 0
+    },
+    {
+      "id": "task-v71r1sde",
+      "name": "Warranty",
+      "groupId": "group-support",
+      "duration": 90,
+      "progress": 0
+    },
+    {
+      "id": "task-m63h6oat",
+      "name": "L2 Support",
+      "groupId": "group-support",
+      "duration": 600,
+      "progress": 0
+    },
+    {
+      "id": "999cc460-cc6f-4442-8fb0-50ada083c0fe",
+      "name": "UAT 2",
+      "groupId": "group-UAT",
+      "duration": 10,
+      "progress": 0
     }
   ],
   "groups": [
     {
       "id": "group-discovery",
-      "name": "Discovery"
+      "name": "Discovery",
+      "sequence": [
+        "task-design",
+        "task-mlf0py0m"
+      ]
     },
     {
       "id": "group-delivery",
-      "name": "Delivery"
+      "name": "Delivery",
+      "sequence": [
+        "group-Build",
+        "group-Test",
+        "milestone-Release"
+      ]
+    },
+    {
+      "id": "group-Build",
+      "name": "Build",
+      "groupId": "group-delivery",
+      "sequence": [
+        "task-build"
+      ]
+    },
+    {
+      "id": "group-Test",
+      "name": "Test",
+      "groupId": "group-delivery",
+      "state": "closed",
+      "sequence": [
+        "task-test",
+        "task-9kcoliei"
+      ]
+    },
+    {
+      "id": "group-UAT",
+      "name": "User Acceptance Test",
+      "sequence": [
+        "task-4p1xeki1",
+        "999cc460-cc6f-4442-8fb0-50ada083c0fe"
+      ]
+    },
+    {
+      "id": "group-support",
+      "name": "Support",
+      "sequence": [
+        "task-v71r1sde",
+        "task-m63h6oat"
+      ]
     }
   ],
   "milestones": [
     {
+      "id": "milestone-Release",
+      "name": "Release",
+      "groupId": "group-delivery",
+      "state": "closed",
+      "date": "2026-02-28"
+    },
+    {
       "id": "milestone-launch",
-      "title": "Launch",
-      "date": "2026-02-05"
+      "name": "Launch",
+      "date": "2026-03-11"
     }
   ],
   "dependencies": [
     {
       "id": "dep-1",
-      "sourceId": "task-design",
-      "targetId": "task-build",
+      "sourceId": "task-build",
+      "targetId": "task-design",
       "type": "startAfter"
     },
     {
       "id": "dep-2",
-      "sourceId": "task-build",
+      "sourceId": "task-test",
+      "targetId": "task-build",
+      "type": "startAfter"
+    },
+    {
+      "id": "dep-msxd24e5",
+      "sourceId": "task-9kcoliei",
       "targetId": "task-test",
       "type": "startAfter"
     },
     {
-      "id": "dep-njcewa6q",
-      "sourceId": "task-9kcoliei",
-      "targetId": "task-test",
+      "id": "dep-dtjj5tvb",
+      "sourceId": "task-mlf0py0m",
+      "targetId": "task-design",
+      "type": "startAfter"
+    },
+    {
+      "id": "dep-spmagaqp",
+      "sourceId": "task-mlf0py0m",
+      "targetId": "task-build",
+      "type": "endWith"
+    },
+    {
+      "id": "dep-8rybjfjw",
+      "sourceId": "milestone-Release",
+      "targetId": "task-9kcoliei",
+      "type": "startAfter"
+    },
+    {
+      "id": "dep-uckl17or",
+      "sourceId": "task-4p1xeki1",
+      "targetId": "milestone-Release",
+      "type": "startAfter"
+    },
+    {
+      "id": "dep-ou6jg4v9",
+      "sourceId": "task-v71r1sde",
+      "targetId": "milestone-launch",
+      "type": "startAfter"
+    },
+    {
+      "id": "dep-1ot5apms",
+      "sourceId": "task-m63h6oat",
+      "targetId": "task-v71r1sde",
+      "type": "startAfter"
+    },
+    {
+      "id": "b5d1eb55-6afb-4e3f-8afb-a87205c4e75a",
+      "sourceId": "999cc460-cc6f-4442-8fb0-50ada083c0fe",
+      "targetId": "task-4p1xeki1",
+      "type": "startAfter"
+    },
+    {
+      "id": "4f6f0e40-6b15-4599-9a21-e611b5a5e39e",
+      "sourceId": "milestone-launch",
+      "targetId": "999cc460-cc6f-4442-8fb0-50ada083c0fe",
+      "type": "startAfter"
+    },
+    {
+      "id": "26d27a12-e45d-4b78-9bfe-685d7653d674",
+      "sourceId": "task-v71r1sde",
+      "targetId": "milestone-Release",
       "type": "startAfter"
     }
-  ]
+  ],
+  "sequence": [
+    "group-discovery",
+    "group-delivery",
+    "group-UAT",
+    "milestone-launch",
+    "group-support"
+  ],
+  "settings": {
+    "workingCalendar": {
+      "daysOff": [
+        6,
+        7
+      ]
+    },
+    "workingDayHours": 7,
+    "workingDayStart": 9,
+    "holidays": [
+      {
+        "start": "2026-01-12",
+        "end": "2026-01-17"
+      },
+      {
+        "start": "2026-03-12",
+        "end": "2026-03-19"
+      },
+      {
+        "start": "2026-04-15",
+        "end": "2026-04-16"
+      }
+    ],
+    "statuses": [
+      {
+        "id": "status-todo",
+        "name": "todo",
+        "color": "#0000FFcc",
+        "state": "open"
+      },
+      {
+        "id": "status-in-progress",
+        "name": "In progress",
+        "color": "#fff70588",
+        "state": "open"
+      },
+      {
+        "id": "status-done",
+        "name": "done",
+        "color": "#6a6a6acc",
+        "state": "closed"
+      }
+    ]
+  },
+  "view": {
+    "zoomLevel": "month",
+    "showDependencies": true,
+    "showOffDays": false,
+    "showHolidays": false,
+    "showCriticalPath": false,
+    "style": "classic",
+    "theme": "blue",
+    "showItemLabels": false
+  }
 }

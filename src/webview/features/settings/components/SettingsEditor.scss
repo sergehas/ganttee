@@ -1,0 +1,114 @@
+.ganttee-settings {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: var(--vscode-spacing-size240, 24px);
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-editor-background);
+}
+
+.ganttee-settings__content {
+  display: grid;
+  width: min(100%, 800px);
+  gap: var(--vscode-spacing-size240, 24px);
+  margin: 0 auto;
+}
+
+.ganttee-settings h1,
+.ganttee-settings h2,
+.ganttee-settings p {
+  margin: 0;
+}
+
+.ganttee-settings h1 {
+  font-size: var(--vscode-fontSize-heading2, 18px);
+  font-weight: var(--vscode-fontWeight-semiBold, 600);
+}
+
+.ganttee-settings h2 {
+  font-size: var(--vscode-fontSize-heading3, 13px);
+  font-weight: var(--vscode-fontWeight-semiBold, 600);
+}
+
+.ganttee-settings__section {
+  display: grid;
+  gap: var(--vscode-spacing-size160, 16px);
+  padding-top: var(--vscode-spacing-size60, 6px);
+  padding-bottom: var(--vscode-spacing-size120, 12px);
+  border-top: var(--vscode-strokeThickness, 1px) solid var(--vscode-panel-border);
+  &:first-of-type {
+    margin-top: var(--vscode-spacing-size60, 6px);
+  }
+  &:last-of-type {
+    padding-bottom: 0;
+  }
+}
+
+.ganttee-settings__weekday-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--vscode-spacing-size80, 8px) var(--vscode-spacing-size160, 16px);
+}
+
+.ganttee-settings__field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: end;
+  gap: var(--vscode-spacing-size120, 12px);
+}
+
+.ganttee-settings__controls {
+  display: flex;
+  align-items: end;
+  gap: var(--vscode-spacing-size80, 8px);
+  margin: 0;
+  padding-top: var(--vscode-spacing-size60, 6px);
+  padding-bottom: var(--vscode-spacing-size60, 6px);
+  padding-left: var(--vscode-spacing-size20, 2px);
+  padding-right: var(--vscode-spacing-size80, 8px);
+
+  & > .ganttee-form-field {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+}
+
+.ganttee-settings__list,
+.ganttee-settings__status-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ganttee-settings__list-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vscode-spacing-size120, 12px);
+  margin: 0;
+  padding: var(--vscode-spacing-size60, 6px) var(--vscode-spacing-size80, 8px);
+  border-radius: var(--vscode-cornerRadius-small, 4px);
+
+  & > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &:hover {
+    color: var(--vscode-list-hoverForeground);
+    background-color: var(--vscode-list-hoverBackground);
+  }
+}
+
+@media (max-width: 560px) {
+  .ganttee-settings {
+    padding: var(--vscode-spacing-size160, 16px);
+  }
+
+  .ganttee-settings__controls {
+    flex-wrap: wrap;
+  }
+}

@@ -1,0 +1,59 @@
+import { formatShortDate, parseIsoTimestamp } from "@common/dates";
+import {
+  diagnoseDeterminacy,
+  validateMilestoneConstraints,
+} from "@services/schedule/scheduleConstraintService";
+import "@webview/components/Form.scss";
+import { FormField } from "@webview/components/FormField";
+import { StatusNotice } from "@webview/components/StatusNotice";
+import { CommonTextFields } from "@webview/features/entity-editor/components/CommonTextFields";
+import { DependencyFields } from "@webview/features/entity-editor/components/DependencyFields";
+import "@webview/features/entity-editor/components/MilestoneFields.scss";
+import { MilestoneFieldsProps } from "@webview/features/entity-editor/entityEditor.types";
+import { milestoneValidationMessages } from "@webview/features/entity-editor/entityEditorPresentation";
+import { makeUpdater } from "@webview/features/entity-editor/hooks/useFieldUpdater";
+import { useTranslate, useWebviewL10n } from "@webview/l10n";
+
+/** Renders milestone-specific fields plus dependency editing controls. */
+export function MilestoneFields(props: MilestoneFieldsProps): React.JSX.Element {
+  const { milestone, scheduledMilestone, onChange, ...depProps } = props;
+  const { document } = depProps;
+  const { locale } = useWebviewL10n();
+  const t = useTranslate();
+  const update = makeUpdater(milestone, onChange);
+
+  const validation = validateMilestoneConstraints(milestone, document.dependencies);
+  const diagnostic = diagnoseDeterminacy(milestone.id, validation);
+
+  return (
+    <div className="ganttee-form ">
+      <CommonTextFields
+        item={milestone}
+        groups={document.groups}
+        statuses={document.settings.statuses}
+        onChange={onChange}
+      />
+      <hr />
+      <FormField label={t("Date")}>
+        <input
+          type="date"
+          value={milestone.date ?? ""}
+          onChange={(event) => update("date", event.target.value || undefined)}
+        />
+        {scheduledMilestone?.effectiveStart && (
+          <output>
+            {formatShortDate(parseIsoTimestamp(scheduledMilestone.effectiveStart), locale)}
+          </output>
+        )}
+      </FormField>
+
+      {milestoneValidationMessages(diagnostic).map((message) => (
+        <StatusNotice severity={message.severity} key={message.source}>
+          {t(message.source)}
+        </StatusNotice>
+      ))}
+
+      <DependencyFields {...depProps} />
+    </div>
+  );
+}

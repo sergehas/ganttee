@@ -1,0 +1,23 @@
+{
+  "extension.displayName": "Ganttee",
+  "extension.description": "Gantt chart editor",
+  "customEditor.chartEditor.displayName": "Gantt Chart",
+  "customEditor.settingsEditor.displayName": "Project Settings",
+  "viewsContainer.ganttee.title": "Ganttee",
+  "view.explorer.name": "Tasks",
+  "command.newTask.title": "New Task",
+  "command.newProject.title": "New Project",
+  "command.openSettings.title": "Project Settings",
+  "command.newGroup.title": "New Group",
+  "command.newMilestone.title": "New Milestone",
+  "menu.newItems.label": "New Items",
+  "command.search.title": "Filter",
+  "command.sort.title": "Sort",
+  "command.moveUp.title": "Move Up",
+  "command.moveDown.title": "Move Down",
+  "command.deleteSelection.title": "Delete Selected Items",
+  "command.editProjectItem.title": "Edit Item",
+  "command.deleteProjectItem.title": "Delete Item",
+  "command.revealEntity.title": "Reveal Work Item",
+  "command.refreshExplorer.title": "Refresh"
+}

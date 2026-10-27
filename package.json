@@ -1,10 +1,32 @@
 {
   "name": "ganttee",
-  "displayName": "Ganttee",
-  "description": "Gantt chart editor",
-  "version": "0.0.1",
+  "displayName": "%extension.displayName%",
+  "description": "%extension.description%",
+  "version": "1.0.0",
+  "publisher": "the-skware",
+  "icon": "media/ganttee-color.png",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sergehas/ganttee.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sergehas/ganttee/issues"
+  },
+  "homepage": "https://github.com/sergehas/ganttee#readme",
+  "qna": "marketplace",
+  "keywords": [
+    "gantt",
+    "gantt chart",
+    "project",
+    "planning",
+    "schedule",
+    "timeline",
+    "milestone",
+    "critical path"
+  ],
   "engines": {
-    "vscode": "^1.125.0"
+    "vscode": "^1.138.0"
   },
   "categories": [
     "Visualization",
@@ -12,24 +34,47 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
+  "l10n": "./l10n",
   "contributes": {
     "customEditors": [
       {
         "viewType": "ganttee.chartEditor",
-        "displayName": "Gantt Chart",
+        "displayName": "%customEditor.chartEditor.displayName%",
         "selector": [
           {
             "filenamePattern": "*.ganttee"
           }
         ],
         "priority": "default"
+      },
+      {
+        "viewType": "ganttee.settingsEditor",
+        "displayName": "%customEditor.settingsEditor.displayName%",
+        "selector": [
+          {
+            "filenamePattern": "*.ganttee"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "languages": [
+      {
+        "id": "ganttee",
+        "extensions": [
+          ".ganttee"
+        ],
+        "icon": {
+          "light": "media/ganttee-color.svg",
+          "dark": "media/ganttee-color.svg"
+        }
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
           "id": "ganttee",
-          "title": "Ganttee",
+          "title": "%viewsContainer.ganttee.title%",
           "icon": "media/ganttee.svg"
         }
       ]
@@ -38,100 +83,257 @@
       "ganttee": [
         {
           "id": "ganttee.explorer",
-          "name": "Tasks",
-          "contextualTitle": "Ganttee",
+          "name": "%view.explorer.name%",
+          "contextualTitle": "%viewsContainer.ganttee.title%",
           "icon": "media/ganttee.svg"
         }
       ]
     },
+    "submenus": [
+      {
+        "id": "ganttee.newItemsMenu",
+        "label": "%menu.newItems.label%",
+        "icon": "$(add)"
+      }
+    ],
     "commands": [
       {
         "command": "ganttee.newTask",
-        "title": "New Task",
-        "category": "Ganttee",
-        "icon": "$(add)"
+        "title": "%command.newTask.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(checklist)"
       },
       {
-        "command": "ganttee.editTask",
-        "title": "Edit Task",
-        "category": "Ganttee",
-        "icon": "$(edit)"
+        "command": "ganttee.openSettings",
+        "title": "%command.openSettings.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(settings-gear)"
       },
       {
-        "command": "ganttee.deleteTask",
-        "title": "Delete Task",
-        "category": "Ganttee",
+        "command": "ganttee.newProject",
+        "title": "%command.newProject.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "ganttee.newGroup",
+        "title": "%command.newGroup.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "ganttee.newMilestone",
+        "title": "%command.newMilestone.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(milestone)"
+      },
+      {
+        "command": "ganttee.search",
+        "title": "%command.search.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "ganttee.sort",
+        "title": "%command.sort.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(sort-precedence)"
+      },
+      {
+        "command": "ganttee.moveUp",
+        "title": "%command.moveUp.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "ganttee.moveDown",
+        "title": "%command.moveDown.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "ganttee.deleteSelection",
+        "title": "%command.deleteSelection.title%",
+        "category": "%extension.displayName%",
         "icon": "$(trash)"
       },
       {
+        "command": "ganttee.editProjectItem",
+        "title": "%command.editProjectItem.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "ganttee.deleteProjectItem",
+        "title": "%command.deleteProjectItem.title%",
+        "category": "%extension.displayName%",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ganttee.revealEntity",
+        "title": "%command.revealEntity.title%",
+        "category": "%extension.displayName%"
+      },
+      {
         "command": "ganttee.refreshExplorer",
-        "title": "Refresh",
-        "category": "Ganttee",
+        "title": "%command.refreshExplorer.title%",
+        "category": "%extension.displayName%",
         "icon": "$(refresh)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "ganttee.newTask",
+          "command": "ganttee.newProject",
           "when": "view == ganttee.explorer",
           "group": "navigation@1"
         },
         {
-          "command": "ganttee.refreshExplorer",
+          "submenu": "ganttee.newItemsMenu",
           "when": "view == ganttee.explorer",
           "group": "navigation@2"
+        },
+        {
+          "command": "ganttee.sort",
+          "when": "view == ganttee.explorer",
+          "group": "navigation@3"
+        },
+        {
+          "command": "ganttee.refreshExplorer",
+          "when": "view == ganttee.explorer",
+          "group": "navigation@4"
+        },
+        {
+          "command": "ganttee.search",
+          "when": "view == ganttee.explorer",
+          "group": "navigation@5"
+        }
+      ],
+      "ganttee.newItemsMenu": [
+        {
+          "command": "ganttee.newGroup",
+          "group": "1_newItems@1"
+        },
+        {
+          "command": "ganttee.newTask",
+          "group": "1_newItems@2"
+        },
+        {
+          "command": "ganttee.newMilestone",
+          "group": "1_newItems@3"
         }
       ],
       "view/item/context": [
         {
-          "command": "ganttee.editTask",
-          "when": "view == ganttee.explorer && viewItem == ganttee.task",
+          "command": "ganttee.moveUp",
+          "when": "view == ganttee.explorer && (viewItem == ganttee.task || viewItem == ganttee.milestone || viewItem == ganttee.group)",
           "group": "inline@1"
         },
         {
-          "command": "ganttee.deleteTask",
-          "when": "view == ganttee.explorer && viewItem == ganttee.task",
+          "command": "ganttee.moveDown",
+          "when": "view == ganttee.explorer && (viewItem == ganttee.task || viewItem == ganttee.milestone || viewItem == ganttee.group)",
+          "group": "inline@2"
+        },
+        {
+          "command": "ganttee.editProjectItem",
+          "when": "view == ganttee.explorer && (viewItem == ganttee.task || viewItem == ganttee.milestone || viewItem == ganttee.group)",
+          "group": "inline@1"
+        },
+        {
+          "command": "ganttee.deleteProjectItem",
+          "when": "view == ganttee.explorer && (viewItem == ganttee.task || viewItem == ganttee.milestone || viewItem == ganttee.group)",
           "group": "1_modification@1"
+        },
+        {
+          "command": "ganttee.deleteSelection",
+          "when": "view == ganttee.explorer && (viewItem == ganttee.task || viewItem == ganttee.milestone || viewItem == ganttee.group)",
+          "group": "1_modification@2"
         }
       ]
     }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
-    "compile": "npm run check-types && npm run lint && node esbuild.js",
-    "watch": "npm-run-all -p watch:*",
+    "compile": "npm run check-types && npm run lint && npm run format:check && node esbuild.js",
+    "watch": "npm run generate:themes && npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "npm run check-types && npm run lint && node esbuild.js --production",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "npm run compile-tests && npm run compile && npm run lint",
-    "check-types": "tsc --noEmit && tsc --noEmit --project tsconfig.webview.json",
-    "lint": "eslint src",
-    "test": "vscode-test"
+    "watch:themes": "node scripts/generate-theme-assets.mjs --watch",
+    "package": "npm run check-types && npm run lint && npm run format:check && node esbuild.js --production",
+    "compile:tests": "npm run generate:themes && tsc --project tsconfig.json --outDir out && tsc-alias --project tsconfig.json --outDir out",
+    "watch:test": "npm run generate:themes && tsc --project tsconfig.json --outDir out && npm-run-all -p watch:test:tsc watch:test:alias",
+    "watch:test:tsc": "tsc --project tsconfig.json --watch --outDir out",
+    "watch:test:alias": "tsc-alias --project tsconfig.json --watch --outDir out",
+    "check-types": "npm run generate:themes && tsc --noEmit --project tsconfig.json && tsc --noEmit --project tsconfig.webview.json",
+    "generate:themes": "node scripts/generate-theme-assets.mjs",
+    "lint": "eslint src scripts *.mjs",
+    "format": "prettier --log-level warn --config .prettierrc.json --write .",
+    "format:check": "prettier --log-level warn --config .prettierrc.json --check .",
+    "pretest": "npm run compile:tests && npm run compile",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "vscode-test",
+    "test:unit:coverage": "vscode-test --coverage",
+    "test:coverage-check": "npm run test:unit:coverage && node scripts/check-coverage.mjs",
+    "test:integration": "mocha --config .mocharc.integration.json",
+    "pretest:smoke": "npm run pretest",
+    "test:smoke": "vscode-test --config .vscode-test-smoke.mjs",
+    "prepare": "husky",
+    "commitlint": "commitlint --edit",
+    "check-branch": "node scripts/check-branch-name.mjs",
+    "vsce": "npx --yes @vscode/vsce@4.0.1-3",
+    "vsix": "npm run vsce -- package --no-dependencies --changelog-path docs/CHANGELOG.md"
   },
   "dependencies": {
-    "echarts": "^5.5.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "@vscode/codicons": "^0.0.46-24",
+    "echarts": "^6.1.0",
+    "graphology": "^0.26.0",
+    "graphology-components": "^1.5.4",
+    "graphology-dag": "^0.4.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@types/vscode": "^1.125.0",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
+    "@eslint/js": "^10.0.1",
+    "@eslint/json": "^2.1.0",
     "@types/mocha": "^10.0.10",
-    "@types/node": "24.x",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "typescript-eslint": "^8.61.1",
-    "eslint": "^10.5.0",
-    "esbuild": "^0.28.1",
-    "npm-run-all": "^4.1.5",
-    "typescript": "^6.0.3",
+    "@types/node": "26.x",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@types/vscode": "^1.138.0",
     "@vscode/test-cli": "^0.0.15",
-    "@vscode/test-electron": "^3.0.0"
+    "@vscode/test-electron": "^3.1.0",
+    "esbuild": "^0.28.2",
+    "esbuild-sass-plugin": "^3.7.0",
+    "eslint": "^10.9.1",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.12.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.4.1",
+    "mocha": "^12.0.1",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.9.7",
+    "sass-embedded": "^1.104.1",
+    "tsc-alias": "^1.9.5",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0"
   },
   "overrides": {
     "diff": "^8.0.4",
     "serialize-javascript": "^7.0.6"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "@parcel/watcher@2.6.0": true
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --log-level warn --config .prettierrc.json --write"
+    ],
+    "*.{json,md,css,scss,yml,yaml}": [
+      "prettier --log-level warn --config .prettierrc.json --write"
+    ]
   }
 }

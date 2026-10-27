@@ -1,0 +1,122 @@
+import { CURRENT_DOCUMENT_VERSION, DEFAULT_PROJECT_VIEW } from "@common/documents";
+import {
+  GanttParseError,
+  parseDocument,
+  serializeDocument,
+  ViewDefaultWarning,
+} from "@services/document/documentService";
+import { FIXTURES_DIR } from "@src/test/testFixtures";
+import * as assert from "assert";
+import * as fs from "fs";
+import * as path from "path";
+
+function readFixture(name: string): string {
+  return fs.readFileSync(path.join(FIXTURES_DIR, name), "utf-8");
+}
+
+/** Verifies that `parseDocument` handles all supported file versions and
+ * that parsed output satisfies the webview `init` protocol shape. */
+suite("documentLoad integration", () => {
+  test("loads and migrates a v1 fixture to the current version", () => {
+    const doc = parseDocument(readFixture("v1-minimal.ganttee"));
+
+    assert.strictEqual(doc.version, CURRENT_DOCUMENT_VERSION);
+    assert.strictEqual(doc.tasks.length, 2);
+    assert.strictEqual(doc.tasks[0].name, "Analysis");
+    assert.strictEqual(doc.tasks[1].name, "Development");
+    assert.strictEqual(doc.milestones[0].name, "Kickoff");
+    assert.strictEqual(doc.groups[0].id, "g1");
+    assert.strictEqual(doc.groups[0].groupId, undefined);
+  });
+
+  /** Migration must correct the semantic direction of the dependency,
+   *  not just rename the type.
+   **/
+  test("v1 fixture deps: direction swapped and finishWith renamed to endWith", () => {
+    const doc = parseDocument(readFixture("v1-minimal.ganttee"));
+
+    // finishWith → endWith, source/target direction swapped
+    assert.strictEqual(doc.dependencies.length, 1);
+    assert.strictEqual(doc.dependencies[0].type, "endWith");
+    assert.strictEqual(doc.dependencies[0].sourceId, "t2");
+    assert.strictEqual(doc.dependencies[0].targetId, "t1");
+  });
+
+  test("loads a v2 simple fixture with the expected entity counts", () => {
+    const doc = parseDocument(readFixture("v2-simple.ganttee"));
+
+    assert.strictEqual(doc.version, 2);
+    assert.strictEqual(doc.tasks.length, 3);
+    assert.strictEqual(doc.groups.length, 1);
+    assert.strictEqual(doc.milestones.length, 1);
+    assert.strictEqual(doc.dependencies.length, 0);
+  });
+
+  test("loads a v2 with-deps fixture with all three dependency types", () => {
+    const doc = parseDocument(readFixture("v2-with-deps.ganttee"));
+
+    const types = doc.dependencies.map((d) => d.type);
+    assert.ok(types.includes("startAfter"), "missing startAfter");
+    assert.ok(types.includes("startWith"), "missing startWith");
+    assert.ok(types.includes("endWith"), "missing endWith");
+  });
+
+  /** `serializeDocument → parseDocument` must be lossless for a document without dependencies. */
+  test("round-trips v2-simple through serialize and parse", () => {
+    const original = parseDocument(readFixture("v2-simple.ganttee"));
+    const reparsed = parseDocument(serializeDocument(original));
+
+    assert.deepStrictEqual(reparsed, original);
+  });
+
+  /** Same losslessness guarantee for a fixture that exercises all four dependency types. */
+  test("round-trips v2-with-deps through serialize and parse", () => {
+    const original = parseDocument(readFixture("v2-with-deps.ganttee"));
+    const reparsed = parseDocument(serializeDocument(original));
+
+    assert.deepStrictEqual(reparsed, original);
+  });
+
+  /** Guards against accidental removal of required persisted document fields. */
+  test("parsed document has required persisted fields", () => {
+    const doc = parseDocument(readFixture("v2-simple.ganttee"));
+
+    assert.ok("version" in doc);
+    assert.ok(Array.isArray(doc.tasks));
+    assert.ok(Array.isArray(doc.groups));
+    assert.ok(Array.isArray(doc.milestones));
+    assert.ok(Array.isArray(doc.dependencies));
+  });
+
+  test("v2 fixture without style fields loads with view defaults", () => {
+    const doc = parseDocument(readFixture("v2-simple.ganttee"));
+
+    assert.strictEqual(doc.version, 2);
+    assert.deepStrictEqual(doc.view, DEFAULT_PROJECT_VIEW);
+  });
+
+  test("invalid view values default with one warning each and legacy collapsed is dropped", () => {
+    const warnings: ViewDefaultWarning[] = [];
+    const doc = parseDocument(readFixture("v2-invalid-view.ganttee"), (warning) =>
+      warnings.push(warning),
+    );
+
+    assert.strictEqual(doc.version, 2);
+    assert.deepStrictEqual(doc.view, DEFAULT_PROJECT_VIEW);
+    assert.deepStrictEqual(
+      warnings.map((warning) => warning.field),
+      ["zoomLevel", "showDependencies", "style", "theme", "showItemLabels"],
+    );
+    assert.strictEqual("collapsed" in doc.groups[0], false);
+
+    const styled = { ...doc, view: { ...doc.view, style: "metro" as const, theme: "green" } };
+    assert.deepStrictEqual(parseDocument(serializeDocument(styled)), styled);
+  });
+
+  test("unknown view properties still fail", () => {
+    assert.throws(
+      () => parseDocument(JSON.stringify({ view: { legendVisible: false } })),
+      GanttParseError,
+    );
+  });
+});

@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "id": "t1",
+      "name": "Design",
+      "start": "2026-01-05",
+      "end": "2026-01-09"
+    }
+  ],
+  "groups": [
+    {
+      "id": "g1",
+      "name": "Delivery",
+      "collapsed": true,
+      "sequence": []
+    }
+  ],
+  "milestones": [],
+  "dependencies": [],
+  "sequence": [
+    "t1",
+    "g1"
+  ],
+  "view": {
+    "zoomLevel": "decade",
+    "showDependencies": "yes",
+    "style": "neon",
+    "theme": "",
+    "showItemLabels": 1
+  }
+}

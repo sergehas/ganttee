@@ -1,0 +1,15 @@
+.ganttee-icon {
+  display: inline-block;
+  width: var(--vscode-codiconFontSize, 16px);
+  height: var(--vscode-codiconFontSize, 16px);
+  flex: 0 0 auto;
+  background-color: currentColor;
+  mask-image: var(--ganttee-icon-mask);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: var(--ganttee-icon-mask);
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}

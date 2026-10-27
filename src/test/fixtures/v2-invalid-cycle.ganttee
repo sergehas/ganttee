@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "id": "t1",
+      "name": "Task A",
+      "start": "2026-01-05",
+      "end": "2026-01-09"
+    },
+    {
+      "id": "t2",
+      "name": "Task B",
+      "start": "2026-01-12",
+      "end": "2026-01-16"
+    }
+  ],
+  "groups": [],
+  "milestones": [],
+  "dependencies": [
+    {
+      "id": "d1",
+      "sourceId": "t2",
+      "targetId": "t1",
+      "type": "startAfter"
+    },
+    {
+      "id": "d2",
+      "sourceId": "t1",
+      "targetId": "t2",
+      "type": "startAfter"
+    }
+  ]
+}
