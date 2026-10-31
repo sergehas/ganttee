@@ -25,7 +25,11 @@ const THEME: ChartThemeData = { palette: [ITEM_COLOR], backgroundColor: "#ffffff
 function bindStyle(style: VisualStyle) {
   return {
     renderTask: bindThemeToRenderer(style.renderTask, THEME),
-    renderGroup: bindThemeToRenderer(style.renderGroup, THEME),
+    renderGroup: (
+      params: Parameters<typeof style.renderGroup>[0],
+      api: Parameters<typeof style.renderGroup>[1],
+      context = { collapsed: false },
+    ) => style.renderGroup(params, api, THEME, context),
     renderMilestone: bindThemeToRenderer(style.renderMilestone, THEME),
     renderDependency: bindThemeToRenderer(style.renderDependency, THEME),
   };
@@ -166,6 +170,30 @@ suite("visualStyles", () => {
     }
   });
 
+  suite("collapsed group rendering", () => {
+    for (const id of PROJECT_STYLES) {
+      test(`${id} applies its collapsed stroke treatment only when collapsed`, () => {
+        const style = bindStyle(VISUAL_STYLES[id]);
+        const expanded = shapeElements(asElement(style.renderGroup(fakeParams(), fakeApi(TASK))));
+        const collapsed = shapeElements(
+          asElement(style.renderGroup(fakeParams(), fakeApi(TASK), { collapsed: true })),
+        );
+
+        const collapsedDash = "dashed";
+        assert.ok(collapsed.some((element) => element.style?.lineDash === collapsedDash));
+        assert.ok(expanded.every((element) => element.style?.lineDash !== collapsedDash));
+        if (id === "rounded") {
+          assert.deepStrictEqual(
+            collapsed
+              .filter((element) => element.type === "arc")
+              .map((element) => element.style?.lineDash),
+            [undefined, undefined],
+          );
+        }
+      });
+    }
+  });
+
   suite("shapes", () => {
     test("classic uses a rounded rectangle, a bracket, a diamond, and a right-angle link", () => {
       const style = bindStyle(VISUAL_STYLES.classic);
@@ -204,23 +232,23 @@ suite("visualStyles", () => {
       assert.strictEqual(band.type, "rect");
       assert.deepStrictEqual(
         [leftArc.type, leftArc.shape?.cx, leftArc.shape?.cy, leftArc.shape?.r],
-        ["arc", 156, 10, 4.5],
+        ["arc", 156, 10, 5],
       );
       assert.deepStrictEqual(
         [leftArc.shape?.startAngle, leftArc.shape?.endAngle],
-        [Math.PI / 2, (3 * Math.PI) / 2],
+        [(2 * Math.PI) / 3, (4 * Math.PI) / 3],
       );
       assert.deepStrictEqual(
         [rightArc.type, rightArc.shape?.cx, rightArc.shape?.cy, rightArc.shape?.r],
-        ["arc", 244, 10, 4.5],
+        ["arc", 244, 10, 5],
       );
       assert.deepStrictEqual(
         [rightArc.shape?.startAngle, rightArc.shape?.endAngle],
-        [-Math.PI / 2, Math.PI / 2],
+        [-Math.PI / 3, Math.PI / 3],
       );
       assert.deepStrictEqual(
         [leftArc.style?.stroke, leftArc.style?.lineWidth, leftArc.style?.fill],
-        [ITEM_COLOR, 3, "none"],
+        [ITEM_COLOR, 2, "none"],
       );
       assert.deepStrictEqual(hitTarget.shape, { x: 150, y: 4, width: 100, height: 12 });
       assert.strictEqual(
@@ -250,16 +278,18 @@ suite("visualStyles", () => {
     test("metro uses the theme background for station and group fills, with a white fallback", () => {
       const themeBackground = "#121314";
       const theme: ChartThemeData = { ...THEME, backgroundColor: themeBackground };
-      const renderGroup = bindThemeToRenderer(VISUAL_STYLES.metro.renderGroup, theme);
+      const renderGroup = (
+        params: Parameters<typeof VISUAL_STYLES.metro.renderGroup>[0],
+        api: Parameters<typeof VISUAL_STYLES.metro.renderGroup>[1],
+      ) => VISUAL_STYLES.metro.renderGroup(params, api, theme, { collapsed: false });
       const renderMilestone = bindThemeToRenderer(VISUAL_STYLES.metro.renderMilestone, theme);
       const group = asElement(renderGroup(fakeParams(), fakeApi(TASK)));
       const milestone = asElement(renderMilestone(fakeParams(), fakeApi(MILESTONE)));
       const themeWithoutBackground: ChartThemeData = { palette: [], textStyle: {} };
       const fallbackGroup = asElement(
-        bindThemeToRenderer(VISUAL_STYLES.metro.renderGroup, themeWithoutBackground)(
-          fakeParams(),
-          fakeApi(TASK),
-        ),
+        VISUAL_STYLES.metro.renderGroup(fakeParams(), fakeApi(TASK), themeWithoutBackground, {
+          collapsed: false,
+        }),
       );
       const fallbackMilestone = asElement(
         bindThemeToRenderer(VISUAL_STYLES.metro.renderMilestone, themeWithoutBackground)(

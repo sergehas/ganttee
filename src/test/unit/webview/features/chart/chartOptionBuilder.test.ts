@@ -11,6 +11,8 @@ import {
   ChartOptionInput,
 } from "@webview/features/chart/chartOptionBuilder";
 import * as assert from "assert";
+import type { CustomSeriesRenderItem } from "echarts";
+import { asElement, fakeApi, fakeParams, shapeElements } from "./styles/fakeRenderApi";
 
 /** Builds a project presentation containing one scheduled task. */
 function createProject(
@@ -175,6 +177,42 @@ suite("chartOptionBuilder", () => {
     assert.strictEqual(layer("holidays").length, 1);
   });
 
+  test("passes collapsed group state to each visual style renderer", () => {
+    const project = createProject();
+    project.groups.push({
+      id: "group",
+      name: "Group",
+      sequence: [],
+      effectiveStart: "2026-09-08T09:00:00.000Z",
+      effectiveEnd: "2026-09-09T09:00:00.000Z",
+      effectiveDuration: 1,
+    });
+    project.sequence = ["group"];
+
+    for (const style of ["classic", "rounded", "metro"] as const) {
+      project.view.style = style;
+      const option = buildChartOption(
+        createInput(project, { collapsedGroupIds: new Set(["group"]) }),
+      );
+      const groupSeries = (
+        option.series as readonly {
+          readonly name?: string;
+          readonly renderItem?: CustomSeriesRenderItem;
+        }[]
+      ).find((series) => series.name === "groups");
+      const rendered = groupSeries?.renderItem?.(fakeParams(), fakeApi([0, 5, 15]));
+
+      assert.ok(rendered);
+      const expectedDash = "dashed";
+      assert.ok(
+        shapeElements(asElement(rendered)).some(
+          (element) => element.style?.lineDash === expectedDash,
+        ),
+        `${style} should apply its collapsed group stroke treatment`,
+      );
+    }
+  });
+
   test("uses a fallback range for projects without scheduled items", () => {
     const document = createEmptyDocument();
     const project: ProjectPresentation = {
@@ -239,6 +277,7 @@ function createInput(
       id,
       label: name,
     })),
+    collapsedGroupIds: new Set(),
     chartWidth: 800,
     themeData: { color: ["#111111", "#222222", "#333333"] },
     legendVisible: true,

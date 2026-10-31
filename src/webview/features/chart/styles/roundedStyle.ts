@@ -28,12 +28,12 @@ export const roundedStyle: VisualStyle = {
   },
 
   /** Draws groups as parenthesized bands with a full-size hit target. */
-  renderGroup: (params, api) => {
+  renderGroup: (params, api, _theme, context) => {
     const shape = clipBar(params, barPlacement(api));
     if (shape === undefined) {
       return undefined;
     }
-    const stroke = shape.height / 4;
+    const stroke = shape.height / 6;
     const radius = stroke / 2;
     const arcRadius = shape.height / 2 - stroke / 2;
     const centerY = shape.y + shape.height / 2;
@@ -46,26 +46,33 @@ export const roundedStyle: VisualStyle = {
     return {
       type: "group",
       children: [
-        {
-          type: "rect" as const,
-          shape: {
-            x: shape.x,
-            y: centerY - stroke / 2,
-            width: shape.width,
-            height: stroke,
-            r: radius,
-          },
-          style: { fill: itemColor(api) },
-          transition: ["shape"],
-        },
+        context.collapsed
+          ? {
+              type: "line" as const,
+              shape: { x1: shape.x, y1: centerY, x2: shape.x + shape.width, y2: centerY },
+              style: { ...lineStyle, lineDash: "dashed" as const },
+              transition: ["shape"],
+            }
+          : {
+              type: "rect" as const,
+              shape: {
+                x: shape.x,
+                y: centerY - stroke / 2,
+                width: shape.width,
+                height: stroke,
+                r: radius,
+              },
+              style: { fill: itemColor(api) },
+              transition: ["shape"],
+            },
         {
           type: "arc" as const,
           shape: {
             cx: shape.x + shape.height / 2,
             cy: centerY,
             r: arcRadius,
-            startAngle: Math.PI / 2,
-            endAngle: (3 * Math.PI) / 2,
+            startAngle: (2 * Math.PI) / 3,
+            endAngle: (4 * Math.PI) / 3,
             clockwise: true,
           },
           style: lineStyle,
@@ -77,8 +84,8 @@ export const roundedStyle: VisualStyle = {
             cx: shape.x + shape.width - shape.height / 2,
             cy: centerY,
             r: arcRadius,
-            startAngle: -Math.PI / 2,
-            endAngle: Math.PI / 2,
+            startAngle: -Math.PI / 3,
+            endAngle: Math.PI / 3,
             clockwise: true,
           },
           style: lineStyle,
@@ -112,7 +119,7 @@ export const roundedStyle: VisualStyle = {
       shape: { points: orthogonalRoute(from, to) },
       style: {
         stroke: itemColor(api),
-        lineWidth: 3,
+        lineWidth: 2,
         lineJoin: "round",
         lineCap: "round",
         fill: "none",

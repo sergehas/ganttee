@@ -31,12 +31,56 @@ export const classicStyle: VisualStyle = {
   },
 
   /** Draws groups as brackets with a transparent full-size hit target. */
-  renderGroup: (params, api) => {
+  renderGroup: (params, api, _theme, context) => {
     const shape = clipBar(params, barPlacement(api));
     if (shape === undefined) {
       return undefined;
     }
     const quarter = shape.height / 4;
+    if (context.collapsed) {
+      const yTop = shape.y + quarter / 2;
+      const yBottom = shape.y + shape.height - quarter / 2;
+      const lineStyle = {
+        stroke: itemColor(api),
+        lineWidth: quarter,
+        lineDash: "dashed" as const,
+        lineCap: "round" as const,
+      };
+      return {
+        type: "group",
+        children: [
+          {
+            type: "line" as const,
+            shape: {
+              x1: shape.x + quarter / 2,
+              y1: yTop,
+              x2: shape.x + shape.width - quarter / 2,
+              y2: yTop,
+            },
+            style: lineStyle,
+            transition: ["shape"],
+          },
+          {
+            type: "line" as const,
+            shape: { x1: shape.x + quarter / 2, y1: yTop, x2: shape.x + quarter / 2, y2: yBottom },
+            style: lineStyle,
+            transition: ["shape"],
+          },
+          {
+            type: "line" as const,
+            shape: {
+              x1: shape.x + shape.width - quarter / 2,
+              y1: yTop,
+              x2: shape.x + shape.width - quarter / 2,
+              y2: yBottom,
+            },
+            style: lineStyle,
+            transition: ["shape"],
+          },
+          createTransparentHitTarget(shape),
+        ],
+      };
+    }
     const segment = (x: number, width: number, height: number) => ({
       type: "rect",
       shape: { x, y: shape.y, width, height, r: CORNER_RADIUS },

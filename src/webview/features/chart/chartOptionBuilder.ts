@@ -34,6 +34,8 @@ export interface ChartOptionInput {
   readonly view: ProjectView;
   /** Visible scheduled rows in display order. */
   readonly rows: readonly ChartRow[];
+  /** Groups whose descendants are hidden in the current chart session. */
+  readonly collapsedGroupIds: ReadonlySet<string>;
   /** Width of the chart in pixels, used to keep rendered items inside the plot. */
   readonly chartWidth: number;
   /** Active color theme data. */
@@ -247,6 +249,11 @@ export function buildChartDataOption(input: ChartOptionInput): EChartsCoreOption
       input.themeData.categoryAxis?.axisLabel,
       view.showItemLabels,
     );
+  /** Renders one group with its current chart-local collapse state. */
+  const renderGroup: CustomSeriesRenderItem = (params, api) =>
+    style.renderGroup(params, api, themeData, {
+      collapsed: input.collapsedGroupIds.has(groups[params.dataIndex].id),
+    });
 
   return {
     grid: {
@@ -271,7 +278,7 @@ export function buildChartDataOption(input: ChartOptionInput): EChartsCoreOption
         id: "groups",
         type: "custom",
         name: "groups",
-        renderItem: labelled(bindThemeToRenderer(style.renderGroup, input.themeData), groups, 2),
+        renderItem: labelled(renderGroup, groups, 2),
         encode: { x: [1, 2], y: 0 },
         data: groupData,
         clip: true,

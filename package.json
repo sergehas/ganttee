@@ -2,11 +2,31 @@
   "name": "ganttee",
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
-  "version": "0.0.1",
+  "version": "1.1.0-dev.0",
+  "publisher": "the-skware",
   "icon": "media/ganttee-color.png",
   "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sergehas/ganttee.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sergehas/ganttee/issues"
+  },
+  "homepage": "https://github.com/sergehas/ganttee#readme",
+  "qna": "marketplace",
+  "keywords": [
+    "gantt",
+    "gantt chart",
+    "project",
+    "planning",
+    "schedule",
+    "timeline",
+    "milestone",
+    "critical path"
+  ],
   "engines": {
-    "vscode": "^1.125.0"
+    "vscode": "^1.138.0"
   },
   "categories": [
     "Visualization",
@@ -259,7 +279,9 @@
     "test:smoke": "vscode-test --config .vscode-test-smoke.mjs",
     "prepare": "husky",
     "commitlint": "commitlint --edit",
-    "check-branch": "node scripts/check-branch-name.mjs"
+    "check-branch": "node scripts/check-branch-name.mjs",
+    "vsce": "npx --yes @vscode/vsce@4.0.1-3",
+    "vsix": "npm run vsce -- package --no-dependencies --changelog-path docs/CHANGELOG.md"
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.46-24",
