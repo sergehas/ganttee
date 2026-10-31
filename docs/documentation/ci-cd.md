@@ -369,10 +369,12 @@ Complete before the first release:
 3. **Environment:** create `marketplace` under **Settings** > **Environments**. Add reviewers; allow
    deployment from `main` and `v*`. Do not create `VSCE_PAT` for OIDC.
 4. **Release token:** create an admin-owned, repository-scoped fine-grained PAT with **Contents**
-   and **Pull requests** read/write. Store it as `RELEASE_TOKEN` under **Settings** > **Secrets and
-   variables** > **Actions**. Cover its owner with PR-only bypass on `main` and `develop`; renew
-   before expiry. Use a user-owned PAT, not a GitHub App token. It pushes branches, opens PRs,
-   triggers CI, and merges follow-ups. `GITHUB_TOKEN` does not inherit admin privileges.
+   and **Pull requests** read/write. Store it as the repository secret `RELEASE_TOKEN` under
+   **Settings** > **Secrets and variables** > **Actions** > **Repository secrets**, not as an
+   environment secret; the workflows that use it do not all target the `marketplace` environment.
+   Cover its owner with PR-only bypass on `main` and `develop`; renew before expiry. Use a
+   user-owned PAT, not a GitHub App token. It pushes branches, opens PRs, triggers CI, and merges
+   follow-ups. `GITHUB_TOKEN` does not inherit admin privileges.
 5. **Permissions:** enable **Allow GitHub Actions to create and approve pull requests** under
    **Settings** > **Actions** > **General**. Keep `id-token: write` on the publishing caller and
    reusable workflow.

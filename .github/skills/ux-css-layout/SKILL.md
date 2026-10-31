@@ -285,18 +285,13 @@ it manually.
 
 ## 10. Design-System Size Tokens (spacing, radius, font, codicon, stroke)
 
-VS Code ships a design-system **size** ramp, registered in
-`src/vs/platform/theme/common/sizes/baseSizes.ts` (agents font ramp in
-`src/vs/sessions/common/sizes.ts`) and emitted as `--vscode-*` CSS variables. When writing or
-editing CSS, prefer the token var over a raw px value wherever a token exists. The full tables +
-rationale live in the auto-injected `.github/instructions/design-tokens.instructions.md` (canonical
-source — keep this section in sync with it). This section captures the **decision logic** for deeper
-styling tasks.
+Ganttee is a standalone VS Code extension. Its webviews receive VS Code theme color variables, but
+design-system size variables are not injected. Follow the
+[design-token instructions](../../instructions/design-tokens.instructions.md) for size-token
+fallbacks and use on-scale px values when a size variable is unavailable. Do not rely on VS Code
+core source files or core-only style validation.
 
-> Every `--vscode-*` size var you reference must already exist in
-> `build/lib/stylelint/vscode-known-variables.json` (`"sizes"` array, alphabetically sorted) or
-> stylelint/hygiene fails. Adding a _new_ token means adding it both in `baseSizes.ts` and that JSON
-> file.
+This section captures the **decision logic** for deeper styling tasks.
 
 ### Spacing — `padding`, `margin`, `gap`
 

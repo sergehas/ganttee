@@ -1,12 +1,10 @@
 ---
 description:
-  Design-system size tokens (spacing, corner radius, font size, codicon size, stroke). Use when
-  writing or editing CSS to size, space, or round UI — prefer the `--vscode-*` token vars over
-  hardcoded px values.
-applyTo: src/**/*.css
+  Design-system sizing guidance for Ganttee webview styles. Use when writing or editing SCSS.
+applyTo: src/**/*.scss
 ---
 
-# Design tokens for sizing, spacing & radii
+# Design tokens for webview styles
 
 > **These tokens are the _moves_, not the reasoning.** They implement the **design philosophy**
 > (Values → Principles → Moves): reach for a token _after_ naming the feeling and the principle it
@@ -14,14 +12,21 @@ applyTo: src/**/*.css
 > [`design-philosophy` skill](../skills/design-philosophy/SKILL.md) for the full vocabulary, worked
 > examples, and how to give UI feedback in design terms.
 
-VS Code (and Ganttee inherits it) ships a design-system **size** ramp. These tokens are emitted as
-`--vscode-*` CSS variables. **When generating or editing CSS, use the token variable instead of a
-raw `px` value** wherever a token exists for that value. This keeps new UI visually consistent with
-the design system.
+Ganttee's extension webviews receive VS Code theme color variables, but VS Code design-system size
+variables are not injected. Existing SCSS uses size variables with px fallbacks, so the styles stay
+valid when those variables are unavailable.
 
-> Every `--vscode-*` size var you reference must already exist (`"sizes"` array, alphabetically
-> sorted) or stylelint/hygiene fails. Adding a _new_ token means adding it both in `baseSizes.ts`
-> and that JSON file.
+Use these rules:
+
+- Use `--vscode-*` theme variables for colors.
+- For spacing, radius, type, icon size, and stroke, prefer a known size variable with an on-scale px
+  fallback. For example, use `var(--vscode-spacing-size120, 12px)`.
+- If a size variable is unavailable or does not fit the role, use an on-scale px value.
+- Keep structural measurements, such as data-driven chart geometry and responsive breakpoints, at
+  the value the layout requires instead of forcing them onto the spacing ramp.
+
+This repository is a standalone extension. Do not rely on VS Code core source files or core-only
+style validation when changing its styles.
 
 ## Spacing — padding, margin, gap
 
@@ -45,21 +50,20 @@ the value in tenths of a px (`size200` = 20px).
 | 36  | `--vscode-spacing-size360`  |
 | 40  | `--vscode-spacing-size400`  |
 
-```css
-/* token   */
-padding: var(--vscode-spacing-size80) var(--vscode-spacing-size120);
-/* also ok */
-padding: 8px 12px; /* on-scale raw px is fine */
-/* avoid   */
-padding: 5px 7px; /* off-scale - breaks rhythm */
+```scss
+/* Prefer the token with a fallback. */
+padding: var(--vscode-spacing-size80, 8px) var(--vscode-spacing-size120, 12px);
+/* An on-scale px value is also fine. */
+padding: 8px 12px;
+/* Avoid off-scale values. */
+padding: 5px 7px;
 ```
 
-**What matters is the value, not the token.** Adopting the `var()` is optional — a raw px value is
-fine **as long as it lands on the scale** (0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 36, 40). What
-breaks visual rhythm is an **off-scale** value (3, 5, 7, 14, 26px…). Snap those to the nearest scale
-value (ties round **up**), e.g. `5px → 6px`, `3px → 4px`, `1px → 2px`, `26px → 28px`. Each length of
-a shorthand is checked independently (`0 5px → 0 6px`). `auto`, `%`, `em`/`rem`, and any
-`var()`/`calc()` expression are left untouched.
+For visual spacing, values should land on the scale (0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 36,
+40). Snap off-scale values (3, 5, 7, 14, 26px…) to the nearest scale value, ties rounding up:
+`5px → 6px`, `3px → 4px`, `1px → 2px`, `26px → 28px`. Check each length in a shorthand independently
+(`0 5px → 0 6px`). Leave structural measurements, `auto`, `%`, `em`/`rem`, and `var()`/`calc()`
+expressions unchanged.
 
 ## Corner radius — `border-radius`
 
@@ -97,8 +101,7 @@ token + `fontWeight.semiBold`, **never** a separate "strong" size:
 | 11  | `--vscode-fontSize-label2`   | regular  |
 | 10  | `--vscode-fontSize-label3`   | regular  |
 
-**Deprecated** — the legacy `--vscode-bodyFontSize*` tokens are deprecated. Use the generic ramp
-above instead:
+The legacy `--vscode-bodyFontSize*` tokens are deprecated. Use the generic ramp above instead:
 
 | Deprecated                     | px  | Use instead                |
 | ------------------------------ | --- | -------------------------- |
@@ -106,47 +109,28 @@ above instead:
 | `--vscode-bodyFontSize-small`  | 12  | `--vscode-fontSize-label1` |
 | `--vscode-bodyFontSize-xSmall` | 11  | `--vscode-fontSize-body2`  |
 
-Agents window ramp (`src/vs/sessions/**`) — identical values, `agents-`-prefixed (pair size with a
-weight token, **never** add a separate "strong" size):
-
-| px  | Size var                            | Weight   |
-| --- | ----------------------------------- | -------- |
-| 26  | `--vscode-agents-fontSize-heading1` | semiBold |
-| 18  | `--vscode-agents-fontSize-heading2` | semiBold |
-| 13  | `--vscode-agents-fontSize-heading3` | semiBold |
-| 13  | `--vscode-agents-fontSize-body1`    | regular  |
-| 11  | `--vscode-agents-fontSize-body2`    | regular  |
-| 12  | `--vscode-agents-fontSize-label1`   | regular  |
-| 11  | `--vscode-agents-fontSize-label2`   | regular  |
-| 10  | `--vscode-agents-fontSize-label3`   | regular  |
-
-Weights: `--vscode-agents-fontWeight-regular` (400), `--vscode-agents-fontWeight-semiBold` (600).
-The ramp is **400/600 only** — there is no medium (500). "Strong" = same size token + `semiBold`.
-See [Font weight](#font-weight--font-weight) below.
-
 ## Font weight — `font-weight`
 
-Both the generic and agents ramps use a **two-weight ramp** — there are no other weights. Pair every
-text style with one of these:
+Use the **two-weight ramp** — `regular` or `semiBold` — for text styles:
 
-| weight | Generic var                    | Agents var                            | Use                         |
-| ------ | ------------------------------ | ------------------------------------- | --------------------------- |
-| 400    | `--vscode-fontWeight-regular`  | `--vscode-agents-fontWeight-regular`  | body, labels, metadata      |
-| 600    | `--vscode-fontWeight-semiBold` | `--vscode-agents-fontWeight-semiBold` | headings, "strong" emphasis |
+| weight | Variable                       | Use                         |
+| ------ | ------------------------------ | --------------------------- |
+| 400    | `--vscode-fontWeight-regular`  | body, labels, metadata      |
+| 600    | `--vscode-fontWeight-semiBold` | headings, "strong" emphasis |
 
 - **No medium (500).** `font-weight: 500` is **off the ramp** — snap it to `semiBold` (600). The
   same goes for `700`/`bold` and any other numeric weight: round to the nearer of 400/600.
 - **"Strong" is not a separate size.** A "Body 1 Strong" / "Label 2 Strong" style reuses the
-  matching `--vscode-fontSize-*` (or `--vscode-agents-fontSize-*`) token paired with `semiBold`.
-  Never introduce a separate strong _size_ token.
+  matching `--vscode-fontSize-*` token paired with `semiBold`. Never introduce a separate strong
+  _size_ token.
 - `normal` ≡ 400 → `regular`. **Leave untouched:** `inherit`, `lighter`, `bolder`, and any
   `var()`/`calc()` expression. Preserve `!important`.
 
-```css
+```scss
 /* avoid */
 font-weight: 500; /* not on the 400/600 ramp */
 /* prefer */
-font-weight: var(--vscode-fontWeight-semiBold);
+font-weight: var(--vscode-fontWeight-semiBold, 600);
 ```
 
 ## Codicon size — icon `font-size`
@@ -178,20 +162,12 @@ use the token.
 | --- | -------------------------- |
 | 1   | `--vscode-strokeThickness` |
 
-```css
+```scss
 /* prefer */
-border: var(--vscode-strokeThickness) solid var(--vscode-widget-border);
+border: var(--vscode-strokeThickness, 1px) solid var(--vscode-widget-border);
 /* avoid  */
 border: 1px solid var(--vscode-widget-border);
 ```
 
 Applies to the `border: 1px solid <color>` shorthand and `border-width: 1px`. Other widths have no
 token — leave them as-is.
-
-## `.monaco-editor-background` must be opaque
-
-`.monaco-editor-background` must use a fully opaque color — making it `transparent` (or any partial
-alpha) is forbidden. Monaco reuses this layer to carve the reverse-rounded notches out of text
-selections, so a non-opaque background introduces subtle rendering bugs (blocky selection corners)
-and performance problems. To blend an embedded editor into its surface, keep `.monaco-editor`
-transparent and paint `.monaco-editor-background` with the container's solid background color.

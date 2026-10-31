@@ -75,7 +75,7 @@ approved — promote it to `Reviewed`. Then record status by updating the roadma
    - List any new ADRs under the spec's front matter `Related ADRs`.
    - Set the header status to `Reviewed` and refresh `Last updated`.
    - Append a **Review Outcome** section (findings summary + how each was resolved), mirroring the
-     _Validation Outcome_ pattern in `docs/specs/dependency-type-rename.md`.
+     _Validation Outcome_ pattern in `docs/specs/dependency-type-rename/SPEC.md`.
    - Update the matching row in `docs/specs/ROADMAP.md` (Status text and Badge column) to
      `Reviewed`.
 

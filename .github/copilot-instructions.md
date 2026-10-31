@@ -29,7 +29,8 @@ Single-context repository layout with `CONTEXT.md` at the root when present and 
 - **Extension host**: Node, entry [src/extension.ts](../src/extension.ts) → `dist/extension.js`.
 - **Webview UI**: **React 18** + **Apache ECharts** (custom-series Gantt), entry
   [src/webview/index.tsx](../src/webview/index.tsx) → `dist/webview.js`/`dist/webview.css`.
-- **Tests**: Mocha via `@vscode/test-cli` (`suite`/`test` + `assert`).
+- **Tests**: Mocha (`suite`/`test` + `assert`) — unit and smoke via `@vscode/test-cli`, integration
+  via plain Mocha.
 
 ## Architecture & Layers
 
@@ -79,7 +80,8 @@ both.
 - **Localization is mandatory:** externalize every user-facing string via the localization framework
   (`vscode.l10n.t()` / `nls.localize()`), using `{0}` placeholders — never string concatenation.
 - **JSDoc is mandatory** on every class, method, and member (public and private).
-- **Branch coverage must stay ≥ 90% per file or class.**
+- **Branch and function coverage must stay ≥ 90% per `.ts` file** (`.tsx` is exempt; see
+  [writing-tests](instructions/writing-tests.instructions.md)).
 - **Code design (DRY/SOLID):** apply the principles in
   [code-design-principles](instructions/code-design-principles.instructions.md) pragmatically — keep
   pure logic in `services/`, inject dependencies, and avoid premature abstraction.
@@ -133,8 +135,7 @@ by husky hooks (`commitlint` + a branch-name check).
 ## Inherited Instructions (VS Code core)
 
 Some files under `instructions/` and `skills/` were inherited from the VS Code core repo and
-describe internal APIs that do **not** exist in a standalone extension (`best-practices`
-toolbars/`ResourceLabel`, `observables`, `accessibility` `AccessibleContentProvider`, and the design
+describe internal APIs that do **not** exist in a standalone extension (`observables` and the design
 **size** tokens). Apply their general spirit, but ignore references to internal `vs/*` modules that
 are unavailable here.
 

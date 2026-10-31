@@ -1,93 +1,82 @@
 ---
 description:
-  "Use when implementing accessibility features, ARIA labels, screen reader support, accessible help
-  dialogs, or keybinding scoping for accessibility. Covers AccessibleContentProvider,
-  CONTEXT_ACCESSIBILITY_MODE_ENABLED, verbosity settings, and announcement patterns."
+  "Use when implementing accessibility in Ganttee — ARIA roles/labels in webview React components,
+  keyboard operability, screen reader announcements, the ECharts timeline, sidebar tree items, and
+  keybinding scoping in package.json."
+applyTo: "src/webview/**,src/views/**,package.json"
 ---
 
 # Accessibility Guidelines
 
-Accessibility is a high-priority area in Ganttee. Follow these patterns to ensure features work
-correctly with screen readers and assistive technologies.
+Accessibility is a high-priority area in Ganttee. The webview is a browser surface: VS Code's
+internal accessibility services (`AccessibleContentProvider`, accessibility signals, verbosity
+settings) are **not** available to extensions. Use standard WAI-ARIA in the webview and the public
+`vscode` API in the host.
+
+## Keyboard Operability
+
+- Every action reachable with a mouse MUST be reachable with the keyboard (Tab, Enter, Space,
+  Escape, arrow keys in menus).
+- Prefer native `<button>`, `<input>`, `<select>`. When a non-native element acts as a control, give
+  it `role`, `tabIndex={0}`, and Enter/Space handling — see `TextButton.tsx`.
+- Menus (`IconAction.tsx`) use `role="menu"`/`menuitem`, close on Escape, and return focus to the
+  trigger.
+- Dialogs (`ConfirmationDialog.tsx`) use `role="alertdialog"` with `aria-labelledby` /
+  `aria-describedby`, move focus into the dialog on open, and restore it on close.
+
+## ARIA in Webview Components
+
+- Reuse the shared components in `src/webview/components/` (`IconButton`, `TextButton`,
+  `BooleanToggleField`, `StatusNotice`, …); they already carry the correct roles and states.
+- Icon-only controls MUST have a localized `aria-label`. Decorative codicons get
+  `aria-hidden="true"`.
+- Toggle and popup state uses `aria-pressed`, `aria-expanded`, `aria-haspopup` — never only a CSS
+  class. Style state from the ARIA attribute (e.g. `&[aria-pressed="true"]`).
+- Group related controls with a labeled landmark or section (`<nav aria-label>`,
+  `<section aria-labelledby>`).
+- All `aria-label` text is localized like any other user-facing string.
+
+## Announcements
+
+- Announce state changes through a live region, not by moving focus. Use `StatusNotice`:
+  `role="status"` for info/warning, `role="alert"` for errors only.
+- Loading placeholders set `aria-busy="true"`.
+- Prevent double-speak: render one live region per message and do not re-render it with identical
+  text.
+
+## Timeline (ECharts)
+
+- The ECharts canvas is not readable by screen readers. Enable `aria` in the chart option and keep
+  the sidebar tree a complete, keyboard-navigable alternative for every task, group, and milestone.
+- Tooltip color swatches are decorative (`aria-hidden="true"`); always pair color with text (e.g.
+  the status name).
+- Never convey state (status, critical path, selection) by color alone.
+
+## Sidebar Tree and Host UI
+
+- Set a meaningful `label` and, when the label alone is ambiguous, `accessibilityInformation`
+  (`label`, `role`) on `TreeItem`s.
+- For host-side events, use `vscode.window.showInformationMessage` / `showWarningMessage` /
+  `showErrorMessage`; VS Code handles screen reader output and focus for them.
 
 ## Keybinding Scoping
 
-Accessibility-specific keybindings MUST be scoped to prevent conflicts with standard shortcuts:
+Contribute keybindings in `package.json` and always scope them with a `when` clause so they do not
+take over standard shortcuts:
 
-```typescript
-keybinding: {
-	primary: KeyCode.F7,
-	when: ContextKeyExpr.and(
-		EditorContextKeys.focus,
-		CONTEXT_ACCESSIBILITY_MODE_ENABLED
-	),
-	weight: KeybindingWeight.WorkbenchContrib,
-},
-```
-
-**Why**: Without scoping, accessibility shortcuts steal commonly used keybindings (e.g., F7 for "Go
-to Next Symbol Highlight"). PR #293163 fixed this exact conflict.
-
-## Accessible Help Dialogs (Alt+F1)
-
-Use `AccessibleContentProvider` directly — do not create custom subclasses:
-
-```typescript
-getProvider(): AccessibleContentProvider {
-	return new AccessibleContentProvider(
-		AccessibleViewProviderId.MyFeature,
-		{ type: AccessibleViewType.Help },
-		() => this.getHelpContent(),
-		() => this.onClose(),
-		'accessibility.verbosity.myFeature'
-	);
+```json
+{
+  "command": "ganttee.someCommand",
+  "key": "alt+f7",
+  "when": "activeCustomEditorId == ganttee.chartEditor"
 }
 ```
 
-## Announcement Patterns
+Use `accessibilityModeEnabled` in the `when` clause for shortcuts that only make sense for screen
+reader users.
 
-When announcing state changes to screen readers:
+## Theming and Motion
 
-1. **Only announce when conditions are met**: Check that a search string is present, widget is
-   visible, and screen reader is active
-2. **Prevent double-speak**: Track announcement state with a flag and use a timeout (~1 second)
-3. **Use verbosity settings**: Check `accessibility.verbosity.[feature]` before verbose
-   announcements
-
-```typescript
-if (
-  this.accessibilityService.isScreenReaderOptimized() &&
-  this.configService.getValue("accessibility.verbosity.hover") &&
-  !this._accessibilityHelpHintAnnounced
-) {
-  this._accessibilityHelpHintAnnounced = true;
-  // announce hint
-}
-```
-
-## Multi-Modal Notifications
-
-For important state changes, provide all three:
-
-1. **Audio signal**:
-   `this.accessibilitySignalService.playSignal(AccessibilitySignal.chatUserActionRequired)`
-2. **ARIA alert**: `status(message)` for screen readers
-3. **OS notification**: Respect `chat.notifyWindowOnConfirmation` setting. OS notifications are
-   **conditional on window focus** — only fire when `targetWindow.document.hasFocus()` is `false`
-   (see `ChatWindowNotifier`)
-
-## Configuration
-
-When adding a new accessible feature, register a verbosity setting:
-
-```typescript
-// In accessibility configuration
-'accessibility.verbosity.myFeature': {
-	type: 'boolean',
-	default: true,
-	description: localize('accessibility.verbosity.myFeature', "...")
-}
-```
-
-And extend `AccessibleViewProviderId` and `AccessibilityVerbositySettingId` enums for new help
-providers.
+- Use `--vscode-*` theme color variables so high-contrast themes work; never hardcode colors.
+- Keep a visible focus indicator (`--vscode-focusBorder`).
+- Respect `prefers-reduced-motion` for animations and chart transitions.

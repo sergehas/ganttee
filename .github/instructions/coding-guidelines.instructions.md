@@ -14,15 +14,15 @@ Canonical reference: https://github.com/microsoft/vscode/wiki/Coding-Guidelines
 These are non-negotiable and enforced in review:
 
 1. **Localization (nls):** Every user-facing string MUST be externalized through the localization
-   framework (`vscode.l10n.t()` in the extension host; `nls.localize()` where a bundle is used). No
-   inline literals for user-visible text and no string concatenation — use `{0}` placeholders.
-2. **Branch coverage ≥ 90%:** The test suite MUST keep branch coverage at or above 90%. A change
-   that drops coverage below the threshold is not mergeable.
-3. **Meaningful JSDoc:** Every source-code declaration — including callbacks — and every member,
-   **public and private**, MUST have JSDoc that explains its purpose and relevant context. Add tags
-   for parameters, results, errors, or side effects when they document semantics that are not clear
-   from the names and types. Tests do not require full JSDoc tags, but each suite, test, and helper
-   MUST have a concise purpose statement.
+   framework. Use `vscode.l10n.t()` in all extension host code. Do not use `nls.localize()` unless
+   the file already imports from the `vscode-nls` package. In webview code, use the `@webview/l10n`
+   helpers (see [Strings](#strings)). No inline literals for user-visible text and no string
+   concatenation — use `{0}` placeholders.
+2. **Branch coverage ≥ 90%:** The test suite MUST keep branch coverage at or above 90% **per source
+   file**, as reported by `scripts/check-coverage.mjs`. A change that drops any file below the
+   threshold is not mergeable, even if the overall figure stays above 90%.
+3. **Meaningful JSDoc:** Every declaration in scope MUST have meaningful JSDoc. See
+   [Documentation](#documentation) for the scope and the rules for source code and tests.
 4. **Cyclomatic complexity ≤ 15:** Every function and method MUST have a cyclomatic complexity of 15
    or less. Refactor higher-complexity code (extract helpers, use lookup tables , simplify
    branching) before merging.
@@ -37,11 +37,12 @@ Use spaces, not tabs. Width is enforced by Prettier.
 
 - PascalCase for types and enum values
 - camelCase for functions, methods, properties, and local variables
-- Use whole words when possible
+- Use whole words for identifiers. Abbreviate only widely used terms: `id`, `url`, `api`, `config`.
 
 ## Types
 
-- Do not export types or functions unless shared across multiple components
+- Do not export types or functions unless they are imported by at least one other source file
+  outside their own module
 - Do not introduce new types or values to the global namespace
 - Exported functions take named domain types — no inline anonymous shapes
 - No boolean flag parameters; use intent-named functions instead
@@ -52,14 +53,24 @@ Use spaces, not tabs. Width is enforced by Prettier.
 - All date math goes through `src/common/dates.ts`. Never build a `Date` from an ISO string
   elsewhere — local-midnight parsing drifts across DST.
 
-## Comments
+## Documentation
 
-- **Mandatory for source:** every class, interface, enum, method, function, callback, and member
-  (public **and** private) MUST have a JSDoc comment. The comment must explain the declaration's
-  purpose and relevant context in 1–2 short sentences.
-- **Tests:** full JSDoc tags are not required. Each suite, test, and helper still needs a concise
-  1–2 sentence statement of purpose; a test's description may serve as the purpose for its inline
-  callback.
+This section is the single source for JSDoc rules.
+
+**Source code:**
+
+- Every top-level or class-level declaration — class, interface, enum, function, method, and
+  property/member (public **and** private) — plus any named callback passed as a standalone function
+  MUST have a 1–2 sentence JSDoc that explains its purpose and relevant context.
+- Inline arrow callbacks and local variables do not require JSDoc.
+
+**Tests:**
+
+- Every suite, test, and test helper needs a 1–2 sentence purpose comment. No `@` tags are required.
+  A test's description may serve as the purpose for its inline callback.
+
+**Both:**
+
 - Keep documentation meaningful. Do not restate the signature, enumerate every branch, or explain
   details already clear from names and types. Use `@param`, `@returns`, `@throws`, and related tags
   when they clarify purpose, constraints, format, uniqueness, behavior, or side effects. A tag that
@@ -73,8 +84,12 @@ Use spaces, not tabs. Width is enforced by Prettier.
 ## Strings
 
 - Quote style is owned by Prettier (`npm run format`), not by review
-- **Mandatory:** every user-visible string MUST be externalized via the localization framework
-  (`vscode.l10n.t()` / `nls.localize()`) — no string concatenation, use `{0}` placeholders.
+- **Mandatory:** every user-visible string MUST be externalized via the localization framework (see
+  [Mandatory Requirements](#mandatory-requirements)) — no string concatenation, use `{0}`
+  placeholders.
+- In React webview code, get localized strings from the catalog that the extension host sends, via
+  `useTranslate()` / `translate()` from `@webview/l10n`. Do not call `vscode.l10n.t()` from webview
+  code.
 - Every `l10n.t()` key exists in `l10n/bundle.l10n.json`, and the bundle carries no orphans.
 
 ## UI Labels
@@ -103,8 +118,7 @@ Use spaces, not tabs. Width is enforced by Prettier.
   the test guidelines)
 - Keep cyclomatic complexity ≤ 15 per function/method (mandatory — see
   [Mandatory Requirements](#mandatory-requirements))
-- Document every source declaration and member with meaningful JSDoc (mandatory — see
-  [Mandatory Requirements](#mandatory-requirements)); use concise purpose statements for tests.
+- Document declarations with meaningful JSDoc (mandatory — see [Documentation](#documentation))
 - Prefer named regex capture groups over numbered ones
 - Do not use `any` or `unknown` unless absolutely necessary
 - Register disposables immediately after creation — use `DisposableStore`, `MutableDisposable`, or
