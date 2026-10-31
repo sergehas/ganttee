@@ -7,6 +7,16 @@ file.
 
 ## [Unreleased]
 
+### Added
+
+- Ganttee findings now appear in the native Problems view: malformed JSON, invalid fields, relation,
+  graph, constraint, calendar, and scheduling problems map to precise source ranges with related
+  locations, and use item labels rather than internal identifiers. Unsaved form drafts, rejected
+  edits, cleanup, and failed image exports are also listed, each with its origin. Operation problems
+  can be dismissed from a quick fix.
+- An open edit form now stays open when its document becomes invalid. Saving stays blocked until a
+  valid revision is available, and host rejection explanations appear inline.
+
 ### Changed
 
 - Reconciliate pull request templates.
