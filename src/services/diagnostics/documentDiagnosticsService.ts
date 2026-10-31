@@ -48,6 +48,9 @@ export interface DocumentEvaluation {
   readonly document?: ProjectDocument;
 }
 
+/** Collections of a validated document that carry subjects. */
+type RecordSource = Pick<ProjectDocument, "tasks" | "milestones" | "groups" | "dependencies">;
+
 /** A subject together with its authored record path. */
 interface RecordRef {
   /** The subject. */
@@ -101,6 +104,52 @@ export function evaluateDocumentText(text: string): DocumentEvaluation {
     findings: findings.map((finding) => resolveFinding(finding, scan.root, text, migrated)),
     labels,
     document,
+  };
+}
+
+/** Authored index map of a document whose records are in authored order. */
+const IDENTITY_INDEX: AuthoredIndexMap = {
+  tasks: [],
+  groups: [],
+  milestones: [],
+  dependencies: [],
+  statuses: [],
+  holidays: [],
+};
+
+/**
+ * Maps semantic diagnostics of a validated model to label-safe findings.
+ * Locations are authored paths only; they are not resolved to offsets.
+ *
+ * @param document The validated document the diagnostics describe.
+ * @param diagnostics The diagnostics to map.
+ * @returns One finding per diagnostic, in the same order.
+ */
+export function scheduleDiagnosticFindings(
+  document: RecordSource,
+  diagnostics: readonly ScheduleDiagnostic[],
+): GantteeFinding[] {
+  const refs = new RecordRefs(document, IDENTITY_INDEX);
+  return diagnostics.map((diagnostic) => semanticFinding(diagnostic, refs));
+}
+
+/**
+ * Explains why a proposed document text is rejected: its error findings,
+ * marked as rejected-edit feedback and labeled with the proposal itself.
+ *
+ * @param text The serialized proposal.
+ * @returns The rejection findings and the proposal labels.
+ */
+export function proposalRejection(text: string): {
+  readonly findings: readonly GantteeFinding[];
+  readonly labels: LabelSnapshot;
+} {
+  const evaluation = evaluateDocumentText(text);
+  return {
+    findings: evaluation.findings
+      .filter((finding) => finding.severity === "error")
+      .map((finding) => ({ ...finding, origin: "rejectedEdit", location: undefined })),
+    labels: evaluation.labels,
   };
 }
 
@@ -178,7 +227,7 @@ class RecordRefs {
    * @param document The validated document.
    * @param authoredIndex Authored index of each kept record.
    */
-  constructor(document: ProjectDocument, authoredIndex: AuthoredIndexMap) {
+  constructor(document: RecordSource, authoredIndex: AuthoredIndexMap) {
     const kinds = { tasks: "task", milestones: "milestone", groups: "group" } as const;
     for (const name of ["tasks", "milestones", "groups"] as const) {
       document[name].forEach((item, index) => {

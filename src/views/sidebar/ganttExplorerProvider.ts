@@ -13,7 +13,7 @@ import {
 } from "@services/schedule/scheduleGraphValidationService";
 import { filterProjectItemIds } from "@services/sidebar/treeItemFilterService";
 import { GanttStore } from "@src/ganttStore";
-import { describeDiagnostic } from "@views/scheduleDiagnosticPresenter";
+import { describeDiagnostics } from "@views/scheduleDiagnosticPresenter";
 import * as vscode from "vscode";
 
 type GanttNode = ProjectGroupSnapshot | ProjectTaskSnapshot | ProjectMilestoneSnapshot;
@@ -212,15 +212,9 @@ export class GanttExplorerProvider
       return;
     }
 
-    item.tooltip = diagnostics
-      .map((diagnostic) =>
-        describeDiagnostic(
-          diagnostic,
-          entityId,
-          (id) => this.store.active?.snapshot.item(id)?.item.name ?? id,
-        ),
-      )
-      .join("\n");
+    const source = this.store.active?.projectDocument;
+    item.tooltip =
+      source === undefined ? undefined : describeDiagnostics(diagnostics, source).join("\n");
 
     const hasBlockingDiagnostic = diagnostics.some(
       (diagnostic) => diagnostic.severity === "blocking",

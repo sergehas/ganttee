@@ -2,7 +2,9 @@ import { createEmptyDocument, ProjectDocument } from "@common/documents";
 import { GantteeFinding } from "@common/models";
 import {
   evaluateDocumentText,
+  proposalRejection,
   resolveLocation,
+  scheduleDiagnosticFindings,
 } from "@services/diagnostics/documentDiagnosticsService";
 import { scanJson } from "@services/document/jsonSourceMapService";
 import * as assert from "assert";
@@ -192,5 +194,31 @@ suite("documentDiagnosticsService", () => {
       start: 0,
       end: 0,
     });
+  });
+
+  test("maps model diagnostics to findings at authored paths", () => {
+    const document = createEmptyDocument();
+    document.tasks = [{ id: "t", name: "T" }];
+    const [finding] = scheduleDiagnosticFindings(document, [
+      { kind: "underConstrained", severity: "blocking", entityId: "t", count: 1 },
+    ]);
+    assert.strictEqual(finding.category, "underConstrained");
+    assert.deepStrictEqual(finding.subjects[0], { kind: "task", id: "t", index: 0 });
+    assert.deepStrictEqual(finding.location?.path, ["tasks", 0]);
+    assert.strictEqual(finding.location?.start, undefined);
+  });
+
+  test("explains a rejected proposal without document locations", () => {
+    const rejection = proposalRejection(
+      textOf({ tasks: [{ id: "t", name: "Proposal", start: "bad", duration: 1 }] }),
+    );
+    assert.ok(rejection.findings.length > 0);
+    for (const finding of rejection.findings) {
+      assert.strictEqual(finding.origin, "rejectedEdit");
+      assert.strictEqual(finding.severity, "error");
+      assert.strictEqual(finding.location, undefined);
+    }
+    assert.strictEqual(rejection.labels.items[0].name, "Proposal");
+    assert.deepStrictEqual(proposalRejection("{}").findings, []);
   });
 });
