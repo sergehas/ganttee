@@ -7,6 +7,10 @@ file.
 
 ## [Unreleased]
 
+### Changed
+
+- Reconciliate pull request templates.
+
 ## [1.0.0] - 2026-10-27
 
 ### Added
