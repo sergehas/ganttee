@@ -84,7 +84,7 @@ check that remains uncovered.
 
 If no recognized build-system configuration provides quality-check commands, use the `other`
 fallback for lint / formatting:
-`npx --yes prettier --log-level warn --config ./prettierrc.json --write .`
+`npx --yes prettier --log-level warn --config ./.prettierrc.json --write .`
 
 Report any failures to the user before proceeding. Let the user decide whether to fix them first or
 raise the PR anyway (e.g. draft PR for early feedback).
