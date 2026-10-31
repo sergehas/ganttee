@@ -1,5 +1,6 @@
 import { ProjectItemState, ProjectSettings, ProjectStatus } from "@common/documents";
 import { ProjectPresentation } from "@common/presentation/project";
+import { SettingsDraftState } from "@services/diagnostics/draftFindings";
 import { updateProjectDayOff } from "@services/settings/projectSettingsWorkflow";
 import { BooleanToggleField } from "@webview/components/BooleanToggleField";
 import { FormField } from "@webview/components/FormField";
@@ -18,7 +19,7 @@ import {
   WeekdayControlPresentation,
 } from "@webview/features/settings/settingsEditorPresentation";
 import { useTranslate } from "@webview/l10n";
-import { ChangeEvent, SubmitEvent, useState } from "react";
+import { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
 import "./SettingsEditor.scss";
 
 interface SettingsEditorProps {
@@ -28,6 +29,10 @@ interface SettingsEditorProps {
   readonly busy: boolean;
   /** Localized host rejection message, when the last proposal failed. */
   readonly error: string | null;
+  /** Localized explanations of the last host rejection. */
+  readonly explanations?: readonly string[];
+  /** Receives the blocking local conditions currently shown inline. */
+  readonly onDraftFeedback?: (state: SettingsDraftState) => void;
   /** Proposes the next complete settings value. */
   readonly onUpdateSettings: (settings: ProjectSettings) => void;
   /** Proposes a status without a client-generated identifier. */
@@ -43,6 +48,8 @@ export function SettingsEditor({
   project,
   busy,
   error,
+  explanations,
+  onDraftFeedback,
   onUpdateSettings,
   onAddStatus,
   onUpdateStatus,
@@ -58,6 +65,13 @@ export function SettingsEditor({
   const [statusColor, setStatusColor] = useState("#008000");
   const [statusState, setStatusState] = useState<ProjectItemState | "">("");
   const [statusError, setStatusError] = useState<string | null>(null);
+
+  useEffect(() => {
+    onDraftFeedback?.({
+      invalidHolidayRange: holidayError !== null,
+      blankStatusName: statusError !== null,
+    });
+  }, [holidayError, statusError]);
 
   /** Adds the entered inclusive range after checking its date order. */
   function submitHoliday(event: SubmitEvent<HTMLFormElement>): void {
@@ -204,6 +218,11 @@ export function SettingsEditor({
           <h1>{translate("Project settings")}</h1>
         </header>
         {error && <StatusNotice severity="error">{error}</StatusNotice>}
+        {explanations?.map((explanation) => (
+          <StatusNotice severity="error" key={explanation}>
+            {explanation}
+          </StatusNotice>
+        ))}
         <section className="ganttee-settings__section" aria-labelledby="off-days-heading">
           <h2 id="off-days-heading">{translate("Off-days")}</h2>
           <div className="ganttee-settings__weekday-list">

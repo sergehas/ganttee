@@ -248,5 +248,6 @@
   "Dismiss this operation problem": "Dismiss this operation problem",
   "Cannot add dependency: {0}": "Cannot add dependency: {0}",
   "Ganttee: the document cannot be loaded.": "Ganttee: the document cannot be loaded.",
-  "Ganttee: {0} {1} more problems are listed in the Problems view.": "Ganttee: {0} {1} more problems are listed in the Problems view."
+  "Ganttee: {0} {1} more problems are listed in the Problems view.": "Ganttee: {0} {1} more problems are listed in the Problems view.",
+  "Saving is unavailable until the document is valid.": "Saving is unavailable until the document is valid."
 }

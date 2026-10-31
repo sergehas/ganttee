@@ -70,18 +70,14 @@ export function evaluateDocumentText(text: string): DocumentEvaluation {
     return { findings: [], labels: EMPTY_LABEL_SNAPSHOT };
   }
   const scan = scanJson(text);
-  let raw: unknown;
-  try {
-    raw = JSON.parse(text.trim());
-  } catch {
+  if (!scan.ok) {
     return {
-      findings: [invalidJsonFinding(text, scan.ok ? undefined : scan.errorOffset)],
+      findings: [invalidJsonFinding(text, scan.errorOffset)],
       labels: EMPTY_LABEL_SNAPSHOT,
     };
   }
-  if (!scan.ok) {
-    return { findings: [invalidJsonFinding(text, undefined)], labels: EMPTY_LABEL_SNAPSHOT };
-  }
+  // The scanner accepts exactly RFC 8259 JSON, so parsing cannot fail here.
+  const raw: unknown = JSON.parse(text.trim());
 
   const migrated = migrateDocument(raw);
   const labels = labelSnapshotOfRaw(migrated);
@@ -153,17 +149,8 @@ export function proposalRejection(text: string): {
   };
 }
 
-/** Builds the invalid JSON finding, positioned at the syntax error when known. */
-function invalidJsonFinding(text: string, offset: number | undefined): GantteeFinding {
-  if (offset === undefined) {
-    return {
-      category: "invalidJson",
-      severity: "error",
-      origin: "document",
-      subjects: [],
-      location: { start: 0, end: 0 },
-    };
-  }
+/** Builds the invalid JSON finding, positioned at the syntax error. */
+function invalidJsonFinding(text: string, offset: number): GantteeFinding {
   const { line, column } = positionAt(text, offset);
   return {
     category: "invalidJson",
@@ -201,19 +188,15 @@ function evaluateSemantics(
   return findings;
 }
 
-/** Runs the scheduler and returns its recoverable failure, if any. */
+/**
+ * Runs the scheduler and returns its recoverable failure, if any. Unexpected errors propagate,
+ * as they do from the snapshot service.
+ */
 function schedulingFailure(
   document: ProjectDocument,
   diagnostics: readonly ScheduleDiagnostic[],
 ): SchedulingError | undefined {
-  try {
-    return createProjectSnapshot(hydrateDocument(document), diagnostics).schedulingError;
-  } catch (error) {
-    if (error instanceof Error) {
-      return new SchedulingError(error.message);
-    }
-    throw error;
-  }
+  return createProjectSnapshot(hydrateDocument(document), diagnostics).schedulingError;
 }
 
 /** Looks up authored subjects and record paths by id. */

@@ -49,6 +49,12 @@ export interface EntityEditorProps {
   onUngroupEntity: (entity: EditableEntityRef, options?: SaveEntityOptions) => void;
   /** Opens another entity in the edit form. */
   onRequestEditEntity: (entity: EditableEntityRef) => void;
+  /** Receives the current unsaved draft whenever it changes. */
+  onDraftChange?: (kind: EditableEntityKind, entity: EditableEntityMap[EditableEntityKind]) => void;
+  /** Localized explanations of the last host-rejected save. */
+  rejection?: readonly string[];
+  /** Whether saving is blocked because the document source is invalid. */
+  saveBlocked?: boolean;
 }
 
 /** Props for the CommonTextFields section shared by all entity editors. */
