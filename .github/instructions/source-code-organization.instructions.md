@@ -12,6 +12,10 @@ environment** and **layer**. The on-disk `.ganttee` `TextDocument` is the single
 edits flow one way: UI/command → controller applies a `WorkspaceEdit` → document re-parses → the new
 model is rebroadcast to the webview and the sidebar tree.
 
+If the WorkspaceEdit is rejected or the document fails to parse, do not rebroadcast a new model.
+Keep the last valid model, report the failure through the localized user-facing error path in
+`src/views/`, and leave the `.ganttee` document unchanged.
+
 ## State ownership
 
 - Define one canonical owner for each data category. Any other representation must be explicitly
@@ -43,7 +47,9 @@ model is rebroadcast to the webview and the sidebar tree.
   `postMessage` via [vscodeApi.ts](../../src/webview/vscodeApi.ts) and the shared protocol.
 - Multi-surface edit rules (form, chart, or future editors) MUST be centralized in a shared workflow
   module; visual components must not duplicate validation or mutation logic.
-- Only `src/views/**`, `src/ganttStore.ts`, and `src/extension.ts` import `vscode`.
+- In production code, only `src/views/**`, `src/ganttStore.ts`, and `src/extension.ts` may import
+  `vscode`. Test files under `src/test/**` are exempt and may import `vscode` for integration and
+  smoke tests.
 - The webview is type-checked by its own project
   ([tsconfig.webview.json](../../tsconfig.webview.json), DOM + JSX); the host project
   ([tsconfig.json](../../tsconfig.json)) excludes `src/webview`.

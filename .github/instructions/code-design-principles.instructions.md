@@ -10,20 +10,24 @@ applyTo: src/**
 Apply DRY and SOLID as **guidance**, not dogma. They exist to keep the codebase changeable — never
 to justify premature abstraction. When they conflict with the "avoid over-engineering" rule (no
 helpers/abstractions for one-time operations, no speculative extensibility), prefer the simplest
-thing that works and revisit only when a real second use case or a real change pressure appears.
+thing that works and revisit when the extraction threshold below is reached.
 
 ## DRY (Don't Repeat Yourself)
 
-- Extract shared logic **after** genuine duplication appears (rule of three), not in anticipation of
-  it. Two similar-looking blocks that evolve independently are not duplication.
+- Extract shared logic only after genuine duplication appears, never in anticipation of it. Two
+  similar-looking blocks that evolve independently are not duplication.
+- Extraction threshold:
+  - **Across the host/webview boundary:** hoist the rule to `services/` (or `common/`) at the
+    **second** occurrence — the moment it exists on both sides. This rule takes priority.
+  - **Within one side of the boundary:** extract at the **third** occurrence (rule of three).
 - When multiple UI entry points trigger the same domain mutation, consolidate rule enforcement
   behind one typed workflow API instead of re-implementing it per surface.
 - The `.ganttee` `TextDocument` is the single source of truth — don't cache or re-derive model state
   in parallel. Compute from the parsed model, not copies.
 - Reuse the existing parse/validate/serialize helpers in `src/services/` and the shared types in
   `src/common/models/` rather than re-implementing them per view.
-- Prefer one well-named function over copy-pasted variants that differ by a flag only when the
-  branches share real behavior; otherwise keep them separate.
+- Merge variants into one function only when at least the core steps are identical and only a single
+  parameter differs; otherwise keep them as separate functions.
 
 ## Abstraction and reuse
 
@@ -63,13 +67,14 @@ Refactor when you hit one of these, while it is still small:
 
 - a result type gains a 3rd parallel id array → model as discriminated records
 - a function gains a 2nd boolean flag → split into intent-named functions
-- the same rule exists on both sides of the host/webview boundary → hoist to `services/`
+- the same rule exists on both sides of the host/webview boundary → hoist to `services/` now (second
+  occurrence; overrides the rule of three)
 - a rule is expressed over two shapes (document and hydrated model) → pick one shape
 
 ## When principles collide
 
-- DRY vs. clarity → prefer clarity; a little duplication beats the wrong abstraction.
+- DRY vs. clarity → prefer clarity; a little duplication beats the wrong abstraction. Exception: a
+  rule duplicated across the host/webview boundary is always hoisted (see the tripwire above).
 - SOLID vs. simplicity → prefer simplicity for one-off code; introduce seams only where change is
   already happening.
-- Any principle vs. the layer/boundary rules in
-  [source-code-organization](source-code-organization.instructions.md) → the boundary rules win.
+- Any principle vs. the layer/boundary rules (SRP above) → the boundary rules win.

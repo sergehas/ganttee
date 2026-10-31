@@ -47,9 +47,8 @@ structure and content correctness.
 
 ## Other
 
-- **MD013 / line-length** — Lines must not exceed 80 characters. Long URLs without spaces are
+- **MD013 / line-length** — Lines must not exceed 100 characters. Long URLs without spaces are
   exempt. Tables, headings, and code blocks follow the same limit unless explicitly relaxed.
-  (Prettier's default `proseWrap: preserve` does not wrap prose for you.)
 - **MD033 / no-inline-html** — Avoid raw HTML; use Markdown equivalents.
 - **MD044 / proper-names** — Proper names (e.g. `JavaScript`, `GitHub`, `TypeScript`, `VS Code`)
   must be capitalized correctly.
