@@ -1,5 +1,5 @@
 ---
-Status: Draft
+Status: Reviewed
 Owner: Copilot
 Last updated: 2026-10-31
 Related ADRs: []
@@ -7,7 +7,7 @@ Related ADRs: []
 
 # Feature: Diagnostics and Problems View
 
-![Status: Draft](https://img.shields.io/badge/status-Draft-6C757D?style=for-the-badge)
+![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
 
 ## 1. Summary
 
@@ -17,8 +17,8 @@ through notifications, sidebar tooltips, or individual forms. Every user-facing 
 describes affected items by their labels, never by exposing internal identifiers. Existing inline
 feedback remains and may duplicate Problems. Only operational errors and warnings with no associated
 `.ganttee` TextDocument are excluded from Problems; their existing localized, label-based
-notifications remain. This Draft supersedes the historical [intent](./INTENT.md), and Q-01 records
-the resolved exclusion.
+notifications remain. This specification supersedes the historical [intent](./INTENT.md), and Q-01
+records the resolved exclusion.
 
 ## 2. Goals / Non-goals
 
@@ -124,6 +124,19 @@ or an explicitly identified transient editing or operational context.
     updates Then its obsolete transient findings disappear without clearing document findings.
   - Given a result from an old revision or an ended form session When it arrives Then it cannot
     resurrect stale feedback or change another session's findings.
+  - Given an open form receives a newer valid document revision When its feedback is refreshed Then
+    old-revision draft and rejected-edit findings are cleared and draft-local feedback is recomputed
+    against the current revision without applying the draft.
+  - Given an open form is based on a valid document When that TextDocument changes and becomes
+    invalid Then the parse error includes the current document revision, document findings are
+    replaced, stale draft and rejected-edit findings are cleared, and the form stays open.
+  - Given an open form remains based on an older valid model while its TextDocument is invalid When
+    the form's local fields are revalidated Then draft-local feedback is recomputed against the
+    current revision, but save and apply actions remain blocked until a valid document is available
+    and the form is rebased; the stale model cannot replace the invalid source.
+  - Given an open form is rebased to a newer valid document revision When its feedback is recomputed
+    Then it reflects the rebased draft and current revision, and findings from prior revisions
+    cannot return.
   - Given image export fails or a document-associated command cannot complete When its error is
     shown Then Problems also contains an explicitly operational finding with the same explanation.
   - Given an operational error or warning has no associated `.ganttee` TextDocument, such as project
@@ -158,6 +171,14 @@ or an explicitly identified transient editing or operational context.
   - Given a panel with draft feedback and an export failure When that panel closes but its
     TextDocument remains open Then its draft feedback clears and the URI-owned export finding
     remains until an operational expiration condition occurs.
+  - Given two attempts of the same operation complete out of order When their results are published
+    Then only the newest attempt may replace or clear that operation's finding.
+  - Given the user dismisses an operation finding When an older attempt later fails Then the
+    dismissed finding stays cleared; a newer attempt may publish a new finding.
+  - Given URI-owned operation findings exist When any non-cleanup TextDocument change occurs,
+    including direct edits, undo, redo, accepted controller edits, or a change that leaves the
+    source invalid Then those operation findings expire; the cleanup operation's own replacement is
+    exempt.
   - Given focus switches between schedules When the active controller changes Then existing Problems
     entries persist; VS Code's native filters govern which entries are visible.
   - Given a valid document becomes invalid When parsing fails Then previous document findings are
@@ -189,10 +210,19 @@ or an explicitly identified transient editing or operational context.
   the original issues before cleanup and reevaluates only the observed replacement TextDocument.
 - Each finding declares whether it describes document text, draft feedback, a rejected edit, or an
   operation. Transient findings do not affect graph validation or edit acceptance.
-- A document-associated operational finding, including cleanup information, lasts until a successful
-  retry of that operation, explicit dismissal of that operation's feedback, the next successful
-  user-originated document edit, or document close. Cleanup's own replacement does not immediately
-  dismiss its warning. Repeated occurrences replace the same operation's feedback.
+- Every document revision invalidates draft and rejected-edit feedback based on an older revision.
+  An open form recomputes only draft-local feedback against the current revision without applying
+  its draft. If the source is invalid, the form stays open but cannot save until a valid source is
+  available and the form is rebased.
+- An operation has a stable internal key scoped to its URI. Each retry has a strictly increasing
+  attempt generation; only the newest attempt may replace or clear that operation's finding.
+  Independent operations have independent keys. A successful newest retry clears that operation's
+  finding, and an explicit localized dismiss action clears only its current finding; late results
+  from older attempts cannot restore it. A later retry may publish a new finding.
+- URI-owned operational findings expire on any observed non-cleanup TextDocument change, including
+  typing, undo, redo, accepted controller edits, and changes that leave the document invalid.
+  Automatic cleanup identifies its own replacement change, which does not expire its cleanup
+  finding. Document close also clears URI-owned operational findings.
 - One logical occurrence per origin/context is published; distinct affected occurrences are not
   collapsed by label. Duplicate inline and Problems presentation is allowed. Independent sessions
   remain independent even if their draft labels match.
@@ -279,17 +309,22 @@ and unsent invalid drafts, otherwise cannot reach Problems.
 Extend [the shared protocol](../../../src/common/protocol.ts) with a browser-to-host feedback
 replacement/clear contract. Its fields describe the owning editor session, feedback context,
 monotonic feedback generation, base document revision, origin, structured diagnostic descriptions,
-and origin-specific label/occurrence context for referenced draft or proposed items. This context is
-presentation data, not a replacement model; it supports unsent renamed and newly introduced items.
-URI ownership is supplied by the receiving controller, not trusted from the browser. Empty feedback
-clears only that context. Old or duplicate generations, invalid categories, disposed sessions, and
-incompatible revisions are ignored without producing recursive diagnostics. Browser-originated
-operational feedback transfers to the URI-owned operation context; subsequent panel disposal does
-not clear it. Host rejection findings capture proposal labels before the proposal is discarded.
+and origin-specific label/occurrence context for referenced draft or proposed items. Operation
+feedback also carries a stable logical operation key and a strictly increasing attempt generation.
+This context is presentation data, not a replacement model; it supports unsent renamed and newly
+introduced items. URI ownership is supplied by the receiving controller, not trusted from the
+browser. Empty feedback clears only that context. Old or duplicate generations, invalid categories,
+disposed sessions, and incompatible revisions are ignored without producing recursive diagnostics.
+Browser-originated operational feedback transfers to the URI-owned operation context; subsequent
+panel disposal does not clear it. Host rejection findings capture proposal labels before the
+proposal is discarded.
 
 - Browser UI reports its existing feedback; shared services remain the owner of multi-surface edit
   rules. The host does not apply draft edits or treat feedback as a new project snapshot.
-- `documentError` remains localized visible feedback and does not transport document ownership.
+- `documentChanged` and `documentError` identify the current document revision; `documentError`
+  remains localized visible feedback and does not transport document ownership. On either message,
+  the host clears old-revision transient feedback. An open form recomputes draft-local feedback and
+  remains open; it cannot submit against a stale model while the source is invalid.
 - Preserve `documentChanged`, revision checks, and the independent ordering of edit acknowledgments.
   Host-side rejection findings are published directly, not duplicated through a browser echo.
 - Existing `settingsEditResult` and `updateEntityResult` continue to govern authoritative
@@ -313,11 +348,14 @@ not clear it. Host rejection findings capture proposal labels before the proposa
   that cannot be represented on an item node.
 - **Edit form:** retain inline notices, native input constraints, rejected-save feedback, and form
   retention on rejection. Mirror visible errors/warnings in Problems with a draft or rejected-edit
-  descriptor; do not mark valid source text as if it contains an unsaved invalid value.
+  descriptor; do not mark valid source text as if it contains an unsaved invalid value. Keep an open
+  form when its source becomes invalid, recompute draft-local feedback, and block saves until valid
+  source is rebased.
 - **Notifications and operations:** keep existing actionable notifications, with label-safe
   explanations, and mirror document-associated warnings/errors rather than consent prompts.
   Documentless operational errors and warnings retain notifications but are not mirrored in
-  Problems.
+  Problems. Offer a localized operation-specific dismiss action from the native diagnostic; it
+  clears only that operation's current finding.
 
 Design rationale: **Focused** → **one thing leads, the rest supports** → keep the chart primary,
 Problems the complete secondary repair surface, and form/sidebar signals near the edit. **Calm** →
@@ -345,6 +383,13 @@ unsupported custom-editor behavior.
 - Test feedback ownership, replace/clear, rejection details, stale generations/revisions, accepted
   edits, operation retry/dismissal, and disposal independently of browser or VS Code APIs where
   possible.
+- Test that parse failures carry the current revision, clear stale transient findings, retain open
+  forms, recompute draft-local feedback, and block saves until a valid document is rebased.
+- Test operational expiration on direct text changes, undo, redo, accepted controller edits, and
+  invalid resulting text; verify cleanup's own replacement does not expire its warning.
+- Test stable operation keys, increasing attempt generations, independent operation findings,
+  out-of-order retry completion, latest-attempt success/failure, explicit dismissal, and late
+  failures after dismissal.
 - Table-drive old, equal, and new feedback generations, incompatible revisions, malformed
   categories, two sessions with identical labels, and ended sessions. Verify ignored input cannot
   create recursive findings or clear another origin/context.
@@ -368,8 +413,11 @@ unsupported custom-editor behavior.
   source, categories, current ranges, related information, and absence after repair/close.
 - Cover two URIs, text-only documents, settings-only documents, multiple panels for one URI, focus
   changes, dirty text, undo/redo, malformed-to-valid recovery, and old evaluation completion.
+- Cover valid-to-invalid changes with open forms, revision-bearing parse errors, blocked stale
+  submissions, rebase after recovery, and transient feedback replacement.
 - Verify cleanup publication before rewriting, retained cleanup explanation after its own rewrite,
-  cleanup failure, successful user-edit expiration, and captured removed labels.
+  cleanup failure, cleanup-change exemption, expiration on every non-cleanup text change, and
+  captured removed labels.
 - Verify parse failures refresh Problems despite the retained host snapshot, rejected WorkspaceEdit
   never publishes the proposed model, and warnings do not become blocking.
 - Verify collection disposal and close clear only Ganttee-owned entries. Test native resource/range
@@ -398,9 +446,9 @@ including changed/new service, presenter, lifecycle, protocol-feedback, and brow
 integration and smoke tests do not substitute for it. Inventory uncovered branches and add targeted
 fixtures before completion. Use the existing Mocha TDD runners and `npm run test:coverage-check`;
 host and webview type checks, lint, focused unit/integration suites, and supported activation smoke
-tests are implementation gates. This documentation-only Draft does not claim that production test
-coverage has been measured. Q-01 is resolved; its documentless notification-only behavior is covered
-by the test cases above.
+tests are implementation gates. This specification does not claim that production test coverage has
+been measured. Q-01 is resolved; its documentless notification-only behavior is covered by the test
+cases above.
 
 ## 10. Risks
 
