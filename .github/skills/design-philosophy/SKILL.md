@@ -182,8 +182,8 @@ in the stack. A floating overlay reads as more rounded than a control sitting fl
 Radius is chosen by the surface's role in the hierarchy, never by taste. (This serves both
 **Focused** and **Consistent**.)
 
-_Carried out by:_ [elevation tiers](#elevation-tiers), [reveal-on-intent](#reveal-on-intent) (scroll
-shadows).
+_Carried out by:_ [elevation tiers](#elevation-tiers---round-by-role-not-by-literal),
+[reveal-on-intent](#reveal-on-intent-behaviors) (scroll shadows).
 
 > **Worked example - a flat settings row**
 >
@@ -260,9 +260,8 @@ _conversation_ about design. Treat the Moves as the **shared vocabulary that let
 be built consistently**, not as the opening move in a review. Reach for them _after_ you've named
 the feeling and the principle, never instead of it.
 
-The size tokens live in [`baseSizes.ts`](../../../src/vs/platform/theme/common/sizes/baseSizes.ts)
-and the font ramp in [`sizes.ts`](../../../src/vs/sessions/common/sizes.ts); the full reference is
-in [design-tokens.instructions.md](../../instructions/design-tokens.instructions.md).
+The full size-token reference is in
+[design-tokens.instructions.md](../../instructions/design-tokens.instructions.md).
 
 <a id="design-tokens"></a>
 

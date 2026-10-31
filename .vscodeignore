@@ -28,7 +28,7 @@ docs/**
 .prettierignore
 .prettierrc.json
 commitlint.config.mjs
-CONTEXT.md
+GLOSSARY.md
 CONTRIBUTING.md
 CODE_OF_CONDUCT.md
 SECURITY.md

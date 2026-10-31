@@ -20,7 +20,7 @@ Issues and specs live as local markdown files. See `docs/agents/issue-tracker.md
 
 ### Domain docs
 
-Single-context repository layout with `CONTEXT.md` at the root when present and ADRs under
+Single-context repository layout with `GLOSSARY.md` at the root when present and ADRs under
 `docs/adr/`. See `docs/agents/domain.md`.
 
 ## Tech Stack

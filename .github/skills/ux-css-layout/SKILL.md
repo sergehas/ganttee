@@ -2,12 +2,12 @@
 name: ux-css-layout
 description:
   VS Code (and so Ganttee) CSS conventions, file organization, class naming, standard sizes,
-  SplitView/Grid layout, scrollable content, responsive layout, and text overflow/ellipsis patterns.
-  Use when writing CSS, building layouts, or fixing text truncation issues.
+  scrollable content, responsive layout, and text overflow/ellipsis patterns. Use when writing CSS,
+  building layouts, or fixing text truncation issues.
 ---
 
-This skill covers CSS file organization, naming, standard sizes, programmatic layout (SplitView,
-Grid, scrollable), responsive patterns, and text overflow handling.
+This skill covers CSS file organization, naming, standard sizes, scrollable content, responsive
+patterns, and text overflow handling.
 
 ---
 
@@ -59,7 +59,7 @@ Workbench-level global styles live in `src/vs/workbench/browser/media/`.
 
 > For `padding`/`margin`/`gap`, `border-radius`, `font-size`/`font-weight`, codicon size and border
 > width, prefer the design-system **size tokens** over raw px — see
-> [§10 Design-System Size Tokens](#10-design-system-size-tokens-spacing-radius-font-codicon-stroke).
+> [§8 Design-System Size Tokens](#8-design-system-size-tokens-spacing-radius-font-codicon-stroke).
 > Canonical reference: `.github/instructions/design-tokens.instructions.md` (auto-injected for
 > `src/vs/**/*.css`).
 
@@ -73,48 +73,7 @@ Workbench-level global styles live in `src/vs/workbench/browser/media/`.
 | Missing `min-width: 0` on flex children              | Prevents truncation issues     |
 | Forgetting `pointer-events: none` on hidden overlays | Prevents click-through bugs    |
 
-## 5. SplitView Layout
-
-**File**: `src/vs/base/browser/ui/splitview/splitview.ts`
-
-For splitting views with draggable sashes (either horizontal or vertical):
-
-```typescript
-const splitView = new SplitView(container, {
-  orientation: Orientation.VERTICAL,
-  proportionalLayout: true,
-  styles: { separatorBorder: asCssVariable(sashBorder) },
-});
-
-// Each view implements IView:
-const myView: IView = {
-  element: myDomNode,
-  minimumSize: 100,
-  maximumSize: Number.POSITIVE_INFINITY,
-  onDidChange: Event.None,
-  layout(size, offset) {
-    /* resize content */
-  },
-};
-
-splitView.addView(myView, Sizing.Distribute);
-```
-
-Use `LayoutPriority.High` / `.Low` to control which views resize first when space is constrained.
-Use `snap: true` to allow views to snap closed.
-
-## 6. Grid Layout
-
-**File**: `src/vs/base/browser/ui/grid/grid.ts`
-
-For 2D layouts (used by editor groups):
-
-```typescript
-const grid = new Grid(initialView);
-grid.addView(newView, Sizing.Distribute, referenceView, Direction.Right);
-```
-
-## 7. Scrollable Content
+## 5. Scrollable Content
 
 Three classes for different needs:
 
@@ -134,7 +93,7 @@ container.appendChild(scrollable.getDomNode());
 scrollable.scanDomNode(); // call after content changes
 ```
 
-## 8. Responsive Layout
+## 6. Responsive Layout
 
 VS Code (and so Ganttee) does **not** use CSS media queries. Instead, it uses a **programmatic
 constraint-based layout system**:
@@ -166,7 +125,7 @@ When building a responsive component:
 - Colocate CSS with its feature.
 - Use `.styles.ts` only with an adopted CSS-in-JS pipeline.
 
-## 9. Text Overflow & Ellipsis
+## 7. Text Overflow & Ellipsis
 
 All text labels that can be truncated by a resizable container **must** use the ellipsis pattern.
 Clipped text without an ellipsis is a visual bug.
@@ -283,7 +242,7 @@ it manually.
 
 ---
 
-## 10. Design-System Size Tokens (spacing, radius, font, codicon, stroke)
+## 8. Design-System Size Tokens (spacing, radius, font, codicon, stroke)
 
 Ganttee is a standalone VS Code extension. Its webviews receive VS Code theme color variables, but
 design-system size variables are not injected. Follow the

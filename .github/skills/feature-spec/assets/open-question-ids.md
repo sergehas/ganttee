@@ -5,10 +5,9 @@ from an ADR, a commit, or a chat message. The indicator's meaning and the requir
 are defined in the [reporting standard](../../../instructions/reporting-standard.instructions.md).
 
 ADRs themselves are not spec-scoped: they follow the
-[domain-modeling skill](../../engineering/domain-modeling/SKILL.md)'s
-[ADR-FORMAT.md](../../engineering/domain-modeling/ADR-FORMAT.md) — repo-wide `docs/adr/`, globally
-sequential numbering, and offered only when its 3-criteria bar is met. Most resolved questions won't
-have one.
+[domain-modeling skill](../../domain-modeling/SKILL.md)'s
+[ADR-FORMAT.md](../../domain-modeling/ADR-FORMAT.md) — repo-wide `docs/adr/`, globally sequential
+numbering, and offered only when its 3-criteria bar is met. Most resolved questions won't have one.
 
 ## ID Format
 

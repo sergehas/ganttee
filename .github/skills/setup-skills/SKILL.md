@@ -1,8 +1,8 @@
 ---
 name: setup-skills
 description:
-  Configure this repo for the engineering skills — set up its issue tracker and domain doc layout.
-  Run once before first use of the other engineering skills.
+  "Configure this repo for the engineering skills: set up its issue tracker and domain doc layout.
+  Run once before first use of the other engineering skills."
 disable-model-invocation: true
 ---
 
@@ -10,8 +10,9 @@ disable-model-invocation: true
 
 Scaffold the per-repo configuration that the engineering skills assume:
 
-- **Issue tracker** — where issues live (GitHub or local markdown)
-- **Domain docs** — where `CONTEXT.md` and ADRs live, and the consumer rules for reading them
+- **Issue tracker**: where issues live (GitHub by default; local markdown is also supported out of
+  the box)
+- **Domain docs**: where `GLOSSARY.md` and ADRs live, and the consumer rules for reading them
 
 This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm
 with the user, then write.
@@ -22,50 +23,64 @@ with the user, then write.
 
 Look at the current repo to understand its starting state. Read whatever exists; don't assume:
 
-- `git remote -v` and `.git/config` — is this a GitHub repo? Which one?
-- `.github/copilot-instructions.md`, `AGENTS.md`, and `CLAUDE.md` — does any exist? Is there already
-  an `## Agent skills` section in it?
-- `CONTEXT.md` and `CONTEXT-MAP.md` at the repo root
+- `git remote -v` and `.git/config`: is this a GitHub repo? Which one?
+- `AGENTS.md` and `CLAUDE.md` at the repo root: does either exist? Is there already an
+  `## Agent skills` section in either?
+- `GLOSSARY.md` and `GLOSSARY-MAP.md` at the repo root, and the legacy `CONTEXT.md` /
+  `CONTEXT-MAP.md`. If a legacy file exists, offer to `git mv` it to its `GLOSSARY` name and rewrite
+  those names in `docs/agents/domain.md`.
 - `docs/adr/` and any `src/*/docs/adr/` directories
-- `docs/agents/` — does this skill's prior output already exist? Is there an `issue-tracker.md`
-  file?
-- `.scratch/` — sign that a local-markdown issue tracker convention is already in use
+- `docs/agents/`: does this skill's prior output already exist?
+- `.scratch/`: a sign that a local-markdown issue tracker convention is already in use
+- Monorepo signals: a `pnpm-workspace.yaml`, a `workspaces` field in `package.json`, or a populated
+  `packages/*` with its own `src/`. These are present only in a genuinely large multi-package repo;
+  their absence means single-context, which is almost every repo.
 
 ### 2. Present findings and ask
 
-Summarize what's present and what's missing. Then take the sections in order — one section, one
+Summarise what's present and what's missing. Then take the sections in order. One section, one
 answer, then the next.
 
 Lead each section with the recommended answer so the user can accept it in a word. Give a one-line
 explainer only when the choice genuinely branches; skip the section entirely when exploration
-already settled it.
+already settled it (Section B when there's no monorepo).
 
-**Section A — Issue tracker.**
+**Section A: Issue tracker.**
 
-> Explainer: The "issue tracker" is where issues live for this repo. Skills like `to-tickets` and
-> `to-spec` read from and write to it — they need to know whether to call `gh issue create` or write
-> a markdown file under `.scratch/`. Pick the place you actually track work for this repo.
+> Explainer: The "issue tracker" is where issues live for this repo. Skills like `feature-spec` and
+> `code-review` read from and write to it. They need to know whether to call `gh issue create`,
+> write a markdown file under `.scratch/`, or follow some other workflow you describe. Pick the
+> place you actually track work for this repo.
 
-Default to **local markdown** (recommended). Offer **GitHub** as an alternative (recommended if
-`git remote` points at GitHub).
+Default posture: these skills were designed for GitHub. If a `git remote` points at GitHub, propose
+that. Otherwise (or if the user prefers), offer:
 
-Record the choice in variable for Step 4.
+- **GitHub**: issues live in the repo's GitHub Issues (uses the `gh` CLI)
+- **Local markdown**: issues live as files under `.scratch/<feature>/` in this repo (good for solo
+  projects or repos without a remote)
+- **Other** (GitLab, Jira, Linear, etc.): ask the user to describe the workflow in one paragraph;
+  the skill will record it as freeform prose
 
-**Section B — Domain docs.** Default to **single-context** — one `CONTEXT.md` + `docs/adr/` at the
-repo root. This fits almost every repo. Lead with it so the user can accept it in a word, and write
-it without asking when exploration found no monorepo signals.
+Record the choice in `docs/agents/issue-tracker.md`.
 
-Offer **multi-context** — a root `CONTEXT-MAP.md` pointing to per-context `CONTEXT.md` files — only
+A GitHub tracker needs a reachable repo. When the user picks it and no `git remote` points at
+GitHub, get the repo URL from them and wire it up (`git init` if needed,
+`git remote add origin <url>`) before going further. Done when `gh repo view` prints the project
+from inside this directory; if it can't, stop and tell the user what's missing.
+
+**Section B: Domain docs.** Default to **single-context** (one `GLOSSARY.md` + `docs/adr/` at the
+repo root). This fits almost every repo; write it without asking.
+
+Offer **multi-context** (a root `GLOSSARY-MAP.md` pointing to per-context `GLOSSARY.md` files) only
 when exploration found monorepo signals. Then confirm which layout they want.
 
 ### 3. Confirm and edit
 
 Show the user a draft of:
 
-- The `## Agent skills` block to add to whichever config file is being edited (see step 4 for
-  selection rules)
-- The contents of `docs/agents/issue-tracker.md` (based on their tracker choice)
-- The contents of `docs/agents/domain.md` (based on their domain doc layout choice)
+- The `## Agent skills` block to add to whichever of `CLAUDE.md` / `AGENTS.md` is being edited (see
+  step 4 for selection rules)
+- The contents of `docs/agents/issue-tracker.md` and `docs/agents/domain.md`
 
 Let them edit before writing.
 
@@ -73,13 +88,12 @@ Let them edit before writing.
 
 **Pick the file to edit:**
 
-- If `.github/copilot-instructions.md` exists, edit it.
-- Else if `CLAUDE.md` exists, edit it.
+- If `CLAUDE.md` exists, edit it.
 - Else if `AGENTS.md` exists, edit it.
-- If none exists, ask the user which one to create — don't pick for them.
+- If neither exists, ask the user which one to create; don't pick for them.
 
-Never create a second config file when one already exists — always edit the one that's already
-there.
+Never create `AGENTS.md` when `CLAUDE.md` already exists (or vice versa); always edit the one that's
+already there.
 
 If an `## Agent skills` block already exists in the chosen file, update its contents in-place rather
 than appending a duplicate. Don't overwrite user edits to the surrounding sections.
@@ -91,23 +105,24 @@ The block:
 
 ### Issue tracker
 
-Issues and specs live as [GitHub issues / local markdown files]. See `docs/agents/issue-tracker.md`.
+[one-line summary of where issues are tracked]. See `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 
-[one-line summary of layout — "single-context" or "multi-context"]. See `docs/agents/domain.md`.
+[one-line summary of layout: "single-context" or "multi-context"]. See `docs/agents/domain.md`.
 ```
 
 Then write the docs files using the seed templates in this skill folder as a starting point:
 
-- If GitHub was selected → write `docs/agents/issue-tracker.md` from
-  [issue-tracker-github.md](./issue-tracker-github.md) template
-- If Local markdown was selected → write `docs/agents/issue-tracker.md` from
-  [issue-tracker-local.md](./issue-tracker-local.md) template
-- [domain.md](./domain.md) — domain doc consumer rules + layout
+- [issue-tracker-github.md](./issue-tracker-github.md): GitHub issue tracker
+- [issue-tracker-local.md](./issue-tracker-local.md): local-markdown issue tracker
+- [domain.md](./domain.md): domain doc consumer rules + layout
+
+For "other" issue trackers, write `docs/agents/issue-tracker.md` from scratch using the user's
+description.
 
 ### 5. Done
 
 Tell the user the setup is complete and which engineering skills will now read from these files.
-Mention they can edit `docs/agents/issue-tracker.md` and `docs/agents/domain.md` directly later —
-re-running this skill is only necessary if they want to switch trackers or restart from scratch.
+Mention they can edit `docs/agents/*.md` directly later; re-running this skill is only necessary if
+they want to switch issue trackers or restart from scratch.

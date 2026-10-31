@@ -62,11 +62,10 @@ approved — promote it to `Reviewed`. Then record status by updating the roadma
    always offer a "keep this item open" choice alongside any other option — never force a
    resolution.
 8. When an answer settles a decision, check it against the `domain-modeling` skill's
-   [ADR-FORMAT.md](../skills/engineering/domain-modeling/ADR-FORMAT.md) bar (hard to reverse,
-   surprising without context, a real trade-off). If it meets the bar, write it there (`docs/adr/`,
-   next sequential number, its minimal template) — one ADR may resolve more than one question.
-   Otherwise resolve the item inline with a one-line rationale; most resolutions should take this
-   path.
+   [ADR-FORMAT.md](../skills/domain-modeling/ADR-FORMAT.md) bar (hard to reverse, surprising without
+   context, a real trade-off). If it meets the bar, write it there (`docs/adr/`, next sequential
+   number, its minimal template) — one ADR may resolve more than one question. Otherwise resolve the
+   item inline with a one-line rationale; most resolutions should take this path.
 9. On confirmation:
    - Apply the approved fixes to the spec (targeted edits only) and add any new `docs/adr/*.md`
      files.

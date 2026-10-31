@@ -1,37 +1,32 @@
-# Issue tracker: Local Markdown
+# Feature tracker: Local Markdown
 
-Issues and specs for this repo live as markdown files in `.scratch/`.
+Feature ideas and specifications live in [`docs/specs/`](../specs/), with status tracked in the
+[feature roadmap](../specs/ROADMAP.md). See the [spec workflow](../specs/README.md) for status
+definitions and ownership.
 
 ## Conventions
 
-- One feature per directory: `.scratch/<feature-slug>/`
-- The spec is `.scratch/<feature-slug>/spec.md`
-- Implementation issues are one file per ticket at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`,
-  numbered from `01` — never a single combined tickets file
-- Triage state is recorded as a `Status:` line near the top of each issue file
-- Comments and conversation history append to the bottom of the file under a `## Comments` heading
+- One feature per directory: `docs/specs/<feature-slug>/`
+- An early-stage feature may have an `INTENT.md`; it records context, not implementation
+  requirements.
+- A feature specification lives in `SPEC.md`. It can coexist with `INTENT.md` to preserve the
+  original idea and context.
+- The roadmap links each feature to its `INTENT.md` or `SPEC.md` and mirrors its status.
+- Status changes update the spec front matter and badge, and the matching roadmap row in the same
+  change.
+- Implementation work is planned and tracked from the specification. This repository does not use
+  separate per-ticket Markdown files or a `.scratch/` issue tracker.
 
 ## When a skill says "publish to the issue tracker"
 
-Create a new file under `.scratch/<feature-slug>/` (creating the directory if needed).
+For a feature idea, add or update the feature's `INTENT.md` under `docs/specs/<feature-slug>/` and
+its roadmap row. For a specification, follow the [feature-spec workflow](../specs/README.md) to add
+or update `SPEC.md` and keep the roadmap synchronized. Do not create a standalone ticket file.
+
+This tracker does not define a separate location for incoming bug reports or requests. Ask the user
+where to record them if one needs to be filed.
 
 ## When a skill says "fetch the relevant ticket"
 
-Read the file at the referenced path. The user will normally pass the path or the issue number
-directly.
-
-## Wayfinding operations
-
-Used by `/wayfinder`. The **map** is a file with one **child** file per ticket.
-
-- **Map**: `.scratch/<effort>/map.md` — the Notes / Decisions-so-far / Fog body.
-- **Child ticket**: `.scratch/<effort>/issues/NN-<slug>.md`, numbered from `01`, with the question
-  in the body. A `Type:` line records the ticket type (`research`/`prototype`/`grilling`/`task`); a
-  `Status:` line records `claimed`/`resolved`.
-- **Blocking**: a `Blocked by: NN, NN` line near the top. A ticket is unblocked when every file it
-  lists is `resolved`.
-- **Frontier**: scan `.scratch/<effort>/issues/` for files that are open, unblocked, and unclaimed;
-  first by number wins.
-- **Claim**: set `Status: claimed` and save before any work.
-- **Resolve**: append the answer under an `## Answer` heading, set `Status: resolved`, then append a
-  context pointer (gist + link) to the map's Decisions-so-far in `map.md`.
+Use the feature path or roadmap entry provided by the user to find its `INTENT.md` or `SPEC.md`.
+When the user provides only a feature name, look it up in the [roadmap](../specs/ROADMAP.md).

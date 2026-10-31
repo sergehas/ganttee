@@ -41,7 +41,7 @@ Every new spec is a folder: `docs/specs/<slug>/`.
 
 - `SPEC.md` — the kernel; follows the section order above.
 - Optional spec-specific companion docs (not glossary — project terminology belongs in the root
-  `CONTEXT.md`, owned by the `domain-modeling` skill).
+  `GLOSSARY.md`, owned by the `domain-modeling` skill).
 
 ADRs live outside the spec folder, in the repo-wide `docs/adr/` (see Risk and Open Question IDs
 below).
@@ -55,8 +55,8 @@ Use the shared ID and entry convention in
 [open-question-ids.md](../skills/feature-spec/assets/open-question-ids.md). When a risk or question
 is resolved, use its `**Resolved**` form with either a one-line inline rationale or, when the
 decision meets the `domain-modeling` skill's
-[ADR-FORMAT.md](../skills/engineering/domain-modeling/ADR-FORMAT.md) bar, a link to the ADR that
-resolved it (`docs/adr/NNNN-slug.md`). Never delete or renumber an item.
+[ADR-FORMAT.md](../skills/domain-modeling/ADR-FORMAT.md) bar, a link to the ADR that resolved it
+(`docs/adr/NNNN-slug.md`). Never delete or renumber an item.
 
 ## Acceptance Criteria Format
 

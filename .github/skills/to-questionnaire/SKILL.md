@@ -5,7 +5,7 @@ description:
 disable-model-invocation: true
 ---
 
-Turn something the user can't answer alone into a **questionnaire** — a Markdown document they hand
+Turn something the user can't answer alone into a **questionnaire**: a Markdown document they hand
 to one person to fill in async, or fill out together over a meeting. The recipient holds knowledge
 the user lacks; the questionnaire pulls it out of them.
 
@@ -29,8 +29,8 @@ answer: who it goes to, and what they need back. The questions in the document t
 ## Document structure
 
 Frame the document as a **discovery questionnaire**: the user lacks context, the recipient holds it.
-Order questions most-important-first — async means you may only get one pass — and group them under
-`##` headings by theme once there are more than a handful. Write it using the template below.
+Order questions most-important-first, since async means you may only get one pass, and group them
+under `##` headings by theme once there are more than a handful. Write it using the template below.
 
 <questionnaire-template>
 
@@ -38,7 +38,7 @@ Order questions most-important-first — async means you may only get one pass �
 
 **Purpose:** why this questionnaire exists and the decision riding on it.
 
-**From:** <the user> — **To:** <the recipient> — **How your answers will be used:** <where they go>
+**From:** <the user>, **To:** <the recipient>, **How your answers will be used:** <where they go>
 
 ## Context
 
@@ -47,19 +47,21 @@ page.
 
 ## How to answer
 
-Deadline and rough effort. Partial answers and "I don't know" are useful — flag anything you're
+Deadline and rough effort. Partial answers and "I don't know" are useful: flag anything you're
 unsure of rather than skipping it.
 
 ## <Theme heading>
 
 One `##` section per theme. Under each, its questions, most-important-first. Every question is one
-idea — never compound — with an answer stub directly beneath, and a one-line _why this matters_ only
+idea, never compound, with an answer stub directly beneath, and a one-line _why this matters_ only
 where the question could be misread or invite a throwaway answer.
 
 <question-example>
 ### What load is the system expected to handle at launch?
 
 _Why this matters: it decides whether we provision for burst traffic now or defer it._
+
+>
 
 </question-example>
 
