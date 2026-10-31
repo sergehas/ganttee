@@ -23,3 +23,4 @@ mirrors each spec's status badge.
 | 16  | [Collapsible off-days and holidays](./chart-view-collapsible-calendar/INTENT.md)          | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
 | 17  | [Diagnostics and problems view](./diagnostics-problems-view/INTENT.md)                    | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
 | 18  | [Vitest test backbone for pure tests](./vitest-test-backbone/INTENT.md)                   | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
+| 19  | [Dependency injection](./dependency-injection/INTENT.md)                                  | Intent      | ![Status: Intent](https://img.shields.io/badge/status-Intent-ADB5BD?style=for-the-badge)           |
