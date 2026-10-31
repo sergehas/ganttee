@@ -67,7 +67,9 @@ export function schedule(model: ProjectModel): ProjectSchedule {
   for (const entityId of graph.topologicalSort()) {
     const entity = entities.get(entityId);
     if (entity === undefined) {
-      throw new SchedulingError(`Unknown schedulable entity "${entityId}".`);
+      throw new SchedulingError(`Unknown schedulable entity "${entityId}".`, "unknownEntity", [
+        entityId,
+      ]);
     }
     const candidates = dependencyCandidates(graph.dependenciesOf(entityId), scheduled, settings);
     if (entity instanceof Task) {
@@ -84,7 +86,11 @@ export function schedule(model: ProjectModel): ProjectSchedule {
   }
 
   if (scheduled.size !== entities.size) {
-    throw new SchedulingError("The dependency graph omitted a schedulable entity.");
+    throw new SchedulingError(
+      "The dependency graph omitted a schedulable entity.",
+      "graphOmission",
+      [...entities.keys()].filter((id) => !scheduled.has(id)),
+    );
   }
   return new ProjectSchedule(
     tasks,
@@ -171,7 +177,7 @@ function workingTimeSettings(model: ProjectModel): WorkingTimeSettings {
     ) ||
     daysOff.size === 7
   ) {
-    throw new SchedulingError("Invalid working-time settings.");
+    throw new SchedulingError("Invalid working-time settings.", "invalidWorkingTime");
   }
   return {
     daysOff,
@@ -192,7 +198,11 @@ function dependencyCandidates(
   for (const dependency of dependencies) {
     const target = scheduled.get(dependency.targetId);
     if (target === undefined) {
-      throw new SchedulingError(`Dependency "${dependency.id}" target is not scheduled.`);
+      throw new SchedulingError(
+        `Dependency "${dependency.id}" target is not scheduled.`,
+        "unscheduledTarget",
+        [dependency.targetId],
+      );
     }
     if (dependency.type === "startAfter") {
       starts.push(normalizeToWorkingTime(target.effectiveEnd(), settings));
@@ -223,7 +233,9 @@ function resolveTask(
   validateDuration(task.id, duration);
   if (start !== undefined && end !== undefined) {
     if (start.getTime() > end.getTime()) {
-      throw new SchedulingError(`Task "${task.id}" starts after it ends.`);
+      throw new SchedulingError(`Task "${task.id}" starts after it ends.`, "startAfterEnd", [
+        task.id,
+      ]);
     }
     return {
       start,
@@ -247,7 +259,9 @@ function resolveTask(
       duration: effectiveDuration,
     };
   }
-  throw new SchedulingError(`Task "${task.id}" is under-constrained.`);
+  throw new SchedulingError(`Task "${task.id}" is under-constrained.`, "underConstrained", [
+    task.id,
+  ]);
 }
 
 /** Resolves one milestone date from dependency and static candidates. */
@@ -263,13 +277,19 @@ function resolveMilestone(
   if (milestone.date !== undefined) {
     return normalizeToWorkingTime(milestone.date, settings);
   }
-  throw new SchedulingError(`Milestone "${milestone.id}" is under-constrained.`);
+  throw new SchedulingError(
+    `Milestone "${milestone.id}" is under-constrained.`,
+    "underConstrained",
+    [milestone.id],
+  );
 }
 
 /** Rejects invalid static task durations. */
 function validateDuration(taskId: string, duration: number | undefined): void {
   if (duration !== undefined && (!Number.isFinite(duration) || duration <= 0)) {
-    throw new SchedulingError(`Task "${taskId}" has an invalid duration.`);
+    throw new SchedulingError(`Task "${taskId}" has an invalid duration.`, "invalidDuration", [
+      taskId,
+    ]);
   }
 }
 

@@ -378,7 +378,35 @@ suite("schedulingService", () => {
       { id: "invalid", name: "Invalid", start: "2026-09-08", duration: 0 },
     ];
 
-    assert.throws(() => scheduleDocument(document), SchedulingError);
+    assert.throws(
+      () => scheduleDocument(document),
+      (error: unknown) =>
+        error instanceof SchedulingError &&
+        error.reason === "invalidDuration" &&
+        error.subjectIds.join() === "invalid",
+    );
+  });
+
+  test("reports structured reasons for scheduler failures", () => {
+    const milestone = schedulingDocument();
+    milestone.milestones = [{ id: "floating", name: "Floating" }];
+    assert.throws(
+      () => scheduleDocument(milestone),
+      (error: unknown) =>
+        error instanceof SchedulingError &&
+        error.reason === "underConstrained" &&
+        error.subjectIds.join() === "floating",
+    );
+    const settings = schedulingDocument();
+    settings.settings = { ...settings.settings, workingDayHours: 0 };
+    settings.tasks = [{ id: "task", name: "Task", start: "2026-09-08", duration: 1 }];
+    assert.throws(
+      () => scheduleDocument(settings),
+      (error: unknown) =>
+        error instanceof SchedulingError &&
+        error.reason === "invalidWorkingTime" &&
+        error.subjectIds.length === 0,
+    );
   });
 
   test("rejects under-constrained and reversed schedules", () => {
@@ -394,8 +422,17 @@ suite("schedulingService", () => {
       },
     ];
 
-    assert.throws(() => scheduleDocument(underConstrained), SchedulingError);
-    assert.throws(() => scheduleDocument(reversed), SchedulingError);
+    assert.throws(
+      () => scheduleDocument(underConstrained),
+      (error: unknown) => error instanceof SchedulingError && error.reason === "underConstrained",
+    );
+    assert.throws(
+      () => scheduleDocument(reversed),
+      (error: unknown) =>
+        error instanceof SchedulingError &&
+        error.reason === "startAfterEnd" &&
+        error.subjectIds.join() === "task",
+    );
   });
 
   test("rejects invalid settings supplied directly to the scheduler", () => {

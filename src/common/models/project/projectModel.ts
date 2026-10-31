@@ -2,12 +2,26 @@ import { Dependency } from "@common/documents/project/dependency";
 import { ProjectSettings } from "@common/documents/project/projectSettings";
 import { ProjectView } from "@common/documents/project/projectView";
 import { ProjectDependencyGraph } from "@common/models/dependency-graph/projectDependencyGraph";
+import { SchedulingFailureReason } from "@common/models/diagnostics/gantteeFinding";
 import { Group } from "@common/models/project/group";
 import { Milestone } from "@common/models/project/milestone";
 import { Task } from "@common/models/project/task";
 
 /** Raised when scheduling cannot produce a complete valid model. */
-export class SchedulingError extends Error {}
+export class SchedulingError extends Error {
+  /**
+   * @param message English log text; never shown to users.
+   * @param reason Structured reason used for localized, label-safe wording.
+   * @param subjectIds Ids of the affected entity or dependency, for label lookup only.
+   */
+  constructor(
+    message: string,
+    readonly reason?: SchedulingFailureReason,
+    readonly subjectIds: readonly string[] = [],
+  ) {
+    super(message);
+  }
+}
 
 /** In-memory hydrated representation of a project document. */
 export class ProjectModel {

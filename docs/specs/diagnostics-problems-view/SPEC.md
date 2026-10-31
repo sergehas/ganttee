@@ -1,5 +1,5 @@
 ---
-Status: Reviewed
+Status: Implementing
 Owner: Copilot
 Last updated: 2026-10-31
 Related ADRs: []
@@ -7,7 +7,7 @@ Related ADRs: []
 
 # Feature: Diagnostics and Problems View
 
-![Status: Reviewed](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
+![Status: Implementing](https://img.shields.io/badge/status-Reviewed-0D6EFD?style=for-the-badge)
 
 ## 1. Summary
 

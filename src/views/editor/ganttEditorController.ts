@@ -113,7 +113,11 @@ export class GanttEditorController {
               revision: this.document.version,
             });
           } else if (this._documentError !== undefined) {
-            this.post({ type: "documentError", message: this._documentError });
+            this.post({
+              type: "documentError",
+              message: this._documentError,
+              revision: this.document.version,
+            });
           }
         }
       }),
@@ -140,7 +144,11 @@ export class GanttEditorController {
   /** Reveals the editor panel and posts the initial document to the webview. */
   sendInit(): void {
     if (this._documentError !== undefined) {
-      this.post({ type: "documentError", message: this._documentError });
+      this.post({
+        type: "documentError",
+        message: this._documentError,
+        revision: this.document.version,
+      });
       return;
     }
     this.post({
