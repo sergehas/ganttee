@@ -91,14 +91,17 @@ raise the PR anyway (e.g. draft PR for early feedback).
 
 ### 4. Draft the PR description
 
+- Use the matching canonical template in `.github/PULL_REQUEST_TEMPLATE/` for every PR description
+  and every description update.
 - Classify the repository by counting tracked files without displaying their paths. Run a shell-side
   aggregate over `git ls-files` that returns only the Markdown (`.md`) and code (`.java`, `.ts`)
   counts.
 - Never load the complete tracked-file list into the conversation context.
 - If the Markdown count is greater than the code count, load
-  [PR_DOC_TEMPLATE.md](../create-pr/PR_DOC_TEMPLATE.md). Otherwise, including ties or if the
-  counting command exits non-zero or returns no numeric output, tell the user the classification
-  failed and use [PR_CODE_TEMPLATE.md](../create-pr/PR_CODE_TEMPLATE.md)
+  [PR_DOC_TEMPLATE.md](../../PULL_REQUEST_TEMPLATE/PR_DOC_TEMPLATE.md). Otherwise, including ties or
+  if the counting command exits non-zero or returns no numeric output, tell the user the
+  classification failed and use
+  [PR_CODE_TEMPLATE.md](../../PULL_REQUEST_TEMPLATE/PR_CODE_TEMPLATE.md).
 
 - Fill in every `{{placeholder}}` using only evidence from the commit log, diff, and quality-check
   results gathered above. Do not invent testing steps, issue references, or reviewer notes that
