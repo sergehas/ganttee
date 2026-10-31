@@ -191,6 +191,7 @@ export function App(): React.JSX.Element {
           } catch {
             setViewState(null);
           }
+          reportEntityDraft();
           reportSettingsDraft();
           break;
         case "documentError":
