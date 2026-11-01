@@ -91,7 +91,8 @@ plain JSON file that you can version with your code.
 
 - **Plain-text source of truth**: the `.ganttee` file is JSON. Undo, redo, diff, and source control
   work as usual. Older files are migrated automatically.
-- **Localized** in English and French. Ganttee follows your VS Code display language.
+- **Localized** in English, French, German, Italian, Spanish, Portuguese (Portugal and Brazil), and
+  Swedish. Ganttee follows your VS Code display language.
 
 ## Commands
 

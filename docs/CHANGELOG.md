@@ -17,10 +17,13 @@ file.
   item's edit form.
 - An open edit form now stays open when its document becomes invalid. Saving stays blocked until a
   valid revision is available, and host rejection explanations appear inline.
+- German, Italian, Spanish, European and Brazilian Portuguese, and Swedish translations.
+- `npm run check:l10n` fails the build on unused, missing, or untranslated localization keys.
 
 ### Changed
 
 - Reconciliate pull request templates.
+- Corrected French translations (missing accents, inconsistent status and sort labels).
 
 ## [1.0.0] - 2026-10-27
 

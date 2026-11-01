@@ -1,6 +1,6 @@
 {
   "extension.displayName": "Ganttee",
-  "extension.description": "Editeur de diagrammes de Gantt",
+  "extension.description": "Éditeur de diagrammes de Gantt",
   "customEditor.chartEditor.displayName": "Diagramme de Gantt",
   "customEditor.settingsEditor.displayName": "Paramètres du projet",
   "viewsContainer.ganttee.title": "Ganttee",
