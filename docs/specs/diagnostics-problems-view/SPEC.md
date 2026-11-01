@@ -39,8 +39,9 @@ records the resolved exclusion.
 ### Non-goals
 
 - A new activity-bar view, custom Problems panel, or Ganttee-specific filtering interface.
-- Guaranteed native Problems activation that selects a chart item, opens its form, or reveals a
-  dependency in the custom editor.
+- Guaranteed native Problems row activation that selects a chart item, opens its form, or reveals a
+  dependency in the custom editor. Row activation stays standard resource navigation; form opening
+  is offered only through the diagnostic code link.
 - A workspace-wide scan of closed files, automatic repairs beyond existing cleanup, or new
   scheduling rules.
 - Persisted diagnostics, schema changes, or replacing the timeline, sidebar, or inline feedback.
@@ -161,6 +162,19 @@ or an explicitly identified transient editing or operational context.
   - Given activation in native Problems When VS Code chooses its editor Then standard resource
     navigation is supported; chart selection or form opening is not an acceptance requirement.
 
+- As a planner, I want to open the affected item's form from Problems, so that I can repair it
+  without searching the timeline.
+  - Given a finding whose primary subject is a task, milestone, or group in the current revision
+    When it is published Then its diagnostic code is a link that keeps the category as its text.
+  - Given that link When the user activates it Then the chart editor of the owning document opens or
+    is focused and the edit form of the primary item opens.
+  - Given the form of that item is already open When the link is activated again Then the form stays
+    open.
+  - Given the item was removed after publication When the link is activated Then no form opens and a
+    localized information message states that the item no longer exists.
+  - Given a status, dependency, project, malformed-JSON, or unsaved-draft-only finding When it is
+    published Then its code is the plain category without a link.
+
 - As a planner, I want correct ownership and refresh, so that stale findings never mislead me.
   - Given two open schedules When either changes Then only that URI's document findings are replaced
     and both schedules remain available in native Problems.
@@ -237,8 +251,10 @@ or an explicitly identified transient editing or operational context.
   treated as unnamed for presentation without changing the authored value.
 - IDs remain available internally for identity, routing, deduplication, and source lookup. No schema
   name field is added to dependencies; their display identity is labels of both endpoints plus type.
-- Native diagnostic codes identify categories, not document-local IDs. Every published range is
-  valid for the current owning resource; related locations are omitted when unavailable.
+- Native diagnostic codes identify categories, not document-local IDs. A code link target carries an
+  encoded document URI and item reference for the `ganttee.openProblemItem` command; its visible
+  text is the category only. Every published range is valid for the current owning resource; related
+  locations are omitted when unavailable.
 - Problems is not forcibly opened for every validation refresh. Consent dialogs are not findings.
 
 ## 6. Domain & Data Model Impact
@@ -339,7 +355,8 @@ proposal is discarded.
 
 - **Native Problems:** use native resource grouping, severity icons, keyboard navigation, and
   severity/text filters. No custom grouping or empty state is added. Ganttee identifies its source
-  and uses concise labels; complete occurrences remain separate rather than hidden in summaries.
+  and uses concise labels; complete occurrences remain separate rather than hidden in summaries. The
+  category code of an item finding is a link that opens the primary item's edit form.
 - **Timeline:** retain existing rendering and scheduling-unavailable/error behavior. Problems
   navigation does not promise chart reveal or a custom selection.
 - **Sidebar:** retain proximity badges and tooltips in
@@ -423,7 +440,10 @@ unsupported custom-editor behavior.
 - Verify collection disposal and close clear only Ganttee-owned entries. Test native resource/range
   navigation without requiring automatic chart reveal.
 - Use bounded event/condition waits instead of fixed delays. Restore documents, panels, and
-  collections in teardown. Smoke tests cover new activation wiring only.
+  collections in teardown. Smoke tests cover new activation wiring and the code-link command that
+  opens the chart editor for an item finding.
+- Unit-test the code-link argument encoding round trip through the command opener's decoding, the
+  missing-item message, chart opening when no controller exists, and form opening without toggle.
 
 ### Webview interaction coverage
 
