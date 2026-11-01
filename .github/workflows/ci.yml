@@ -46,6 +46,11 @@ jobs:
 
       - run: npm run lint
 
+      - name: Utility script tests
+        run: npm run test:utilities
+
+      - run: npm run check:l10n
+
   # ── 3. Build both bundles ──────────────────────────────────────────────────
   build:
     name: Build

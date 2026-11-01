@@ -42,16 +42,23 @@ The project uses gitflow and Conventional Commits. The full rules are in
 
 Before you open a pull request:
 
-- `npm test` passes. It type-checks, lints, checks formatting, builds, and runs all tests.
+- `npm test` passes. It type-checks, lints, checks formatting, audits localization, builds, and runs
+  application unit and integration tests.
+- `npm run test:utilities` passes. It runs utility-script tests separately from `npm test`,
+  automatically discovering all `*.test.mjs` files under `.github/`, including skills and hooks. Add
+  new utility suites there using this naming convention.
 - Branch coverage stays at 90% or more for each file (`npm run test:coverage-check`).
 - Every user-facing string is localized (`vscode.l10n.t()` or `package.nls.json`), with `{0}`
-  placeholders.
+  placeholders. Add each new key to every localized catalog. `npm run check:l10n` fails on unused,
+  missing, or untranslated keys. See the
+  [localization skill](../.github/skills/localization/SKILL.md).
 - Every class, method, and member has JSDoc.
 - User-visible changes have an entry under `## [Unreleased]` in
   [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
-CI runs the same checks on each pull request. Branch protection rules are described in
-[branch-protection.md](documentation/branch-protection.md).
+CI runs utility tests in a dedicated step on pull requests and standalone commits, not in the
+release workflow. CI runs the same quality checks on each pull request. Branch protection rules are
+described in [branch-protection.md](documentation/branch-protection.md).
 
 ## Releases
 

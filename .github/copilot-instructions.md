@@ -69,6 +69,11 @@ The webview has its own TS project ([tsconfig.webview.json](../tsconfig.webview.
 the host project ([tsconfig.json](../tsconfig.json)) excludes `src/webview`. `check-types` runs
 both.
 
+In PowerShell, quote the argument separator for npm/npx/pnpm/yarn:
+`npm run vsce '--' ls --no-dependencies`. Their `.ps1` shims receive the arguments without a bare
+`--`. The [npm-separator hook](hooks/npm-separator.json) denies unquoted separators. In cmd, bash,
+and CI workflow scripts, keep a bare `--` (cmd passes `'--'` through with the quotes).
+
 ## Conventions
 
 - Indent with **spaces**. Use **double quotes** (Prettier default, matches the scaffold). See

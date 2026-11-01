@@ -22,17 +22,21 @@ with the failing items.
 Run each step; stop and report on the first hard failure (types/lint/build/tests).
 
 1. **Full validation:** `npm test` — its `pretest` lifecycle compiles tests, type-checks, lints,
-   builds both bundles, and runs all tests.
+   builds both bundles, and runs application unit and integration tests.
 2. **Production build:** `npm run package` — required when verifying a release artifact; this
    repeats the compile checks as part of packaging. For a release, also run `npm run vsix` and check
-   `npm run vsce -- ls --no-dependencies` lists only `dist/`, `media/`, `l10n/`, `examples/`, and
-   the root manifest, README, and LICENSE files.
+   that `npm run vsce -- ls --no-dependencies` (in PowerShell, quote the separator: `'--'`) lists
+   only `dist/`, `media/`, `l10n/`, `examples/`, `docs/CHANGELOG.md`, `docs/images/*.png`, and the
+   root `package.json`, `package.nls*.json`, README, and LICENSE files. Each
+   `l10n/bundle.l10n.<locale>.json` has a matching `package.nls.<locale>.json`.
 3. **Multi-surface edit parity:** when chart and form both edit entities, verify they route through
    the same shared workflow contract and parity scenarios pass.
 4. **Branch coverage ≥ 90%:** verify coverage; if unavailable, confirm every new branch
    (conditionals, switch cases, error paths) has a covering test.
 5. **Localization:** every user-facing string is externalized via `vscode.l10n.t()` / `nls` and
    package NLS keys — no raw literals in messages, command titles, or view names.
+   `npm run check:l10n` passes (part of `compile`); review its warnings with the `localization`
+   skill.
 6. **JSDoc:** every class, method, and member (public and private) is documented.
 7. **Manifest sanity:** `contributes` (customEditors, views, commands, menus) is consistent with the
    code; `activationEvents` and `main` are correct; the webview CSP uses a nonce and loads only from
