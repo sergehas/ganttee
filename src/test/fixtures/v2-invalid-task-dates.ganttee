@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "id": "t1",
+      "name": "Backwards Task",
+      "start": "2026-01-09",
+      "end": "2026-01-05"
+    }
+  ],
+  "groups": [],
+  "milestones": [],
+  "dependencies": []
+}

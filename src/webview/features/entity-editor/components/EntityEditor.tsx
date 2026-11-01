@@ -1,4 +1,5 @@
 import { IconButton } from "@webview/components/IconButton";
+import { StatusNotice } from "@webview/components/StatusNotice";
 import { TextButton } from "@webview/components/TextButton";
 import "@webview/features/entity-editor/components/EntityEditor.scss";
 import { GroupFields } from "@webview/features/entity-editor/components/GroupFields";
@@ -10,7 +11,7 @@ import { createEntityEditorSubmit } from "@webview/features/entity-editor/entity
 import { useDependencyEditorState } from "@webview/features/entity-editor/hooks/useDependencyEditorState";
 import { useEntityEditorDraft } from "@webview/features/entity-editor/hooks/useEntityEditorDraft";
 import { useTranslate } from "@webview/l10n";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * Entity-aware edit form for tasks, milestones, and groups.
@@ -21,6 +22,17 @@ export function EntityEditor(props: EntityEditorProps): React.JSX.Element {
   const formRef = useRef<HTMLFormElement>(null);
   const { taskDraft, milestoneDraft, groupDraft, setTaskDraft, setMilestoneDraft, setGroupDraft } =
     useEntityEditorDraft(editingEntity);
+  const { onDraftChange } = props;
+
+  useEffect(() => {
+    if (taskDraft) {
+      onDraftChange?.("task", taskDraft);
+    } else if (milestoneDraft) {
+      onDraftChange?.("milestone", milestoneDraft);
+    } else if (groupDraft) {
+      onDraftChange?.("group", groupDraft);
+    }
+  }, [taskDraft, milestoneDraft, groupDraft]);
 
   const dependencyOwnerId = taskDraft?.id ?? milestoneDraft?.id;
   const depEditor = useDependencyEditorState(
@@ -95,12 +107,24 @@ export function EntityEditor(props: EntityEditorProps): React.JSX.Element {
         />
       )}
 
+      {props.saveBlocked && (
+        <StatusNotice severity="warning">
+          {t("Saving is unavailable until the document is valid.")}
+        </StatusNotice>
+      )}
+      {props.rejection?.map((explanation) => (
+        <StatusNotice severity="error" key={explanation}>
+          {explanation}
+        </StatusNotice>
+      ))}
       <div className="ganttee-entity-editor__actions">
         <button type="submit" hidden />
-        <TextButton variant="primary" onClick={requestSubmit}>
+        <TextButton variant="primary" disabled={props.saveBlocked} onClick={requestSubmit}>
           {t("Save")}
         </TextButton>
-        <TextButton onClick={deleteEntity}>{t("Delete")}</TextButton>
+        <TextButton disabled={props.saveBlocked} onClick={deleteEntity}>
+          {t("Delete")}
+        </TextButton>
       </div>
     </form>
   );

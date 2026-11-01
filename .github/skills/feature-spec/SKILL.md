@@ -41,13 +41,12 @@ Produce an implementation-ready specification for a Ganttee feature.
 
 ## ADRs
 
-ADRs are not spec-scoped. Follow the
-[domain-modeling skill](../engineering/domain-modeling/SKILL.md)'s
-[ADR-FORMAT.md](../engineering/domain-modeling/ADR-FORMAT.md) for when a decision warrants one (hard
-to reverse, surprising without context, a real trade-off), its location (`docs/adr/`), and its
-numbering. When a review or implementation session writes one, list it under the spec's front matter
-`Related ADRs` and mark each risk or Open Question it resolves `**Resolved**` with a link to it.
-Most resolved items won't meet the bar — resolve those inline instead (see
+ADRs are not spec-scoped. Follow the [domain-modeling skill](../domain-modeling/SKILL.md)'s
+[ADR-FORMAT.md](../domain-modeling/ADR-FORMAT.md) for when a decision warrants one (hard to reverse,
+surprising without context, a real trade-off), its location (`docs/adr/`), and its numbering. When a
+review or implementation session writes one, list it under the spec's front matter `Related ADRs`
+and mark each risk or Open Question it resolves `**Resolved**` with a link to it. Most resolved
+items won't meet the bar — resolve those inline instead (see
 [open-question-ids.md](./assets/open-question-ids.md)).
 
 ## Reminders

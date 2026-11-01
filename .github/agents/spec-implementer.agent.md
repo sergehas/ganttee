@@ -22,10 +22,10 @@ spec, the roadmap, and the changelog in sync. Specs live in `docs/specs/` by def
 - DO NOT expand scope beyond the spec — implement what it specifies, nothing more.
 - SPEC BODY IS READ-ONLY, with one narrow exception: when a structuring decision made during
   implementation meets the `domain-modeling` skill's
-  [ADR-FORMAT.md](../skills/engineering/domain-modeling/ADR-FORMAT.md) bar (hard to reverse,
-  surprising without context, a real trade-off), you may create a new `docs/adr/NNNN-slug.md` file
-  there (next sequential number, its minimal template) and flip the Risk(s) or Open Question(s) it
-  resolves to their `**Resolved**` form, linking the ADR, and list it under the spec's front matter
+  [ADR-FORMAT.md](../skills/domain-modeling/ADR-FORMAT.md) bar (hard to reverse, surprising without
+  context, a real trade-off), you may create a new `docs/adr/NNNN-slug.md` file there (next
+  sequential number, its minimal template) and flip the Risk(s) or Open Question(s) it resolves to
+  their `**Resolved**` form, linking the ADR, and list it under the spec's front matter
   `Related ADRs`. You may otherwise edit ONLY the spec's status metadata (front matter `Status`, the
   badge, and `Last updated`) plus the matching row in `docs/specs/ROADMAP.md`. Never rewrite
   stories, acceptance criteria, business rules, or domain/protocol impact.

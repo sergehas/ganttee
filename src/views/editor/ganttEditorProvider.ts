@@ -1,5 +1,6 @@
 import { ProjectEditorSurface } from "@common/protocol";
 import { GanttStore } from "@src/ganttStore";
+import { GantteeDiagnosticsService } from "@views/diagnostics/gantteeDiagnosticsService";
 import { DocumentEditQueue } from "@views/editor/documentEditQueue";
 import {
   GANTTEE_CHART_EDITOR_VIEW_TYPE,
@@ -18,21 +19,31 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
    * @param context Extension context owning the registration.
    * @param store Active-editor store.
    * @param log Output channel receiving document-loading warnings.
+   * @param diagnostics Native Problems publisher shared by every editor session.
    * @returns The registration disposable.
    */
   static register(
     context: vscode.ExtensionContext,
     store: GanttStore,
     log: vscode.LogOutputChannel,
+    diagnostics: GantteeDiagnosticsService,
   ): vscode.Disposable {
     const editQueue = new DocumentEditQueue();
-    const chartProvider = new GanttEditorProvider(context, store, log, editQueue, "chart");
+    const chartProvider = new GanttEditorProvider(
+      context,
+      store,
+      log,
+      editQueue,
+      "chart",
+      diagnostics,
+    );
     const settingsProvider = new GanttEditorProvider(
       context,
       undefined,
       log,
       editQueue,
       "settings",
+      diagnostics,
     );
     return vscode.Disposable.from(
       vscode.window.registerCustomEditorProvider(GanttEditorProvider.viewType, chartProvider, {
@@ -52,6 +63,7 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
     private readonly log: vscode.LogOutputChannel,
     private readonly editQueue: DocumentEditQueue,
     private readonly surface: ProjectEditorSurface,
+    private readonly diagnostics: GantteeDiagnosticsService,
   ) {}
 
   resolveCustomTextEditor(document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel): void {
@@ -74,6 +86,8 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
       this.log,
       this.editQueue,
       this.surface,
+      this.diagnostics,
+      createSessionId(),
     );
     this.store?.setActive(controller);
 
@@ -134,6 +148,12 @@ export class GanttEditorProvider implements vscode.CustomTextEditorProvider {
   }
 }
 
+/** Creates a unique id for one editor panel session. */
+function createSessionId(): string {
+  return `${Date.now().toString(36)}-${createNonce()}`;
+}
+
+/** Creates a random script nonce. */
 function createNonce(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let text = "";

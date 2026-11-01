@@ -1,7 +1,7 @@
 ---
 Status: Intent
 Owner: Copilot
-Last updated: 2026-08-15
+Last updated: 2026-10-31
 ---
 
 # Feature: Diagnostics and Problems View
@@ -13,6 +13,15 @@ Last updated: 2026-08-15
 > **For AI agents:** This document is context only, not an implementation specification. Do not
 > implement from it, derive implementation tasks or acceptance criteria from it, or change code
 > based on it. The Spec Implementer must act only on a corresponding reviewed feature specification.
+
+---
+
+> [!NOTE]
+>
+> **Historical intent:** Drafted into [the current feature specification](./SPEC.md) on 2026-10-31.
+> This file retains its original Intent status and decisions as historical context; the feature's
+> current status is **Draft**, as recorded in SPEC.md and the roadmap. Native VS Code Problems and
+> label-based diagnostic wording supersede the custom-view and endpoint-ID proposals below.
 
 <!-- AGENT NOTE: This high-level spec is intentionally captured at Intent per
 the request, although the normal workflow creates spec files at Draft. -->

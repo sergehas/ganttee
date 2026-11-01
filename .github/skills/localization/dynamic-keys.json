@@ -1,0 +1,24 @@
+{
+  "entries": [
+    {
+      "file": "src/webview/features/chart/chartOptionBuilder.ts",
+      "argument": "name",
+      "reason": "The ECharts legend formatter receives each series name as a variable; series names are set in createChartSeries and createTimelineHeaderSeries.",
+      "keys": [
+        "groups",
+        "tasks",
+        "milestones",
+        "dependencies",
+        "off-days",
+        "holidays",
+        "timeline-header"
+      ]
+    },
+    {
+      "file": "src/webview/features/chart/chartMenuPresentation.ts",
+      "argument": "theme.label",
+      "reason": "Theme labels derive from media/themes/*-theme.json file names through themeLabel().",
+      "keys": ["Blue", "Blue (light)", "Green", "Green (light)"]
+    }
+  ]
+}

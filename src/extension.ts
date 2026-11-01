@@ -5,7 +5,10 @@ import {
   createEmptyDocument,
 } from "@common/documents";
 import { EditableEntityRef } from "@common/protocol";
+import { OPEN_PROBLEM_ITEM_COMMAND } from "@services/diagnostics/problemNavigation";
 import { serializeDocument } from "@services/document/documentService";
+import { GantteeDiagnosticsService } from "@views/diagnostics/gantteeDiagnosticsService";
+import { openProblemItem } from "@views/diagnostics/openProblemItem";
 import {
   GANTTEE_CHART_EDITOR_VIEW_TYPE,
   GANTTEE_SETTINGS_EDITOR_VIEW_TYPE,
@@ -21,7 +24,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   const log = vscode.window.createOutputChannel("Ganttee", { log: true });
   context.subscriptions.push(log);
-  context.subscriptions.push(GanttEditorProvider.register(context, store, log));
+  const diagnostics = GantteeDiagnosticsService.register();
+  context.subscriptions.push(diagnostics);
+  context.subscriptions.push(GanttEditorProvider.register(context, store, log, diagnostics));
 
   const explorer = new GanttExplorerProvider(store, context.extensionUri);
   context.subscriptions.push(vscode.window.onDidChangeActiveColorTheme(() => explorer.refresh()));
@@ -33,6 +38,18 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(treeView);
 
   registerCommands(context, store, explorer, treeView);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(OPEN_PROBLEM_ITEM_COMMAND, (argument: unknown) =>
+      openProblemItem(argument, {
+        editorFor: (uri) => store.controllerFor(uri),
+        diagnostics,
+        openChart: (uri) =>
+          vscode.commands.executeCommand("vscode.openWith", uri, GANTTEE_CHART_EDITOR_VIEW_TYPE),
+        showInformation: (message) => vscode.window.showInformationMessage(message),
+      }),
+    ),
+  );
 }
 
 export function deactivate() {

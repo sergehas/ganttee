@@ -151,6 +151,10 @@ The required status checks are the job names of [ci.yml](../../.github/workflows
 - `Integration tests (ubuntu-latest)` and `Integration tests (windows-latest)`
 - `VS Code tests (ubuntu-latest)` and `VS Code tests (windows-latest)`
 
+PR and commit CI run `npm run test:utilities` in a dedicated **Utility script tests** step within
+the existing quality job. The command discovers all `*.test.mjs` files under `.github/` and runs
+them separately from application tests. The localization audit remains a separate quality check.
+
 After renaming a job or changing its matrix, update and reimport `main.json` and `develop.json`.
 Otherwise PRs wait for missing checks.
 
@@ -302,7 +306,8 @@ gitGraph
 5. Read version: output `X.Y.Z` and `vX.Y.Z`.
 6. Check publisher and tag: require stable version, real publisher, and no conflicting tag.
 7. `npm ci`: install dependencies.
-8. Run tests: run `npm test` under `xvfb`.
+8. Run application tests: run `npm test` under `xvfb`. Utility-script tests run in PR and commit CI
+   only.
 9. Package VSIX: build `ganttee-X.Y.Z.vsix`.
 10. Extract release notes: read the `X.Y.Z` changelog section.
 11. Create tag: create and push `vX.Y.Z` if missing.

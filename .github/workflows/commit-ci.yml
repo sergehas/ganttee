@@ -62,6 +62,11 @@ jobs:
 
       - run: npm run lint
 
+      - name: Utility script tests
+        run: npm run test:utilities
+
+      - run: npm run check:l10n
+
   # ── 3. Build the bundle used by the unit-test runners ──────────────────────
   build:
     name: Build

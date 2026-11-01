@@ -20,7 +20,7 @@ Issues and specs live as local markdown files. See `docs/agents/issue-tracker.md
 
 ### Domain docs
 
-Single-context repository layout with `CONTEXT.md` at the root when present and ADRs under
+Single-context repository layout with `GLOSSARY.md` at the root when present and ADRs under
 `docs/adr/`. See `docs/agents/domain.md`.
 
 ## Tech Stack
@@ -68,6 +68,11 @@ check is needed:
 The webview has its own TS project ([tsconfig.webview.json](../tsconfig.webview.json), DOM + JSX);
 the host project ([tsconfig.json](../tsconfig.json)) excludes `src/webview`. `check-types` runs
 both.
+
+In PowerShell, quote the argument separator for npm/npx/pnpm/yarn:
+`npm run vsce '--' ls --no-dependencies`. Their `.ps1` shims receive the arguments without a bare
+`--`. The [npm-separator hook](hooks/npm-separator.json) denies unquoted separators. In cmd, bash,
+and CI workflow scripts, keep a bare `--` (cmd passes `'--'` through with the quotes).
 
 ## Conventions
 

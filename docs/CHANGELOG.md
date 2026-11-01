@@ -7,9 +7,23 @@ file.
 
 ## [Unreleased]
 
+### Added
+
+- Ganttee findings now appear in the native Problems view: malformed JSON, invalid fields, relation,
+  graph, constraint, calendar, and scheduling problems map to precise source ranges with related
+  locations, and use item labels rather than internal identifiers. Unsaved form drafts, rejected
+  edits, cleanup, and failed image exports are also listed, each with its origin. Operation problems
+  can be dismissed from a quick fix. The category code of an item finding is a link that opens the
+  item's edit form.
+- An open edit form now stays open when its document becomes invalid. Saving stays blocked until a
+  valid revision is available, and host rejection explanations appear inline.
+- German, Italian, Spanish, European and Brazilian Portuguese, and Swedish translations.
+- `npm run check:l10n` fails the build on unused, missing, or untranslated localization keys.
+
 ### Changed
 
 - Reconciliate pull request templates.
+- Corrected French translations (missing accents, inconsistent status and sort labels).
 
 ## [1.0.0] - 2026-10-27
 

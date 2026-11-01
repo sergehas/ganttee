@@ -1,140 +1,42 @@
 /**
- * Localized wording for schedule diagnostics.
+ * Localized, label-safe wording for schedule diagnostics on the extension host.
  *
- * This is the only place that turns a {@link ScheduleDiagnostic} into text. The
- * services that produce diagnostics stay free of `vscode`, so the webview can
- * import them; anything user-facing is resolved here on the host.
+ * Diagnostics are mapped to structured findings and rendered with the shared
+ * finding presenter, so every item is named by its authored label, a localized
+ * unnamed descriptor, or a localized missing descriptor; never by its id.
  */
 
-import { scheduleDiagnosticEntityIds } from "@common/models";
-import { ScheduleDiagnostic } from "@services/schedule/scheduleGraphValidationService";
+import { ProjectContent } from "@common/documents";
+import { labelSnapshotOf, ScheduleDiagnostic } from "@common/models";
+import { describeFinding, Translate } from "@common/presentation/diagnostics";
+import { scheduleDiagnosticFindings } from "@services/diagnostics/documentDiagnosticsService";
 import * as vscode from "vscode";
 
-type EntityNameResolver = (entityId: string) => string;
+/** Project content that supplies labels for diagnostic subjects. */
+export type DiagnosticLabelSource = Pick<
+  ProjectContent,
+  "tasks" | "milestones" | "groups" | "dependencies"
+> &
+  Partial<Pick<ProjectContent, "settings">>;
+
+/** Translates with the host localization bundle. */
+const hostTranslate: Translate = (message, ...args) => vscode.l10n.t(message, ...args);
 
 /**
- * Describes one diagnostic, phrased around a specific entity when the
- * diagnostic spans more than one.
+ * Describes each diagnostic as one localized sentence.
  *
- * Determinacy, dependency, and calendar diagnostics already name their
- * subject unambiguously (an `entityId`, a `dependencyId`, or nothing), so
- * `contextEntityId` is only read for `unanchoredComponent`, whose
- * `entityIds` can list every member of a connected component and the caller
- * must pick which one the message is shown against.
- *
- * @param diagnostic The diagnostic to describe.
- * @param contextEntityId The entity to phrase a multi-entity diagnostic around.
- * @param resolveEntityName Resolves entity ids to display names.
- * @returns A localized, human-readable sentence.
+ * @param diagnostics The diagnostics to describe.
+ * @param source The validated project the diagnostics were computed from.
+ * @param translate Translator; defaults to the host bundle.
+ * @returns One sentence per diagnostic, in the same order.
  */
-export function describeDiagnostic(
-  diagnostic: ScheduleDiagnostic,
-  contextEntityId: string,
-  resolveEntityName: EntityNameResolver = (entityId) => entityId,
-): string {
-  switch (diagnostic.kind) {
-    case "underConstrained":
-      return vscode.l10n.t(
-        "Task '{0}' is under-constrained ({1} constraints, need 2).",
-        resolveEntityName(diagnostic.entityId),
-        String(diagnostic.count),
-      );
-    case "overConstrained":
-      return diagnostic.duplicateEndpoints.length > 0
-        ? vscode.l10n.t(
-            "Task '{0}' has a duplicate {1} constraint.",
-            resolveEntityName(diagnostic.entityId),
-            diagnostic.duplicateEndpoints.join(vscode.l10n.t(" and ")),
-          )
-        : vscode.l10n.t(
-            "Task '{0}' is over-constrained ({1} constraints, need 2).",
-            resolveEntityName(diagnostic.entityId),
-            String(diagnostic.count),
-          );
-    case "danglingDependency":
-      return vscode.l10n.t(
-        "Dependency '{0}' references a missing entity.",
-        diagnostic.dependencyId,
-      );
-    case "groupDependency":
-      return vscode.l10n.t(
-        "Dependency '{0}' involves a group (groups cannot carry dependencies).",
-        diagnostic.dependencyId,
-      );
-    case "unanchoredComponent":
-      return vscode.l10n.t(
-        "Component containing '{0}' has no absolute date anchor.",
-        resolveEntityName(contextEntityId),
-      );
-    case "invalidWorkingCalendar":
-      return vscode.l10n.t("The project working calendar is invalid.");
-  }
-}
-
-/**
- * Summarizes why a document cannot be saved, grouping the blocking diagnostics
- * by kind so one message covers them all.
- *
- * @param diagnostics The blocking diagnostics to summarize.
- * @param resolveEntityName Resolves entity ids to display names.
- * @returns A localized summary, or an empty string when nothing blocks.
- */
-export function summarizeBlockingDiagnostics(
+export function describeDiagnostics(
   diagnostics: readonly ScheduleDiagnostic[],
-  resolveEntityName: EntityNameResolver = (entityId) => entityId,
-): string {
-  const groups: readonly {
-    kind: ScheduleDiagnostic["kind"];
-    format: (subjects: string) => string;
-  }[] = [
-    {
-      kind: "underConstrained",
-      format: (subjects) => vscode.l10n.t("under-constrained items: {0}", subjects),
-    },
-    {
-      kind: "overConstrained",
-      format: (subjects) => vscode.l10n.t("over-constrained items: {0}", subjects),
-    },
-    {
-      kind: "danglingDependency",
-      format: (subjects) => vscode.l10n.t("dangling dependencies: {0}", subjects),
-    },
-    {
-      kind: "groupDependency",
-      format: (subjects) => vscode.l10n.t("group dependencies: {0}", subjects),
-    },
-    {
-      kind: "unanchoredComponent",
-      format: (subjects) => vscode.l10n.t("unanchored components: {0}", subjects),
-    },
-    {
-      kind: "invalidWorkingCalendar",
-      format: () => vscode.l10n.t("invalid working calendar"),
-    },
-  ];
-
-  return groups
-    .map((group) => ({
-      group,
-      present: diagnostics.some((diagnostic) => diagnostic.kind === group.kind),
-      subjects: subjectsOf(diagnostics, group.kind, resolveEntityName),
-    }))
-    .filter((entry) => entry.present)
-    .map((entry) => entry.group.format(entry.subjects.join(", ")))
-    .join("; ");
-}
-
-/** Lists the ids a diagnostic kind should name in a summary. */
-function subjectsOf(
-  diagnostics: readonly ScheduleDiagnostic[],
-  kind: ScheduleDiagnostic["kind"],
-  resolveEntityName: EntityNameResolver,
-): readonly string[] {
-  return diagnostics
-    .filter((diagnostic) => diagnostic.kind === kind)
-    .flatMap((diagnostic) =>
-      diagnostic.kind === "danglingDependency" || diagnostic.kind === "groupDependency"
-        ? [diagnostic.dependencyId]
-        : scheduleDiagnosticEntityIds(diagnostic).map(resolveEntityName),
-    );
+  source: DiagnosticLabelSource,
+  translate: Translate = hostTranslate,
+): string[] {
+  const labels = labelSnapshotOf(source);
+  return scheduleDiagnosticFindings(source, diagnostics).map((finding) =>
+    describeFinding(finding, labels, translate),
+  );
 }

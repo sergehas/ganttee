@@ -11,6 +11,8 @@ import {
 import { generateId } from "@common/idFactory";
 import {
   CyclicDependencyError,
+  EMPTY_LABEL_SNAPSHOT,
+  labelSnapshotOf,
   ParallelEdgeDependencyError,
   ProjectSnapshot,
   SelfLoopDependencyError,
@@ -25,6 +27,13 @@ import {
   WebviewToHostMessage,
 } from "@common/protocol";
 import { wouldCreateCycle } from "@services/dependency-graph/dependencyGraphService";
+import {
+  dependencyCycleRejectedFinding,
+  editRejectedFinding,
+  schedulingFailedFinding,
+  sortUnavailableFinding,
+  unknownItemFinding,
+} from "@services/diagnostics/operationFindings";
 import {
   GanttParseError,
   parseDocument,
@@ -43,15 +52,8 @@ import {
 import { hydrateDocument } from "@services/model/projectModelService";
 import { toProjectPresentation } from "@services/model/projectPresentationService";
 import { createProjectSnapshot } from "@services/model/projectSnapshotService";
-import {
-  sanitizeScheduleGraph,
-  ScheduleGraphSanitization,
-} from "@services/schedule/scheduleGraphSanitizationService";
-import {
-  blockingDiagnostics,
-  evaluateScheduleConstraints,
-  evaluateScheduleDiagnostics,
-} from "@services/schedule/scheduleGraphValidationService";
+import { sanitizeScheduleGraph } from "@services/schedule/scheduleGraphSanitizationService";
+import { evaluateScheduleConstraints } from "@services/schedule/scheduleGraphValidationService";
 import {
   addProjectStatus,
   deleteProjectStatus,
@@ -65,11 +67,27 @@ import {
   SortDirection,
   sortProjectItems,
 } from "@services/sidebar/treeItemOperations";
+import {
+  EditorFeedbackSession,
+  RejectedEditTarget,
+} from "@views/diagnostics/editorFeedbackSession";
+import { GantteeDiagnosticsService } from "@views/diagnostics/gantteeDiagnosticsService";
 import { DocumentEditQueue } from "@views/editor/documentEditQueue";
+import { DocumentEditWorkflow } from "@views/editor/documentEditWorkflow";
 import { GANTTEE_SETTINGS_EDITOR_VIEW_TYPE } from "@views/editor/editorViewTypes";
 import { createWebviewL10nCatalog } from "@views/editor/webviewL10n";
-import { summarizeBlockingDiagnostics } from "@views/scheduleDiagnosticPresenter";
 import * as vscode from "vscode";
+
+/** Outcome of a form proposal. */
+interface ProposalOutcome {
+  /** Whether the document accepted the proposal. */
+  readonly applied: boolean;
+  /** Label-safe explanations of a rejection. */
+  readonly explanations?: readonly string[];
+}
+
+/** Authored collection of each editable entity kind. */
+const ENTITY_COLLECTIONS = { task: "tasks", milestone: "milestones", group: "groups" } as const;
 
 /**
  * Bridges a single `.ganttee` {@link vscode.TextDocument} with its webview and
@@ -81,10 +99,16 @@ export class GanttEditorController {
   private _snapshot = createProjectSnapshot(hydrateDocument(this._document), []).snapshot;
   private _isDisposed = false;
   private _hasInitializedWebview = false;
+  /** Edit request received before the webview was ready. */
+  private _pendingEdit: HostToWebviewMessage | undefined;
   private _documentError: string | undefined;
   private readonly _sanitizedSourceTexts = new Set<string>();
   private readonly _disposables: vscode.Disposable[] = [];
   private readonly _onDidChangeModel = new vscode.EventEmitter<void>();
+  /** Problems routing of this panel session. */
+  private readonly _feedback: EditorFeedbackSession;
+  /** Revision-safe writes owned by this panel. */
+  private readonly _edits: DocumentEditWorkflow;
 
   /** Fires whenever the parsed model changes. */
   readonly onDidChangeModel = this._onDidChangeModel.event;
@@ -94,15 +118,24 @@ export class GanttEditorController {
    * @param webviewPanel The webview panel hosting the chart.
    * @param iconBaseUri Webview URI of the bundled icon folder.
    * @param log Output channel receiving document-loading warnings.
+   * @param editQueue Per-URI serialization of revisioned edits.
+   * @param surface The editor surface this panel shows.
+   * @param diagnostics The shared Problems publisher.
+   * @param sessionId Unique id of this panel session.
    */
   constructor(
     private readonly document: vscode.TextDocument,
     private readonly webviewPanel: vscode.WebviewPanel,
     private readonly iconBaseUri: string,
     private readonly log: vscode.LogOutputChannel,
-    private readonly editQueue: DocumentEditQueue,
+    editQueue: DocumentEditQueue,
     private readonly surface: ProjectEditorSurface,
+    diagnostics: GantteeDiagnosticsService,
+    sessionId: string,
   ) {
+    this._feedback = new EditorFeedbackSession(diagnostics, document, sessionId);
+    this._edits = new DocumentEditWorkflow(document, editQueue);
+    this._disposables.push(this._feedback, this._edits);
     this._disposables.push(
       vscode.workspace.onDidChangeTextDocument((event) => {
         if (event.document.uri.toString() === this.document.uri.toString()) {
@@ -113,7 +146,11 @@ export class GanttEditorController {
               revision: this.document.version,
             });
           } else if (this._documentError !== undefined) {
-            this.post({ type: "documentError", message: this._documentError });
+            this.post({
+              type: "documentError",
+              message: this._documentError,
+              revision: this.document.version,
+            });
           }
         }
       }),
@@ -132,6 +169,11 @@ export class GanttEditorController {
     return this.document.uri;
   }
 
+  /** Returns the last valid project document. */
+  get projectDocument(): ProjectDocument {
+    return this._document;
+  }
+
   /** Returns the current immutable hydrated, scheduled, and diagnostic state. */
   get snapshot(): ProjectSnapshot {
     return this._snapshot;
@@ -140,7 +182,11 @@ export class GanttEditorController {
   /** Reveals the editor panel and posts the initial document to the webview. */
   sendInit(): void {
     if (this._documentError !== undefined) {
-      this.post({ type: "documentError", message: this._documentError });
+      this.post({
+        type: "documentError",
+        message: this._documentError,
+        revision: this.document.version,
+      });
       return;
     }
     this.post({
@@ -173,10 +219,21 @@ export class GanttEditorController {
     this.post({ type: "selectEntity", entity });
   }
 
-  /** Reveals and opens edit mode for an entity in the webview. */
-  editEntity(entity: EditableEntityRef): void {
+  /**
+   * Reveals and opens edit mode for an entity in the webview. A request made before the
+   * webview is ready is delivered right after its initial document.
+   *
+   * @param entity The entity to edit.
+   * @param keepOpen Keeps an already open form of the entity open instead of toggling it.
+   */
+  editEntity(entity: EditableEntityRef, keepOpen = false): void {
     this.focus();
-    this.post({ type: "editEntity", entity });
+    const message: HostToWebviewMessage = { type: "editEntity", entity, keepOpen };
+    if (this._hasInitializedWebview) {
+      this.post(message);
+    } else {
+      this._pendingEdit = message;
+    }
   }
 
   /** Adds a task, positioned per the current sidebar selection. Used by host-side creation flows. */
@@ -215,11 +272,11 @@ export class GanttEditorController {
   /** Sorts authored sidebar order using current effective schedule dates. */
   async sortItems(direction: SortDirection): Promise<boolean> {
     if (this._snapshot.schedule === undefined) {
-      void vscode.window.showWarningMessage(
-        vscode.l10n.t("Sort is unavailable without a schedule."),
-      );
+      const finding = sortUnavailableFinding();
+      this._feedback.operationFailure("sort", [finding], EMPTY_LABEL_SNAPSHOT);
       return false;
     }
+    this._feedback.reportOperation("sort", [], EMPTY_LABEL_SNAPSHOT);
     await this.applyDocument(sortProjectItems(this._document, direction, this.effectiveDateMap()));
     return true;
   }
@@ -250,11 +307,15 @@ export class GanttEditorController {
       return false;
     }
     if (wouldCreateCycle(this._document, dependency)) {
-      void vscode.window.showErrorMessage(
-        vscode.l10n.t("Cannot add dependency: it would create a cycle."),
-      );
+      const finding = dependencyCycleRejectedFinding(dependency.id);
+      const labels = labelSnapshotOf({
+        ...this._document,
+        dependencies: [...this._document.dependencies, dependency],
+      });
+      this._feedback.operationFailure("addDependency", [finding], labels, "dependency");
       return false;
     }
+    this._feedback.reportOperation("addDependency", [], EMPTY_LABEL_SNAPSHOT);
     const dependenciesById = new Map(this._document.dependencies.map((item) => [item.id, item]));
     dependenciesById.set(dependency.id, dependency);
     const dependencies = [...dependenciesById.values()];
@@ -292,6 +353,9 @@ export class GanttEditorController {
       case "ready":
         this.sendL10nCatalogAndInit();
         break;
+      case "reportFeedback":
+        this._feedback.receive(message);
+        break;
       case "openSettings":
         this.openSettings();
         break;
@@ -323,15 +387,16 @@ export class GanttEditorController {
         );
         break;
       case "updateEntity": {
-        let updated = false;
+        let outcome: ProposalOutcome = { applied: false };
         try {
-          updated = await this.updateEntity(message.kind, message.entity, message.baseRevision);
+          outcome = await this.updateEntity(message.kind, message.entity, message.baseRevision);
         } finally {
           this.post({
             type: "updateEntityResult",
             requestId: message.requestId,
             entity: { kind: message.kind, id: message.entity.id },
-            updated,
+            updated: outcome.applied,
+            explanations: outcome.explanations,
           });
         }
         break;
@@ -365,17 +430,25 @@ export class GanttEditorController {
     kind: EditableEntityKind,
     entity: Task | Milestone | Group,
     baseRevision: number,
-  ): Promise<boolean> {
+  ): Promise<ProposalOutcome> {
     if (baseRevision !== this.document.version) {
       this.postCurrentProject();
-      return false;
+      return { applied: false };
     }
+    const proposalLabels = labelSnapshotOf({ [ENTITY_COLLECTIONS[kind]]: [entity] });
     const next = replaceEntity(this._document, kind, entity);
     if (!next) {
-      this.showUnknownIdWarning(kind, entity.id);
-      return false;
+      const finding = unknownItemFinding(kind, entity.id, "rejectedEdit");
+      this._feedback.reportRejection("entityDraft", baseRevision, [finding], proposalLabels);
+      return {
+        applied: false,
+        explanations: this._feedback.showFindings([finding], proposalLabels),
+      };
     }
-    return this.applyDocument(next, baseRevision);
+    return this.applyDocument(next, baseRevision, {
+      context: "entityDraft",
+      baseRevision,
+    });
   }
 
   /** Applies a persisted view proposal through the same revision-safe edit path. */
@@ -398,10 +471,10 @@ export class GanttEditorController {
   ): Promise<boolean> {
     const nextDocument = buildTaskOrMilestoneDeletionDocument(this._document, kind, entityId);
     if (!nextDocument) {
-      this.showUnknownIdWarning(kind, entityId);
+      this.reportUnknownDeletion(kind, entityId);
       return false;
     }
-    return this.applyDocument(nextDocument, baseRevision);
+    return (await this.applyDocument(nextDocument, baseRevision)).applied;
   }
 
   /**
@@ -417,9 +490,7 @@ export class GanttEditorController {
       return false;
     }
     if (!findEntity(this._document, "group", groupId)) {
-      void vscode.window.showWarningMessage(
-        vscode.l10n.t("Cannot delete group '{0}': no matching id.", groupId),
-      );
+      this.reportUnknownDeletion("group", groupId);
       return false;
     }
 
@@ -432,7 +503,7 @@ export class GanttEditorController {
     }
 
     const next = buildGroupDeletionDocument(this._document, groupId, resolvedStrategy);
-    return next ? this.applyDocument(next, editBaseRevision) : false;
+    return next ? (await this.applyDocument(next, editBaseRevision)).applied : false;
   }
 
   /**
@@ -500,7 +571,12 @@ export class GanttEditorController {
           return false;
         }
         this._sanitizedSourceTexts.add(sourceText);
-        this.warnAndApplySanitization(sanitization);
+        void this._feedback.applyCleanup(
+          sanitization,
+          labelSnapshotOf(parsedDocument),
+          serializeDocument(sanitization.document),
+          (text) => this._edits.replaceText(text),
+        );
         return false;
       }
       const document = sanitization.document;
@@ -512,24 +588,18 @@ export class GanttEditorController {
       this._documentError = undefined;
       this._onDidChangeModel.fire();
       if (schedulingError !== undefined) {
-        void vscode.window.showErrorMessage(vscode.l10n.t("Ganttee: {0}", schedulingError.message));
+        const labels = labelSnapshotOf(document);
+        this._feedback.showFindings([schedulingFailedFinding(schedulingError)], labels, "ganttee");
       }
       return true;
     } catch (error) {
-      if (error instanceof GanttParseError) {
-        this._documentError = vscode.l10n.t("Ganttee: {0}", error.message);
-        void vscode.window.showErrorMessage(this._documentError);
-        return false;
-      }
       if (
+        error instanceof GanttParseError ||
         error instanceof SelfLoopDependencyError ||
         error instanceof ParallelEdgeDependencyError ||
         error instanceof CyclicDependencyError
       ) {
-        this._documentError = vscode.l10n.t(
-          "Ganttee: invalid dependency graph. {0}",
-          error.message,
-        );
+        this._documentError = this._feedback.documentError();
         void vscode.window.showErrorMessage(this._documentError);
         return false;
       }
@@ -543,117 +613,54 @@ export class GanttEditorController {
     baseRevision: number,
     next: ProjectDocument | undefined,
   ): Promise<void> {
-    const accepted = next !== undefined && (await this.applyDocument(next, baseRevision));
+    let explanations: readonly string[] | undefined;
+    let accepted = false;
+    if (next === undefined) {
+      const labels = labelSnapshotOf(this._document);
+      const findings = [editRejectedFinding("project")];
+      this._feedback.reportRejection("settingsDraft", baseRevision, findings, labels);
+      explanations = this._feedback.describe(findings, labels);
+    } else {
+      const outcome = await this.applyDocument(next, baseRevision, {
+        context: "settingsDraft",
+        baseRevision,
+      });
+      accepted = outcome.applied;
+      explanations = outcome.explanations;
+    }
     this.post({
       type: "settingsEditResult",
       requestId,
       accepted,
       message: accepted ? undefined : vscode.l10n.t("Settings update was rejected."),
+      explanations,
     });
   }
 
   /**
-   * Warns about invalid scheduling structures and rewrites the source document
-   * with their sanitized replacement.
-   */
-  private warnAndApplySanitization(sanitization: ScheduleGraphSanitization): void {
-    const removedDependencies = sanitization.removedDependencyIds.join(", ");
-    const removedEntities = sanitization.removedEntityIds.join(", ");
-    const details = [
-      removedDependencies.length > 0
-        ? vscode.l10n.t("removed dependencies: {0}", removedDependencies)
-        : undefined,
-      removedEntities.length > 0
-        ? vscode.l10n.t("removed entities: {0}", removedEntities)
-        : undefined,
-    ].filter((message): message is string => message !== undefined);
-    void vscode.window.showWarningMessage(
-      vscode.l10n.t("Ganttee: invalid scheduling structures removed. {0}", details.join("; ")),
-    );
-    void this.applyDocumentText(sanitization.document);
-  }
-
-  /** Applies a document replacement without running semantic save validation. */
-  private async applyDocumentText(next: ProjectDocument): Promise<void> {
-    if (this._isDisposed) {
-      return;
-    }
-    const edit = new vscode.WorkspaceEdit();
-    const fullRange = new vscode.Range(
-      this.document.positionAt(0),
-      this.document.positionAt(this.document.getText().length),
-    );
-    edit.replace(this.document.uri, fullRange, serializeDocument(next));
-    const applied = await vscode.workspace.applyEdit(edit);
-    if (!applied) {
-      if (this._isDisposed) {
-        return;
-      }
-      void vscode.window.showErrorMessage(
-        vscode.l10n.t("Cannot apply automatic scheduling cleanup."),
-      );
-    }
-  }
-
-  /**
    * Validates and applies a full-document replacement through WorkspaceEdit.
-   * Returns whether VS Code accepted the edit so callers can acknowledge authoritative success.
+   * Returns authoritative success and label-safe explanations for correlated form results.
+   * A rejected proposal belongs to its form target, or is published as an operation finding.
    */
-  private applyDocument(
+  private async applyDocument(
     next: ProjectDocument,
     baseRevision = this.document.version,
-  ): Promise<boolean> {
-    return this.editQueue.runRevisioned(
-      this.document.uri.toString(),
-      baseRevision,
-      () => this.document.version,
-      async () => {
-        if (this._isDisposed) {
-          return false;
-        }
-        return this.applyDocumentNow(next);
-      },
-      () => this.postCurrentProject(),
-    );
-  }
-
-  /** Validates and writes a document after its queued revision check succeeds. */
-  private async applyDocumentNow(next: ProjectDocument): Promise<boolean> {
-    try {
-      const parsed = parseDocument(serializeDocument(next));
-      const blocking = blockingDiagnostics(evaluateScheduleDiagnostics(parsed));
-      if (blocking.length > 0) {
-        void vscode.window.showErrorMessage(
-          vscode.l10n.t(
-            "Cannot apply update: {0}",
-            summarizeBlockingDiagnostics(
-              blocking,
-              (id) =>
-                [...parsed.tasks, ...parsed.milestones, ...parsed.groups].find(
-                  (item) => item.id === id,
-                )?.name ?? id,
-            ),
-          ),
-        );
-        return false;
-      }
-    } catch (error) {
-      if (error instanceof GanttParseError) {
-        void vscode.window.showErrorMessage(
-          vscode.l10n.t("Cannot apply update: {0}", error.message),
-        );
-        return false;
-      }
-      throw error;
+    target?: RejectedEditTarget,
+  ): Promise<ProposalOutcome> {
+    const outcome = await this._edits.apply(next, baseRevision);
+    if (outcome.status === "stale") {
+      this.postCurrentProject();
     }
-
-    const edit = new vscode.WorkspaceEdit();
-    const fullRange = new vscode.Range(
-      this.document.positionAt(0),
-      this.document.positionAt(this.document.getText().length),
-    );
-    edit.replace(this.document.uri, fullRange, serializeDocument(next));
-    return vscode.workspace.applyEdit(edit);
+    if (outcome.status === "applied" && target !== undefined) {
+      this._feedback.reportRejection(target.context, target.baseRevision, [], EMPTY_LABEL_SNAPSHOT);
+    }
+    return {
+      applied: outcome.status === "applied",
+      explanations:
+        outcome.status === "validationRejected"
+          ? this._feedback.rejectProposal(outcome.text, target)
+          : undefined,
+    };
   }
 
   /**
@@ -682,6 +689,10 @@ export class GanttEditorController {
       ),
     });
     this.sendInit();
+    if (this._pendingEdit !== undefined) {
+      this.post(this._pendingEdit);
+      this._pendingEdit = undefined;
+    }
   }
 
   /** Creates the versionless UI projection for the current snapshot. */
@@ -707,11 +718,10 @@ export class GanttEditorController {
     return false;
   }
 
-  /** Shows a localized warning for update/delete requests targeting unknown ids. */
-  private showUnknownIdWarning(kind: EditableEntityKind, id: string): void {
-    if (this._isDisposed) {
-      return;
-    }
-    void vscode.window.showWarningMessage(vscode.l10n.t("No {0} found for id '{1}'.", kind, id));
+  /** Reports a delete request whose target no longer exists. */
+  private reportUnknownDeletion(kind: EditableEntityKind, id: string): void {
+    const finding = unknownItemFinding(kind, id, "operation");
+    const labels = labelSnapshotOf(this._document);
+    this._feedback.operationFailure("delete", [finding], labels);
   }
 }

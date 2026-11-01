@@ -8,6 +8,7 @@ import {
   ProjectView,
   Task,
 } from "@common/documents";
+import { GantteeFinding, LabelSnapshot } from "@common/models/diagnostics";
 import { ProjectPresentation } from "@common/presentation/project";
 
 /**
@@ -32,15 +33,27 @@ export type HostToWebviewMessage =
       surface: ProjectEditorSurface;
     }
   | { type: "documentChanged"; project: ProjectPresentation; revision: number }
-  | { type: "documentError"; message: string }
+  | {
+      //  Localized, label-safe explanation that the current document revision is invalid.
+      type: "documentError";
+      message: string;
+      revision: number;
+    }
   | {
       type: "settingsEditResult";
       requestId: number;
       accepted: boolean;
       message?: string;
+      /** Localized, label-safe explanations of a rejection. */
+      explanations?: readonly string[];
     }
   | { type: "selectEntity"; entity: EditableEntityRef }
-  | { type: "editEntity"; entity: EditableEntityRef }
+  | {
+      type: "editEntity";
+      entity: EditableEntityRef;
+      /** Keeps an already open form of the same entity open instead of toggling it closed. */
+      keepOpen?: boolean;
+    }
   | {
       //  Authoritative outcome of one correlated webview entity-update proposal.
       //  This acknowledgment is independent of `documentChanged`; either message may arrive first.
@@ -48,6 +61,8 @@ export type HostToWebviewMessage =
       requestId: number;
       entity: EditableEntityRef;
       updated: boolean;
+      /** Localized, label-safe explanations of a rejection. */
+      explanations?: readonly string[];
     }
   | { type: "deleteEntityResult"; entity: EditableEntityRef; deleted: boolean };
 
@@ -110,9 +125,36 @@ export interface AddProjectStatusMessage {
   baseRevision: number;
 }
 
+/** Browser-owned feedback contexts mirrored into native Problems. */
+export type FeedbackContext = "entityDraft" | "settingsDraft" | "operation";
+
+/**
+ * Replaces (or clears, when `findings` is empty) one browser feedback context for the sending
+ * editor session. The receiving controller supplies URI and session ownership; the browser never
+ * names a resource. Older or duplicate generations and incompatible revisions are ignored.
+ */
+export interface ReportFeedbackMessage {
+  type: "reportFeedback";
+  /** Feedback context replaced by this message. */
+  context: FeedbackContext;
+  /** Strictly increasing per context within one webview session. */
+  generation: number;
+  /** Document revision the feedback was computed against. */
+  baseRevision: number;
+  /** Structured findings; empty clears the context. */
+  findings: readonly GantteeFinding[];
+  /** Draft or proposal labels for referenced items, including unsent renames and new items. */
+  labels: LabelSnapshot;
+  /** Stable logical operation key; required for `operation` feedback. */
+  operationKey?: string;
+  /** Strictly increasing attempt generation; required for `operation` feedback. */
+  attempt?: number;
+}
+
 /** Messages sent from the webview to the extension host. */
 export type WebviewToHostMessage =
   | { type: "ready" }
+  | ReportFeedbackMessage
   | { type: "openSettings" }
   | UpdateEntityMessage
   | ({ type: "updateSettings" } & UpdateSettingsMessage)

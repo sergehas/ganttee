@@ -1,6 +1,6 @@
 {
   "extension.displayName": "Ganttee",
-  "extension.description": "Editeur de diagrammes de Gantt",
+  "extension.description": "Éditeur de diagrammes de Gantt",
   "customEditor.chartEditor.displayName": "Diagramme de Gantt",
   "customEditor.settingsEditor.displayName": "Paramètres du projet",
   "viewsContainer.ganttee.title": "Ganttee",
@@ -19,5 +19,7 @@
   "command.editProjectItem.title": "Modifier l'élément",
   "command.deleteProjectItem.title": "Supprimer l'élément",
   "command.revealEntity.title": "Révéler l'élément de travail",
-  "command.refreshExplorer.title": "Actualiser"
+  "command.refreshExplorer.title": "Actualiser",
+  "command.dismissOperationProblem.title": "Ignorer le problème d'opération",
+  "command.openProblemItem.title": "Ouvrir l'élément du problème"
 }

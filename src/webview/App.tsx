@@ -7,6 +7,7 @@ import {
   ProjectView,
   Task,
 } from "@common/documents";
+import { EMPTY_LABEL_SNAPSHOT, labelSnapshotOf } from "@common/models";
 import { ProjectPresentation } from "@common/presentation/project";
 import {
   EditableEntityKind,
@@ -14,6 +15,13 @@ import {
   EditableEntityRef,
   ProjectEditorSurface,
 } from "@common/protocol";
+import {
+  draftLabelSnapshot,
+  entityDraftFindings,
+  exportFailedFinding,
+  SettingsDraftState,
+  settingsDraftFindings,
+} from "@services/diagnostics/draftFindings";
 import { SaveEntityOptions } from "@services/editing/projectItemSaveGuardService";
 import "@webview/App.scss";
 import { IconBaseUriProvider } from "@webview/components/Icon";
@@ -22,10 +30,11 @@ import { ChartView } from "@webview/features/chart/components/ChartView";
 import { EntityEditor } from "@webview/features/entity-editor/components/EntityEditor";
 import { useEntityEditWorkflow } from "@webview/features/entity-editor/hooks/useEntityEditWorkflow";
 import { SettingsEditor } from "@webview/features/settings/components/SettingsEditor";
+import { FeedbackReporter } from "@webview/feedbackReporter";
 import { translate, WebviewL10n, WebviewL10nContext } from "@webview/l10n";
 import { createGanttViewState, GanttViewState } from "@webview/viewState";
 import { onHostMessage, postToHost } from "@webview/vscodeApi";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 /** Webview-only behavior retained until the host acknowledges an entity update. */
 interface PendingEntityUpdate {
@@ -49,6 +58,8 @@ export function App(): React.JSX.Element {
   const [documentError, setDocumentError] = useState<string | null>(null);
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [settingsExplanations, setSettingsExplanations] = useState<readonly string[]>([]);
+  const [entityRejection, setEntityRejection] = useState<readonly string[]>([]);
   const [l10n, setL10n] = useState<WebviewL10n | null>(null);
   const [editingEntity, setEditingEntity] = useState<EditableEntityRef | null>(null);
   const [closingEditingTarget, setClosingEditingTarget] = useState<ResolvedEditingEntity | null>(
@@ -64,6 +75,76 @@ export function App(): React.JSX.Element {
   const pendingEntityUpdatesRef = useRef(new Map<number, PendingEntityUpdate>());
   const nextSettingsRequestIdRef = useRef(0);
   const pendingSettingsRequestIdRef = useRef<number | null>(null);
+  const reporterRef = useRef<FeedbackReporter | null>(null);
+  reporterRef.current ??= new FeedbackReporter(postToHost);
+  const currentRevisionRef = useRef(0);
+  const sourceInvalidRef = useRef(false);
+  const entityDraftRef = useRef<ResolvedEditingEntity | null>(null);
+  const settingsDraftRef = useRef<SettingsDraftState>({
+    invalidHolidayRange: false,
+    blankStatusName: false,
+  });
+
+  /** Mirrors the open entity draft's local findings against the current revision. */
+  function reportEntityDraft(): void {
+    const draft = entityDraftRef.current;
+    const project = projectRef.current;
+    if (!draft || !project) {
+      reporterRef.current?.reportDraft(
+        "entityDraft",
+        currentRevisionRef.current,
+        [],
+        EMPTY_LABEL_SNAPSHOT,
+      );
+      return;
+    }
+    reporterRef.current?.reportDraft(
+      "entityDraft",
+      currentRevisionRef.current,
+      entityDraftFindings(draft.kind, draft.entity, project.dependencies),
+      draftLabelSnapshot(project, draft.kind, draft.entity),
+    );
+  }
+
+  /** Mirrors the settings form's blocking local findings against the current revision. */
+  function reportSettingsDraft(): void {
+    const project = projectRef.current;
+    reporterRef.current?.reportDraft(
+      "settingsDraft",
+      currentRevisionRef.current,
+      settingsDraftFindings(settingsDraftRef.current, project?.settings.holidays.length ?? 0),
+      project ? labelSnapshotOf(project) : EMPTY_LABEL_SNAPSHOT,
+    );
+  }
+
+  /** Records the latest entity draft shown by the open editor and mirrors its feedback. */
+  function updateEntityDraft(
+    kind: EditableEntityKind,
+    entity: EditableEntityMap[EditableEntityKind],
+  ) {
+    if (!editingEntityRef.current) {
+      return;
+    }
+    entityDraftRef.current = { kind, entity };
+    reportEntityDraft();
+  }
+
+  /** Records the settings form's blocking local conditions and mirrors them. */
+  function updateSettingsDraft(state: SettingsDraftState): void {
+    settingsDraftRef.current = state;
+    reportSettingsDraft();
+  }
+
+  /** Shows an export outcome inline and mirrors a failure as an operation finding. */
+  function reportExportError(message: string | null): void {
+    setExportError(message);
+    reporterRef.current?.reportOperation(
+      "export",
+      currentRevisionRef.current,
+      message === null ? [] : [exportFailedFinding()],
+      EMPTY_LABEL_SNAPSHOT,
+    );
+  }
 
   useEffect(() => {
     const unsubscribe = onHostMessage((message) => {
@@ -76,6 +157,9 @@ export function App(): React.JSX.Element {
           setSurface(message.surface);
           setDocumentError(null);
           setSettingsError(null);
+          setSettingsExplanations([]);
+          currentRevisionRef.current = message.revision;
+          sourceInvalidRef.current = false;
           try {
             const nextViewState = createGanttViewState(message.project, message.revision);
             setPendingView(null);
@@ -87,6 +171,8 @@ export function App(): React.JSX.Element {
           break;
         case "documentChanged":
           setDocumentError(null);
+          currentRevisionRef.current = message.revision;
+          sourceInvalidRef.current = false;
           try {
             const nextViewState = createGanttViewState(message.project, message.revision);
             const currentEditingEntity = editingEntityRef.current;
@@ -105,33 +191,45 @@ export function App(): React.JSX.Element {
           } catch {
             setViewState(null);
           }
+          reportEntityDraft();
+          reportSettingsDraft();
           break;
         case "documentError":
-          setViewState(null);
+          // Keep the last valid model so an open form stays open; saves stay blocked until a
+          // valid revision rebases it.
+          currentRevisionRef.current = message.revision;
+          sourceInvalidRef.current = true;
           setDocumentError(message.message);
           pendingSettingsRequestIdRef.current = null;
           setSettingsBusy(false);
+          reportEntityDraft();
+          reportSettingsDraft();
           break;
         case "settingsEditResult":
           if (message.requestId === pendingSettingsRequestIdRef.current) {
             pendingSettingsRequestIdRef.current = null;
             setSettingsBusy(false);
             setSettingsError(message.accepted ? null : (message.message ?? ""));
+            setSettingsExplanations(message.accepted ? [] : (message.explanations ?? []));
           }
           break;
         case "editEntity":
+          if (message.keepOpen === true && isSameEntity(editingEntityRef.current, message.entity)) {
+            break;
+          }
           toggleEntityEditor(message.entity);
           break;
         case "updateEntityResult": {
           const pendingUpdate = pendingEntityUpdatesRef.current.get(message.requestId);
           pendingEntityUpdatesRef.current.delete(message.requestId);
-          if (
-            message.updated &&
-            pendingUpdate &&
-            !pendingUpdate.keepEditorOpen &&
+          const isCurrentSession =
+            pendingUpdate !== undefined &&
             pendingUpdate.editorSessionVersion === editorSessionVersionRef.current &&
-            isSameEntity(editingEntityRef.current, message.entity)
-          ) {
+            isSameEntity(editingEntityRef.current, message.entity);
+          if (isCurrentSession) {
+            setEntityRejection(message.updated ? [] : (message.explanations ?? []));
+          }
+          if (message.updated && isCurrentSession && !pendingUpdate.keepEditorOpen) {
             closeEntityEditor();
           }
           break;
@@ -156,7 +254,7 @@ export function App(): React.JSX.Element {
     entity: EditableEntityMap[EditableEntityKind],
     options?: SaveEntityOptions,
   ) => {
-    if (!viewState) {
+    if (!viewState || sourceInvalidRef.current) {
       return;
     }
     const requestId = nextUpdateRequestIdRef.current;
@@ -176,7 +274,7 @@ export function App(): React.JSX.Element {
 
   /** Requests deletion; a successful host result closes the matching editor session. */
   const deleteEntityToHost = (entity: EditableEntityRef) => {
-    if (!viewState) {
+    if (!viewState || sourceInvalidRef.current) {
       return;
     }
     postToHost({ type: "deleteEntity", entity, baseRevision: viewState.revision });
@@ -184,7 +282,7 @@ export function App(): React.JSX.Element {
 
   /** Sends one settings proposal and prevents another until its authoritative result arrives. */
   function updateSettingsToHost(proposal: SettingsEditProposal): void {
-    if (!viewState || pendingSettingsRequestIdRef.current !== null) {
+    if (!viewState || sourceInvalidRef.current || pendingSettingsRequestIdRef.current !== null) {
       return;
     }
     const requestId = nextSettingsRequestIdRef.current;
@@ -192,6 +290,7 @@ export function App(): React.JSX.Element {
     pendingSettingsRequestIdRef.current = requestId;
     setSettingsBusy(true);
     setSettingsError(null);
+    setSettingsExplanations([]);
     postToHost({ ...proposal, requestId, baseRevision: viewState.revision });
   }
 
@@ -226,11 +325,16 @@ export function App(): React.JSX.Element {
     editorSessionVersionRef.current += 1;
     editingEntityRef.current = entity;
     setEditingEntity(entity);
+    setEntityRejection([]);
+    if (!entity) {
+      entityDraftRef.current = null;
+      reportEntityDraft();
+    }
   }
 
   /** Sends a new dependency to the extension host. */
   const addDependency = (dependency: Dependency) => {
-    if (!viewState) {
+    if (!viewState || sourceInvalidRef.current) {
       return;
     }
     postToHost({ type: "addDependency", dependency, baseRevision: viewState.revision });
@@ -238,7 +342,7 @@ export function App(): React.JSX.Element {
 
   /** Sends a dependency deletion to the extension host. */
   const removeDependency = (dependencyId: string) => {
-    if (!viewState) {
+    if (!viewState || sourceInvalidRef.current) {
       return;
     }
     postToHost({ type: "removeDependency", dependencyId, baseRevision: viewState.revision });
@@ -251,11 +355,16 @@ export function App(): React.JSX.Element {
     onRemoveDependency: removeDependency,
   });
 
+  const editingTarget = useMemo(
+    () => resolveEntity(viewState?.project, editingEntity),
+    [viewState, editingEntity],
+  );
+
   if (!l10n) {
     return <div className="ganttee-app__empty" aria-busy="true" />;
   }
 
-  if (documentError) {
+  if (documentError && !viewState) {
     return (
       <div className="ganttee-app__empty" role="alert">
         {documentError}
@@ -271,17 +380,20 @@ export function App(): React.JSX.Element {
     );
   }
 
-  const editingTarget = resolveEntity(viewState.project, editingEntity);
   const displayedEditingTarget = editingTarget ?? closingEditingTarget;
   const chartView = pendingView ?? viewState.project.view;
+  const sourceInvalid = documentError !== null;
 
   if (surface === "settings") {
     return (
       <WebviewL10nContext.Provider value={l10n}>
+        {sourceInvalid && <StatusNotice severity="error">{documentError}</StatusNotice>}
         <SettingsEditor
           project={viewState.project}
-          busy={settingsBusy}
+          busy={settingsBusy || sourceInvalid}
           error={settingsError}
+          explanations={settingsExplanations}
+          onDraftFeedback={updateSettingsDraft}
           onUpdateSettings={(settings) =>
             updateSettingsToHost({ type: "updateSettings", settings })
           }
@@ -310,25 +422,31 @@ export function App(): React.JSX.Element {
       <WebviewL10nContext.Provider value={l10n}>
         <div className="ganttee-app">
           <div className="ganttee-app__timeline">
-            <ChartView
-              project={viewState.project}
-              view={chartView}
-              isEmpty={
-                viewState.project.tasks.length === 0 && viewState.project.milestones.length === 0
-              }
-              emptyState={
-                <div className="ganttee-app__empty">
-                  {translate(l10n, "No tasks yet. Use the Ganttee sidebar to add one.")}
-                </div>
-              }
-              toolbarFeedback={
-                exportError ? <StatusNotice severity="error">{exportError}</StatusNotice> : null
-              }
-              onViewChange={updateView}
-              onEditEntity={toggleEntityEditor}
-              onExportError={setExportError}
-              onOpenSettings={() => postToHost({ type: "openSettings" })}
-            />
+            {sourceInvalid ? (
+              <div className="ganttee-app__empty" role="alert">
+                {documentError}
+              </div>
+            ) : (
+              <ChartView
+                project={viewState.project}
+                view={chartView}
+                isEmpty={
+                  viewState.project.tasks.length === 0 && viewState.project.milestones.length === 0
+                }
+                emptyState={
+                  <div className="ganttee-app__empty">
+                    {translate(l10n, "No tasks yet. Use the Ganttee sidebar to add one.")}
+                  </div>
+                }
+                toolbarFeedback={
+                  exportError ? <StatusNotice severity="error">{exportError}</StatusNotice> : null
+                }
+                onViewChange={updateView}
+                onEditEntity={toggleEntityEditor}
+                onExportError={reportExportError}
+                onOpenSettings={() => postToHost({ type: "openSettings" })}
+              />
+            )}
           </div>
           {displayedEditingTarget && (
             <aside
@@ -351,6 +469,9 @@ export function App(): React.JSX.Element {
                   workflow.ungroupEntity(viewState.project, entity, options)
                 }
                 onRequestEditEntity={requestEditEntity}
+                onDraftChange={updateEntityDraft}
+                rejection={entityRejection}
+                saveBlocked={sourceInvalid}
               />
             </aside>
           )}
