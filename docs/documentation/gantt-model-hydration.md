@@ -29,6 +29,50 @@ computational form. `ProjectSnapshot` hides model/schedule joining from host con
 `ProjectPresentation` is the JSON-compatible webview transport; it contains authored fields plus
 optional effective schedule fields, but no disk schema version.
 
+## Host Edit and Feedback Ownership
+
+```mermaid
+---
+config:
+  layout: elk
+---
+flowchart LR
+    UI["Webview / sidebar"] -->|edit intents| CTRL["GanttEditorController"]
+    CTRL -->|proposals| EDIT["DocumentEditWorkflow"]
+    EDIT -->|write outcome| CTRL
+    EDIT -->|queue + revision check + validation| WRITE["WorkspaceEdit"]
+    WRITE -->|accepted edit| TEXT["TextDocument"]
+    TEXT -->|reparse + hydrate + schedule| CTRL
+    CTRL -->|authoritative presentation| UI
+    CTRL -->|rejections / operations / cleanup| FEEDBACK["EditorFeedbackSession"]
+    UI -->|draft feedback via controller| FEEDBACK
+    FEEDBACK -->|cleanup replacement| EDIT
+    FEEDBACK -->|localized explanations| UI
+    FEEDBACK -->|notifications| NOTIFY["VS Code notifications"]
+    FEEDBACK -->|transient findings| DIAG["GantteeDiagnosticsService"]
+    TEXT -->|document findings| DIAG
+    DIAG -->|diagnostics| PROBLEMS["Problems"]
+```
+
+[GanttEditorController](../../src/views/editor/ganttEditorController.ts) owns protocol routing,
+reparsing, and authoritative model broadcasts. It delegates document writes to
+[DocumentEditWorkflow](../../src/views/editor/documentEditWorkflow.ts), which uses the shared
+per-URI edit queue, checks the revision inside the queue, and preserves existing proposal
+validation. The write outcome distinguishes applied, stale, validation-rejected, write-rejected, and
+disposed requests. No proposal updates the cached model directly.
+
+[EditorFeedbackSession](../../src/views/diagnostics/editorFeedbackSession.ts) owns panel feedback
+routing, notification wording, rejected-edit explanations, and document-error summaries. Finding
+wording stays in the shared, pure
+[finding presenter](../../src/common/presentation/diagnostics/findingPresenter.ts), with labels and
+translation supplied by its caller. Draft and rejected-edit findings remain panel-owned; operation
+findings remain URI-owned.
+
+Automatic cleanup retains its separate text-replacement path without semantic proposal validation or
+queuing. The feedback session publishes the warning with pre-cleanup labels and marks the expected
+replacement before writing. A rejected cleanup write replaces that warning with a failure;
+successful cleanup keeps its warning across its own document change.
+
 ---
 
 ## The Three Layers
@@ -86,25 +130,25 @@ sequenceDiagram
     participant Ctrl as GanttEditorController
     participant Parse as parseDocument
     participant Hydrate as hydrateDocument
-    participant Snapshot as ProjectSnapshot
+    participant Snapshot as createProjectSnapshot
     participant Store as GanttStore
     participant Tree as GanttExplorerProvider
     participant App as App.tsx
 
     User->>VSC: open .ganttee file
     VSC->>Provider: resolveCustomTextEditor(document, panel)
-    Provider->>Ctrl: new GanttEditorController(document, panel, iconBaseUri)
+    Provider->>Ctrl: create controller with document, panel, and host collaborators
     Ctrl->>Parse: parseDocument(document.text)
     Parse-->>Ctrl: ProjectDocument
     Ctrl->>Hydrate: hydrateDocument(document)
     Hydrate-->>Ctrl: ProjectModel
     Ctrl->>Snapshot: createProjectSnapshot(model, diagnostics)
-    Snapshot-->>Ctrl: model + schedule + diagnostics
+    Snapshot-->>Ctrl: { snapshot, schedulingError? }
     Provider->>Store: setActive(controller)
     Store-->>Tree: active editor changed
 
     App->>Ctrl: ready
-    Ctrl-->>App: init { project, revision, iconBaseUri }
+    Ctrl-->>App: l10nCatalog, then init { project, revision, iconBaseUri, surface }
     App->>App: createGanttViewState(project)
     Store-->>Tree: refresh tree
     Tree->>Ctrl: snapshot
@@ -127,6 +171,8 @@ sequenceDiagram
     participant Eval as evaluateScheduleConstraints
     participant Snapshot as createProjectSnapshot
     participant Present as toProjectPresentation
+    participant Feedback as EditorFeedbackSession
+    participant Edit as DocumentEditWorkflow
     participant App as App.tsx
 
     VSC->>Ctrl: on editor open / text changed
@@ -135,7 +181,9 @@ sequenceDiagram
     Ctrl->>Sanitize: sanitizeScheduleGraph(document)
     Sanitize-->>Ctrl: sanitized document
     alt structures removed
-        Ctrl->>VSC: apply sanitized document
+        Ctrl->>Feedback: applyCleanup(removals, source labels, replacement)
+        Feedback->>Edit: replaceText(replacement)
+        Edit->>VSC: WorkspaceEdit
         VSC-->>Ctrl: reparse changed text
     else document unchanged
         Ctrl->>Hydrate: hydrateDocument(document)
@@ -143,13 +191,13 @@ sequenceDiagram
         Ctrl->>Eval: evaluateScheduleConstraints(document)
         Eval-->>Ctrl: diagnostics
         Ctrl->>Snapshot: createProjectSnapshot(model, diagnostics)
-        Snapshot-->>Ctrl: ProjectSnapshot
+        Snapshot-->>Ctrl: { snapshot, schedulingError? }
         Ctrl->>Present: toProjectPresentation(snapshot)
         Present-->>Ctrl: ProjectPresentation
+        Ctrl-->>App: init on ready / documentChanged on text change
+        App->>App: create or replace view state
+        App->>App: render timeline + chart
     end
-    Ctrl-->>App: postMessage({ type: "init", project, revision })
-    App->>App: createGanttViewState(project)
-    App->>App: render timeline + chart
 ```
 
 Sanitization owns component-anchoring checks on reparse. When it removes entities it also strips
@@ -168,6 +216,7 @@ sequenceDiagram
     actor User
     participant App as App.tsx
     participant Host as GanttEditorController
+    participant Edit as DocumentEditWorkflow
     participant Parse as parseDocument
     participant Write as WorkspaceEdit
     participant VSC as VS Code TextDocument
@@ -183,9 +232,10 @@ sequenceDiagram
         Host->>Host: addDependency / removeDependency
     end
     Host->>Host: applyDocument(nextDocument)
-    Host->>Host: evaluateScheduleDiagnostics(nextDocument)
-    Host->>Write: WorkspaceEdit.replace(document range, serializeDocument(nextDocument))
-    Write->>VSC: applyEdit()
+    Host->>Edit: apply(nextDocument, baseRevision)
+    Edit->>Edit: queued revision check, parse, evaluateScheduleDiagnostics
+    Edit->>Write: replace full document with serialized proposal
+    Edit->>VSC: applyEdit(WorkspaceEdit)
     VSC-->>Host: onDidChangeTextDocument
     Host->>Parse: parseDocument(new text)
     Parse-->>Host: ProjectDocument
@@ -193,8 +243,8 @@ sequenceDiagram
     App->>App: replace viewState with latest presentation
 ```
 
-The webview never writes the file or returns a complete project payload. It sends revision-safe
-intent messages; the host applies them to the current document through `WorkspaceEdit`.
+The diagram shows an accepted edit. The webview never writes the file or returns a complete project
+payload. It sends revision-safe intent messages; the host applies them through `WorkspaceEdit`.
 
 ---
 
@@ -206,6 +256,7 @@ sequenceDiagram
     participant Tree as GanttExplorerProvider
     participant Store as GanttStore
     participant Ctrl as GanttEditorController
+    participant Edit as DocumentEditWorkflow
     participant Write as WorkspaceEdit
     participant VSC as VS Code TextDocument
     participant Parse as parseDocument
@@ -221,9 +272,10 @@ sequenceDiagram
         Tree->>Ctrl: assignEntitiesToGroup
     end
     Ctrl->>Ctrl: applyDocument(nextDocument)
-    Ctrl->>Ctrl: evaluateScheduleDiagnostics(nextDocument)
-    Ctrl->>Write: WorkspaceEdit.replace(document range, serializeDocument(nextDocument))
-    Write->>VSC: applyEdit()
+    Ctrl->>Edit: apply(nextDocument, baseRevision)
+    Edit->>Edit: queued revision check, parse, evaluateScheduleDiagnostics
+    Edit->>Write: replace full document with serialized proposal
+    Edit->>VSC: applyEdit(WorkspaceEdit)
     VSC-->>Ctrl: onDidChangeTextDocument
     Ctrl->>Parse: parseDocument(updated text)
     Parse-->>Ctrl: ProjectDocument
@@ -232,9 +284,9 @@ sequenceDiagram
     Tree-->>Tree: refresh tree data
 ```
 
-The sidebar and the chart share the same host edit boundary. Both paths converge on
-`GanttEditorController.applyDocument`, which means there is still one persisted document and one
-reparse cycle, no matter which UI surface initiated the mutation.
+The diagram shows an accepted edit. The sidebar and the chart share the same host edit boundary.
+Both paths converge on `GanttEditorController.applyDocument`, which means there is still one
+persisted document and one reparse cycle, no matter which UI surface initiated the mutation.
 
 ---
 
@@ -311,10 +363,10 @@ second graph that could disagree with the model.
 
 ## Why the document and model are separate
 
-`ProjectDocument` is stable and serializable. It is plain JSON and represents the file on disk and
-what passes through the protocol. `ProjectModel` is the rich object graph used by host-side logic
-and by scheduling. The document is the source of truth; the model is a computed view rebuilt on
-every successful reparse.
+`ProjectDocument` is stable and serializable. It is plain JSON and represents the file on disk;
+`ProjectPresentation` is the project payload sent through the protocol. `ProjectModel` is the rich
+object graph used by host-side logic and by scheduling. The document is the source of truth; the
+model is a computed view rebuilt on every successful reparse.
 
 The controller stores one `ProjectSnapshot`. Sidebar reads its merged item records. The webview
 receives a `ProjectPresentation` where each item carries optional `effective*` fields.
@@ -330,13 +382,15 @@ src/common/presentation/        ← versionless JSON-safe UI projections.
 
 src/services/dependency-graph/  ← dependency validation, cycle checks, and graph primitives.
 src/services/document/          ← parse, migrate, and validate the raw .ganttee document.
+src/services/diagnostics/       ← document findings and transient feedback rules.
 src/services/editing/           ← authoring edits and mutation helpers for project items.
 src/services/groups/            ← group-specific delete/reparent logic and behaviors.
 src/services/model/             ← hydrate/serialize between plain document and real model objects.
 src/services/schedule/          ← diagnostics, graph sanitization, and schedule derivation.
 src/services/sidebar/           ← tree actions such as move, sort, and group assignment.
 
-src/views/editor/               ← GanttEditorController and VS Code integration.
+src/views/editor/               ← protocol routing, document writes, and VS Code integration.
+src/views/diagnostics/          ← feedback presentation and native Problems publishing.
 src/views/sidebar/              ← GanttExplorerProvider and tree commands.
 
 src/webview/                    ← React chart/editor UI.
@@ -346,13 +400,13 @@ The plain document stays at the persistence boundary. Neither hydrated classes n
 cross `postMessage`. The webview receives `ProjectPresentation` plus the current protocol
 `revision`, then sends authoring intents back to the host.
 
-`evaluateScheduleDiagnostics` combines constraint and component-anchoring diagnostics for proposed
-edits before persistence. Reparse uses `evaluateScheduleConstraints` because `sanitizeScheduleGraph`
-has already checked and removed unanchored components.
+`evaluateScheduleDiagnostics` combines working-calendar, constraint, and component-anchoring
+diagnostics for proposed edits before persistence. Reparse uses `evaluateScheduleConstraints`
+because `sanitizeScheduleGraph` has already checked and removed unanchored components.
 
 ## Failure behavior
 
 The controller updates its cached document and model only after parsing and hydration succeed. If a
 malformed document or invalid graph appears, the host shows a localized error and keeps the last
-valid state intact. A live webview still receives `documentChanged` from the last good state so the
-UI stays synchronized while the user fixes the file.
+valid state intact. A live webview receives `documentError`, not a new `documentChanged` projection,
+while the user fixes the file.

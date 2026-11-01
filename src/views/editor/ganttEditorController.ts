@@ -12,8 +12,6 @@ import { generateId } from "@common/idFactory";
 import {
   CyclicDependencyError,
   EMPTY_LABEL_SNAPSHOT,
-  GantteeFinding,
-  LabelSnapshot,
   labelSnapshotOf,
   ParallelEdgeDependencyError,
   ProjectSnapshot,
@@ -29,7 +27,6 @@ import {
   WebviewToHostMessage,
 } from "@common/protocol";
 import { wouldCreateCycle } from "@services/dependency-graph/dependencyGraphService";
-import { proposalRejection } from "@services/diagnostics/documentDiagnosticsService";
 import {
   dependencyCycleRejectedFinding,
   editRejectedFinding,
@@ -37,7 +34,6 @@ import {
   sortUnavailableFinding,
   unknownItemFinding,
 } from "@services/diagnostics/operationFindings";
-import { DraftFeedbackContext } from "@services/diagnostics/transientFeedbackStore";
 import {
   GanttParseError,
   parseDocument,
@@ -56,15 +52,8 @@ import {
 import { hydrateDocument } from "@services/model/projectModelService";
 import { toProjectPresentation } from "@services/model/projectPresentationService";
 import { createProjectSnapshot } from "@services/model/projectSnapshotService";
-import {
-  sanitizeScheduleGraph,
-  ScheduleGraphSanitization,
-} from "@services/schedule/scheduleGraphSanitizationService";
-import {
-  blockingDiagnostics,
-  evaluateScheduleConstraints,
-  evaluateScheduleDiagnostics,
-} from "@services/schedule/scheduleGraphValidationService";
+import { sanitizeScheduleGraph } from "@services/schedule/scheduleGraphSanitizationService";
+import { evaluateScheduleConstraints } from "@services/schedule/scheduleGraphValidationService";
 import {
   addProjectStatus,
   deleteProjectStatus,
@@ -78,19 +67,16 @@ import {
   SortDirection,
   sortProjectItems,
 } from "@services/sidebar/treeItemOperations";
-import { EditorFeedbackSession } from "@views/diagnostics/editorFeedbackSession";
+import {
+  EditorFeedbackSession,
+  RejectedEditTarget,
+} from "@views/diagnostics/editorFeedbackSession";
 import { GantteeDiagnosticsService } from "@views/diagnostics/gantteeDiagnosticsService";
 import { DocumentEditQueue } from "@views/editor/documentEditQueue";
+import { DocumentEditWorkflow } from "@views/editor/documentEditWorkflow";
 import { GANTTEE_SETTINGS_EDITOR_VIEW_TYPE } from "@views/editor/editorViewTypes";
 import { createWebviewL10nCatalog } from "@views/editor/webviewL10n";
 import * as vscode from "vscode";
-
-/** Receives the label-safe explanation of a rejected proposal. */
-type RejectionHandler = (
-  findings: readonly GantteeFinding[],
-  labels: LabelSnapshot,
-  explanations: readonly string[],
-) => void;
 
 /** Outcome of a form proposal. */
 interface ProposalOutcome {
@@ -121,6 +107,8 @@ export class GanttEditorController {
   private readonly _onDidChangeModel = new vscode.EventEmitter<void>();
   /** Problems routing of this panel session. */
   private readonly _feedback: EditorFeedbackSession;
+  /** Revision-safe writes owned by this panel. */
+  private readonly _edits: DocumentEditWorkflow;
 
   /** Fires whenever the parsed model changes. */
   readonly onDidChangeModel = this._onDidChangeModel.event;
@@ -140,13 +128,14 @@ export class GanttEditorController {
     private readonly webviewPanel: vscode.WebviewPanel,
     private readonly iconBaseUri: string,
     private readonly log: vscode.LogOutputChannel,
-    private readonly editQueue: DocumentEditQueue,
+    editQueue: DocumentEditQueue,
     private readonly surface: ProjectEditorSurface,
-    private readonly diagnostics: GantteeDiagnosticsService,
+    diagnostics: GantteeDiagnosticsService,
     sessionId: string,
   ) {
     this._feedback = new EditorFeedbackSession(diagnostics, document, sessionId);
-    this._disposables.push(this._feedback);
+    this._edits = new DocumentEditWorkflow(document, editQueue);
+    this._disposables.push(this._feedback, this._edits);
     this._disposables.push(
       vscode.workspace.onDidChangeTextDocument((event) => {
         if (event.document.uri.toString() === this.document.uri.toString()) {
@@ -284,10 +273,7 @@ export class GanttEditorController {
   async sortItems(direction: SortDirection): Promise<boolean> {
     if (this._snapshot.schedule === undefined) {
       const finding = sortUnavailableFinding();
-      this._feedback.reportOperation("sort", [finding], EMPTY_LABEL_SNAPSHOT);
-      void vscode.window.showWarningMessage(
-        this._feedback.describe([finding], EMPTY_LABEL_SNAPSHOT)[0],
-      );
+      this._feedback.operationFailure("sort", [finding], EMPTY_LABEL_SNAPSHOT);
       return false;
     }
     this._feedback.reportOperation("sort", [], EMPTY_LABEL_SNAPSHOT);
@@ -326,10 +312,7 @@ export class GanttEditorController {
         ...this._document,
         dependencies: [...this._document.dependencies, dependency],
       });
-      this._feedback.reportOperation("addDependency", [finding], labels);
-      void vscode.window.showErrorMessage(
-        vscode.l10n.t("Cannot add dependency: {0}", this._feedback.describe([finding], labels)[0]),
-      );
+      this._feedback.operationFailure("addDependency", [finding], labels, "dependency");
       return false;
     }
     this._feedback.reportOperation("addDependency", [], EMPTY_LABEL_SNAPSHOT);
@@ -457,18 +440,15 @@ export class GanttEditorController {
     if (!next) {
       const finding = unknownItemFinding(kind, entity.id, "rejectedEdit");
       this._feedback.reportRejection("entityDraft", baseRevision, [finding], proposalLabels);
-      return { applied: false, explanations: this.showUnknownItemWarning(finding, proposalLabels) };
+      return {
+        applied: false,
+        explanations: this._feedback.showFindings([finding], proposalLabels),
+      };
     }
-    let explanations: readonly string[] | undefined;
-    const applied = await this.applyDocument(
-      next,
+    return this.applyDocument(next, baseRevision, {
+      context: "entityDraft",
       baseRevision,
-      this.formRejection("entityDraft", baseRevision, (rejected) => (explanations = rejected)),
-    );
-    if (applied) {
-      this._feedback.reportRejection("entityDraft", baseRevision, [], EMPTY_LABEL_SNAPSHOT);
-    }
-    return { applied, explanations };
+    });
   }
 
   /** Applies a persisted view proposal through the same revision-safe edit path. */
@@ -494,7 +474,7 @@ export class GanttEditorController {
       this.reportUnknownDeletion(kind, entityId);
       return false;
     }
-    return this.applyDocument(nextDocument, baseRevision);
+    return (await this.applyDocument(nextDocument, baseRevision)).applied;
   }
 
   /**
@@ -523,7 +503,7 @@ export class GanttEditorController {
     }
 
     const next = buildGroupDeletionDocument(this._document, groupId, resolvedStrategy);
-    return next ? this.applyDocument(next, editBaseRevision) : false;
+    return next ? (await this.applyDocument(next, editBaseRevision)).applied : false;
   }
 
   /**
@@ -591,7 +571,12 @@ export class GanttEditorController {
           return false;
         }
         this._sanitizedSourceTexts.add(sourceText);
-        this.warnAndApplySanitization(sanitization, labelSnapshotOf(parsedDocument));
+        void this._feedback.applyCleanup(
+          sanitization,
+          labelSnapshotOf(parsedDocument),
+          serializeDocument(sanitization.document),
+          (text) => this._edits.replaceText(text),
+        );
         return false;
       }
       const document = sanitization.document;
@@ -604,12 +589,7 @@ export class GanttEditorController {
       this._onDidChangeModel.fire();
       if (schedulingError !== undefined) {
         const labels = labelSnapshotOf(document);
-        void vscode.window.showErrorMessage(
-          vscode.l10n.t(
-            "Ganttee: {0}",
-            this._feedback.describe([schedulingFailedFinding(schedulingError)], labels)[0],
-          ),
-        );
+        this._feedback.showFindings([schedulingFailedFinding(schedulingError)], labels, "ganttee");
       }
       return true;
     } catch (error) {
@@ -619,37 +599,12 @@ export class GanttEditorController {
         error instanceof ParallelEdgeDependencyError ||
         error instanceof CyclicDependencyError
       ) {
-        this._documentError = this.describeDocumentError();
+        this._documentError = this._feedback.documentError();
         void vscode.window.showErrorMessage(this._documentError);
         return false;
       }
       throw error;
     }
-  }
-
-  /**
-   * Describes why the current document text cannot be loaded, with structured
-   * label-safe wording instead of the raw exception text.
-   */
-  private describeDocumentError(): string {
-    const evaluation = this.diagnostics.evaluation(this.document);
-    const errors = evaluation.findings.filter((finding) => finding.severity === "error");
-    const first = errors[0];
-    if (first === undefined) {
-      return vscode.l10n.t("Ganttee: the document cannot be loaded.");
-    }
-    const description = this._feedback.describe([first], evaluation.labels)[0];
-    const more = errors.length - 1;
-    if (more === 0) {
-      return vscode.l10n.t("Ganttee: {0}", description);
-    }
-    return more === 1
-      ? vscode.l10n.t("Ganttee: {0} 1 more problem is listed in the Problems view.", description)
-      : vscode.l10n.t(
-          "Ganttee: {0} {1} more problems are listed in the Problems view.",
-          description,
-          more,
-        );
   }
 
   /** Applies a revision-bound settings proposal and posts its correlated result. */
@@ -666,14 +621,12 @@ export class GanttEditorController {
       this._feedback.reportRejection("settingsDraft", baseRevision, findings, labels);
       explanations = this._feedback.describe(findings, labels);
     } else {
-      accepted = await this.applyDocument(
-        next,
+      const outcome = await this.applyDocument(next, baseRevision, {
+        context: "settingsDraft",
         baseRevision,
-        this.formRejection("settingsDraft", baseRevision, (rejected) => (explanations = rejected)),
-      );
-      if (accepted) {
-        this._feedback.reportRejection("settingsDraft", baseRevision, [], EMPTY_LABEL_SNAPSHOT);
-      }
+      });
+      accepted = outcome.applied;
+      explanations = outcome.explanations;
     }
     this.post({
       type: "settingsEditResult",
@@ -685,117 +638,29 @@ export class GanttEditorController {
   }
 
   /**
-   * Warns about invalid scheduling structures, publishes the cleanup finding
-   * labeled with the pre-cleanup source, and rewrites the source document with
-   * their sanitized replacement.
-   */
-  private warnAndApplySanitization(
-    sanitization: ScheduleGraphSanitization,
-    sourceLabels: LabelSnapshot,
-  ): void {
-    const replacement = serializeDocument(sanitization.document);
-    const finding = this._feedback.reportCleanup(sanitization, sourceLabels, replacement);
-    void vscode.window.showWarningMessage(
-      vscode.l10n.t("Ganttee: {0}", this._feedback.describe([finding], sourceLabels)[0]),
-    );
-    void this.applyDocumentText(replacement, sourceLabels);
-  }
-
-  /** Applies a cleanup replacement without running semantic save validation. */
-  private async applyDocumentText(replacement: string, sourceLabels: LabelSnapshot): Promise<void> {
-    if (this._isDisposed) {
-      this._feedback.reportCleanupFailed(sourceLabels);
-      return;
-    }
-    const edit = new vscode.WorkspaceEdit();
-    const fullRange = new vscode.Range(
-      this.document.positionAt(0),
-      this.document.positionAt(this.document.getText().length),
-    );
-    edit.replace(this.document.uri, fullRange, replacement);
-    const applied = await vscode.workspace.applyEdit(edit);
-    if (!applied) {
-      const finding = this._feedback.reportCleanupFailed(sourceLabels);
-      if (this._isDisposed) {
-        return;
-      }
-      void vscode.window.showErrorMessage(
-        vscode.l10n.t("Ganttee: {0}", this._feedback.describe([finding], sourceLabels)[0]),
-      );
-    }
-  }
-
-  /**
    * Validates and applies a full-document replacement through WorkspaceEdit.
-   * Returns whether VS Code accepted the edit so callers can acknowledge authoritative success.
-   * A rejected proposal is explained to `onRejected`, or published as an operation finding.
+   * Returns authoritative success and label-safe explanations for correlated form results.
+   * A rejected proposal belongs to its form target, or is published as an operation finding.
    */
-  private applyDocument(
+  private async applyDocument(
     next: ProjectDocument,
     baseRevision = this.document.version,
-    onRejected?: RejectionHandler,
-  ): Promise<boolean> {
-    return this.editQueue.runRevisioned(
-      this.document.uri.toString(),
-      baseRevision,
-      () => this.document.version,
-      async () => {
-        if (this._isDisposed) {
-          return false;
-        }
-        return this.applyDocumentNow(next, onRejected);
-      },
-      () => this.postCurrentProject(),
-    );
-  }
-
-  /** Validates and writes a document after its queued revision check succeeds. */
-  private async applyDocumentNow(
-    next: ProjectDocument,
-    onRejected?: RejectionHandler,
-  ): Promise<boolean> {
-    const text = serializeDocument(next);
-    let rejected: boolean;
-    try {
-      rejected = blockingDiagnostics(evaluateScheduleDiagnostics(parseDocument(text))).length > 0;
-    } catch (error) {
-      if (!(error instanceof GanttParseError)) {
-        throw error;
-      }
-      rejected = true;
+    target?: RejectedEditTarget,
+  ): Promise<ProposalOutcome> {
+    const outcome = await this._edits.apply(next, baseRevision);
+    if (outcome.status === "stale") {
+      this.postCurrentProject();
     }
-    if (rejected) {
-      this.rejectProposal(text, onRejected);
-      return false;
+    if (outcome.status === "applied" && target !== undefined) {
+      this._feedback.reportRejection(target.context, target.baseRevision, [], EMPTY_LABEL_SNAPSHOT);
     }
-
-    const edit = new vscode.WorkspaceEdit();
-    const fullRange = new vscode.Range(
-      this.document.positionAt(0),
-      this.document.positionAt(this.document.getText().length),
-    );
-    edit.replace(this.document.uri, fullRange, text);
-    return vscode.workspace.applyEdit(edit);
-  }
-
-  /** Explains a rejected proposal with label-safe findings, inline and in Problems. */
-  private rejectProposal(text: string, onRejected: RejectionHandler | undefined): void {
-    const rejection = proposalRejection(text);
-    const findings =
-      rejection.findings.length > 0 ? rejection.findings : [editRejectedFinding("project")];
-    const explanations = this._feedback.describe(findings, rejection.labels);
-    void vscode.window.showErrorMessage(
-      vscode.l10n.t("Cannot apply update: {0}", explanations.join(" ")),
-    );
-    if (onRejected !== undefined) {
-      onRejected(findings, rejection.labels, explanations);
-      return;
-    }
-    this._feedback.reportOperation(
-      "apply",
-      findings.map((finding) => ({ ...finding, origin: "operation" })),
-      rejection.labels,
-    );
+    return {
+      applied: outcome.status === "applied",
+      explanations:
+        outcome.status === "validationRejected"
+          ? this._feedback.rejectProposal(outcome.text, target)
+          : undefined,
+    };
   }
 
   /**
@@ -857,31 +722,6 @@ export class GanttEditorController {
   private reportUnknownDeletion(kind: EditableEntityKind, id: string): void {
     const finding = unknownItemFinding(kind, id, "operation");
     const labels = labelSnapshotOf(this._document);
-    this._feedback.reportOperation("delete", [finding], labels);
-    this.showUnknownItemWarning(finding, labels);
-  }
-
-  /** Shows a localized, label-safe warning for a request targeting a missing item. */
-  private showUnknownItemWarning(finding: GantteeFinding, labels: LabelSnapshot): string[] {
-    const explanations = this._feedback.describe([finding], labels);
-    if (!this._isDisposed) {
-      void vscode.window.showWarningMessage(explanations[0]);
-    }
-    return explanations;
-  }
-
-  /**
-   * Builds a rejection handler that publishes rejected-edit feedback for a
-   * form and hands the explanations back for its correlated result.
-   */
-  private formRejection(
-    context: DraftFeedbackContext,
-    baseRevision: number,
-    receive: (explanations: readonly string[]) => void,
-  ): RejectionHandler {
-    return (findings, labels, explanations) => {
-      this._feedback.reportRejection(context, baseRevision, findings, labels);
-      receive(explanations);
-    };
+    this._feedback.operationFailure("delete", [finding], labels);
   }
 }
