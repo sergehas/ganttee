@@ -88,8 +88,8 @@ export const FINDING_TEMPLATES = {
   selfLoopDependency: "{0} connects an item to itself.",
   parallelDependency: "{0} duplicates another dependency between the same items.",
   dependencyCycle: "Dependencies form a cycle: {0}.",
-  underConstrained: "{0} is under-constrained ({1} constraints, need 2).",
-  overConstrained: "{0} is over-constrained ({1} constraints, need 2).",
+  constraintCount: "{0} has {1} constraints; exactly 2 are needed to schedule.",
+  constraintCountOne: "{0} has 1 constraint; exactly 2 are needed to schedule.",
   duplicateConstraint: "{0} has a duplicate {1} constraint.",
   danglingDependency: "{0} references a missing item.",
   groupDependency: "{0} involves a group; groups cannot carry dependencies.",
@@ -102,13 +102,13 @@ export const FINDING_TEMPLATES = {
   reasonUnscheduledTarget: "{0} could not be placed",
   reasonStartAfterEnd: "{0} would start after it ends",
   reasonUnderConstrained: "{0} lacks enough constraints",
-  reasonInvalidDuration: "{0} has an invalid duration",
+  reasonInvalidDuration: "the duration of {0} is invalid",
   reasonUnexpected: "an unexpected scheduling error occurred",
   cleanupRemoved: "Automatic cleanup removed items that could not be scheduled: {0}.",
   cleanupFailed: "Automatic scheduling cleanup could not be applied.",
   invalidDuration: "{0} has an invalid duration.",
-  blankStatusName: "A status name cannot be blank.",
-  invalidInput: 'Invalid value for "{1}" in {0}: expected {2}.',
+  blankStatusName: "Status name is required.",
+  newHolidayRange: "Holiday end must not be before its start.",
   exportFailed: "The chart image could not be exported.",
   dependencyCycleRejected: "{0} would create a dependency cycle.",
   sortUnavailable: "Sort is unavailable without a schedule.",
@@ -351,7 +351,18 @@ function describeOverConstrained(
     );
     return t(T.duplicateConstraint, primaryLabel(finding, labels, t), names.join(t(T.endpointAnd)));
   }
-  return t(T.overConstrained, primaryLabel(finding, labels, t), finding.args?.count ?? 0);
+  return describeConstraintCount(finding, labels, t);
+}
+
+/** Describes a constraint count that cannot be scheduled, with a singular form for one. */
+function describeConstraintCount(
+  finding: GantteeFinding,
+  labels: LabelSnapshot,
+  t: Translate,
+): string {
+  const count = finding.args?.count ?? 0;
+  const label = primaryLabel(finding, labels, t);
+  return count === 1 ? t(T.constraintCountOne, label) : t(T.constraintCount, label, count);
 }
 
 /** Describes a scheduling failure by its structured reason. */
@@ -401,15 +412,17 @@ export function describeFinding(
     case "unsupportedField":
       return describeField(T.unsupportedField, finding, labels, t);
     case "invalidInput":
-      return describeField(T.invalidInput, finding, labels, t);
+      return describeField(T.invalidField, finding, labels, t);
     case "duplicateEntityId":
       return t(T.duplicateEntityId, subject());
     case "duplicateDependencyId":
       return t(T.duplicateDependencyId, subject());
     case "duplicateStatusId":
       return t(T.duplicateStatusId, subject());
-    case "invalidTaskDateRange":
     case "invalidHolidayRange":
+      // An unsaved holiday has no position in the document yet.
+      return finding.origin === "draft" ? t(T.newHolidayRange) : t(T.invalidDateRange, subject());
+    case "invalidTaskDateRange":
       return t(T.invalidDateRange, subject());
     case "groupSelfParent":
       return t(T.groupSelfParent, subject());
@@ -432,7 +445,7 @@ export function describeFinding(
     case "dependencyCycle":
       return t(T.dependencyCycle, joinSubjects(finding, labels, t, T.cycleSeparator));
     case "underConstrained":
-      return t(T.underConstrained, subject(), finding.args?.count ?? 0);
+      return describeConstraintCount(finding, labels, t);
     case "overConstrained":
       return describeOverConstrained(finding, labels, t);
     case "danglingDependency":

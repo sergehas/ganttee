@@ -59,8 +59,7 @@ suite("taskForm entityPresentation", () => {
     assert.deepStrictEqual(blockingOnly, [
       {
         severity: "error",
-        source: "Task has {0} constraint(s); exactly 2 are needed to schedule.",
-        values: [1],
+        source: "This task has 1 constraint; exactly 2 are needed to schedule.",
       },
     ]);
 
@@ -102,7 +101,7 @@ suite("taskForm entityPresentation", () => {
     assert.deepStrictEqual(duplicateBoth, [
       {
         severity: "error",
-        source: "Task has {0} constraint(s); exactly 2 are needed to schedule.",
+        source: "This task has {0} constraints; exactly 2 are needed to schedule.",
         values: [3],
       },
       {

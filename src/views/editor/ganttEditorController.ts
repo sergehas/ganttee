@@ -639,13 +639,17 @@ export class GanttEditorController {
       return vscode.l10n.t("Ganttee: the document cannot be loaded.");
     }
     const description = this._feedback.describe([first], evaluation.labels)[0];
-    return errors.length > 1
-      ? vscode.l10n.t(
+    const more = errors.length - 1;
+    if (more === 0) {
+      return vscode.l10n.t("Ganttee: {0}", description);
+    }
+    return more === 1
+      ? vscode.l10n.t("Ganttee: {0} 1 more problem is listed in the Problems view.", description)
+      : vscode.l10n.t(
           "Ganttee: {0} {1} more problems are listed in the Problems view.",
           description,
-          errors.length - 1,
-        )
-      : vscode.l10n.t("Ganttee: {0}", description);
+          more,
+        );
   }
 
   /** Applies a revision-bound settings proposal and posts its correlated result. */
@@ -711,12 +715,12 @@ export class GanttEditorController {
     edit.replace(this.document.uri, fullRange, replacement);
     const applied = await vscode.workspace.applyEdit(edit);
     if (!applied) {
-      this._feedback.reportCleanupFailed(sourceLabels);
+      const finding = this._feedback.reportCleanupFailed(sourceLabels);
       if (this._isDisposed) {
         return;
       }
       void vscode.window.showErrorMessage(
-        vscode.l10n.t("Cannot apply automatic scheduling cleanup."),
+        vscode.l10n.t("Ganttee: {0}", this._feedback.describe([finding], sourceLabels)[0]),
       );
     }
   }

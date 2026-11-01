@@ -1,4 +1,5 @@
 import { ProjectView } from "@common/documents";
+import { FINDING_TEMPLATES } from "@common/presentation/diagnostics/findingPresenter";
 import { ProjectPresentation } from "@common/presentation/project";
 import { EditableEntityRef } from "@common/protocol";
 import type {
@@ -104,7 +105,7 @@ export function ChartView(props: ChartViewProps): React.JSX.Element {
       props.onExportError(null);
       await chart.exportImage(format, destination);
     } catch {
-      props.onExportError(translate(l10n, "Unable to export chart image."));
+      props.onExportError(translate(l10n, FINDING_TEMPLATES.exportFailed));
     }
   };
 

@@ -79,11 +79,18 @@ export function taskValidationMessages(
   }
   const messages: EntityEditorValidationMessage[] = [];
   if (diagnostic.severity === "blocking") {
-    messages.push({
-      severity: "error",
-      source: "Task has {0} constraint(s); exactly 2 are needed to schedule.",
-      values: [diagnostic.count],
-    });
+    messages.push(
+      diagnostic.count === 1
+        ? {
+            severity: "error",
+            source: "This task has 1 constraint; exactly 2 are needed to schedule.",
+          }
+        : {
+            severity: "error",
+            source: "This task has {0} constraints; exactly 2 are needed to schedule.",
+            values: [diagnostic.count],
+          },
+    );
   }
   if (diagnostic.kind === "overConstrained" && diagnostic.duplicateEndpoints.length > 0) {
     const hasStart = diagnostic.duplicateEndpoints.includes("start");

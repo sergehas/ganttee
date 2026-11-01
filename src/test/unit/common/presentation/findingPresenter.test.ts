@@ -187,22 +187,40 @@ suite("findingPresenter", () => {
     [
       "an over-constrained item",
       finding("overConstrained", { args: { count: 3 } }),
-      `${BUILD} is over-constrained (3 constraints, need 2).`,
+      `${BUILD} has 3 constraints; exactly 2 are needed to schedule.`,
     ],
     [
       "an over-constrained item without arguments",
       finding("overConstrained"),
-      `${BUILD} is over-constrained (0 constraints, need 2).`,
+      `${BUILD} has 0 constraints; exactly 2 are needed to schedule.`,
     ],
     [
       "an under-constrained item without a count",
       finding("underConstrained"),
-      `${BUILD} is under-constrained (0 constraints, need 2).`,
+      `${BUILD} has 0 constraints; exactly 2 are needed to schedule.`,
+    ],
+    [
+      "an under-constrained item with one constraint",
+      finding("underConstrained", { args: { count: 1 } }),
+      `${BUILD} has 1 constraint; exactly 2 are needed to schedule.`,
     ],
     [
       "a scheduling failure with a reason",
       finding("schedulingFailed", { args: { reason: "invalidDuration" } }),
-      `The schedule cannot be computed: ${BUILD} has an invalid duration.`,
+      `The schedule cannot be computed: the duration of ${BUILD} is invalid.`,
+    ],
+    [
+      "an invalid unsaved holiday range",
+      finding("invalidHolidayRange", {
+        origin: "draft",
+        subjects: [{ kind: "holiday", index: 2 }],
+      }),
+      "Holiday end must not be before its start.",
+    ],
+    [
+      "an invalid document holiday range",
+      finding("invalidHolidayRange", { subjects: [{ kind: "holiday", index: 0 }] }),
+      "holiday #1 starts after it ends.",
     ],
     [
       "a scheduling failure without a reason",

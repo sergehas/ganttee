@@ -1,4 +1,5 @@
 import { ProjectItemState, ProjectSettings, ProjectStatus } from "@common/documents";
+import { FINDING_TEMPLATES } from "@common/presentation/diagnostics/findingPresenter";
 import { ProjectPresentation } from "@common/presentation/project";
 import { SettingsDraftState } from "@services/diagnostics/draftFindings";
 import { updateProjectDayOff } from "@services/settings/projectSettingsWorkflow";
@@ -78,7 +79,7 @@ export function SettingsEditor({
     event.preventDefault();
     const holiday = createHolidayRange(holidayStart, holidayEnd);
     if (!holiday) {
-      setHolidayError(translate("Holiday end must not be before its start."));
+      setHolidayError(translate(FINDING_TEMPLATES.newHolidayRange));
       return;
     }
     setHolidayError(null);
@@ -95,7 +96,7 @@ export function SettingsEditor({
     event.preventDefault();
     const status = createNewStatus(statusName, statusColor, statusState);
     if (!status) {
-      setStatusError(translate("Status name is required."));
+      setStatusError(translate(FINDING_TEMPLATES.blankStatusName));
       return;
     }
     setStatusError(null);

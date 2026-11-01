@@ -255,6 +255,11 @@ or an explicitly identified transient editing or operational context.
   encoded document URI and item reference for the `ganttee.openProblemItem` command; its visible
   text is the category only. Every published range is valid for the current owning resource; related
   locations are omitted when unavailable.
+- Category codes, the `Ganttee` source name, and schema field and value names are stable identifiers
+  and are not translated, including when a code is the visible text of a code link. Native Problems
+  filters match on them. Every other visible word is localized, uses one wording for the same
+  condition in notifications, forms, and Problems, and has a separate singular form where a count
+  can be 1.
 - Problems is not forcibly opened for every validation refresh. Consent dialogs are not findings.
 
 ## 6. Domain & Data Model Impact
