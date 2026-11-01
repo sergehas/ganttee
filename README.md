@@ -1,9 +1,7 @@
-# Ganttee
+# ![Ganttee logo](docs/images/ganttee-color.png) Ganttee
 
 [![CI – main](https://github.com/sergehas/ganttee/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sergehas/ganttee/actions/workflows/ci.yml)
 [![CI – develop](https://github.com/sergehas/ganttee/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/sergehas/ganttee/actions/workflows/ci.yml)
-
-![Ganttee logo](docs/images/ganttee-color_64.png)
 
 Plan projects without leaving VS Code. Ganttee is an interactive Gantt chart editor for `.ganttee`
 files: tasks, groups, milestones, dependencies, working calendars, and a critical path, all in a
@@ -28,6 +26,8 @@ plain JSON file that you can version with your code.
 
 - **Tasks, groups, and milestones** on one timeline. Group bars span all their descendants.
 - **Drag task bars** to move them in time. **Double-click** any item to open its edit form.
+- **Collapse or expand group rows** with Ctrl-click (Cmd-click on macOS); this lasts for the current
+  session.
 - **Five zoom levels** (day, week, month, quarter, year), zoom in and out, and **fit to window**.
 - **Two-level time header** (for example, months over weeks) with ISO 8601 week numbers.
 - **Three visual styles**: _Classic_, _Rounded_, and _Metro_ (a metro-map look for dependency
@@ -54,7 +54,7 @@ plain JSON file that you can version with your code.
 - **Holidays**: inclusive date ranges that scheduling skips, shaded on the chart.
 - **Group roll-up** from the earliest start to the latest end of all descendants.
 - **Validation**: rejects dependency cycles and reports items that are under- or over-constrained or
-  have no anchor date.
+  have no anchor date. Findings appear in VS Code's Problems view with source locations.
 
 ![Ganttee Tasks view with groups and status badges](docs/images/sidebar.png)
 
@@ -118,12 +118,11 @@ preferences) are stored in each `.ganttee` file and edited in the **Project Sett
 
 ## Requirements
 
-VS Code 1.138.0 or later. No other dependency.
+VS Code 1.140.0 or later. No other dependency.
 
 ## Known Issues
 
 - Off-days and holidays are shaded but cannot be collapsed out of the timeline yet.
-- Validation problems are shown in the Tasks view, not yet in the **Problems** panel.
 
 Report other issues in the [issue tracker](https://github.com/sergehas/ganttee/issues).
 
