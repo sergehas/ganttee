@@ -7,7 +7,7 @@ import {
 import { GantteeDiagnosticsService } from "@views/diagnostics/gantteeDiagnosticsService";
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { openGantteeText, projectText, replaceText } from "./diagnosticsTestUtils";
+import { codeOf, openGantteeText, projectText, replaceText } from "./diagnosticsTestUtils";
 
 /** A valid project with one task. */
 const VALID_TEXT = projectText({
@@ -53,7 +53,7 @@ suite("EditorFeedbackSession", () => {
 
   /** Returns the codes of the diagnostics published for the document. */
   function codes(): string[] {
-    return (collection.get(document.uri) ?? []).map((diagnostic) => String(diagnostic.code));
+    return (collection.get(document.uri) ?? []).map((diagnostic) => codeOf(diagnostic));
   }
 
   /** Builds a browser feedback message. */

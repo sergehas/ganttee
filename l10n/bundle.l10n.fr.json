@@ -249,5 +249,6 @@
   "Cannot add dependency: {0}": "Impossible d'ajouter la dépendance : {0}",
   "Ganttee: the document cannot be loaded.": "Ganttee : le document ne peut pas être chargé.",
   "Ganttee: {0} {1} more problems are listed in the Problems view.": "Ganttee : {0} {1} autres problèmes sont listés dans la vue Problèmes.",
-  "Saving is unavailable until the document is valid.": "L'enregistrement est indisponible tant que le document n'est pas valide."
+  "Saving is unavailable until the document is valid.": "L'enregistrement est indisponible tant que le document n'est pas valide.",
+  "This item no longer exists in the document.": "Cet élément n'existe plus dans le document."
 }

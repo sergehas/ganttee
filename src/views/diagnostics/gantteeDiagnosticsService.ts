@@ -9,6 +9,11 @@ import {
   evaluateDocumentText,
 } from "@services/diagnostics/documentDiagnosticsService";
 import { TransientFeedbackStore } from "@services/diagnostics/transientFeedbackStore";
+import {
+  encodeProblemItemArgument,
+  OPEN_PROBLEM_ITEM_COMMAND,
+  problemItemRef,
+} from "@services/diagnostics/problemNavigation";
 import { JsonSourceNode, nodeAt, scanJson } from "@services/document/jsonSourceMapService";
 import * as vscode from "vscode";
 
@@ -339,7 +344,7 @@ export class GantteeDiagnosticsService implements vscode.Disposable, vscode.Code
         : vscode.DiagnosticSeverity.Warning,
     );
     diagnostic.source = GANTTEE_DIAGNOSTIC_SOURCE;
-    diagnostic.code = finding.category;
+    diagnostic.code = this.code(document, projection, finding);
     const related = (finding.related ?? []).flatMap((entry) => {
       const range =
         finding.origin === "document"
@@ -358,6 +363,30 @@ export class GantteeDiagnosticsService implements vscode.Disposable, vscode.Code
       diagnostic.relatedInformation = related;
     }
     return diagnostic;
+  }
+
+  /**
+   * Returns the diagnostic code: the finding category, linked to the edit form
+   * of its primary item when that item exists in the current revision.
+   */
+  private code(
+    document: vscode.TextDocument,
+    projection: Projection,
+    finding: GantteeFinding,
+  ): vscode.Diagnostic["code"] {
+    const entity = problemItemRef(finding, projection.evaluation.labels);
+    if (entity === undefined) {
+      return finding.category;
+    }
+    const argument = encodeProblemItemArgument({ uri: document.uri.toString(), entity });
+    return {
+      value: finding.category,
+      target: vscode.Uri.from({
+        scheme: "command",
+        path: OPEN_PROBLEM_ITEM_COMMAND,
+        query: JSON.stringify([argument]),
+      }),
+    };
   }
 
   /**
@@ -440,6 +469,11 @@ function sameDiagnostic(left: vscode.Diagnostic, right: vscode.Diagnostic): bool
   return (
     left.message === right.message &&
     left.range.isEqual(right.range) &&
-    String(left.code) === String(right.code)
+    codeValue(left.code) === codeValue(right.code)
   );
+}
+
+/** Returns the displayed value of a diagnostic code, linked or not. */
+function codeValue(code: vscode.Diagnostic["code"]): string {
+  return String(typeof code === "object" ? code.value : code);
 }

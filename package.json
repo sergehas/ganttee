@@ -184,6 +184,11 @@
         "command": "ganttee.dismissOperationProblem",
         "title": "%command.dismissOperationProblem.title%",
         "category": "%extension.displayName%"
+      },
+      {
+        "command": "ganttee.openProblemItem",
+        "title": "%command.openProblemItem.title%",
+        "category": "%extension.displayName%"
       }
     ],
     "menus": {
@@ -258,6 +263,10 @@
       "commandPalette": [
         {
           "command": "ganttee.dismissOperationProblem",
+          "when": "false"
+        },
+        {
+          "command": "ganttee.openProblemItem",
           "when": "false"
         }
       ]

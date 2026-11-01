@@ -1,5 +1,9 @@
 import { createEmptyDocument } from "@common/documents";
 import { EMPTY_LABEL_SNAPSHOT, GantteeFinding, LabelSnapshot } from "@common/models";
+import {
+  decodeProblemItemArgument,
+  OPEN_PROBLEM_ITEM_COMMAND,
+} from "@services/diagnostics/problemNavigation";
 import { TransientFeedbackStore } from "@services/diagnostics/transientFeedbackStore";
 import {
   DISMISS_OPERATION_PROBLEM_COMMAND,
@@ -8,7 +12,7 @@ import {
 } from "@views/diagnostics/gantteeDiagnosticsService";
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { openGantteeText, projectText, replaceText } from "./diagnosticsTestUtils";
+import { codeOf, openGantteeText, projectText, replaceText } from "./diagnosticsTestUtils";
 
 /** Builds an operation finding about the given subjects. */
 function operationFinding(
@@ -61,9 +65,7 @@ suite("GantteeDiagnosticsService", () => {
 
   /** Returns the published diagnostics of transient test findings. */
   function transient(document: vscode.TextDocument): readonly vscode.Diagnostic[] {
-    return published(document).filter((diagnostic) =>
-      TRANSIENT_CODES.includes(String(diagnostic.code)),
-    );
+    return published(document).filter((diagnostic) => TRANSIENT_CODES.includes(codeOf(diagnostic)));
   }
 
   /** Publishes operation findings for a tracked document. */
@@ -98,7 +100,7 @@ suite("GantteeDiagnosticsService", () => {
     service.track(document);
     const [diagnostic] = published(document);
     assert.strictEqual(diagnostic.source, GANTTEE_DIAGNOSTIC_SOURCE);
-    assert.strictEqual(diagnostic.code, "invalidField");
+    assert.strictEqual(codeOf(diagnostic), "invalidField");
     assert.strictEqual(diagnostic.severity, vscode.DiagnosticSeverity.Error);
     assert.ok(!diagnostic.message.includes("id-sentinel-1"));
     const offset = text.indexOf('"bad-date"');
@@ -131,7 +133,7 @@ suite("GantteeDiagnosticsService", () => {
     );
     service.track(duplicated);
     const duplicate = published(duplicated).find(
-      (diagnostic) => diagnostic.code === "duplicateEntityId",
+      (diagnostic) => codeOf(diagnostic) === "duplicateEntityId",
     );
     assert.ok(duplicate?.relatedInformation?.length);
     assert.strictEqual(
@@ -172,7 +174,7 @@ suite("GantteeDiagnosticsService", () => {
     );
     for (const diagnostic of transient(document)) {
       assert.ok(diagnostic.range.isEmpty);
-      assert.strictEqual(diagnostic.code, "unknownItem");
+      assert.strictEqual(codeOf(diagnostic), "unknownItem");
     }
   });
 
@@ -218,7 +220,9 @@ suite("GantteeDiagnosticsService", () => {
     const document = await openGantteeText("{ invalid");
     service.track(document);
     report(document, [operationFinding([{ kind: "task", id: "t" }])]);
-    const operation = transient(document).find((diagnostic) => diagnostic.code === "unknownItem");
+    const operation = transient(document).find(
+      (diagnostic) => codeOf(diagnostic) === "unknownItem",
+    );
     assert.strictEqual(operation?.range.start.line, 0);
     assert.strictEqual(operation.range.start.character, 0);
   });
@@ -291,7 +295,7 @@ suite("GantteeDiagnosticsService", () => {
     service.track(document);
     report(document, [operationFinding([])], EMPTY_LABEL_SNAPSHOT, "host:sort");
     const diagnostics = published(document);
-    const operation = diagnostics.find((diagnostic) => diagnostic.code === "unknownItem");
+    const operation = diagnostics.find((diagnostic) => codeOf(diagnostic) === "unknownItem");
     assert.ok(operation);
     const actions = service.provideCodeActions(
       document,
@@ -308,6 +312,50 @@ suite("GantteeDiagnosticsService", () => {
       service.provideCodeActions(other, new vscode.Range(0, 0, 0, 0), actionContext([operation])),
       [],
     );
+  });
+
+  test("links the code of item findings to the item's edit form", async () => {
+    const document = await openGantteeText(VALID_TEXT);
+    service.track(document);
+    report(document, [
+      operationFinding([{ kind: "task", id: "t" }]),
+      operationFinding([{ kind: "item", id: "g" }]),
+      operationFinding([{ kind: "status", id: "s" }]),
+      operationFinding([{ kind: "task", id: "missing" }]),
+    ]);
+    const [task, group, status, missing] = transient(document);
+    for (const [diagnostic, expected] of [
+      [task, { kind: "task", id: "t" }],
+      [group, { kind: "group", id: "g" }],
+    ] as const) {
+      const code = diagnostic.code;
+      assert.ok(typeof code === "object");
+      assert.strictEqual(code.value, "unknownItem");
+      assert.strictEqual(code.target.scheme, "command");
+      assert.strictEqual(code.target.path, OPEN_PROBLEM_ITEM_COMMAND);
+      // Mirrors how VS Code renders the link and later turns it into command arguments.
+      const opened = vscode.Uri.parse(code.target.toString(true));
+      const args: unknown = JSON.parse(decodeURIComponent(opened.query));
+      assert.ok(Array.isArray(args));
+      assert.deepStrictEqual(decodeProblemItemArgument(args[0]), {
+        uri: document.uri.toString(),
+        entity: expected,
+      });
+    }
+    assert.strictEqual(status.code, "unknownItem");
+    assert.strictEqual(missing.code, "unknownItem");
+  });
+
+  test("matches linked diagnostics when offering the dismiss quick fix", async () => {
+    const document = await openGantteeText(VALID_TEXT);
+    service.track(document);
+    report(document, [operationFinding([{ kind: "task", id: "t" }])]);
+    const actions = service.provideCodeActions(
+      document,
+      new vscode.Range(0, 0, 0, 0),
+      actionContext(published(document)),
+    );
+    assert.strictEqual(actions.length, 1);
   });
 
   test("uses the injected translator", async () => {

@@ -214,6 +214,9 @@ export function App(): React.JSX.Element {
           }
           break;
         case "editEntity":
+          if (message.keepOpen === true && isSameEntity(editingEntityRef.current, message.entity)) {
+            break;
+          }
           toggleEntityEditor(message.entity);
           break;
         case "updateEntityResult": {

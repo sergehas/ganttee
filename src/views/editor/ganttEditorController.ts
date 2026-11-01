@@ -113,6 +113,8 @@ export class GanttEditorController {
   private _snapshot = createProjectSnapshot(hydrateDocument(this._document), []).snapshot;
   private _isDisposed = false;
   private _hasInitializedWebview = false;
+  /** Edit request received before the webview was ready. */
+  private _pendingEdit: HostToWebviewMessage | undefined;
   private _documentError: string | undefined;
   private readonly _sanitizedSourceTexts = new Set<string>();
   private readonly _disposables: vscode.Disposable[] = [];
@@ -228,10 +230,21 @@ export class GanttEditorController {
     this.post({ type: "selectEntity", entity });
   }
 
-  /** Reveals and opens edit mode for an entity in the webview. */
-  editEntity(entity: EditableEntityRef): void {
+  /**
+   * Reveals and opens edit mode for an entity in the webview. A request made before the
+   * webview is ready is delivered right after its initial document.
+   *
+   * @param entity The entity to edit.
+   * @param keepOpen Keeps an already open form of the entity open instead of toggling it.
+   */
+  editEntity(entity: EditableEntityRef, keepOpen = false): void {
     this.focus();
-    this.post({ type: "editEntity", entity });
+    const message: HostToWebviewMessage = { type: "editEntity", entity, keepOpen };
+    if (this._hasInitializedWebview) {
+      this.post(message);
+    } else {
+      this._pendingEdit = message;
+    }
   }
 
   /** Adds a task, positioned per the current sidebar selection. Used by host-side creation flows. */
@@ -807,6 +820,10 @@ export class GanttEditorController {
       ),
     });
     this.sendInit();
+    if (this._pendingEdit !== undefined) {
+      this.post(this._pendingEdit);
+      this._pendingEdit = undefined;
+    }
   }
 
   /** Creates the versionless UI projection for the current snapshot. */

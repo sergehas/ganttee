@@ -48,7 +48,12 @@ export type HostToWebviewMessage =
       explanations?: readonly string[];
     }
   | { type: "selectEntity"; entity: EditableEntityRef }
-  | { type: "editEntity"; entity: EditableEntityRef }
+  | {
+      type: "editEntity";
+      entity: EditableEntityRef;
+      /** Keeps an already open form of the same entity open instead of toggling it closed. */
+      keepOpen?: boolean;
+    }
   | {
       //  Authoritative outcome of one correlated webview entity-update proposal.
       //  This acknowledgment is independent of `documentChanged`; either message may arrive first.

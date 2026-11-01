@@ -1,4 +1,6 @@
+import { FIXTURES_DIR } from "@src/test/testFixtures";
 import * as assert from "assert";
+import * as path from "path";
 import * as vscode from "vscode";
 import { activateExtension } from "./smokeHelpers";
 
@@ -73,5 +75,37 @@ suite("diagnostics smoke", () => {
       !repaired.some((diagnostic) => diagnostic.code === "invalidJson"),
       "the malformed JSON finding was not cleared after repair",
     );
+  });
+
+  test("an item finding's code link opens the item's chart editor", async () => {
+    const all = await vscode.commands.getCommands(true);
+    assert.ok(all.includes("ganttee.openProblemItem"), "ganttee.openProblemItem not registered");
+
+    const uri = vscode.Uri.file(path.join(FIXTURES_DIR, "v2-invalid-task-dates.ganttee"));
+    await vscode.workspace.openTextDocument(uri);
+    const linkedTarget = (diagnostics: readonly vscode.Diagnostic[]): vscode.Uri | undefined => {
+      for (const diagnostic of diagnostics) {
+        const code = diagnostic.code;
+        if (typeof code === "object" && code.target.scheme === "command") {
+          return code.target;
+        }
+      }
+      return undefined;
+    };
+    const target = linkedTarget(
+      await waitForDiagnostics(uri, (diagnostics) => linkedTarget(diagnostics) !== undefined),
+    );
+    assert.ok(target, "no item finding has a linked code");
+    assert.strictEqual(target.path, "ganttee.openProblemItem");
+
+    // Run the link the way the Problems view does: parse the rendered link, then its query.
+    const link = vscode.Uri.parse(target.toString(true));
+    const args = JSON.parse(decodeURIComponent(link.query)) as unknown[];
+    assert.strictEqual(await vscode.commands.executeCommand(link.path, ...args), true);
+
+    const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    assert.ok(input instanceof vscode.TabInputCustom);
+    assert.strictEqual(input.viewType, "ganttee.chartEditor");
+    assert.strictEqual(input.uri.toString(), uri.toString());
   });
 });

@@ -20,5 +20,6 @@
   "command.deleteProjectItem.title": "Delete Item",
   "command.revealEntity.title": "Reveal Work Item",
   "command.refreshExplorer.title": "Refresh",
-  "command.dismissOperationProblem.title": "Dismiss Operation Problem"
+  "command.dismissOperationProblem.title": "Dismiss Operation Problem",
+  "command.openProblemItem.title": "Open Problem Item"
 }

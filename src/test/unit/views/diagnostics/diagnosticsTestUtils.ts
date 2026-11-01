@@ -35,3 +35,13 @@ export async function replaceText(document: vscode.TextDocument, text: string): 
   );
   assert.ok(await vscode.workspace.applyEdit(edit));
 }
+
+/**
+ * Returns the displayed value of a diagnostic code, linked or not.
+ *
+ * @param diagnostic The diagnostic.
+ */
+export function codeOf(diagnostic: vscode.Diagnostic): string {
+  const code = diagnostic.code;
+  return String(typeof code === "object" ? code.value : code);
+}

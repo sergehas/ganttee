@@ -20,5 +20,6 @@
   "command.deleteProjectItem.title": "Supprimer l'élément",
   "command.revealEntity.title": "Révéler l'élément de travail",
   "command.refreshExplorer.title": "Actualiser",
-  "command.dismissOperationProblem.title": "Ignorer le problème d'opération"
+  "command.dismissOperationProblem.title": "Ignorer le problème d'opération",
+  "command.openProblemItem.title": "Ouvrir l'élément du problème"
 }

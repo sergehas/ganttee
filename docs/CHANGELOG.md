@@ -13,7 +13,8 @@ file.
   graph, constraint, calendar, and scheduling problems map to precise source ranges with related
   locations, and use item labels rather than internal identifiers. Unsaved form drafts, rejected
   edits, cleanup, and failed image exports are also listed, each with its origin. Operation problems
-  can be dismissed from a quick fix.
+  can be dismissed from a quick fix. The category code of an item finding is a link that opens the
+  item's edit form.
 - An open edit form now stays open when its document becomes invalid. Saving stays blocked until a
   valid revision is available, and host rejection explanations appear inline.
 
